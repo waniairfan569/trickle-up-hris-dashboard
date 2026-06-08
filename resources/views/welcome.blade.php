@@ -101,7 +101,7 @@
                 <span class="text-transparent bg-clip-text bg-gradient-to-r from-brand-400 via-indigo-400 to-purple-400">Enterprise HRIS Engine</span>
             </h1>
             <p class="text-sm sm:text-base text-slate-400 max-w-xl mx-auto leading-relaxed">
-                Welcome to the Workable HR gateway portal. Choose a node below to access the employee space or administrative controls.
+                Welcome to the Trickle Up HRIS gateway portal. Choose a node below to access the employee space or administrative controls.
             </p>
         </div>
 
@@ -158,7 +158,7 @@
 
     <!-- Footer -->
     <footer class="w-full py-6 text-center text-[10px] text-slate-500 border-t border-slate-900 z-10">
-        &copy; 2026 Trickle Up HRIS. Built by Trickle Up on the Laravel framework. All rights reserved.
+        &copy; 2026 Trickle Up HRIS. Built by Trickle Up. All rights reserved.
     </footer>
 
     <!-- Initialize Lucide Icons -->
