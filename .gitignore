@@ -24,3 +24,12 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Local dev / scratch scripts (not part of the application)
+/composer.phar
+/check-db.php
+/recreate_admin.php
+/functional-test.php
+/test-all-routes.php
+/verify-*.php
+/scratch/
