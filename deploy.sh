@@ -5,27 +5,30 @@
 #   Plesk > Domain > Git > (your repo) > "Enable additional deployment actions"
 # OR run it manually over SSH from the project root after a git pull.
 #
-# Adjust PHP/Composer paths to match your Plesk server if needed.
-# This server runs PHP 8.4 (managed via phpenv / .php-version).
+# IMPORTANT: the app's dependencies (Symfony 8) require PHP >= 8.4.
+# Plesk's deployment-action shell may default to an older PHP (e.g. 8.3),
+# so we PIN the 8.4 binary explicitly and run composer THROUGH it.
 # ============================================================
 set -e
 
-# Resolve PHP: prefer the phpenv-managed `php` (honours .php-version = 8.4),
-# then fall back to explicit Plesk paths.
-if command -v php >/dev/null 2>&1; then
-  PHP="php"
-elif [ -x /opt/plesk/php/8.4/bin/php ]; then
-  PHP="/opt/plesk/php/8.4/bin/php"
-elif [ -x /opt/plesk/php/8.3/bin/php ]; then
-  PHP="/opt/plesk/php/8.3/bin/php"
-else
-  PHP="php"
-fi
+# Pin PHP 8.4 (the version the website + SSH use). Try the common Plesk paths.
+if   [ -x /opt/plesk/php/8.4/bin/php ]; then PHP="/opt/plesk/php/8.4/bin/php"
+elif [ -x /opt/plesk/php/8.5/bin/php ]; then PHP="/opt/plesk/php/8.5/bin/php"
+else PHP="php"; fi
 echo "Using PHP: $($PHP -v | head -n1)"
 
+# Resolve Composer, then ALWAYS invoke it via $PHP so it runs on 8.4
+# regardless of Composer's own shebang / the shell's default php.
+COMPOSER="$(command -v composer 2>/dev/null || true)"
+if [ -z "$COMPOSER" ]; then
+  $PHP -r "copy('https://getcomposer.org/installer','composer-setup.php');"
+  $PHP composer-setup.php --quiet
+  rm -f composer-setup.php
+  COMPOSER="composer.phar"
+fi
+
 # 1. Install PHP dependencies (no dev deps, optimized autoloader)
-$PHP /usr/lib/plesk-9.0/composer.phar install --no-dev --optimize-autoloader --no-interaction \
-  || composer install --no-dev --optimize-autoloader --no-interaction
+$PHP "$COMPOSER" install --no-dev --optimize-autoloader --no-interaction
 
 # 2. Run database migrations (no prompts in production)
 $PHP artisan migrate --force
