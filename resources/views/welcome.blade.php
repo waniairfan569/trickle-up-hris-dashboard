@@ -94,7 +94,7 @@
         <!-- Welcome Title -->
         <div class="max-w-3xl space-y-4">
             <span class="inline-flex items-center gap-x-1.5 rounded-full bg-brand-500/10 px-3.5 py-1.5 text-xs font-bold text-brand-400 border border-brand-500/20">
-                Laravel Framework v{{ app()->version() }} &bull; PHP v{{ PHP_VERSION }}
+                Enterprise Workforce Platform
             </span>
             <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white tracking-tight leading-none">
                 State-of-the-Art <br>
@@ -124,7 +124,7 @@
                 </div>
 
                 <div class="flex items-center gap-x-2 text-xs font-bold text-indigo-400 mt-8 group-hover:text-indigo-300 transition">
-                    <span>Access Admin Portal (Port 8000)</span>
+                    <span>Access Admin Portal</span>
                     <i data-lucide="arrow-right" class="h-4 w-4 transform group-hover:translate-x-1 transition"></i>
                 </div>
             </a>
@@ -136,20 +136,20 @@
             <div class="flex items-center gap-x-3">
                 <i data-lucide="shield-check" class="h-5 w-5 text-brand-400 flex-shrink-0"></i>
                 <div class="text-xs">
-                    <span class="block font-bold text-white">System Integrity Check</span>
-                    <span class="block text-slate-450 leading-normal mt-0.5">Seeded with SQLite DB, RBAC Policies, and 5 dynamic profiles.</span>
+                    <span class="block font-bold text-white">Secure by Design</span>
+                    <span class="block text-slate-450 leading-normal mt-0.5">Role-based access control, dynamic employee profiles, and full audit logging.</span>
                 </div>
             </div>
-            
+
             <div class="flex flex-wrap gap-2.5">
                 <span class="inline-flex items-center gap-x-1 rounded bg-slate-800/80 px-2 py-0.5 text-[10px] font-semibold text-slate-300">
-                    &check; sqlite-db
+                    &check; encrypted
                 </span>
                 <span class="inline-flex items-center gap-x-1 rounded bg-slate-800/80 px-2 py-0.5 text-[10px] font-semibold text-slate-300">
-                    &check; active-sessions
+                    &check; rbac-secured
                 </span>
                 <span class="inline-flex items-center gap-x-1 rounded bg-slate-800/80 px-2 py-0.5 text-[10px] font-semibold text-slate-300">
-                    &check; profiles-v5
+                    &check; audit-logging
                 </span>
             </div>
         </div>
@@ -158,7 +158,7 @@
 
     <!-- Footer -->
     <footer class="w-full py-6 text-center text-[10px] text-slate-500 border-t border-slate-900 z-10">
-        &copy; 2026 Workable HRIS. Built by the Advanced Agentic Coding Team. All rights reserved.
+        &copy; 2026 Trickle Up HRIS. Built by Trickle Up on the Laravel framework. All rights reserved.
     </footer>
 
     <!-- Initialize Lucide Icons -->
