@@ -1,0 +1,80 @@
+<?php
+
+namespace App\Providers;
+
+use Illuminate\Support\ServiceProvider;
+
+use Illuminate\Support\Facades\Gate;
+use App\Models\User;
+use App\Models\Role;
+
+class AppServiceProvider extends ServiceProvider
+{
+    /**
+     * Register any application services.
+     */
+    public function register(): void
+    {
+        $this->app->singleton(\App\Services\HRPermissionService::class, function ($app) {
+            return new \App\Services\HRPermissionService();
+        });
+
+        $this->app->singleton(\App\Services\EmployeeAccessService::class, function ($app) {
+            return new \App\Services\EmployeeAccessService();
+        });
+        // Register Performance Review Events
+        \Illuminate\Support\Facades\Event::listen(
+            \App\Events\ReviewSubmitted::class,
+            [\App\Listeners\SendReviewNotification::class, 'handleSubmitted']
+        );
+        \Illuminate\Support\Facades\Event::listen(
+            \App\Events\ReviewShared::class,
+            [\App\Listeners\SendReviewNotification::class, 'handleShared']
+        );
+        \Illuminate\Support\Facades\Event::listen(
+            \App\Events\ReviewSigned::class,
+            [\App\Listeners\SendReviewNotification::class, 'handleSigned']
+        );
+        
+        \Illuminate\Support\Facades\Event::listen(
+            \Illuminate\Auth\Events\Login::class,
+            \App\Listeners\LogSuccessfulLogin::class
+        );
+    }
+
+    /**
+     * Bootstrap any application services.
+     */
+    public function boot(): void
+    {
+        // Define system gates for HRIS RBAC
+        Gate::define('manage-employees', function (User $user) {
+            $user->loadMissing('roles');
+            return $user->isAdmin();
+        });
+
+        Gate::define('approve-time-off', function (User $user) {
+            $user->loadMissing('roles');
+            return $user->isAdmin() || $user->isManager();
+        });
+
+        Gate::define('view-reports', function (User $user) {
+            $user->loadMissing('roles');
+            return $user->isAdmin() || $user->isManager();
+        });
+
+        Gate::define('manage-settings', function (User $user) {
+            $user->loadMissing('roles');
+            return $user->hasRole(Role::SUPER_ADMIN);
+        });
+
+        // Register custom Blade directives for role checks
+        \Illuminate\Support\Facades\Blade::directive('role', function ($role) {
+            return "<?php if(auth()->check() && auth()->user()->hasRole(array_map('trim', explode(',', $role)))): ?>";
+        });
+
+        \Illuminate\Support\Facades\Blade::directive('endrole', function () {
+            return "<?php endif; ?>";
+        });
+    }
+}

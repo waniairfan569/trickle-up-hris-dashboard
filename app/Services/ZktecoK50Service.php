@@ -1,0 +1,230 @@
+<?php
+
+namespace App\Services;
+
+use App\Models\AttendanceRecord;
+use App\Models\User;
+use App\Models\ZktecoDevice;
+use App\Models\ZktecoRawPunch;
+use App\Models\ZktecoUnmapped;
+use Carbon\Carbon;
+use Exception;
+use Illuminate\Support\Facades\DB;
+use Rats\Zkteco\Lib\ZKTeco;
+
+class ZktecoK50Service
+{
+    public function connect(ZktecoDevice $device): ZKTeco
+    {
+        $zk = new ZKTeco($device->ip_address, $device->port);
+        $connected = $zk->connect();
+        
+        if (!$connected) {
+            throw new Exception("Cannot connect to ZKTeco K50 at {$device->ip_address}:{$device->port}. Check: 1) LAN cable connected, 2) IP correct, 3) Same network");
+        }
+        
+        return $zk;
+    }
+
+    public function testConnection(ZktecoDevice $device): array
+    {
+        try {
+            $zk = $this->connect($device);
+            $zk->disableDevice();
+            $zk->enableDevice();
+            $zk->disconnect();
+            return ['success' => true, 'message' => 'Successfully connected to device.'];
+        } catch (Exception $e) {
+            return ['success' => false, 'message' => $e->getMessage()];
+        }
+    }
+
+    public function syncDevice(ZktecoDevice $device): array
+    {
+        try {
+            $zk = $this->connect($device);
+        } catch (Exception $e) {
+            $device->update([
+                'last_sync_status' => 'failed',
+                'last_sync_message' => $e->getMessage()
+            ]);
+            throw $e;
+        }
+
+        try {
+            $zk->disableDevice();
+            $logs = $zk->getAttendance();
+            $zk->enableDevice();
+            $zk->disconnect();
+            
+            $synced = 0;
+            $imported = 0;
+            $duplicates = 0;
+            $unmapped = 0;
+
+            foreach ($logs as $log) {
+                $punchedAt = Carbon::parse($log['timestamp']);
+                
+                if ($device->last_synced_at && $punchedAt->lte($device->last_synced_at)) {
+                    continue;
+                }
+
+                $exists = ZktecoRawPunch::where([
+                    'device_id' => $device->id,
+                    'zkteco_uid' => $log['uid'],
+                    'punched_at' => $punchedAt
+                ])->exists();
+
+                if ($exists) {
+                    $duplicates++;
+                    continue;
+                }
+
+                $user = User::where('zkteco_uid', $log['uid'])->first();
+
+                $rawPunch = ZktecoRawPunch::create([
+                    'device_id' => $device->id,
+                    'zkteco_uid' => $log['uid'],
+                    'zkteco_employee_id' => $log['id'],
+                    'user_id' => $user?->id,
+                    'punched_at' => $punchedAt,
+                    'punch_state' => $log['state'],
+                    'verify_type' => $log['type'],
+                ]);
+
+                $synced++;
+
+                if (!$user) {
+                    $unmappedRecord = ZktecoUnmapped::firstOrNew([
+                        'device_id' => $device->id,
+                        'zkteco_uid' => $log['uid']
+                    ]);
+                    
+                    if (!$unmappedRecord->exists) {
+                        $unmappedRecord->first_seen = $punchedAt;
+                        $unmappedRecord->punch_count = 0;
+                    }
+                    
+                    $unmappedRecord->zkteco_employee_id = $log['id'];
+                    $unmappedRecord->punch_count++;
+                    $unmappedRecord->last_seen = $punchedAt;
+                    $unmappedRecord->save();
+
+                    $unmapped++;
+                    continue;
+                }
+
+                $this->processPunch($rawPunch, $user);
+                $imported++;
+            }
+
+            $device->update([
+                'last_synced_at' => now(),
+                'last_sync_status' => 'success',
+                'last_sync_message' => null,
+                'total_records_synced' => DB::raw('total_records_synced + ' . $synced)
+            ]);
+
+            return [
+                'synced' => $synced,
+                'imported' => $imported,
+                'duplicates' => $duplicates,
+                'unmapped' => $unmapped
+            ];
+            
+        } catch (Exception $e) {
+            $device->update([
+                'last_sync_status' => 'failed',
+                'last_sync_message' => $e->getMessage()
+            ]);
+            throw $e;
+        }
+    }
+
+    public function processPunch(ZktecoRawPunch $punch, User $user, string $sourceOverride = null): void
+    {
+        $date = $punch->punched_at->toDateString();
+        $source = $sourceOverride ?? 'zkteco';
+
+        $record = AttendanceRecord::firstOrCreate(
+            ['user_id' => $user->id, 'date' => $date],
+            ['status' => 'absent', 'source' => $source]
+        );
+
+        $punchType = $punch->punch_type_label;
+
+        if ($punchType === 'clock_in') {
+            if (!$record->clock_in || $punch->punched_at->lessThan($record->clock_in)) {
+                $record->clock_in = $punch->punched_at;
+                $record->source = $source;
+                $record->zkteco_punch_id = $punch->id;
+                
+                $expected = app(ShiftService::class)->getExpectedTimesForUserOnDate($user, $punch->punched_at);
+                if ($expected['start']) {
+                    $expectedStart = $expected['start'];
+                    $lateMinutes = $punch->punched_at->greaterThan($expectedStart->copy()->addMinutes(15))
+                        ? $punch->punched_at->diffInMinutes($expectedStart)
+                        : 0;
+                    $record->late_minutes = $lateMinutes;
+                    $record->status = $lateMinutes > 0 ? 'late' : 'present';
+                } else {
+                    $record->status = 'present';
+                }
+                $record->save();
+            }
+        }
+
+        if ($punchType === 'clock_out') {
+            if (!$record->clock_out || $punch->punched_at->greaterThan($record->clock_out)) {
+                $record->clock_out = $punch->punched_at;
+                if ($record->clock_in) {
+                    $breakMinutes = $record->breaks()->whereNotNull('break_end')->sum('duration_minutes') ?? 0;
+                    $record->total_minutes_worked = max(0, $punch->punched_at->diffInMinutes($record->clock_in) - $breakMinutes);
+                    
+                    $expected = app(ShiftService::class)->getExpectedTimesForUserOnDate($user, $punch->punched_at);
+                    if ($expected['end']) {
+                        $expectedEnd = $expected['end'];
+                        $record->overtime_minutes = $punch->punched_at->greaterThan($expectedEnd->copy()->addMinutes(30))
+                            ? $punch->punched_at->diffInMinutes($expectedEnd) : 0;
+                        if ($record->overtime_minutes > 0 && $record->status === 'present') $record->status = 'overtime';
+                        if ($record->overtime_minutes > 0 && $record->status === 'late') $record->status = 'late';
+                    }
+                }
+                $record->save();
+            }
+        }
+
+        $punch->update([
+            'is_processed' => true,
+            'processed_at' => now(),
+            'user_id' => $user->id
+        ]);
+    }
+
+    public function resolveMapping(int $zktecoUid, User $employee, User $resolvedBy): void
+    {
+        $unmapped = ZktecoUnmapped::where('zkteco_uid', $zktecoUid)->first();
+        $employeeIdOnDevice = $unmapped ? $unmapped->zkteco_employee_id : (string)$zktecoUid;
+
+        $employee->update([
+            'zkteco_uid' => $zktecoUid,
+            'zkteco_employee_id' => $employeeIdOnDevice
+        ]);
+
+        if ($unmapped) {
+            $unmapped->update([
+                'is_resolved' => true,
+                'resolved_user_id' => $employee->id,
+                'resolved_at' => now()
+            ]);
+        }
+
+        $unprocessedPunches = ZktecoRawPunch::where('zkteco_uid', $zktecoUid)
+            ->where('is_processed', false)
+            ->get();
+
+        foreach ($unprocessedPunches as $punch) {
+            $this->processPunch($punch, $employee);
+        }
+    }
+}

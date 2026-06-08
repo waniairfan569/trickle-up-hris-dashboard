@@ -1,0 +1,27 @@
+<?php
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class Employee extends Model
+{
+    protected $guarded = [];
+
+    public function company() { return $this->belongsTo(Company::class); }
+    public function department() { return $this->belongsTo(Department::class); }
+    public function location() { return $this->belongsTo(Location::class); }
+    public function manager() { return $this->belongsTo(Employee::class, 'manager_id'); }
+    public function user() { return $this->belongsTo(User::class); }
+    public function timeOffRequests() { return $this->hasMany(TimeOffRequest::class); }
+    public function subordinates() { return $this->hasMany(Employee::class, 'manager_id'); }
+    public function leaveBalances() { return $this->hasMany(LeaveBalance::class); }
+    public function attendanceRecords() { return $this->hasMany(AttendanceRecord::class); }
+    // workSchedule relationship left as placeholder - add work_schedule_id column if needed
+
+    public function getFullNameAttribute() {
+        return trim(($this->first_name ?? '') . ' ' . ($this->last_name ?? ''));
+    }
+    public function getInitialsAttribute() {
+        return strtoupper(substr($this->first_name ?? '', 0, 1) . substr($this->last_name ?? '', 0, 1));
+    }
+}

@@ -1,0 +1,122 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Department;
+use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+
+class DepartmentController extends Controller
+{
+    public function index()
+    {
+        // Load top-level departments with their children recursively
+        $departments = Department::topLevel()
+            ->with(['head', 'children.head', 'children.children']) // Load a few levels deep
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get();
+
+        $totalDepartments = Department::count();
+        $totalEmployees = User::whereNotNull('department_id')->count();
+        $departmentsWithoutHead = Department::whereNull('head_user_id')->count();
+
+        return view('departments.index', compact('departments', 'totalDepartments', 'totalEmployees', 'departmentsWithoutHead'));
+    }
+
+    public function create()
+    {
+        $topLevelDepartments = Department::topLevel()->orderBy('name')->get();
+        // Just get all active users for head selection (could be scoped better in real app)
+        $users = User::orderBy('first_name')->get(); 
+        
+        return view('departments.create', compact('topLevelDepartments', 'users'));
+    }
+
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'parent_id' => 'nullable|exists:departments,id',
+            'head_user_id' => 'nullable|exists:users,id',
+            'color' => 'nullable|string|max:20',
+            'is_active' => 'boolean',
+            'sort_order' => 'integer'
+        ]);
+
+        $validated['slug'] = Str::slug($validated['name']) . '-' . uniqid();
+        $validated['is_active'] = $request->has('is_active');
+        $validated['sort_order'] = $validated['sort_order'] ?? 0;
+        $validated['company_id'] = auth()->user()->company_id ?? 1; // Fallback to 1 if no auth user
+
+        Department::create($validated);
+
+        return redirect()->route('departments.index')->with('success', 'Department created successfully.');
+    }
+
+    public function show(Department $department)
+    {
+        $department->load(['head', 'children.head']);
+        $employees = $department->employees()->orderBy('first_name')->paginate(10);
+        
+        return view('departments.show', compact('department', 'employees'));
+    }
+
+    public function edit(Department $department)
+    {
+        $topLevelDepartments = Department::topLevel()->where('id', '!=', $department->id)->orderBy('name')->get();
+        $users = User::orderBy('first_name')->get();
+
+        return view('departments.edit', compact('department', 'topLevelDepartments', 'users'));
+    }
+
+    public function update(Request $request, Department $department)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'parent_id' => 'nullable|exists:departments,id',
+            'head_user_id' => 'nullable|exists:users,id',
+            'color' => 'nullable|string|max:20',
+            'is_active' => 'boolean',
+            'sort_order' => 'integer'
+        ]);
+
+        if ($validated['parent_id'] == $department->id) {
+            return back()->withErrors(['parent_id' => 'A department cannot be its own parent.']);
+        }
+
+        if ($validated['name'] !== $department->name) {
+            $validated['slug'] = Str::slug($validated['name']) . '-' . uniqid();
+        }
+
+        $validated['is_active'] = $request->has('is_active');
+        $validated['sort_order'] = $validated['sort_order'] ?? 0;
+
+        $department->update($validated);
+
+        return redirect()->route('departments.index')->with('success', 'Department updated successfully.');
+    }
+
+    public function destroy(Department $department)
+    {
+        // Reassign employees to null department first
+        $department->employees()->update(['department_id' => null]);
+        
+        // Handle children: either cascade delete or make them top level. Let's make them top level for safety.
+        $department->children()->update(['parent_id' => null]);
+
+        $department->delete();
+
+        return redirect()->route('departments.index')->with('success', 'Department deleted. Employees were reassigned to no department.');
+    }
+
+    public function employees(Department $department)
+    {
+        // Scoped list of employees for an API or specific view if needed
+        $employees = $department->employees()->select('id', 'first_name', 'last_name', 'email', 'avatar')->get();
+        return response()->json($employees);
+    }
+}

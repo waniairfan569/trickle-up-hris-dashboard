@@ -1,0 +1,241 @@
+<?php
+
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\EmployeeController;
+use App\Http\Controllers\TimeOffController;
+use App\Http\Controllers\PerformanceController;
+use App\Http\Controllers\ProfileTemplateController;
+use App\Http\Controllers\EmployeeProfileController;
+use App\Http\Controllers\DepartmentController;
+use App\Http\Controllers\CompanyEntityController;
+use App\Http\Controllers\WorkScheduleController;
+use App\Http\Controllers\HolidayCalendarController;
+use App\Http\Controllers\TimeOffPolicyController;
+use App\Http\Controllers\OnboardingWorkflowController;
+use App\Http\Controllers\EmployeeOnboardingController;
+use App\Http\Controllers\AttendanceController;
+use App\Http\Controllers\AttendanceManagerController;
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\OfficeLocationController;
+use App\Http\Controllers\ShiftController;
+use App\Http\Controllers\ShiftAssignmentController;
+
+Route::get('/', function () {
+    return view('welcome');
+});
+
+// Web Session Authentication Routes
+Route::get('/login', function () {
+    return view('auth.login');
+})->name('login');
+
+Route::post('/login', function (\Illuminate\Http\Request $request) {
+    $credentials = $request->validate([
+        'email' => 'required|email',
+        'password' => 'required',
+    ]);
+
+    if (\Illuminate\Support\Facades\Auth::attempt($credentials)) {
+        $request->session()->regenerate();
+        return redirect()->intended('/dashboard');
+    }
+
+    return back()->withErrors([
+        'email' => 'The provided credentials do not match our records.',
+    ]);
+})->name('login.post');
+
+Route::post('/logout', function (\Illuminate\Http\Request $request) {
+    \Illuminate\Support\Facades\Auth::logout();
+    $request->session()->invalidate();
+    $request->session()->regenerateToken();
+    return redirect('/');
+})->name('logout');
+
+// Guest Invitation Routes
+Route::middleware('guest')->group(function () {
+    Route::get('invitation/{token}', [\App\Http\Controllers\InvitationController::class, 'showAcceptForm'])->name('invitation.accept');
+    Route::post('invitation/{token}', [\App\Http\Controllers\InvitationController::class, 'accept'])->name('invitation.submit');
+});
+
+// Authenticated Routes (No Force Password Change Required)
+Route::middleware(['auth'])->group(function() {
+    Route::get('/password/change', [\App\Http\Controllers\PasswordChangeController::class, 'showChangeForm'])->name('password.change');
+    Route::post('/password/change', [\App\Http\Controllers\PasswordChangeController::class, 'update'])->name('password.update');
+});
+
+// Authenticated Routes
+Route::middleware(['auth', 'force.password.change'])->group(function() {
+    
+    // 1. Dashboard
+    Route::get('/dashboard', DashboardController::class)->name('dashboard');
+
+    // 2. Employees Resource (secured via employee.access middleware)
+    Route::get('employees/export', [EmployeeController::class, 'exportCsv'])
+        ->middleware(['role:super_admin,hr_admin'])
+        ->name('employees.export');
+        
+    Route::post('employees/import', [EmployeeController::class, 'importCsv'])
+        ->middleware(['role:super_admin,hr_admin'])
+        ->name('employees.import');
+
+    Route::get('employees/pending-invitations', [EmployeeController::class, 'pendingInvitations'])
+        ->middleware(['role:super_admin,hr_admin'])
+        ->name('employees.pending-invitations');
+
+    Route::resource('employees', EmployeeController::class)
+        ->middleware(['employee.access']);
+
+    // 3. Time Off Resource & Actions
+    Route::post('time-off/on-behalf', [TimeOffController::class, 'onBehalf'])
+        ->name('time-off.on-behalf');
+    Route::post('time-off/{timeOffRequest}/approve', [TimeOffController::class, 'approve'])
+        ->name('time-off.approve');
+    Route::post('time-off/{timeOffRequest}/reject', [TimeOffController::class, 'reject'])
+        ->name('time-off.reject');
+
+    Route::get('time-off/team-calendar', [TimeOffController::class, 'teamCalendar'])
+        ->name('time-off.team-calendar');
+
+    Route::resource('time-off', TimeOffController::class);
+
+    // 4. Performance Reviews Resource & Actions
+    Route::post('performance/self-review', [PerformanceController::class, 'storeSelfReview'])
+        ->name('performance.storeSelfReview');
+    Route::post('performance/manager-review/{reviewee}', [PerformanceController::class, 'storeManagerReview'])
+        ->name('performance.storeManagerReview');
+    Route::post('performance/{review}/share', [PerformanceController::class, 'share'])
+        ->name('performance.share');
+    Route::post('performance/{review}/sign', [PerformanceController::class, 'sign'])
+        ->name('performance.sign');
+    Route::post('performance/{review}/reopen', [PerformanceController::class, 'reopen'])
+        ->name('performance.reopen');
+    Route::post('performance/cycles', [PerformanceController::class, 'storeCycle'])
+        ->name('performance.storeCycle');
+    Route::resource('performance', PerformanceController::class);
+
+    // 5. HR Profile Templates (Dynamic Profiles)
+    Route::post('profile-templates/assign', [ProfileTemplateController::class, 'assign'])->name('profile-templates.assign');
+    Route::post('profile-templates/unassign', [ProfileTemplateController::class, 'unassign'])->name('profile-templates.unassign');
+    Route::post('profile-templates/{profile_template}/sections', [ProfileTemplateController::class, 'storeSection'])->name('profile-templates.sections.store')->middleware('role:super_admin,hr_admin');
+    Route::put('profile-sections/{section}', [ProfileTemplateController::class, 'updateSection'])->name('profile-sections.update')->middleware('role:super_admin,hr_admin');
+    Route::delete('profile-sections/{section}', [ProfileTemplateController::class, 'destroySection'])->name('profile-sections.destroy')->middleware('role:super_admin,hr_admin');
+    Route::post('profile-sections/{section}/fields', [ProfileTemplateController::class, 'storeField'])->name('profile-sections.fields.store')->middleware('role:super_admin,hr_admin');
+    Route::put('profile-fields/{field}', [ProfileTemplateController::class, 'updateField'])->name('profile-fields.update')->middleware('role:super_admin,hr_admin');
+    Route::delete('profile-fields/{field}', [ProfileTemplateController::class, 'destroyField'])->name('profile-fields.destroy')->middleware('role:super_admin,hr_admin');
+    Route::resource('profile-templates', ProfileTemplateController::class)->middleware('role:super_admin,hr_admin');
+
+    Route::get('employees/{employee}/profile', [EmployeeProfileController::class, 'show'])->name('employees.profile');
+    Route::get('employees/{employee}/profile/edit', [EmployeeProfileController::class, 'edit'])->name('employees.profile.edit');
+    Route::put('employees/{employee}/profile', [EmployeeProfileController::class, 'update'])->name('employees.profile.update');
+    Route::post('employees/{employee}/assign-default-policies', [App\Http\Controllers\TimeOffController::class, 'assignDefaultPolicies'])->name('employees.assign-default-policies');
+
+    // Notifications
+    Route::post('notifications/{id}/mark-read', [App\Http\Controllers\NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
+    Route::post('notifications/mark-all-read', [App\Http\Controllers\NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
+    // 6. Onboarding (Employee/Manager view)
+    Route::get('onboarding', [EmployeeOnboardingController::class, 'index'])->name('onboarding.index');
+    Route::get('onboarding/{onboarding}', [EmployeeOnboardingController::class, 'show'])->name('onboarding.show');
+    Route::post('onboarding/tasks/{task}/complete', [EmployeeOnboardingController::class, 'completeTask'])->name('onboarding.tasks.complete');
+
+    // 7. Admin-only routes
+    Route::middleware(['role:super_admin,hr_admin'])->group(function() {
+        Route::post('invitation/{employee}/resend', [\App\Http\Controllers\InvitationController::class, 'resendInvitation'])->name('invitation.resend');
+        Route::post('invitation/{employee}/cancel', [\App\Http\Controllers\InvitationController::class, 'cancelInvitation'])->name('invitation.cancel');
+
+        Route::get('/admin/audit-logs', [\App\Http\Controllers\AuditLogController::class, 'index'])->name('admin.audit-logs');
+        Route::resource('roles', \App\Http\Controllers\RoleController::class);
+        
+        Route::resource('departments', DepartmentController::class);
+        Route::get('departments/{department}/employees', [DepartmentController::class, 'employees'])->name('departments.employees');
+        
+        Route::resource('company-entities', CompanyEntityController::class);
+        Route::post('company-entities/{entity}/set-primary', [CompanyEntityController::class, 'setPrimary'])->name('company-entities.set-primary');
+        
+        Route::resource('work-schedules', WorkScheduleController::class);
+        Route::post('work-schedules/{work_schedule}/set-default', [WorkScheduleController::class, 'setDefault'])->name('work-schedules.set-default');
+        
+        Route::resource('holiday-calendars', HolidayCalendarController::class);
+        Route::post('holiday-calendars/{holiday_calendar}/add-holiday', [HolidayCalendarController::class, 'addHoliday'])->name('holiday-calendars.add-holiday');
+        Route::delete('holiday-calendars/{holiday_calendar}/remove-holiday/{holiday}', [HolidayCalendarController::class, 'removeHoliday'])->name('holiday-calendars.remove-holiday');
+        Route::post('holiday-calendars/{holiday_calendar}/assign', [HolidayCalendarController::class, 'assign'])->name('holiday-calendars.assign');
+        Route::delete('holiday-calendars/{holiday_calendar}/unassign/{user}', [HolidayCalendarController::class, 'unassign'])->name('holiday-calendars.unassign');
+
+        Route::resource('time-off-policies', TimeOffPolicyController::class);
+        Route::post('time-off-policies/{policy}/assign', [TimeOffPolicyController::class, 'assign'])->name('time-off-policies.assign');
+        Route::post('time-off-policies/{policy}/unassign', [TimeOffPolicyController::class, 'unassign'])->name('time-off-policies.unassign');
+        Route::get('time-off-policies/{time_off_policy}/balances', [TimeOffPolicyController::class, 'balances'])->name('time-off-policies.balances');
+        Route::post('time-off-policies/{time_off_policy}/adjust-balance', [TimeOffPolicyController::class, 'adjustBalance'])->name('time-off-policies.adjust-balance');
+        
+        // Onboarding Admin Actions
+        Route::resource('onboarding-workflows', OnboardingWorkflowController::class)->names('onboarding.workflows');
+        Route::post('onboarding-workflows/{onboarding_workflow}/tasks', [OnboardingWorkflowController::class, 'storeTask'])->name('onboarding.workflows.tasks.store');
+        Route::delete('onboarding-workflows/{onboarding_workflow}/tasks/{task}', [OnboardingWorkflowController::class, 'destroyTask'])->name('onboarding.workflows.tasks.destroy');
+        
+        Route::post('onboarding/start', [EmployeeOnboardingController::class, 'start'])->name('onboarding.start');
+        Route::post('onboarding/tasks/{task}/skip', [EmployeeOnboardingController::class, 'skipTask'])->name('onboarding.tasks.skip');
+    });
+
+    // 8. Attendance Module
+    Route::prefix('attendance')->name('attendance.')->group(function () {
+        Route::get('office-status', [AttendanceController::class, 'officeStatus'])->name('office-status');
+        Route::post('clock-in', [AttendanceController::class, 'clockIn'])->name('clock-in');
+        Route::post('clock-out', [AttendanceController::class, 'clockOut'])->name('clock-out');
+        Route::post('break/start', [AttendanceController::class, 'startBreak'])->name('break.start');
+        Route::post('break/end', [AttendanceController::class, 'endBreak'])->name('break.end');
+        Route::get('today', [AttendanceController::class, 'todayStatus'])->name('today');
+        Route::get('my-history', [AttendanceController::class, 'myHistory'])->name('my-history');
+        Route::post('correction', [AttendanceController::class, 'submitCorrection'])->name('correction.submit');
+
+        // Manager + Admin routes
+        Route::middleware(['role:manager,hr_admin,super_admin'])->group(function () {
+            Route::get('live', [AttendanceManagerController::class, 'liveBoard'])->name('live');
+            Route::get('team', [AttendanceManagerController::class, 'teamHistory'])->name('team');
+            Route::get('corrections', [AttendanceManagerController::class, 'pendingCorrections'])->name('corrections');
+            Route::post('corrections/{correction}/approve', [AttendanceManagerController::class, 'approveCorrection'])->name('corrections.approve');
+            Route::post('corrections/{correction}/reject', [AttendanceManagerController::class, 'rejectCorrection'])->name('corrections.reject');
+        });
+
+        // HR Admin + Super Admin only
+        Route::middleware(['role:hr_admin,super_admin'])->group(function () {
+            Route::post('manual', [AttendanceManagerController::class, 'manualEntry'])->name('manual');
+            Route::get('all', [AttendanceManagerController::class, 'allHistory'])->name('all');
+        });
+    });
+
+    // Employee personal routes
+    Route::get('my-schedule', function() {
+        $user = auth()->user();
+        $activeAssignment = $user->shiftAssignments()->with('shift')->where('assignment_type', 'recurring')->whereNull('recurring_end_date')->first();
+        return view('shifts.my-schedule', compact('activeAssignment'));
+    })->name('shifts.my-schedule');
+
+    // Office Locations & Shifts (Admin Only)
+    Route::middleware(['role:hr_admin,super_admin'])->group(function () {
+        Route::resource('shifts', ShiftController::class)->except(['create', 'edit', 'show']);
+        Route::post('shifts/{shift}/set-default', [ShiftController::class, 'setDefault'])->name('shifts.set-default');
+        Route::post('shifts/{shift}/assign-all', [ShiftController::class, 'assignToAll'])->name('shifts.assign-all');
+        
+        Route::post('employees/{employee}/shifts/assign-single', [ShiftAssignmentController::class, 'assignSingle'])->name('employees.shifts.assign.single');
+        Route::post('employees/{employee}/shifts/assign-recurring', [ShiftAssignmentController::class, 'assignRecurring'])->name('employees.shifts.assign.recurring');
+        
+        Route::resource('office-locations', OfficeLocationController::class);
+        Route::get('office-locations-assign', [OfficeLocationController::class, 'assignView'])->name('office-locations.assignView');
+        Route::post('office-locations/assign', [OfficeLocationController::class, 'assign'])->name('office-locations.assign');
+        Route::post('office-locations/unassign', [OfficeLocationController::class, 'unassign'])->name('office-locations.unassign');
+
+        // ZKTeco Device Integration
+        Route::prefix('zkteco')->name('zkteco.')->group(function() {
+            Route::get('/', [\App\Http\Controllers\ZktecoController::class, 'dashboard'])->name('dashboard');
+            Route::get('devices', [\App\Http\Controllers\ZktecoController::class, 'devices'])->name('devices');
+            Route::post('devices', [\App\Http\Controllers\ZktecoController::class, 'storeDevice'])->name('devices.store');
+            Route::post('devices/{device}/test', [\App\Http\Controllers\ZktecoController::class, 'testConnection'])->name('devices.test');
+            Route::post('devices/{device}/sync', [\App\Http\Controllers\ZktecoController::class, 'syncNow'])->name('devices.sync');
+            Route::get('unmapped', [\App\Http\Controllers\ZktecoController::class, 'unmapped'])->name('unmapped');
+            Route::post('unmapped/resolve', [\App\Http\Controllers\ZktecoController::class, 'resolveMapping'])->name('unmapped.resolve');
+            Route::get('import', [\App\Http\Controllers\ZktecoController::class, 'showImport'])->name('import');
+            Route::post('import', [\App\Http\Controllers\ZktecoController::class, 'import'])->name('import.store');
+        });
+    });
+});
