@@ -18,6 +18,16 @@ class DatabaseSeeder extends Seeder
             PublicHolidaySeeder::class,
             DefaultProfileTemplateSeeder::class,
             DynamicProfileTemplatesSeeder::class,
+
+            // Workable-style profile fields (must run after the base templates exist).
+            WorkablePersonalTemplateSeeder::class,
+            WorkableJobTemplateSeeder::class,
+            WorkableCompensationTemplateSeeder::class,
+            WorkableLegalTemplateSeeder::class,
+            WorkableExperienceTemplateSeeder::class,
+            WorkableEmergencyTemplateSeeder::class,
+            // Assign every section to its profile tab (run last — after all sections exist).
+            ProfileSectionTabSeeder::class,
         ]);
     }
 }
