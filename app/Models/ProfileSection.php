@@ -13,6 +13,7 @@ class ProfileSection extends Model
         'template_id',
         'name',
         'slug',
+        'tab',
         'icon',
         'sort_order',
     ];

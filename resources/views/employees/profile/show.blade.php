@@ -24,7 +24,7 @@
 
 <style>[x-cloak]{display:none!important}</style>
 
-<div class="space-y-8" id="profile-page-root" x-data="{ tab: 'personal' }">
+<div class="space-y-8" id="profile-page-root" x-data="{ tab: 'personal', showSensitive: false }">
     <!-- Back Button -->
     <div>
         <a href="{{ route('employees.index') }}" class="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-slate-800 transition dark:text-slate-400 dark:hover:text-white">
@@ -116,60 +116,42 @@
         </div>
 
         <!-- Tab List -->
-        <div class="flex border-t border-slate-100 px-6 dark:border-slate-700/60 overflow-x-auto select-none">
-            <button @click="tab = 'personal'" :class="tab === 'personal' ? 'border-brand-500 text-brand-600 dark:text-brand-400' : 'border-transparent text-slate-400 hover:text-slate-650'"
-                class="whitespace-nowrap border-b-2 py-4 px-4 text-xs font-bold transition">Personal</button>
-            <button @click="tab = 'job'" :class="tab === 'job' ? 'border-brand-500 text-brand-600 dark:text-brand-400' : 'border-transparent text-slate-400 hover:text-slate-650'"
-                class="whitespace-nowrap border-b-2 py-4 px-4 text-xs font-bold transition">Job</button>
-            @if($isSelf || $auth->isAdmin() || $auth->hasRole('hr_admin'))
-                <button @click="tab = 'timeoff'" :class="tab === 'timeoff' ? 'border-brand-500 text-brand-600 dark:text-brand-400' : 'border-transparent text-slate-400 hover:text-slate-650'"
-                    class="whitespace-nowrap border-b-2 py-4 px-4 text-xs font-bold transition">Time Off</button>
-                <button @click="tab = 'attendance'" :class="tab === 'attendance' ? 'border-brand-500 text-brand-600 dark:text-brand-400' : 'border-transparent text-slate-400 hover:text-slate-650'"
-                    class="whitespace-nowrap border-b-2 py-4 px-4 text-xs font-bold transition">Attendance</button>
-                <button @click="tab = 'documents'" :class="tab === 'documents' ? 'border-brand-500 text-brand-600 dark:text-brand-400' : 'border-transparent text-slate-400 hover:text-slate-650'"
-                    class="whitespace-nowrap border-b-2 py-4 px-4 text-xs font-bold transition">Documents</button>
-            @endif
+        @php
+            $profileTabs = [
+                'personal'     => 'Personal',
+                'job'          => 'Job',
+                'compensation' => 'Compensation & benefits',
+                'legal'        => 'Legal documents',
+                'experience'   => 'Experience',
+                'emergency'    => 'Emergency',
+            ];
+        @endphp
+        <div class="flex items-center justify-between border-t border-slate-100 px-6 dark:border-slate-700/60 gap-4">
+            <div class="flex overflow-x-auto select-none">
+                @foreach($profileTabs as $key => $label)
+                    <button @click="tab = '{{ $key }}'" :class="tab === '{{ $key }}' ? 'border-brand-500 text-brand-600 dark:text-brand-400' : 'border-transparent text-slate-400 hover:text-slate-650'"
+                        class="whitespace-nowrap border-b-2 py-4 px-4 text-xs font-bold transition">{{ $label }}</button>
+                @endforeach
+                @if($isSelf || $auth->isAdmin() || $auth->hasRole('hr_admin'))
+                    <button @click="tab = 'timeoff'" :class="tab === 'timeoff' ? 'border-brand-500 text-brand-600 dark:text-brand-400' : 'border-transparent text-slate-400 hover:text-slate-650'"
+                        class="whitespace-nowrap border-b-2 py-4 px-4 text-xs font-bold transition">Time Off</button>
+                    <button @click="tab = 'attendance'" :class="tab === 'attendance' ? 'border-brand-500 text-brand-600 dark:text-brand-400' : 'border-transparent text-slate-400 hover:text-slate-650'"
+                        class="whitespace-nowrap border-b-2 py-4 px-4 text-xs font-bold transition">Attendance</button>
+                    <button @click="tab = 'documents'" :class="tab === 'documents' ? 'border-brand-500 text-brand-600 dark:text-brand-400' : 'border-transparent text-slate-400 hover:text-slate-650'"
+                        class="whitespace-nowrap border-b-2 py-4 px-4 text-xs font-bold transition">Documents</button>
+                @endif
+            </div>
+            <!-- Show sensitive data toggle (masks private/internal fields) -->
+            <button type="button" @click="showSensitive = !showSensitive"
+                    class="flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-slate-700 dark:text-slate-400 whitespace-nowrap shrink-0">
+                <i data-lucide="eye" class="h-4 w-4"></i>
+                <span class="hidden sm:inline">Show sensitive data</span>
+                <span class="relative inline-flex h-4 w-7 items-center rounded-full transition" :class="showSensitive ? 'bg-brand-500' : 'bg-slate-300 dark:bg-slate-600'">
+                    <span class="inline-block h-3 w-3 transform rounded-full bg-white transition" :class="showSensitive ? 'translate-x-3.5' : 'translate-x-0.5'"></span>
+                </span>
+            </button>
         </div>
     </div>
-
-    <!-- Bug #1 Fix: Give the form an explicit id so submit button can reference it from anywhere -->
-    @if($editing)
-        <form id="profile-edit-form" 
-              action="{{ route('employees.profile.update', $employee->id) }}" 
-              method="POST" 
-              enctype="multipart/form-data" 
-              class="space-y-8">
-            @csrf
-            @method('PUT')
-            
-            {{-- Bug #6 Fix: Avatar upload section at top of edit form --}}
-            <div class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm dark:bg-slate-800 dark:border-slate-850">
-                <div class="flex items-center gap-4">
-                    <div class="relative flex-shrink-0">
-                        @if($employee->avatar_url)
-                            <img id="avatar-preview" src="{{ $employee->avatar_url }}" alt="Profile Photo" class="h-20 w-20 rounded-2xl object-cover ring-2 ring-slate-200 dark:ring-slate-700">
-                        @else
-                            <div id="avatar-placeholder" class="flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-400 to-indigo-500 text-2xl font-bold text-white ring-2 ring-brand-200">
-                                {{ $employee->initials }}
-                            </div>
-                        @endif
-                    </div>
-                    <div>
-                        <label class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Profile Photo</label>
-                        <div class="mt-2">
-                            <label class="cursor-pointer inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition dark:bg-slate-700 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-600">
-                                <i data-lucide="upload" class="h-4 w-4"></i>
-                                <span>Choose Photo</span>
-                                <input type="file" name="avatar" accept="image/jpeg,image/png,image/webp,image/gif" 
-                                       class="hidden" id="avatar-upload"
-                                       onchange="previewAvatar(this)">
-                            </label>
-                            <p class="text-xs text-slate-400 mt-1.5">JPG, PNG or WebP — max 2MB</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-    @endif
 
     <!-- Error/Success notifications -->
     @if(session('success'))
@@ -192,144 +174,6 @@
             </ul>
         </div>
     @endif
-
-    <!-- Personal Tab Panel -->
-    <div x-show="tab === 'personal'" class="space-y-6">
-        <!-- Basic Info Card -->
-        <div class="bg-white border border-slate-200/80 rounded-2xl shadow-sm dark:bg-slate-800 dark:border-slate-700 overflow-hidden">
-            <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700">
-                <h2 class="text-sm font-bold text-slate-800 dark:text-white">Basic</h2>
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-slate-100 dark:divide-slate-700">
-                <div class="px-6 py-4">
-                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">First name</p>
-                    <p class="text-sm font-semibold text-slate-800 dark:text-white">{{ $employee->first_name }}</p>
-                </div>
-                <div class="px-6 py-4">
-                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Last name</p>
-                    <p class="text-sm font-semibold text-slate-800 dark:text-white">{{ $employee->last_name }}</p>
-                </div>
-                <div class="px-6 py-4">
-                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Employee ID</p>
-                    <p class="text-sm font-semibold text-slate-800 dark:text-white">{{ $employee->employee->id ?? '-' }}</p>
-                </div>
-                <div class="px-6 py-4">
-                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Preferred name</p>
-                    <p class="text-sm font-semibold text-slate-800 dark:text-white">{{ $employee->preferred_name ?? '-' }}</p>
-                </div>
-                <div class="px-6 py-4">
-                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Country</p>
-                    <p class="text-sm font-semibold text-slate-800 dark:text-white">{{ $employee->country ?? 'Pakistan' }}</p>
-                </div>
-                <div class="px-6 py-4">
-                    @php $tzSvc = app(\App\Services\TimezoneService::class); @endphp
-                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Timezone</p>
-                    <p class="text-sm font-semibold text-slate-800 dark:text-white">
-                        {{ $tzSvc->getEffectiveTimezone($employee) }}
-                        @if($employee->use_custom_timezone && $employee->timezone)
-                            <span class="ml-1 inline-flex items-center rounded bg-brand-100 px-1.5 py-0.5 text-[10px] font-semibold text-brand-700 dark:bg-brand-500/20 dark:text-brand-300">Custom</span>
-                        @else
-                            <span class="ml-1 text-[10px] text-slate-400">(company default)</span>
-                        @endif
-                    </p>
-                </div>
-                <div class="px-6 py-4">
-                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Birthdate</p>
-                    <p class="text-sm font-semibold text-slate-800 dark:text-white">
-                        {{ $employee->date_of_birth ? \Carbon\Carbon::parse($employee->date_of_birth)->format('d F Y') : '-' }}
-                    </p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Contact Card -->
-        <div class="bg-white border border-slate-200/80 rounded-2xl shadow-sm dark:bg-slate-800 dark:border-slate-700 overflow-hidden">
-            <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700">
-                <h2 class="text-sm font-bold text-slate-800 dark:text-white">Contact</h2>
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-slate-100 dark:divide-slate-700">
-                <div class="px-6 py-4">
-                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Work email</p>
-                    <p class="text-sm font-semibold text-brand-600 dark:text-brand-400">{{ $employee->email }}</p>
-                </div>
-                <div class="px-6 py-4">
-                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Phone</p>
-                    <p class="text-sm font-semibold text-slate-800 dark:text-white">{{ $employee->phone ?? '-' }}</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Job Tab Panel -->
-    <div x-show="tab === 'job'" x-cloak class="space-y-6">
-        <!-- Basic Job Info -->
-        <div class="bg-white border border-slate-200/80 rounded-2xl shadow-sm dark:bg-slate-800 dark:border-slate-700 overflow-hidden">
-            <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700">
-                <h2 class="text-sm font-bold text-slate-800 dark:text-white">Basic</h2>
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-slate-100 dark:divide-slate-700">
-                <div class="px-6 py-4">
-                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Job title</p>
-                    <p class="text-sm font-semibold text-slate-800 dark:text-white">{{ $employee->job_title ?? '-' }}</p>
-                </div>
-                <div class="px-6 py-4">
-                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Start date</p>
-                    <p class="text-sm font-semibold text-slate-800 dark:text-white">
-                        {{ $employee->employee?->hire_date ? \Carbon\Carbon::parse($employee->employee->hire_date)->format('d F Y') : ($employee->joined_at ? \Carbon\Carbon::parse($employee->joined_at)->format('d F Y') : '-') }}
-                    </p>
-                </div>
-                <div class="px-6 py-4">
-                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Entity</p>
-                    <p class="text-sm font-semibold text-slate-800 dark:text-white">{{ $employee->employee?->location?->name ?? optional($employee->department)->name ?? '-' }}</p>
-                </div>
-                <div class="px-6 py-4">
-                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Department</p>
-                    <p class="text-sm font-semibold text-brand-600 dark:text-brand-400">{{ optional($employee->department)->name ?? '-' }}</p>
-                </div>
-                <div class="px-6 py-4">
-                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Job Location</p>
-                    <p class="text-sm font-semibold text-slate-800 dark:text-white">
-                        @if($employee->jobLocation)
-                            {{ $employee->jobLocation->display_name }}
-                            @if($employee->jobLocation->country) <span class="ml-0.5">{{ $employee->jobLocation->flag }}</span> @endif
-                            @if($employee->jobLocation->is_remote)
-                                <span class="ml-1 inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700 dark:bg-blue-500/15 dark:text-blue-300">🏠 Remote</span>
-                            @endif
-                        @else
-                            -
-                        @endif
-                    </p>
-                </div>
-                <div class="px-6 py-4">
-                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Manager</p>
-                    <p class="text-sm font-semibold text-brand-600 dark:text-brand-400">{{ optional($employee->manager)->full_name ?? '-' }}</p>
-                </div>
-                <div class="px-6 py-4">
-                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Direct reports</p>
-                    <p class="text-sm font-semibold text-slate-800 dark:text-white">-</p>
-                </div>
-            </div>
-        </div>
-
-
-        <!-- Employment Card -->
-        <div class="bg-white border border-slate-200/80 rounded-2xl shadow-sm dark:bg-slate-800 dark:border-slate-700 overflow-hidden">
-            <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700">
-                <h2 class="text-sm font-bold text-slate-800 dark:text-white">Employment</h2>
-            </div>
-            <div class="px-6 py-4">
-                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Work schedule</p>
-                @php
-                    $assignment = $employee->shiftAssignments()->with('shift')->where('assignment_type', 'recurring')->first();
-                @endphp
-                @if($assignment && $assignment->shift)
-                    <p class="text-sm font-semibold text-brand-600 dark:text-brand-400">{{ $assignment->shift->name }}</p>
-                @else
-                    <p class="text-sm font-semibold text-slate-800 dark:text-white">Full-time schedule</p>
-                @endif
-            </div>
-        </div>
-    </div>
 
     {{-- ======================================================= --}}
     {{-- SELF / ADMIN ONLY TABS --}}
@@ -457,14 +301,16 @@
     <div class="space-y-8">
         @foreach($templates as $template)
             <div class="space-y-4">
+                @if($template->type !== 'default')
                 <div class="border-b border-slate-200 pb-2 dark:border-slate-800">
                     <h2 class="text-sm font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-wider">{{ $template->name }}</h2>
                     @if($template->description)<p class="text-xs text-slate-400 mt-0.5">{{ $template->description }}</p>@endif
                 </div>
+                @endif
                 <div class="grid grid-cols-1 gap-6">
                     @foreach($template->sections as $section)
                         @if($section->fields->isNotEmpty())
-                            <div id="section-{{ $section->id }}" class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm dark:bg-slate-800 space-y-6">
+                            <div id="section-{{ $section->id }}" x-show="tab === '{{ $section->tab ?? 'personal' }}'" x-cloak class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm dark:bg-slate-800 space-y-6">
                                 <div class="flex items-center justify-between border-b border-slate-100 pb-4 dark:border-slate-700/60">
                                     <div class="flex items-center gap-3">
                                         <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10"><i data-lucide="{{ $lucideIcons[$section->icon] ?? 'user' }}" class="h-5 w-5"></i></div>
@@ -496,7 +342,7 @@
     </div>
 
     @if($auth->hasRole('super_admin') || $auth->hasRole('hr_admin'))
-        <div class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm dark:bg-slate-800 space-y-6">
+        <div x-show="tab === 'job'" x-cloak class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm dark:bg-slate-800 space-y-6">
             <div class="flex items-center gap-3 border-b border-slate-100 pb-4 dark:border-slate-700/60">
                 <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600"><i data-lucide="fingerprint" class="h-5 w-5"></i></div>
                 <h3 class="text-sm font-bold text-slate-900 dark:text-white">ZKTeco Biometric Device Integration</h3>
@@ -513,7 +359,9 @@
         </div>
     @endif
 
-    @include('employees.partials.work-schedule')
+    <div x-show="tab === 'job'" x-cloak>
+        @include('employees.partials.work-schedule')
+    </div>
 
     @if($editing)
         <div class="flex items-center justify-end gap-3 border-t border-slate-200 pt-6 dark:border-slate-800">
