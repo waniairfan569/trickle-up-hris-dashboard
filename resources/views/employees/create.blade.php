@@ -147,9 +147,9 @@
                                 </div>
                             </div>
                             <div class="md:col-span-2 pt-4 border-t border-slate-100 dark:border-slate-700/60">
-                                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 dark:text-slate-300">System Role <span class="text-red-500">*</span></label>
-                                <select name="role_id" required class="w-full rounded-xl border-slate-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white transition-colors">
-                                    <option value="">Select a role...</option>
+                                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 dark:text-slate-300">System Role <span class="text-slate-400 normal-case font-medium">(optional)</span></label>
+                                <select name="role_id" class="w-full rounded-xl border-slate-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white transition-colors">
+                                    <option value="">Defaults to Employee</option>
                                     @foreach($roles as $role)
                                         <option value="{{ $role->id }}" {{ old('role_id') == $role->id ? 'selected' : '' }}>
                                             {{ ucwords(str_replace('_', ' ', $role->slug)) }}
@@ -182,8 +182,8 @@
                                        placeholder="e.g. Senior Software Engineer">
                             </div>
                             <div>
-                                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 dark:text-slate-300">Department <span class="text-red-500">*</span></label>
-                                <select name="department_id" required class="w-full rounded-xl border-slate-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white transition-colors">
+                                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 dark:text-slate-300">Department <span class="text-slate-400 normal-case font-medium">(optional)</span></label>
+                                <select name="department_id" class="w-full rounded-xl border-slate-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white transition-colors">
                                     <option value="">Select department...</option>
                                     @foreach($departments as $dept)
                                         <option value="{{ $dept->id }}" {{ old('department_id') == $dept->id ? 'selected' : '' }}>
@@ -192,9 +192,52 @@
                                     @endforeach
                                 </select>
                             </div>
+                            <div class="md:col-span-2">
+                                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 dark:text-slate-300">Job Location</label>
+                                <div class="flex gap-2">
+                                    <select name="job_location_id" id="job_location_select"
+                                            class="w-full rounded-xl border-slate-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white transition-colors">
+                                        <option value="">— Select location —</option>
+                                        @foreach($jobLocations as $loc)
+                                            <option value="{{ $loc->id }}" {{ old('job_location_id') == $loc->id ? 'selected' : '' }}>{{ $loc->display_name }}</option>
+                                        @endforeach
+                                    </select>
+                                    <button type="button" onclick="toggleAddLocation()"
+                                            class="shrink-0 inline-flex items-center gap-1 rounded-xl bg-slate-800 px-3 py-2 text-sm font-bold text-white hover:bg-slate-700 transition dark:bg-slate-700 dark:hover:bg-slate-600">
+                                        <i data-lucide="plus" class="h-4 w-4"></i> New
+                                    </button>
+                                </div>
+
+                                <div id="add-location-form" class="hidden mt-3 p-4 rounded-xl border border-slate-200 bg-slate-50 dark:bg-slate-800/50 dark:border-slate-700 space-y-3">
+                                    <p class="text-xs font-bold text-slate-700 uppercase tracking-wider dark:text-slate-300">Add new location</p>
+                                    <input type="text" id="new_loc_name" placeholder="Location name (e.g. Lahore Office)"
+                                           class="w-full rounded-xl border-slate-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        <input type="text" id="new_loc_city" placeholder="City (optional)"
+                                               class="w-full rounded-xl border-slate-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                                        <select id="new_loc_country"
+                                                class="w-full rounded-xl border-slate-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                                            @foreach(\App\Models\JobLocation::COUNTRIES as $code => $cname)
+                                                <option value="{{ $code }}">{{ $cname }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <label class="inline-flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                                        <input type="checkbox" id="new_loc_remote" class="rounded border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-900">
+                                        Remote / Work from home
+                                    </label>
+                                    <div class="flex gap-2">
+                                        <button type="button" onclick="saveNewLocation()"
+                                                class="inline-flex items-center gap-1 rounded-xl bg-brand-600 px-3 py-2 text-sm font-bold text-slate-900 hover:bg-brand-700 transition">Save &amp; Select</button>
+                                        <button type="button" onclick="toggleAddLocation()"
+                                                class="inline-flex items-center rounded-xl bg-white px-3 py-2 text-sm font-bold text-slate-700 border border-slate-300 hover:bg-slate-50 transition dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300">Cancel</button>
+                                    </div>
+                                </div>
+                                <p class="mt-2 text-[10px] text-slate-500 dark:text-slate-400">Where this employee is based. You can add a new location without leaving the form.</p>
+                            </div>
                             <div>
-                                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 dark:text-slate-300">Location <span class="text-red-500">*</span></label>
-                                <select name="location_id" required class="w-full rounded-xl border-slate-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white transition-colors">
+                                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 dark:text-slate-300">Location <span class="text-slate-400 normal-case font-medium">(optional)</span></label>
+                                <select name="location_id" class="w-full rounded-xl border-slate-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white transition-colors">
                                     <option value="">Select location...</option>
                                     @foreach($locations as $loc)
                                         <option value="{{ $loc->id }}" {{ old('location_id') == $loc->id ? 'selected' : '' }}>
@@ -203,14 +246,50 @@
                                     @endforeach
                                 </select>
                             </div>
+                            @php
+                                $tzGroups = app(\App\Services\TimezoneService::class)->getTimezoneList();
+                                $companyTz = optional(\App\Models\CompanyEntity::primary())->timezone ?? config('app.timezone');
+                            @endphp
+                            <div class="md:col-span-2 pt-4 border-t border-slate-100 dark:border-slate-700/60"
+                                 x-data="{ customTz: {{ old('use_custom_timezone') ? 'true' : 'false' }} }">
+                                <label class="flex items-center gap-3 cursor-pointer">
+                                    {{-- Ensures a value is sent when the box is unchecked --}}
+                                    <input type="hidden" name="use_custom_timezone" value="0">
+                                    <input type="checkbox" name="use_custom_timezone" value="1" x-model="customTz"
+                                           class="rounded border-slate-300 text-brand-600 shadow-sm focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-900">
+                                    <span class="text-sm font-bold text-slate-700 dark:text-slate-300">Custom timezone</span>
+                                </label>
+
+                                <div x-show="!customTz" class="mt-3 text-sm text-slate-500 dark:text-slate-400">
+                                    Using company timezone: <span class="font-semibold text-slate-700 dark:text-slate-300">{{ $companyTz }}</span>
+                                </div>
+
+                                <div x-show="customTz" x-cloak class="mt-3">
+                                    <input type="text" id="emp-tz-search" placeholder="Search timezone (e.g. London, Dubai)…"
+                                           class="w-full mb-2 rounded-xl border-slate-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                                    <select name="timezone" id="emp-tz-select" size="6"
+                                            class="w-full rounded-xl border-slate-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                                        @foreach($tzGroups as $region => $zones)
+                                            <optgroup label="{{ $region }}">
+                                                @foreach($zones as $id => $label)
+                                                    <option value="{{ $id }}" {{ old('timezone') === $id ? 'selected' : '' }}>{{ $label }}</option>
+                                                @endforeach
+                                            </optgroup>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <p class="mt-2 text-[10px] text-slate-500 dark:text-slate-400">This affects how this employee's attendance times are displayed.</p>
+                            </div>
+
                             <div class="md:col-span-2 pt-4 border-t border-slate-100 dark:border-slate-700/60">
                                 <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 dark:text-slate-300">Base Salary</label>
                                 <div class="relative rounded-xl shadow-sm">
                                     <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                                        <span class="text-slate-500 sm:text-sm font-bold">$</span>
+                                        <span class="text-slate-500 sm:text-sm font-bold">PKR</span>
                                     </div>
+                                    <input type="hidden" name="salary_currency" value="PKR">
                                     <input type="number" step="0.01" name="salary" value="{{ old('salary') }}"
-                                           class="w-full rounded-xl border-slate-300 pl-8 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white transition-colors"
+                                           class="w-full rounded-xl border-slate-300 pl-14 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white transition-colors"
                                            placeholder="0.00">
                                 </div>
                             </div>
@@ -405,5 +484,62 @@
             lucide.createIcons();
         }
     });
+
+    // ---- Inline "add job location" from the employee form ----
+    function toggleAddLocation() {
+        document.getElementById('add-location-form').classList.toggle('hidden');
+    }
+    async function saveNewLocation() {
+        const name = document.getElementById('new_loc_name').value.trim();
+        if (!name) { alert('Location name is required'); return; }
+        const token = document.querySelector('meta[name=csrf-token]').content;
+        const body = {
+            name,
+            city: document.getElementById('new_loc_city').value,
+            country: document.getElementById('new_loc_country').value,
+            is_remote: document.getElementById('new_loc_remote').checked ? 1 : 0,
+            _token: token
+        };
+        try {
+            const res = await fetch('/job-locations', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-TOKEN': token, 'Accept': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            const data = await res.json();
+            if (data.id) {
+                const select = document.getElementById('job_location_select');
+                const opt = new Option(data.display_name, data.id, true, true);
+                select.add(opt);
+                select.value = data.id;
+                toggleAddLocation();
+                document.getElementById('new_loc_name').value = '';
+                document.getElementById('new_loc_city').value = '';
+            } else {
+                alert((data.errors && Object.values(data.errors)[0][0]) || 'Could not add location.');
+            }
+        } catch (e) {
+            alert('A network error occurred while adding the location.');
+        }
+    }
+
+    // Searchable filter for the employee custom-timezone dropdown.
+    (function () {
+        const search = document.getElementById('emp-tz-search');
+        const select = document.getElementById('emp-tz-select');
+        if (!search || !select) return;
+        search.addEventListener('input', function () {
+            const q = this.value.toLowerCase().trim();
+            select.querySelectorAll('optgroup').forEach(function (group) {
+                let visible = 0;
+                group.querySelectorAll('option').forEach(function (opt) {
+                    const match = opt.textContent.toLowerCase().includes(q) || opt.value.toLowerCase().includes(q);
+                    opt.hidden = !match;
+                    if (match) visible++;
+                });
+                group.hidden = visible === 0;
+            });
+        });
+    })();
 </script>
 @endsection

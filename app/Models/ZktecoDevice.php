@@ -13,6 +13,7 @@ class ZktecoDevice extends Model
         'name',
         'ip_address',
         'port',
+        'timezone',
         'is_active',
         'last_synced_at',
         'last_sync_status',

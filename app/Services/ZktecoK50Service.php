@@ -3,10 +3,12 @@
 namespace App\Services;
 
 use App\Models\AttendanceRecord;
+use App\Models\CompanyEntity;
 use App\Models\User;
 use App\Models\ZktecoDevice;
 use App\Models\ZktecoRawPunch;
 use App\Models\ZktecoUnmapped;
+use App\Services\TimezoneService;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Support\Facades\DB;
@@ -62,9 +64,16 @@ class ZktecoK50Service
             $duplicates = 0;
             $unmapped = 0;
 
+            // ZKTeco devices report punches in their own configured local time.
+            // Resolve that timezone (device override, else primary entity) and
+            // convert every punch into the app's canonical timezone for storage.
+            $deviceTz = $device->timezone
+                ?: (optional(CompanyEntity::primary())->timezone ?: TimezoneService::FALLBACK_TIMEZONE);
+            $canonicalTz = config('app.timezone') ?: TimezoneService::FALLBACK_TIMEZONE;
+
             foreach ($logs as $log) {
-                $punchedAt = Carbon::parse($log['timestamp']);
-                
+                $punchedAt = Carbon::parse($log['timestamp'], $deviceTz)->setTimezone($canonicalTz);
+
                 if ($device->last_synced_at && $punchedAt->lte($device->last_synced_at)) {
                     continue;
                 }
@@ -143,7 +152,15 @@ class ZktecoK50Service
 
     public function processPunch(ZktecoRawPunch $punch, User $user, string $sourceOverride = null): void
     {
-        $date = $punch->punched_at->toDateString();
+        $tz = app(TimezoneService::class);
+        $shiftService = app(ShiftService::class);
+
+        // Decisions about which day a punch belongs to, and late/overtime, are
+        // made in the employee's LOCAL timezone. Stored clock_in/clock_out stay
+        // in the canonical timezone (the display layer converts them back).
+        $userTz = $tz->getEffectiveTimezone($user);
+        $localPunch = $tz->toUserTime($punch->punched_at, $user);
+        $date = $localPunch->toDateString();
         $source = $sourceOverride ?? 'zkteco';
 
         $record = AttendanceRecord::firstOrCreate(
@@ -152,18 +169,20 @@ class ZktecoK50Service
         );
 
         $punchType = $punch->punch_type_label;
+        $shift = $shiftService->getShiftForUserOnDate($user, $localPunch->copy());
 
         if ($punchType === 'clock_in') {
             if (!$record->clock_in || $punch->punched_at->lessThan($record->clock_in)) {
                 $record->clock_in = $punch->punched_at;
                 $record->source = $source;
                 $record->zkteco_punch_id = $punch->id;
-                
-                $expected = app(ShiftService::class)->getExpectedTimesForUserOnDate($user, $punch->punched_at);
-                if ($expected['start']) {
-                    $expectedStart = $expected['start'];
-                    $lateMinutes = $punch->punched_at->greaterThan($expectedStart->copy()->addMinutes(15))
-                        ? $punch->punched_at->diffInMinutes($expectedStart)
+
+                if ($shift && $shift->start_time) {
+                    $gracePeriod = 15;
+                    // Shift start_time is wall-clock local to the employee.
+                    $expectedStart = Carbon::parse($date . ' ' . $shift->start_time, $userTz);
+                    $lateMinutes = $localPunch->greaterThan($expectedStart->copy()->addMinutes($gracePeriod))
+                        ? $localPunch->diffInMinutes($expectedStart)
                         : 0;
                     $record->late_minutes = $lateMinutes;
                     $record->status = $lateMinutes > 0 ? 'late' : 'present';
@@ -180,12 +199,15 @@ class ZktecoK50Service
                 if ($record->clock_in) {
                     $breakMinutes = $record->breaks()->whereNotNull('break_end')->sum('duration_minutes') ?? 0;
                     $record->total_minutes_worked = max(0, $punch->punched_at->diffInMinutes($record->clock_in) - $breakMinutes);
-                    
-                    $expected = app(ShiftService::class)->getExpectedTimesForUserOnDate($user, $punch->punched_at);
-                    if ($expected['end']) {
-                        $expectedEnd = $expected['end'];
-                        $record->overtime_minutes = $punch->punched_at->greaterThan($expectedEnd->copy()->addMinutes(30))
-                            ? $punch->punched_at->diffInMinutes($expectedEnd) : 0;
+
+                    if ($shift && $shift->end_time) {
+                        $overtimeGrace = 30;
+                        $expectedEnd = Carbon::parse($date . ' ' . $shift->end_time, $userTz);
+                        if ($shift->crosses_midnight) {
+                            $expectedEnd->addDay();
+                        }
+                        $record->overtime_minutes = $localPunch->greaterThan($expectedEnd->copy()->addMinutes($overtimeGrace))
+                            ? $localPunch->diffInMinutes($expectedEnd) : 0;
                         if ($record->overtime_minutes > 0 && $record->status === 'present') $record->status = 'overtime';
                         if ($record->overtime_minutes > 0 && $record->status === 'late') $record->status = 'late';
                     }

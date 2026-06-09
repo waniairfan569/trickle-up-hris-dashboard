@@ -36,7 +36,13 @@ class EmployeeController extends Controller
         }
 
         $query = $this->employeeAccessService->getScopedEmployeeQuery($auth)
-            ->with(['user', 'department', 'user.roles']);
+            ->with(['user', 'department', 'user.roles', 'user.jobLocation']);
+
+        if ($request->filled('job_location_id')) {
+            $query->whereHas('user', function ($q) use ($request) {
+                $q->where('job_location_id', $request->job_location_id);
+            });
+        }
 
         if ($request->filled('search')) {
             $search = $request->search;
@@ -108,10 +114,11 @@ class EmployeeController extends Controller
 
         $departments = \App\Models\Department::all();
         $locations = \App\Models\Location::all();
+        $jobLocations = \App\Models\JobLocation::active()->orderBy('name')->get();
         $roles = \App\Models\Role::all();
         $templates = \App\Models\ProfileTemplate::with('sections.fields')->active()->get();
 
-        return view('employees.create', compact('departments', 'locations', 'roles', 'templates'));
+        return view('employees.create', compact('departments', 'locations', 'jobLocations', 'roles', 'templates'));
     }
 
     /**
@@ -131,9 +138,15 @@ class EmployeeController extends Controller
             'email'         => 'required|email|unique:users,email|unique:employees,email',
             'job_title'     => 'nullable|string|max:255',
             'salary'        => 'nullable|numeric',
-            'role_id'       => 'required|exists:roles,id',
-            'department_id' => 'required|exists:departments,id',
-            'location_id'   => 'required|exists:locations,id',
+            'salary_currency' => 'nullable|string|max:10',
+            // Only core credentials (name + email) are required to create the employee;
+            // these can be filled in later by HR or the employee themselves.
+            'role_id'       => 'nullable|exists:roles,id',
+            'department_id' => 'nullable|exists:departments,id',
+            'location_id'   => 'nullable|exists:locations,id',
+            'job_location_id' => 'nullable|exists:job_locations,id',
+            'use_custom_timezone' => 'nullable|boolean',
+            'timezone'      => 'nullable|string|max:100|required_if:use_custom_timezone,1',
             'dynamic_fields'=> 'nullable|array',
             'onboarding_method' => 'required|in:invite,set_password,later',
             'temporary_password' => 'required_if:onboarding_method,set_password',
@@ -146,16 +159,30 @@ class EmployeeController extends Controller
             'email'         => $validated['email'],
             'password'      => bcrypt(\Illuminate\Support\Str::random(16)),
             'job_title'     => $validated['job_title'] ?? 'Employee',
-            'department_id' => $validated['department_id'],
+            'department_id' => $validated['department_id'] ?? null,
+            'company_entity_id' => optional(\App\Models\CompanyEntity::primary())->id,
+            'job_location_id' => $validated['job_location_id'] ?? null,
+            'use_custom_timezone' => $request->boolean('use_custom_timezone'),
+            // users.timezone is NOT NULL (default 'UTC'); when not using a custom
+            // timezone the employee inherits the entity tz, so the stored value is ignored.
+            'timezone'      => $request->boolean('use_custom_timezone') ? ($validated['timezone'] ?? 'UTC') : 'UTC',
             'salary'        => $validated['salary'] ?? null,
+            'salary_currency' => $validated['salary_currency'] ?? 'PKR',
             'status'        => 'active',
             'account_status'  => 'invited', // Added for invitation logic
             'employee_status' => 'active',
             'joined_at'     => now(),
         ]);
 
-        // Assign Role
-        $role = \App\Models\Role::find($validated['role_id']);
+        // Keep the job location's cached employee count in sync
+        if (!empty($validated['job_location_id'])) {
+            optional(\App\Models\JobLocation::find($validated['job_location_id']))->refreshEmployeeCount();
+        }
+
+        // Assign Role — default to the standard "employee" role when none chosen.
+        $role = !empty($validated['role_id'])
+            ? \App\Models\Role::find($validated['role_id'])
+            : \App\Models\Role::where('slug', 'employee')->first();
         if ($role) {
             $user->roles()->attach($role->id, [
                 'assigned_by' => $auth->id,
@@ -166,8 +193,8 @@ class EmployeeController extends Controller
         $employee = Employee::create([
             'user_id'         => $user->id,
             'company_id'      => $user->company_id,
-            'department_id'   => $validated['department_id'],
-            'location_id'     => $validated['location_id'],
+            'department_id'   => $validated['department_id'] ?? null,
+            'location_id'     => $validated['location_id'] ?? null,
             'first_name'      => $user->first_name,
             'last_name'       => $user->last_name,
             'email'           => $user->email,
@@ -176,17 +203,12 @@ class EmployeeController extends Controller
             'hire_date'       => now(),
             'status'          => 'active',
             'salary'          => $user->salary,
+            'currency'        => $user->salary_currency ?? 'PKR',
         ]);
 
-        // Attach Templates and Save Dynamic Fields
-        $templates = \App\Models\ProfileTemplate::active()->get();
-        foreach ($templates as $template) {
-            $user->profileTemplates()->attach($template->id, [
-                'assigned_by' => $auth->id,
-                'assigned_at' => now(),
-            ]);
-        }
-
+        // Profile templates (Workable model): the DEFAULT template applies to every
+        // employee globally and is never attached; DYNAMIC templates are assigned
+        // explicitly later (per employee / department / role). So we attach nothing here.
         if (!empty($validated['dynamic_fields'])) {
             foreach ($validated['dynamic_fields'] as $fieldId => $value) {
                 if (!is_null($value)) {
@@ -205,14 +227,25 @@ class EmployeeController extends Controller
         }
 
         $invitationService = app(\App\Services\InvitationService::class);
-        
-        if ($validated['onboarding_method'] === 'invite') {
-            $invitationService->sendInvitation($user, $auth);
-        } elseif ($validated['onboarding_method'] === 'set_password') {
-            $invitationService->setPasswordNow($user, $validated['temporary_password'], $auth);
+        $method = $validated['onboarding_method'] ?? 'invite';
+
+        // The employee is already saved at this point. Don't let a mail/onboarding
+        // failure (e.g. SMTP not configured) bubble up as a 500 — the record must stick.
+        try {
+            if ($method === 'invite') {
+                $invitationService->sendInvitation($user, $auth);
+            } elseif ($method === 'set_password') {
+                $invitationService->setPasswordNow($user, $validated['temporary_password'], $auth);
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning("Employee {$user->email} created but onboarding step failed: " . $e->getMessage());
+
+            return redirect()->route('employees.index')
+                ->with('success', "Employee {$user->first_name} {$user->last_name} created. The invitation email couldn't be sent (check mail settings) — you can resend it from the employee list.");
         }
 
-        return redirect()->route('employees.index')->with('success', 'Employee created successfully.');
+        return redirect()->route('employees.index')
+            ->with('success', "Employee {$user->first_name} {$user->last_name} created successfully.");
     }
 
     /**
@@ -370,7 +403,7 @@ class EmployeeController extends Controller
 
     public function exportCsv()
     {
-        $employees = User::with('department')->get();
+        $employees = User::with(['department', 'companyEntity', 'jobLocation'])->get();
         $filename = "employees_export_" . date('Y_m_d_H_i_s') . ".csv";
 
         $headers = [
@@ -386,7 +419,7 @@ class EmployeeController extends Controller
             'Phone', 'Address', 'City', 'Country', 'Timezone', 'Date of Birth', 'Nationality', 'Gender',
             'Languages', 'LinkedIn URL', 'GitHub URL', 'Portfolio URL', 'Employee Status', 'Joined At',
             'Contract Type', 'Salary', 'Salary Currency', 'Notice Period Days', 'Years of Experience',
-            'Education', 'Specialization', 'Admin Notes'
+            'Education', 'Specialization', 'Admin Notes', 'Entity', 'Job Location'
         ];
 
         $callback = function() use($employees, $columns) {
@@ -401,7 +434,8 @@ class EmployeeController extends Controller
                     $emp->date_of_birth, $emp->nationality, $emp->gender, $emp->languages,
                     $emp->linkedin_url, $emp->github_url, $emp->portfolio_url, $emp->employee_status, $emp->joined_at,
                     $emp->contract_type, $emp->salary, $emp->salary_currency, $emp->notice_period_days, $emp->years_of_experience,
-                    $emp->education, $emp->specialization, $emp->admin_notes
+                    $emp->education, $emp->specialization, $emp->admin_notes,
+                    optional($emp->companyEntity)->name, optional($emp->jobLocation)->name
                 ]);
             }
             fclose($file);
@@ -411,99 +445,264 @@ class EmployeeController extends Controller
 
     public function importCsv(\Illuminate\Http\Request $request)
     {
-        $request->validate(['import_file' => 'required|file|mimes:csv,txt|max:2048']);
+        $request->validate(['import_file' => 'required|file|mimes:csv,txt,tsv|max:5120']);
         $file = $request->file('import_file');
         $handle = fopen($file->getRealPath(), "r");
-        
-        // Read header
-        $header = fgetcsv($handle, 10000, ",");
-        if (!$header) {
-            return back()->with('error', 'Invalid CSV file format.');
+        if (!$handle) {
+            return back()->with('error', 'Could not open the uploaded file.');
         }
 
-        // Map column names to indexes to allow flexible column ordering
-        $colMap = array_flip(array_map('strtolower', array_map('trim', $header)));
-        
-        $entity = \App\Models\CompanyEntity::primary() ?? \App\Models\CompanyEntity::first();
-        $role = \App\Models\Role::where('slug', 'employee')->first();
-        
-        $count = 0;
-        while ($csvLine = fgetcsv($handle, 10000, ",")) {
-            $getValue = function($colName) use ($csvLine, $colMap) {
-                $idx = $colMap[strtolower($colName)] ?? null;
-                return $idx !== null ? ($csvLine[$idx] ?? null) : null;
-            };
+        // Workable exports are usually tab-separated; this app's own export is comma-separated.
+        // Detect the delimiter from the header line.
+        $firstLine = fgets($handle);
+        if ($firstLine === false) {
+            fclose($handle);
+            return back()->with('error', 'The uploaded file is empty.');
+        }
+        $firstLine = preg_replace('/^\xEF\xBB\xBF/', '', $firstLine); // strip UTF-8 BOM
+        $delimiter = substr_count($firstLine, "\t") > substr_count($firstLine, ',') ? "\t" : ',';
+        rewind($handle);
 
-            $email = $getValue('email');
-            if (empty($email)) continue;
+        $header = fgetcsv($handle, 0, $delimiter);
+        if (!$header) {
+            fclose($handle);
+            return back()->with('error', 'Invalid file format — no header row found.');
+        }
+        $header[0] = preg_replace('/^\xEF\xBB\xBF/', '', (string) ($header[0] ?? ''));
 
-            $departmentName = $getValue('department');
-            $departmentId = null;
-            if (!empty($departmentName)) {
-                $dept = \App\Models\Department::firstOrCreate(['name' => trim($departmentName)]);
-                $departmentId = $dept->id;
+        // Map header => FIRST column index. Workable repeats some headers (Phone, Salary
+        // details, etc.) — keeping the first occurrence avoids later blank duplicates winning.
+        $colMap = [];
+        foreach ($header as $i => $name) {
+            $key = strtolower(trim((string) $name));
+            if ($key !== '' && !array_key_exists($key, $colMap)) {
+                $colMap[$key] = $i;
             }
+        }
 
-            $data = [
-                'first_name' => $getValue('first name'),
-                'last_name' => $getValue('last name'),
-                'job_title' => $getValue('job title'),
-                'employee_id' => $getValue('employee id'),
-                'department_id' => $departmentId,
-                'hire_date' => $getValue('hire date') ?: null,
-                'phone' => $getValue('phone'),
-                'address' => $getValue('address'),
-                'city' => $getValue('city'),
-                'country' => $getValue('country'),
-                'timezone' => $getValue('timezone'),
-                'date_of_birth' => $getValue('date of birth') ?: null,
-                'nationality' => $getValue('nationality'),
-                'gender' => $getValue('gender'),
-                'languages' => $getValue('languages'),
-                'linkedin_url' => $getValue('linkedin url'),
-                'github_url' => $getValue('github url'),
-                'portfolio_url' => $getValue('portfolio url'),
-                'employee_status' => $getValue('employee status'),
-                'joined_at' => $getValue('joined at') ?: null,
-                'contract_type' => $getValue('contract type'),
-                'salary' => $getValue('salary') ?: null,
-                'salary_currency' => $getValue('salary currency'),
-                'notice_period_days' => $getValue('notice period days') ?: null,
-                'years_of_experience' => $getValue('years of experience') ?: null,
-                'education' => $getValue('education'),
-                'specialization' => $getValue('specialization'),
-                'admin_notes' => $getValue('admin notes'),
-            ];
+        // app field => accepted header names (Workable export + this app's own export headers).
+        $aliases = [
+            'first_name'          => ['first name'],
+            'last_name'           => ['last name'],
+            'email'               => ['work email', 'email'],
+            'employee_id'         => ['employee id'],
+            'job_title'           => ['job title'],
+            'phone'               => ['phone (phone)', 'phone'],
+            'address'             => ['address'],
+            'city'                => ['city'],
+            'country'             => ['country'],
+            'timezone'            => ['timezone'],
+            'date_of_birth'       => ['birthdate', 'date of birth'],
+            'nationality'         => ['nationality'],
+            'gender'              => ['gender'],
+            'languages'           => ['language', 'languages'],
+            'linkedin_url'        => ['linkedin url'],
+            'github_url'          => ['github url'],
+            'portfolio_url'       => ['portfolio url'],
+            'employee_status'     => ['employment status', 'employee status'],
+            'contract_type'       => ['employment type (contract details)', 'contract type'],
+            'salary'              => ['pay rate | amount (salary details)', 'salary'],
+            'salary_currency'     => ['pay rate | currency (salary details)', 'salary currency'],
+            'notice_period_days'  => ['notice period in days', 'notice period days'],
+            'years_of_experience' => ['years of experience'],
+            'education'           => ['education'],
+            'specialization'      => ['specialization', 'skill'],
+            'admin_notes'         => ['admin notes'],
+            'hire_date'           => ['hire date'],
+            'joined_at'           => ['start date', 'joined at'],
+            'department'          => ['department'],
+            'entity'              => ['entity'],
+            'manager'             => ['manager'],
+            'job_location'        => ['job location'],
+        ];
 
-            // Clean up nulls so we don't overwrite existing data with nulls if blank
-            $data = array_filter($data, function($v) { return $v !== null && $v !== ''; });
-
-            $user = User::where('email', trim($email))->first();
-
-            if ($user) {
-                $user->update($data);
-            } else {
-                $data['company_id'] = $entity ? $entity->id : 1;
-                $data['email'] = trim($email);
-                $data['password'] = \Illuminate\Support\Facades\Hash::make(\Illuminate\Support\Str::random(16));
-                
-                if (empty($data['status'])) $data['status'] = 'active';
-                if (empty($data['employee_status'])) $data['employee_status'] = 'active';
-                
-                $data['account_status'] = 'invited';
-                $data['must_change_password'] = true;
-
-                $user = User::create($data);
-
-                if ($role) {
-                    $user->roles()->syncWithoutDetaching([$role->id]);
+        // Resolve the first non-empty value for an app field from a row.
+        $resolve = function (array $row, string $field) use ($aliases, $colMap) {
+            foreach ($aliases[$field] ?? [] as $h) {
+                if (array_key_exists($h, $colMap)) {
+                    $val = $row[$colMap[$h]] ?? null;
+                    if ($val !== null && trim((string) $val) !== '') {
+                        return trim((string) $val);
+                    }
                 }
             }
-            $count++;
+            return null;
+        };
+        $parseDate = function ($v) {
+            if (empty($v)) return null;
+            try { return \Carbon\Carbon::parse($v)->format('Y-m-d'); } catch (\Throwable $e) { return null; }
+        };
+
+        $entityDefault = \App\Models\CompanyEntity::primary() ?? \App\Models\CompanyEntity::first();
+        $role = \App\Models\Role::where('slug', 'employee')->first();
+
+        $count = 0;
+        $skipped = 0;
+        $errors = 0;
+        while (($csvLine = fgetcsv($handle, 0, $delimiter)) !== false) {
+            // Skip fully blank lines
+            if (count($csvLine) === 1 && trim((string) ($csvLine[0] ?? '')) === '') {
+                continue;
+            }
+
+            $email = $resolve($csvLine, 'email');
+            if (empty($email)) { $skipped++; continue; }
+
+            // Company entity — match an existing one by name (do not auto-create)
+            $entityId = $entityDefault->id ?? null;
+            if ($entityName = $resolve($csvLine, 'entity')) {
+                $entityId = \App\Models\CompanyEntity::where('name', $entityName)->value('id') ?? $entityId;
+            }
+            // Department — create if missing (supply required company_id / entity)
+            $departmentId = null;
+            if ($deptName = $resolve($csvLine, 'department')) {
+                $departmentId = \App\Models\Department::firstOrCreate(
+                    ['name' => $deptName],
+                    ['company_id' => 1, 'company_entity_id' => $entityId]
+                )->id;
+            }
+            // Manager — best-effort match by "First Last"
+            $managerId = null;
+            if ($managerName = $resolve($csvLine, 'manager')) {
+                $managerId = User::whereRaw("CONCAT(first_name, ' ', last_name) = ?", [$managerName])->value('id');
+            }
+            // Job location — match an existing one by name
+            $jobLocationId = null;
+            if ($jlName = $resolve($csvLine, 'job_location')) {
+                $jobLocationId = \App\Models\JobLocation::where('name', $jlName)->value('id');
+            }
+
+            $salaryRaw = $resolve($csvLine, 'salary');
+            $salary = $salaryRaw !== null ? (preg_replace('/[^0-9.]/', '', $salaryRaw) ?: null) : null;
+
+            // employee_status is an enum('active','draft','inactive','offboarded').
+            // Normalize the free-text Workable "Employment Status" (Active, Probationary,
+            // Terminated, ...) into a valid enum value so the insert doesn't get truncated.
+            $empStatusRaw = $resolve($csvLine, 'employee_status');
+            $empStatus = null;
+            if ($empStatusRaw !== null) {
+                $s = strtolower($empStatusRaw);
+                if (in_array($s, ['active', 'draft', 'inactive', 'offboarded'], true)) {
+                    $empStatus = $s;
+                } elseif (preg_match('/terminat|resign|offboard|left|former|ended/', $s)) {
+                    $empStatus = 'offboarded';
+                } elseif (preg_match('/inactive|suspend|hold|dormant/', $s)) {
+                    $empStatus = 'inactive';
+                } else {
+                    $empStatus = 'active'; // active, employed, permanent, probationary, etc.
+                }
+            }
+
+            $data = array_filter([
+                'first_name'          => $resolve($csvLine, 'first_name'),
+                'last_name'           => $resolve($csvLine, 'last_name'),
+                'job_title'           => $resolve($csvLine, 'job_title'),
+                'employee_id'         => $resolve($csvLine, 'employee_id'),
+                'department_id'       => $departmentId,
+                'company_entity_id'   => $entityId,
+                'manager_id'          => $managerId,
+                'job_location_id'     => $jobLocationId,
+                'hire_date'           => $parseDate($resolve($csvLine, 'hire_date')),
+                'phone'               => $resolve($csvLine, 'phone'),
+                'address'             => $resolve($csvLine, 'address'),
+                'city'                => $resolve($csvLine, 'city'),
+                'country'             => $resolve($csvLine, 'country'),
+                'timezone'            => $resolve($csvLine, 'timezone'),
+                'date_of_birth'       => $parseDate($resolve($csvLine, 'date_of_birth')),
+                'nationality'         => $resolve($csvLine, 'nationality'),
+                'gender'              => $resolve($csvLine, 'gender'),
+                'languages'           => $resolve($csvLine, 'languages'),
+                'linkedin_url'        => $resolve($csvLine, 'linkedin_url'),
+                'github_url'          => $resolve($csvLine, 'github_url'),
+                'portfolio_url'       => $resolve($csvLine, 'portfolio_url'),
+                'employee_status'     => $empStatus,
+                'joined_at'           => $parseDate($resolve($csvLine, 'joined_at')),
+                'contract_type'       => $resolve($csvLine, 'contract_type'),
+                'salary'              => $salary,
+                'salary_currency'     => $resolve($csvLine, 'salary_currency'),
+                'notice_period_days'  => $resolve($csvLine, 'notice_period_days'),
+                'years_of_experience' => $resolve($csvLine, 'years_of_experience'),
+                'education'           => $resolve($csvLine, 'education'),
+                'specialization'      => $resolve($csvLine, 'specialization'),
+                'admin_notes'         => $resolve($csvLine, 'admin_notes'),
+            ], fn ($v) => $v !== null && $v !== '');
+
+            try {
+                $user = User::where('email', trim($email))->first();
+
+                if ($user) {
+                    $user->update($data);
+                } else {
+                    $data['company_id'] = 1;
+                    $data['email'] = trim($email);
+                    $data['password'] = \Illuminate\Support\Facades\Hash::make(\Illuminate\Support\Str::random(16));
+                    $data['status'] = $data['status'] ?? 'active';
+                    $data['employee_status'] = $data['employee_status'] ?? 'active';
+                    $data['account_status'] = 'invited';
+                    $data['must_change_password'] = true;
+
+                    $user = User::create($data);
+
+                    if ($role) {
+                        $user->roles()->syncWithoutDetaching([$role->id]);
+                    }
+                }
+
+                // Mirror into the legacy `employees` table so the imported person
+                // appears in the /employees directory (which reads that table).
+                $ct = strtolower((string) ($user->contract_type ?? ''));
+                if (str_contains($ct, 'part')) {
+                    $employmentType = 'part_time';
+                } elseif (preg_match('/contract|probation|intern|temp|freelanc/', $ct)) {
+                    $employmentType = 'contract';
+                } else {
+                    $employmentType = 'full_time';
+                }
+                $employeeStatus = ($user->employee_status === 'offboarded') ? 'terminated' : 'active';
+                $hireDate = $user->hire_date ?? $user->joined_at ?? now();
+
+                \App\Models\Employee::updateOrCreate(
+                    ['email' => trim($email)],
+                    [
+                        'user_id'         => $user->id,
+                        'company_id'      => $user->company_id ?? 1,
+                        'department_id'   => $user->department_id,
+                        'first_name'      => $user->first_name ?: 'Unknown',
+                        'last_name'       => $user->last_name ?: '',
+                        'job_title'       => $user->job_title ?: 'Employee',
+                        'employee_id'     => $user->employee_id,
+                        'employment_type' => $employmentType,
+                        'hire_date'       => $hireDate,
+                        'status'          => $employeeStatus,
+                        'salary'          => $user->salary,
+                        'currency'        => $user->salary_currency,
+                        'phone'           => $user->phone,
+                    ]
+                );
+
+                // Keep the job location's cached employee count in sync
+                if (!empty($data['job_location_id'])) {
+                    optional(\App\Models\JobLocation::find($data['job_location_id']))->refreshEmployeeCount();
+                }
+
+                $count++;
+            } catch (\Throwable $e) {
+                // One malformed row must not abort the whole import.
+                $errors++;
+                \Illuminate\Support\Facades\Log::warning("Employee import: row for '{$email}' failed — " . $e->getMessage());
+                continue;
+            }
         }
-        
+
         fclose($handle);
 
-        return back()->with('success', "Successfully imported {$count} employees with full profile data.");
+        $msg = "Imported / updated {$count} employees.";
+        if ($skipped > 0) {
+            $msg .= " Skipped {$skipped} row(s) with no work email.";
+        }
+        if ($errors > 0) {
+            $msg .= " {$errors} row(s) had errors and were skipped (see logs).";
+        }
+        return back()->with('success', $msg);
     }
 }

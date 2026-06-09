@@ -28,14 +28,18 @@ class EmployeeProfileController extends Controller
 
         $employee->load('fieldValues.field', 'department', 'manager');
 
-        // Always show all active templates — assigned ones first, then any unassigned ones
-        $assignedTemplates = $employee->profileTemplates()->with('sections.fields')->get();
-        $assignedIds = $assignedTemplates->pluck('id')->toArray();
-        $unassignedTemplates = ProfileTemplate::with('sections.fields')
+        // Workable model: the DEFAULT template applies to every employee automatically
+        // (it is never individually assigned). Dynamic templates appear ONLY when the
+        // employee has been explicitly assigned them.
+        $defaultTemplates = ProfileTemplate::with('sections.fields')
             ->active()
-            ->whereNotIn('id', $assignedIds)
+            ->where('type', 'default')
             ->get();
-        $templates = $assignedTemplates->merge($unassignedTemplates);
+        $assignedDynamic = $employee->profileTemplates()
+            ->with('sections.fields')
+            ->where('type', 'dynamic')
+            ->get();
+        $templates = $defaultTemplates->merge($assignedDynamic);
 
         // Filter fields by visibility
         foreach ($templates as $template) {

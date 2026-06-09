@@ -146,7 +146,13 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
 
         Route::get('/admin/audit-logs', [\App\Http\Controllers\AuditLogController::class, 'index'])->name('admin.audit-logs');
         Route::resource('roles', \App\Http\Controllers\RoleController::class);
-        
+
+        // Job Locations (central list of where employees work)
+        Route::resource('job-locations', \App\Http\Controllers\JobLocationController::class)
+            ->except(['show', 'create', 'edit'])
+            ->parameters(['job-locations' => 'jobLocation']);
+
+
         Route::resource('departments', DepartmentController::class);
         Route::get('departments/{department}/employees', [DepartmentController::class, 'employees'])->name('departments.employees');
         

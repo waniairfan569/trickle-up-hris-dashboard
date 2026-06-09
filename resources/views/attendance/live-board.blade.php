@@ -83,6 +83,7 @@
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100" id="live-board-body">
+                    @php $tzService = app(\App\Services\TimezoneService::class); @endphp
                     @forelse($records as $record)
                         <tr class="hover:bg-slate-50/50 transition">
                             <td class="px-6 py-4 whitespace-nowrap">
@@ -99,10 +100,15 @@
                                 </div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap font-mono text-slate-700">
-                                {{ $record->clock_in ? $record->clock_in->format('h:i A') : '—' }}
+                                @if($record->clock_in)
+                                    {{ $tzService->formatForUser($record->clock_in, $record->employee, 'h:i A') }}
+                                    <span class="ml-1 inline-flex items-center rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500 align-middle">{{ $tzService->abbreviation($record->employee) }}</span>
+                                @else
+                                    —
+                                @endif
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap font-mono text-slate-700">
-                                {{ $record->clock_out ? $record->clock_out->format('h:i A') : '—' }}
+                                {{ $record->clock_out ? $tzService->formatForUser($record->clock_out, $record->employee, 'h:i A') : '—' }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap font-medium text-slate-800">
                                 {{ $record->hours_worked ?? '—' }}

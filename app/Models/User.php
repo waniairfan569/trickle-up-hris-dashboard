@@ -35,7 +35,7 @@ class User extends Authenticatable
         'company_id', 'first_name', 'last_name', 'email', 'password',
         'status', 'avatar_url',
         // Profile fields:
-        'phone', 'address', 'city', 'country', 'timezone',
+        'phone', 'address', 'city', 'country', 'timezone', 'use_custom_timezone',
         'date_of_birth', 'nationality', 'gender', 'languages',
         'linkedin_url', 'github_url', 'portfolio_url',
         'job_title', 'employee_id', 'manager_id', 'hire_date',
@@ -45,7 +45,7 @@ class User extends Authenticatable
         'two_factor_enabled', 'sso_provider', 'admin_notes',
         'last_login_at',
         // HRIS access system fields:
-        'department_id', 'employee_status', 'joined_at',
+        'company_entity_id', 'job_location_id', 'department_id', 'employee_status', 'joined_at',
         // Invitation system fields:
         'account_status', 'invitation_token', 'invitation_token_hash',
         'invitation_sent_at', 'invitation_expires_at', 'invitation_accepted_at',
@@ -68,6 +68,7 @@ class User extends Authenticatable
         'invitation_expires_at' => 'datetime',
         'invitation_accepted_at' => 'datetime',
         'must_change_password' => 'boolean',
+        'use_custom_timezone' => 'boolean',
     ];
 
     protected $hidden = ['password', 'remember_token', 'salary'];
@@ -76,6 +77,21 @@ class User extends Authenticatable
 
     // Relationships
     public function company() { return $this->belongsTo(Company::class); }
+
+    /**
+     * The company entity (legal entity) this employee belongs to.
+     * Source of the employee's default timezone and date/time display formats.
+     */
+    public function companyEntity() {
+        return $this->belongsTo(CompanyEntity::class, 'company_entity_id');
+    }
+
+    /**
+     * The job location (where this employee works) chosen from the central list.
+     */
+    public function jobLocation() {
+        return $this->belongsTo(JobLocation::class, 'job_location_id');
+    }
 
     /**
      * Relationship with manager (User).
@@ -257,7 +273,11 @@ class User extends Authenticatable
     }
 
     public function getAllProfileFields() {
-        $templates = $this->profileTemplates()->with('sections.fields')->get();
+        // Default template is global (applies to everyone); dynamic templates only
+        // count if explicitly assigned to this employee.
+        $default = ProfileTemplate::active()->where('type', 'default')->with('sections.fields')->get();
+        $assigned = $this->profileTemplates()->where('type', 'dynamic')->with('sections.fields')->get();
+        $templates = $default->merge($assigned);
         $fields = collect();
         foreach ($templates as $template) {
             foreach ($template->sections as $section) {

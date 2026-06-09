@@ -99,17 +99,88 @@
                     <input type="text" name="country" value="{{ old('country', $companyEntity->country) }}" required maxlength="2" class="w-full rounded-xl border-slate-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white uppercase">
                 </div>
                 
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 dark:text-slate-300">Timezone <span class="text-red-500">*</span></label>
-                    <select name="timezone" required class="w-full rounded-xl border-slate-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
-                        @foreach($timezones as $tz)
-                            <option value="{{ $tz }}" {{ old('timezone', $companyEntity->timezone) === $tz ? 'selected' : '' }}>{{ $tz }}</option>
-                        @endforeach
-                    </select>
-                </div>
+                {{-- Timezone lives in the Regional Settings card below --}}
                 <div>
                     <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 dark:text-slate-300">Currency Code <span class="text-red-500">*</span></label>
                     <input type="text" name="currency" value="{{ old('currency', $companyEntity->currency) }}" required maxlength="3" class="w-full rounded-xl border-slate-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white uppercase">
+                </div>
+            </div>
+        </div>
+
+        <!-- Regional Settings Section -->
+        @php
+            $tzGroups = app(\App\Services\TimezoneService::class)->getTimezoneList();
+            $currentTz = old('timezone', $companyEntity->timezone ?: 'Asia/Karachi');
+            $currentDateFmt = old('date_format', $companyEntity->date_format ?: 'd M Y');
+            $currentTimeFmt = old('time_format', $companyEntity->time_format ?: 'h:i A');
+            $sampleDate = \Carbon\Carbon::create(2025, 6, 7, 9, 30, 0);
+            $dateOptions = ['d M Y', 'Y-m-d', 'm/d/Y', 'd/m/Y'];
+            $timeOptions = ['h:i A' => '12-hour', 'H:i' => '24-hour'];
+        @endphp
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden dark:bg-slate-800 dark:border-slate-700/80">
+            <div class="px-6 py-5 border-b border-slate-100 bg-slate-50/50 dark:border-slate-700/60 dark:bg-slate-800/50">
+                <h3 class="text-base font-bold text-slate-900 dark:text-white">Regional Settings</h3>
+                <p class="text-xs text-slate-500 mt-1 dark:text-slate-400">Timezone and how dates &amp; times are displayed for this entity.</p>
+            </div>
+
+            <div class="p-6 space-y-6">
+                <!-- Timezone (searchable) -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 dark:text-slate-300">Timezone <span class="text-red-500">*</span></label>
+                    <input type="text" id="tz-search" placeholder="Search timezone (e.g. Karachi, London)…"
+                           class="w-full mb-2 rounded-xl border-slate-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                    <select name="timezone" id="tz-select" required size="8"
+                            class="w-full rounded-xl border-slate-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                        @foreach($tzGroups as $region => $zones)
+                            <optgroup label="{{ $region }}">
+                                @foreach($zones as $id => $label)
+                                    <option value="{{ $id }}" {{ $currentTz === $id ? 'selected' : '' }}>{{ $label }}</option>
+                                @endforeach
+                            </optgroup>
+                        @endforeach
+                    </select>
+                </div>
+
+                <!-- Live preview -->
+                <div id="tz-preview-box" class="rounded-xl bg-brand-50 border border-brand-200 px-4 py-3 dark:bg-brand-500/10 dark:border-brand-500/20">
+                    <p class="text-xs font-bold text-brand-700 uppercase tracking-wider dark:text-brand-400">Current time in selected timezone</p>
+                    <p id="tz-preview" class="mt-1 text-lg font-extrabold text-slate-900 dark:text-white tabular-nums">—</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Date format -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-3 dark:text-slate-300">Date Format</label>
+                        <div class="space-y-2">
+                            @foreach($dateOptions as $fmt)
+                                <label class="flex items-center gap-3 cursor-pointer">
+                                    <input type="radio" name="date_format" value="{{ $fmt }}" {{ $currentDateFmt === $fmt ? 'checked' : '' }}
+                                           class="border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-900">
+                                    <span class="text-sm text-slate-700 dark:text-slate-300">
+                                        <span class="font-mono text-xs text-slate-400">{{ $fmt }}</span>
+                                        &rarr; {{ $sampleDate->format($fmt) }}
+                                    </span>
+                                </label>
+                            @endforeach
+                        </div>
+                    </div>
+
+                    <!-- Time format -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-3 dark:text-slate-300">Time Format</label>
+                        <div class="space-y-2">
+                            @foreach($timeOptions as $fmt => $desc)
+                                <label class="flex items-center gap-3 cursor-pointer">
+                                    <input type="radio" name="time_format" value="{{ $fmt }}" {{ $currentTimeFmt === $fmt ? 'checked' : '' }}
+                                           class="border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-900">
+                                    <span class="text-sm text-slate-700 dark:text-slate-300">
+                                        <span class="font-mono text-xs text-slate-400">{{ $fmt }}</span>
+                                        &rarr; {{ $sampleDate->format($fmt) }} <span class="text-slate-400">({{ $desc }})</span>
+                                    </span>
+                                </label>
+                            @endforeach
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -170,4 +241,49 @@
         </div>
     </form>
 </div>
+
+<script>
+(function () {
+    const search  = document.getElementById('tz-search');
+    const select  = document.getElementById('tz-select');
+    const preview = document.getElementById('tz-preview');
+    if (!select || !preview) return;
+
+    // Searchable filter over the grouped timezone <select>.
+    if (search) {
+        search.addEventListener('input', function () {
+            const q = this.value.toLowerCase().trim();
+            select.querySelectorAll('optgroup').forEach(function (group) {
+                let visible = 0;
+                group.querySelectorAll('option').forEach(function (opt) {
+                    const match = opt.textContent.toLowerCase().includes(q)
+                        || opt.value.toLowerCase().includes(q);
+                    opt.hidden = !match;
+                    if (match) visible++;
+                });
+                group.hidden = visible === 0;
+            });
+        });
+    }
+
+    // Live clock for the currently selected timezone.
+    function renderPreview() {
+        const tz = select.value;
+        if (!tz) { preview.textContent = '—'; return; }
+        try {
+            const fmt = new Intl.DateTimeFormat('en-GB', {
+                timeZone: tz, weekday: 'short', year: 'numeric', month: 'short',
+                day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit'
+            });
+            preview.textContent = fmt.format(new Date());
+        } catch (e) {
+            preview.textContent = 'Invalid timezone';
+        }
+    }
+
+    select.addEventListener('change', renderPreview);
+    renderPreview();
+    setInterval(renderPreview, 1000);
+})();
+</script>
 @endsection

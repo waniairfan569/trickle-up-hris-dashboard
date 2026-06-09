@@ -131,13 +131,30 @@
                                     <div>
                                         <span class="font-bold text-slate-900 dark:text-white block hover:text-brand-600 transition">{{ $fullName }}</span>
                                         <span class="text-[10px] text-slate-400">{{ $emp->user->email ?? $emp->email }}</span>
+                                        @if($emp->user->jobLocation)
+                                            <span class="mt-1 inline-flex items-center rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600 dark:bg-slate-700 dark:text-slate-300">
+                                                {{ $emp->user->jobLocation->is_remote ? '🏠' : '📍' }} {{ $emp->user->jobLocation->name }}
+                                            </span>
+                                        @endif
                                     </div>
                                 </div>
                             </td>
                             
                             <!-- Department -->
-                            <td class="py-4 px-6 text-slate-600 dark:text-slate-300 font-medium">
-                                {{ $deptName }}
+                            <td class="py-4 px-6">
+                                @if($emp->department)
+                                    @php
+                                        $palette = ['#3B82F6','#10B981','#8B5CF6','#F59E0B','#EF4444','#06B6D4','#EC4899','#14B8A6','#6366F1','#F97316'];
+                                        $dc = $emp->department->color ?: $palette[abs(crc32($emp->department->name)) % count($palette)];
+                                    @endphp
+                                    <span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold"
+                                          style="background-color: {{ $dc }}1a; color: {{ $dc }};">
+                                        <span class="h-1.5 w-1.5 rounded-full" style="background-color: {{ $dc }};"></span>
+                                        {{ $emp->department->name }}
+                                    </span>
+                                @else
+                                    <span class="text-xs text-slate-400">Unassigned</span>
+                                @endif
                             </td>
                             
                             <!-- Job Title -->

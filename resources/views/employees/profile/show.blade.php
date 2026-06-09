@@ -222,6 +222,18 @@
                     <p class="text-sm font-semibold text-slate-800 dark:text-white">{{ $employee->country ?? 'Pakistan' }}</p>
                 </div>
                 <div class="px-6 py-4">
+                    @php $tzSvc = app(\App\Services\TimezoneService::class); @endphp
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Timezone</p>
+                    <p class="text-sm font-semibold text-slate-800 dark:text-white">
+                        {{ $tzSvc->getEffectiveTimezone($employee) }}
+                        @if($employee->use_custom_timezone && $employee->timezone)
+                            <span class="ml-1 inline-flex items-center rounded bg-brand-100 px-1.5 py-0.5 text-[10px] font-semibold text-brand-700 dark:bg-brand-500/20 dark:text-brand-300">Custom</span>
+                        @else
+                            <span class="ml-1 text-[10px] text-slate-400">(company default)</span>
+                        @endif
+                    </p>
+                </div>
+                <div class="px-6 py-4">
                     <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Birthdate</p>
                     <p class="text-sm font-semibold text-slate-800 dark:text-white">
                         {{ $employee->date_of_birth ? \Carbon\Carbon::parse($employee->date_of_birth)->format('d F Y') : '-' }}
@@ -273,6 +285,20 @@
                 <div class="px-6 py-4">
                     <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Department</p>
                     <p class="text-sm font-semibold text-brand-600 dark:text-brand-400">{{ optional($employee->department)->name ?? '-' }}</p>
+                </div>
+                <div class="px-6 py-4">
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Job Location</p>
+                    <p class="text-sm font-semibold text-slate-800 dark:text-white">
+                        @if($employee->jobLocation)
+                            {{ $employee->jobLocation->display_name }}
+                            @if($employee->jobLocation->country) <span class="ml-0.5">{{ $employee->jobLocation->flag }}</span> @endif
+                            @if($employee->jobLocation->is_remote)
+                                <span class="ml-1 inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700 dark:bg-blue-500/15 dark:text-blue-300">🏠 Remote</span>
+                            @endif
+                        @else
+                            -
+                        @endif
+                    </p>
                 </div>
                 <div class="px-6 py-4">
                     <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Manager</p>

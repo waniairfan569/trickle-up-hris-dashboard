@@ -76,5 +76,16 @@ class AppServiceProvider extends ServiceProvider
         \Illuminate\Support\Facades\Blade::directive('endrole', function () {
             return "<?php endif; ?>";
         });
+
+        // @usertime($timestamp) — render a canonical-stored timestamp in the
+        // authenticated user's effective timezone, e.g. "09:28 AM".
+        \Illuminate\Support\Facades\Blade::directive('usertime', function ($expression) {
+            return "<?php echo app(\\App\\Services\\TimezoneService::class)->formatForUser($expression, auth()->user()); ?>";
+        });
+
+        // @userdate($timestamp[, $withTime]) — render as a localized date.
+        \Illuminate\Support\Facades\Blade::directive('userdate', function ($expression) {
+            return "<?php echo app(\\App\\Services\\TimezoneService::class)->formatDateForUser($expression, auth()->user()); ?>";
+        });
     }
 }

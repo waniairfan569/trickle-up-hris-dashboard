@@ -64,16 +64,23 @@ class DemoDataSeeder extends Seeder
         ]);
 
         // 7. Map employees to users so we can test User-centric relationships
+        // Inherit the primary company entity timezone by default.
+        $entityId = \App\Models\CompanyEntity::query()->where('is_primary', true)->value('id');
+
         $userIds = [];
         foreach ($employeeIds as $index => $empId) {
             $userId = DB::table('users')->insertGetId([
                 'company_id' => 1,
+                'company_entity_id' => $entityId,
                 'first_name' => 'Demo',
                 'last_name' => 'User ' . $index,
                 'email' => 'demo' . $index . '@company.com',
                 'password' => bcrypt('password'),
                 'account_status' => 'active',
                 'must_change_password' => false,
+                // Default: inherit the company entity timezone.
+                'timezone' => null,
+                'use_custom_timezone' => false,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
@@ -84,6 +91,18 @@ class DemoDataSeeder extends Seeder
             DB::table('time_off_balances')->insert([
                 ['user_id' => $userId, 'policy_id' => $annualPolicyId, 'year' => 2026, 'balance' => 20, 'used' => 0, 'pending' => 0, 'created_at' => now()],
                 ['user_id' => $userId, 'policy_id' => $sickPolicyId, 'year' => 2026, 'balance' => 10, 'used' => 0, 'pending' => 0, 'created_at' => now()]
+            ]);
+        }
+
+        // 7b. International test employee: custom timezone override (London).
+        // Verifies that attendance times display in the employee's own timezone
+        // rather than the company entity default.
+        if (!empty($userIds)) {
+            DB::table('users')->where('id', $userIds[0])->update([
+                'first_name' => 'Nida',
+                'last_name' => 'Zahra',
+                'timezone' => 'Europe/London',
+                'use_custom_timezone' => true,
             ]);
         }
 

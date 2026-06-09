@@ -343,7 +343,7 @@
         <!-- Sidebar Assignment & Metrics Panel -->
         <div class="space-y-6">
             @php
-                $assignedCount = $profile_template->employees->count();
+                $assignedCount = $isDefaultTemplate ? \App\Models\Employee::count() : $profile_template->employees->count();
                 $assignedUserIds = $profile_template->employees->pluck('id')->toArray();
                 $unassignedUsers = \App\Models\User::whereNotIn('id', $assignedUserIds)->with('department')->get();
             @endphp
@@ -362,8 +362,8 @@
                         <span class="font-bold {{ $profile_template->is_active ? 'text-emerald-600' : 'text-slate-500' }}">{{ $profile_template->is_active ? 'Online & Deployable' : 'Offline / Standard' }}</span>
                     </div>
                     <div class="flex items-center justify-between border-b border-slate-50 pb-2 dark:border-slate-750">
-                        <span class="text-slate-400">Total Assigned Staff</span>
-                        <span class="font-bold text-slate-800 dark:text-slate-200">{{ $assignedCount }} employees</span>
+                        <span class="text-slate-400">{{ $isDefaultTemplate ? 'Applies To' : 'Total Assigned Staff' }}</span>
+                        <span class="font-bold text-slate-800 dark:text-slate-200">{{ $isDefaultTemplate ? 'All (' . $assignedCount . ')' : $assignedCount . ' employees' }}</span>
                     </div>
                     <div class="flex items-center justify-between">
                         <span class="text-slate-400">Unique Code Key</span>
@@ -372,7 +372,18 @@
                 </div>
             </div>
 
-            <!-- Employee Assignments -->
+            <!-- Employee Assignments (dynamic templates only) -->
+            @if($isDefaultTemplate)
+            <div class="bg-white border border-blue-200/80 rounded-2xl p-5 shadow-sm dark:bg-slate-800 dark:border-blue-900/40 space-y-3">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">Global Template</h3>
+                <p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                    This is the <strong>default</strong> template — it applies to <strong>every employee automatically</strong>. There is no individual assignment; everyone in the directory inherits these sections and fields.
+                </p>
+                <div class="rounded-xl bg-blue-50 border border-blue-100 px-3 py-2 text-xs font-semibold text-blue-700 dark:bg-blue-500/10 dark:border-blue-900/30 dark:text-blue-300">
+                    Applies to all {{ $assignedCount }} employees
+                </div>
+            </div>
+            @else
             <div class="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm dark:bg-slate-800 dark:border-slate-850 space-y-5">
                 <div>
                     <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Employee Assignments</h3>
@@ -466,6 +477,7 @@
                     </div>
                 </div>
             </div>
+            @endif
 
         </div>
     </div>

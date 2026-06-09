@@ -20,6 +20,12 @@ return Application::configure(basePath: dirname(__DIR__))
             'permission'       => \App\Http\Middleware\CheckPermission::class,
             'employee.access'  => \App\Http\Middleware\EnsureEmployeeAccess::class,
             'force.password.change' => \App\Http\Middleware\ForcePasswordChange::class,
+            'user.timezone'    => \App\Http\Middleware\SetUserTimezone::class,
+        ]);
+        // Resolve the authenticated user's display timezone on every web request
+        // (the middleware no-ops for guests).
+        $middleware->web(append: [
+            \App\Http\Middleware\SetUserTimezone::class,
         ]);
         $middleware->api(prepend: [
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,

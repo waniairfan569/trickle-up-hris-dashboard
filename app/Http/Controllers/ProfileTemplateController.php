@@ -104,6 +104,11 @@ class ProfileTemplateController extends Controller
         ]);
 
         $template = ProfileTemplate::findOrFail($request->template_id);
+
+        if ($template->type === 'default') {
+            return back()->with('error', 'The default template applies to all employees automatically and cannot be assigned individually.');
+        }
+
         $authId = auth()->id();
         $now = now();
 

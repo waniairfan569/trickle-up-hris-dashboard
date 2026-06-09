@@ -32,7 +32,9 @@
         @forelse($templates as $template)
             @php
                 $isDefault = $template->type === 'default';
-                $assignedCount = $template->employees()->count();
+                // The default template applies to everyone automatically, so its
+                // "reach" is the whole active directory, not a pivot count.
+                $assignedCount = $isDefault ? \App\Models\Employee::count() : $template->employees()->count();
             @endphp
             <div class="group relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md dark:bg-slate-800 dark:border-slate-850 flex flex-col justify-between min-h-[300px]">
                 
@@ -57,7 +59,7 @@
 
                     <!-- Description -->
                     <p class="text-xs text-slate-450 dark:text-slate-400 leading-relaxed line-clamp-3">
-                        {{ $template->description ?? 'No description provided.' }}
+                        {{ $isDefault ? 'Automatically applied to every employee — no assignment needed.' : ($template->description ?? 'No description provided.') }}
                     </p>
 
                     <!-- Metrics Grid -->
@@ -71,8 +73,8 @@
                             <span class="text-sm font-bold text-slate-800 dark:text-slate-200">{{ $template->fields_count ?? 0 }}</span>
                         </div>
                         <div class="space-y-0.5">
-                            <span class="block text-xs font-semibold text-slate-400">Assigned</span>
-                            <span class="text-sm font-bold text-slate-800 dark:text-slate-200">{{ $assignedCount }}</span>
+                            <span class="block text-xs font-semibold text-slate-400">{{ $isDefault ? 'Applies to' : 'Assigned' }}</span>
+                            <span class="text-sm font-bold text-slate-800 dark:text-slate-200">{{ $isDefault ? 'All (' . $assignedCount . ')' : $assignedCount }}</span>
                         </div>
                     </div>
                 </div>

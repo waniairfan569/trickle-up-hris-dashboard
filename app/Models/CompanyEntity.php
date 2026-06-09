@@ -21,6 +21,8 @@ class CompanyEntity extends Model
         'city',
         'country',
         'timezone',
+        'date_format',
+        'time_format',
         'currency',
         'fiscal_year_start',
         'work_week_start',

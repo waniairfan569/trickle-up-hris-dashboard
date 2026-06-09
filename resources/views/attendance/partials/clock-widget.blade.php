@@ -8,6 +8,9 @@
     <div>
         <h3 class="text-lg font-bold text-slate-800" id="live-date"></h3>
         <div class="text-4xl font-black text-brand-600 tracking-tight my-2" id="live-time"></div>
+        <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+            {{ $userTimezone ?? config('app.timezone') }}<span id="live-tz-abbr">{{ isset($userTimezoneAbbr) ? ' · '.$userTimezoneAbbr : '' }}</span>
+        </div>
     </div>
 
     <!-- Geofence Status Badge -->
@@ -71,11 +74,22 @@
     if (liveTimerEl) liveTimerEl.innerText = formatWorkedTime(workedSeconds);
     if (completedTimerEl) completedTimerEl.innerText = formatWorkedTime(workedSeconds);
 
+    // Render the live clock in the employee's EFFECTIVE timezone, not the
+    // browser's local timezone.
+    const userTz = '{{ app(\App\Services\TimezoneService::class)->getEffectiveTimezone(auth()->user()) }}';
+    const liveTimeFmt = new Intl.DateTimeFormat('en-GB', { timeZone: userTz, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+    const liveDateFmt = new Intl.DateTimeFormat('en-US', { timeZone: userTz, weekday: 'long', month: 'long', day: 'numeric' });
+
     function updateClock() {
         const now = new Date();
-        document.getElementById('live-time').innerText = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
-        document.getElementById('live-date').innerText = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
-        
+        try {
+            document.getElementById('live-time').innerText = liveTimeFmt.format(now);
+            document.getElementById('live-date').innerText = liveDateFmt.format(now);
+        } catch (e) {
+            document.getElementById('live-time').innerText = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
+            document.getElementById('live-date').innerText = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+        }
+
         if (isClockedIn) {
             workedSeconds++;
             if (liveTimerEl) liveTimerEl.innerText = formatWorkedTime(workedSeconds);

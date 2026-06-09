@@ -6,7 +6,8 @@
 @section('content')
 @php
     // Robust, dynamic metrics directly from the DB
-    $totalEmployees = \App\Models\User::count();
+    // "Total Directory" mirrors the /employees directory, which lists employee records.
+    $totalEmployees = \App\Models\Employee::count();
     
     $onLeaveToday = \App\Models\TimeOffRequest::where('status', 'approved')
         ->whereDate('start_date', '<=', today())
