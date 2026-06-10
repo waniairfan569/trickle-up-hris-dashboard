@@ -6,9 +6,6 @@
 <div class="flex flex-col gap-1.5">
     <label class="text-xs text-slate-500 font-bold dark:text-slate-400">
         {{ $field->name }}
-        @if($field->is_required)
-            <span class="text-rose-500">*</span>
-        @endif
         @if($field->is_encrypted)
             <span class="text-[9px] text-emerald-500 ml-1 font-normal">(Encrypted)</span>
         @endif
@@ -20,15 +17,14 @@
                       rows="3" 
                       class="{{ $inputClasses }}" 
                       placeholder="{{ $field->placeholder }}"
-                      {{ $field->is_required ? 'required' : '' }}>{{ old('fields.'.$field->key, $value) }}</textarea>
+                      >{{ old('fields.'.$field->key, $value) }}</textarea>
             @break
 
         @case('date')
             <input type="date" 
                    name="fields[{{ $field->key }}]" 
                    value="{{ old('fields.'.$field->key, $value ? ($value instanceof \Carbon\Carbon ? $value->format('Y-m-d') : substr($value, 0, 10)) : '') }}" 
-                   class="{{ $inputClasses }}"
-                   {{ $field->is_required ? 'required' : '' }}>
+                   class="{{ $inputClasses }}">
             @break
 
         @case('number')
@@ -38,14 +34,12 @@
                    value="{{ old('fields.'.$field->key, $value) }}" 
                    step="{{ $field->type === 'currency' ? '0.01' : '1' }}" 
                    class="{{ $inputClasses }}" 
-                   placeholder="{{ $field->placeholder }}"
-                   {{ $field->is_required ? 'required' : '' }}>
+                   placeholder="{{ $field->placeholder }}">
             @break
 
         @case('dropdown')
             <select name="fields[{{ $field->key }}]" 
-                    class="{{ $inputClasses }}"
-                    {{ $field->is_required ? 'required' : '' }}>
+                    class="{{ $inputClasses }}">
                 <option value="">Select...</option>
                 @if(is_array($field->options))
                     @foreach($field->options as $opt)
@@ -102,7 +96,7 @@
                 <input type="file" 
                        name="fields[{{ $field->key }}]" 
                        class="w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100 dark:file:bg-brand-900/20 dark:file:text-brand-400"
-                       {{ $field->is_required && !$value ? 'required' : '' }}>
+                       >
             </div>
             @break
 
@@ -114,8 +108,7 @@
                     : \App\Models\User::orderBy('first_name')->where('id', '!=', $employee->id)->with('department')->get();
             @endphp
             <select name="fields[{{ $field->key }}]" 
-                    class="{{ $inputClasses }}"
-                    {{ $field->is_required ? 'required' : '' }}>
+                    class="{{ $inputClasses }}">
                 <option value="">Select Employee...</option>
                 @foreach($allUsersForLookup as $u)
                     {{-- Bug #19: Show job title and department for context --}}
@@ -131,8 +124,7 @@
                 $allDepartments = \App\Models\Department::orderBy('name')->get();
             @endphp
             <select name="fields[{{ $field->key }}]" 
-                    class="{{ $inputClasses }}"
-                    {{ $field->is_required ? 'required' : '' }}>
+                    class="{{ $inputClasses }}">
                 <option value="">Select Department...</option>
                 @foreach($allDepartments as $d)
                     <option value="{{ $d->id }}" {{ (string)old('fields.'.$field->key, $value) === (string)$d->id ? 'selected' : '' }}>{{ $d->name }}</option>
@@ -145,8 +137,7 @@
                    name="fields[{{ $field->key }}]" 
                    value="{{ old('fields.'.$field->key, $value) }}" 
                    class="{{ $inputClasses }}" 
-                   placeholder="{{ $field->placeholder ?? '' }}"
-                   {{ $field->is_required ? 'required' : '' }}>
+                   placeholder="{{ $field->placeholder ?? '' }}">
     @endswitch
 
     {{-- Bug #9: Helper text for specific fields --}}

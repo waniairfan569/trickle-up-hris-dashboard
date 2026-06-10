@@ -112,8 +112,10 @@ class EmployeeProfileController extends Controller
                 continue;
             }
 
-            if ($field->is_required && empty($value) && !$request->hasFile("fields.{$key}")) {
-                return back()->withErrors(['fields.' . $key => $field->name . ' is required.'])->withInput();
+            // Partial save: skip empty, non-file values so a blank field neither
+            // blocks the save nor overwrites data the employee already entered.
+            if (!$request->hasFile("fields.{$key}") && (is_null($value) || $value === '' || (is_array($value) && count($value) === 0))) {
+                continue;
             }
 
             // Handle specific field types
