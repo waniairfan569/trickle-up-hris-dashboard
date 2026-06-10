@@ -95,6 +95,7 @@
                         <th class="py-4 px-6">Name</th>
                         <th class="py-4 px-6">Department</th>
                         <th class="py-4 px-6">Job Title</th>
+                        <th class="py-4 px-6">Manager</th>
                         <th class="py-4 px-6">RBAC Role</th>
                         <th class="py-4 px-6">Status</th>
                         <th class="py-4 px-6 text-right">Actions</th>
@@ -161,7 +162,23 @@
                             <td class="py-4 px-6 text-slate-650 dark:text-slate-300 font-medium">
                                 {{ $title }}
                             </td>
-                            
+
+                            <!-- Manager -->
+                            <td class="py-4 px-6">
+                                @if($emp->user->manager)
+                                    <a href="{{ route('employees.profile', $emp->user->manager_id) }}" class="inline-flex items-center gap-2 group">
+                                        @if($emp->user->manager->avatar_url)
+                                            <img src="{{ $emp->user->manager->avatar_url }}" alt="{{ $emp->user->manager->full_name }}" class="h-6 w-6 rounded-lg object-cover ring-1 ring-slate-100 dark:ring-slate-750">
+                                        @else
+                                            <span class="flex h-6 w-6 items-center justify-center rounded-lg bg-slate-100 text-[9px] font-bold text-slate-500 dark:bg-slate-700 dark:text-slate-300">{{ $emp->user->manager->initials ?? '–' }}</span>
+                                        @endif
+                                        <span class="font-semibold text-slate-700 group-hover:text-brand-600 transition dark:text-slate-300">{{ $emp->user->manager->full_name }}</span>
+                                    </a>
+                                @else
+                                    <span class="text-slate-400">—</span>
+                                @endif
+                            </td>
+
                             <!-- Role Badge -->
                             <td class="py-4 px-6">
                                 <x-role-badge :role="$emp->user->role" />
@@ -191,7 +208,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="py-12 text-center">
+                            <td colspan="7" class="py-12 text-center">
                                 <div class="flex flex-col items-center justify-center">
                                     <div class="flex h-12 w-12 items-center justify-center rounded-full bg-slate-50 text-slate-400 dark:bg-slate-750/50">
                                         <i data-lucide="users" class="h-6 w-6"></i>

@@ -36,7 +36,7 @@ class EmployeeController extends Controller
         }
 
         $query = $this->employeeAccessService->getScopedEmployeeQuery($auth)
-            ->with(['user', 'department', 'user.roles', 'user.jobLocation']);
+            ->with(['user', 'department', 'user.roles', 'user.jobLocation', 'user.manager']);
 
         if ($request->filled('job_location_id')) {
             $query->whereHas('user', function ($q) use ($request) {
@@ -512,7 +512,7 @@ class EmployeeController extends Controller
             'joined_at'           => ['start date', 'joined at'],
             'department'          => ['department'],
             'entity'              => ['entity'],
-            'manager'             => ['manager'],
+            'manager'             => ['reports to', 'reporting to', 'reports_to', 'line manager', 'manager name', 'manager email', 'manager (reports to)', 'manager'],
             'job_location'        => ['job location'],
         ];
 
@@ -539,6 +539,7 @@ class EmployeeController extends Controller
         $count = 0;
         $skipped = 0;
         $errors = 0;
+        $managerRefs = []; // [user_id => raw "reports to" name], resolved after the loop
         while (($csvLine = fgetcsv($handle, 0, $delimiter)) !== false) {
             // Skip fully blank lines
             if (count($csvLine) === 1 && trim((string) ($csvLine[0] ?? '')) === '') {
@@ -561,11 +562,9 @@ class EmployeeController extends Controller
                     ['company_id' => 1, 'company_entity_id' => $entityId]
                 )->id;
             }
-            // Manager — best-effort match by "First Last"
-            $managerId = null;
-            if ($managerName = $resolve($csvLine, 'manager')) {
-                $managerId = User::whereRaw("CONCAT(first_name, ' ', last_name) = ?", [$managerName])->value('id');
-            }
+            // Manager ("Reports to") — captured here, linked in a second pass below
+            // so a manager listed later in the file is still resolved.
+            $managerName = $resolve($csvLine, 'manager');
             // Job location — match an existing one by name
             $jobLocationId = null;
             if ($jlName = $resolve($csvLine, 'job_location')) {
@@ -600,7 +599,6 @@ class EmployeeController extends Controller
                 'employee_id'         => $resolve($csvLine, 'employee_id'),
                 'department_id'       => $departmentId,
                 'company_entity_id'   => $entityId,
-                'manager_id'          => $managerId,
                 'job_location_id'     => $jobLocationId,
                 'hire_date'           => $parseDate($resolve($csvLine, 'hire_date')),
                 'phone'               => $resolve($csvLine, 'phone'),
@@ -646,6 +644,11 @@ class EmployeeController extends Controller
                     if ($role) {
                         $user->roles()->syncWithoutDetaching([$role->id]);
                     }
+                }
+
+                // Remember the "Reports to" value to link after every user exists.
+                if (!empty($managerName)) {
+                    $managerRefs[$user->id] = $managerName;
                 }
 
                 // Mirror into the legacy `employees` table so the imported person
@@ -696,7 +699,40 @@ class EmployeeController extends Controller
 
         fclose($handle);
 
+        // Second pass: now that every user exists, resolve each "Reports to" name.
+        // Handles Workable's "Last, First" format, plain "First Last", and email.
+        $resolveManager = function (string $name) {
+            $name = trim($name);
+            if ($name === '') return null;
+            if (str_contains($name, '@')) {
+                return User::whereRaw('LOWER(email) = ?', [mb_strtolower($name)])->value('id');
+            }
+            if (str_contains($name, ',')) { // "Last, First"
+                [$last, $first] = array_map('trim', array_pad(explode(',', $name, 2), 2, ''));
+                if ($first !== '' && $last !== '') {
+                    $id = User::whereRaw('LOWER(first_name) = ? AND LOWER(last_name) = ?', [mb_strtolower($first), mb_strtolower($last)])->value('id');
+                    if ($id) return $id;
+                }
+            }
+            $id = User::whereRaw("LOWER(CONCAT(first_name, ' ', last_name)) = ?", [mb_strtolower($name)])->value('id');
+            if ($id) return $id;
+            // Fall back to "Last First" (reversed, no comma)
+            return User::whereRaw("LOWER(CONCAT(last_name, ' ', first_name)) = ?", [mb_strtolower($name)])->value('id');
+        };
+
+        $managersLinked = 0;
+        foreach ($managerRefs as $userId => $managerName) {
+            $managerId = $resolveManager($managerName);
+            if ($managerId && (int) $managerId !== (int) $userId) {
+                User::where('id', $userId)->update(['manager_id' => $managerId]);
+                $managersLinked++;
+            }
+        }
+
         $msg = "Imported / updated {$count} employees.";
+        if ($managersLinked > 0) {
+            $msg .= " Linked {$managersLinked} manager relationship(s).";
+        }
         if ($skipped > 0) {
             $msg .= " Skipped {$skipped} row(s) with no work email.";
         }
