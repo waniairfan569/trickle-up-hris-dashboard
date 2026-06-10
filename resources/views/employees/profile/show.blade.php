@@ -60,8 +60,12 @@
                         </span>
                         
                         @if($employee->account_status === 'invited')
-                            <span class="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-[9px] font-bold text-amber-700 capitalize dark:bg-amber-500/10 dark:text-amber-400">
-                                Invited
+                            <span class="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[9px] font-bold text-amber-700 capitalize dark:bg-amber-500/10 dark:text-amber-400">
+                                <span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span> Pending
+                            </span>
+                        @elseif($employee->account_status === 'deactivated')
+                            <span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[9px] font-bold text-slate-600 capitalize dark:bg-slate-700 dark:text-slate-300">
+                                Archived
                             </span>
                         @endif
                     </div>

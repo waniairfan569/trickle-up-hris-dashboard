@@ -36,7 +36,9 @@ class EmployeeController extends Controller
         }
 
         $query = $this->employeeAccessService->getScopedEmployeeQuery($auth)
-            ->with(['user', 'department', 'user.roles', 'user.jobLocation', 'user.manager']);
+            ->with(['user', 'department', 'user.roles', 'user.jobLocation', 'user.manager'])
+            // Hide archived (deactivated) employees from the main directory.
+            ->whereHas('user', fn ($q) => $q->where('account_status', '!=', 'deactivated'));
 
         if ($request->filled('job_location_id')) {
             $query->whereHas('user', function ($q) use ($request) {
@@ -268,7 +270,64 @@ class EmployeeController extends Controller
     }
 
     /**
-     * Permanently delete an employee (and their dependent records).
+     * Archive (deactivate) an employee — reversible. Keeps all records; revokes access.
+     */
+    public function deactivate(Request $request, User $employee)
+    {
+        $auth = $request->user();
+        if (!$auth || !$auth->isAdmin()) {
+            abort(403, 'Forbidden: you do not have permission to deactivate employees.');
+        }
+        if ($auth->id === $employee->id) {
+            return back()->with('error', 'You cannot deactivate your own account.');
+        }
+        if ($employee->hasRole('super_admin')
+            && User::whereHas('roles', fn ($q) => $q->where('slug', 'super_admin'))->count() <= 1) {
+            return back()->with('error', 'You cannot deactivate the last Super Admin.');
+        }
+
+        $employee->account_status = 'deactivated';
+        $employee->save();
+
+        return back()->with('success', "{$employee->full_name} has been deactivated and moved to Archived.");
+    }
+
+    /**
+     * Restore an archived (deactivated) employee back into the directory.
+     */
+    public function restore(Request $request, User $employee)
+    {
+        $auth = $request->user();
+        if (!$auth || !$auth->isAdmin()) {
+            abort(403, 'Forbidden: you do not have permission to restore employees.');
+        }
+
+        // Back to active if they had already accepted their invite, otherwise pending.
+        $employee->account_status = $employee->invitation_accepted_at ? 'active' : 'invited';
+        $employee->save();
+
+        return back()->with('success', "{$employee->full_name} has been restored.");
+    }
+
+    /**
+     * List archived (deactivated) employees.
+     */
+    public function archived(Request $request)
+    {
+        $auth = $request->user();
+        if (!$auth || !$auth->isAdmin()) {
+            abort(403, 'Forbidden.');
+        }
+
+        $employees = Employee::with(['user', 'department'])
+            ->whereHas('user', fn ($q) => $q->where('account_status', 'deactivated'))
+            ->paginate(15);
+
+        return view('employees.archived', compact('employees'));
+    }
+
+    /**
+     * Permanently delete an employee (and their dependent records). Use from Archived.
      */
     public function destroy(Request $request, User $employee)
     {
@@ -303,7 +362,7 @@ class EmployeeController extends Controller
             optional(\App\Models\JobLocation::find($jobLocationId))->refreshEmployeeCount();
         }
 
-        return redirect()->route('employees.index')->with('success', "{$name} has been deleted.");
+        return redirect()->route('employees.archived')->with('success', "{$name} has been permanently deleted.");
     }
 
     /**

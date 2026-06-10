@@ -37,6 +37,15 @@ Route::post('/login', function (\Illuminate\Http\Request $request) {
     ]);
 
     if (\Illuminate\Support\Facades\Auth::attempt($credentials)) {
+        // Block archived (deactivated) / suspended accounts from signing in.
+        if (in_array(\Illuminate\Support\Facades\Auth::user()->account_status, ['deactivated', 'suspended'], true)) {
+            \Illuminate\Support\Facades\Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+            return back()->withErrors([
+                'email' => 'This account has been deactivated. Please contact your administrator.',
+            ]);
+        }
         $request->session()->regenerate();
         return redirect()->intended('/dashboard');
     }
@@ -83,6 +92,17 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
     Route::get('employees/pending-invitations', [EmployeeController::class, 'pendingInvitations'])
         ->middleware(['role:super_admin,hr_admin'])
         ->name('employees.pending-invitations');
+
+    // Archive (deactivate) / restore — reversible alternative to permanent delete.
+    Route::get('employees/archived', [EmployeeController::class, 'archived'])
+        ->middleware(['role:super_admin,hr_admin'])
+        ->name('employees.archived');
+    Route::post('employees/{employee}/deactivate', [EmployeeController::class, 'deactivate'])
+        ->middleware(['role:super_admin,hr_admin'])
+        ->name('employees.deactivate');
+    Route::post('employees/{employee}/restore', [EmployeeController::class, 'restore'])
+        ->middleware(['role:super_admin,hr_admin'])
+        ->name('employees.restore');
 
     Route::resource('employees', EmployeeController::class)
         ->middleware(['employee.access']);

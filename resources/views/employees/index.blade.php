@@ -27,6 +27,10 @@
                     <i data-lucide="download" class="h-4 w-4"></i>
                     <span>Export</span>
                 </a>
+                <a href="{{ route('employees.archived') }}" class="inline-flex items-center gap-x-2 rounded-xl bg-white border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 transition duration-150 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-700">
+                    <i data-lucide="archive" class="h-4 w-4"></i>
+                    <span>Archived</span>
+                </a>
                 <a href="{{ route('employees.create') }}" class="inline-flex items-center gap-x-2 rounded-xl bg-brand-600 px-4 py-2 text-xs font-semibold text-slate-900 shadow-md shadow-brand-500/20 hover:bg-brand-700 transition duration-150">
                     <i data-lucide="user-plus" class="h-4 w-4"></i>
                     <span>Add New Employee</span>
@@ -109,11 +113,21 @@
                             $title = $emp->job_title ?? 'Employee';
                             $deptName = $emp->department->name ?? 'Unassigned';
                             $roleSlug = $emp->user->role->slug ?? 'employee';
-                            
-                            $statusClasses = match(strtolower($emp->status ?? 'active')) {
-                                'active' => 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400',
-                                'inactive' => 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400',
-                                default => 'bg-slate-50 text-slate-650'
+
+                            // Account lifecycle: Pending (invited, not yet accepted) → Active (accepted + logged in).
+                            $acct = $emp->user->account_status ?? 'active';
+                            $statusLabel = match($acct) {
+                                'invited'     => 'Pending',
+                                'active'      => 'Active',
+                                'suspended'   => 'Suspended',
+                                'deactivated' => 'Archived',
+                                default       => ucfirst($acct),
+                            };
+                            $statusClasses = match($acct) {
+                                'active'      => 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400',
+                                'invited'     => 'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400',
+                                'suspended'   => 'bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400',
+                                default       => 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400',
                             };
                         @endphp
                         
@@ -186,8 +200,9 @@
                             
                             <!-- Status -->
                             <td class="py-4 px-6">
-                                <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold capitalize {{ $statusClasses }}">
-                                    {{ $emp->status ?? 'active' }}
+                                <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold {{ $statusClasses }}">
+                                    @if($acct === 'invited')<span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span>@elseif($acct === 'active')<span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>@endif
+                                    {{ $statusLabel }}
                                 </span>
                             </td>
                             
@@ -205,13 +220,12 @@
                                     @endif
 
                                     @if($auth->isAdmin() && $auth->id !== $emp->user_id)
-                                        <form action="{{ route('employees.destroy', $emp->user_id) }}" method="POST" class="inline"
-                                              onsubmit="return confirm('Delete {{ $fullName }}? This permanently removes their profile, attendance, leave and all related records. This cannot be undone.');">
+                                        <form action="{{ route('employees.deactivate', $emp->user_id) }}" method="POST" class="inline"
+                                              onsubmit="return confirm('Deactivate {{ $fullName }}? They will be moved to Archived and lose access. You can restore them anytime.');">
                                             @csrf
-                                            @method('DELETE')
-                                            <button type="submit" title="Delete employee"
+                                            <button type="submit" title="Deactivate (archive) employee"
                                                     class="rounded-xl bg-rose-50 px-2.5 py-1.5 text-[10px] font-bold text-rose-700 hover:bg-rose-100 transition dark:bg-rose-500/10 dark:text-rose-400 dark:hover:bg-rose-500/20">
-                                                Delete
+                                                Deactivate
                                             </button>
                                         </form>
                                     @endif
