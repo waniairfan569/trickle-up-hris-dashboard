@@ -116,7 +116,10 @@ class EmployeeController extends Controller
         $locations = \App\Models\Location::all();
         $jobLocations = \App\Models\JobLocation::active()->orderBy('name')->get();
         $roles = \App\Models\Role::all();
-        $templates = \App\Models\ProfileTemplate::with('sections.fields')->active()->get();
+        // The create form mirrors the DEFAULT employee profile template (the single
+        // source of truth). Dynamic templates are assigned later, per employee.
+        $templates = \App\Models\ProfileTemplate::with('sections.fields')
+            ->active()->where('type', 'default')->get();
 
         return view('employees.create', compact('departments', 'locations', 'jobLocations', 'roles', 'templates'));
     }
@@ -132,100 +135,115 @@ class EmployeeController extends Controller
             abort(403, 'Forbidden: You do not have permission to create employees.');
         }
 
+        // Required to create the account: name + work email (login) + personal email.
+        // Everything else on the default profile template is optional and can be
+        // completed later by the employee, so the template stays the single source of truth.
         $validated = $request->validate([
-            'first_name'    => 'required|string|max:255',
-            'last_name'     => 'required|string|max:255',
-            'email'         => 'required|email|unique:users,email|unique:employees,email',
-            'job_title'     => 'required|string|max:255',
-            'salary'        => 'nullable|numeric',
-            'salary_currency' => 'nullable|string|max:10',
-            // Required: first name, last name, work email, job title. Everything else
-            // is optional and can be completed later on the profile (which is driven by
-            // the default profile template — the single source of truth for all fields).
-            'role_id'       => 'nullable|exists:roles,id',
-            'department_id' => 'nullable|exists:departments,id',
-            'location_id'   => 'nullable|exists:locations,id',
-            'job_location_id' => 'nullable|exists:job_locations,id',
-            'use_custom_timezone' => 'nullable|boolean',
-            'timezone'      => 'nullable|string|max:100|required_if:use_custom_timezone,1',
-            'dynamic_fields'=> 'nullable|array',
-            'onboarding_method' => 'required|in:invite,set_password,later',
-            'temporary_password' => 'required_if:onboarding_method,set_password',
+            'first_name'            => 'required|string|max:255',
+            'last_name'             => 'required|string|max:255',
+            'fields.work_email'     => 'required|email|unique:users,email|unique:employees,email',
+            'fields.personal_email' => 'required|email',
+            'fields.department_id'  => 'nullable|exists:departments,id',
+            'fields.manager_id'     => 'nullable|exists:users,id',
+            'role_id'               => 'nullable|exists:roles,id',
+            'onboarding_method'     => 'required|in:invite,set_password,later',
+            'temporary_password'    => 'required_if:onboarding_method,set_password',
+            'fields'                => 'nullable|array',
+        ], [], [
+            'fields.work_email'     => 'work email',
+            'fields.personal_email' => 'personal email',
+            'fields.department_id'  => 'department',
+            'fields.manager_id'     => 'manager',
         ]);
+
+        $email    = trim($request->input('fields.work_email'));
+        $jobTitle = $request->input('fields.job_title') ?: 'Employee';
 
         $user = User::create([
-            'company_id'    => $auth->company_id,
-            'first_name'    => $validated['first_name'],
-            'last_name'     => $validated['last_name'],
-            'email'         => $validated['email'],
-            'password'      => bcrypt(\Illuminate\Support\Str::random(16)),
-            'job_title'     => $validated['job_title'] ?? 'Employee',
-            'department_id' => $validated['department_id'] ?? null,
+            'company_id'        => $auth->company_id,
+            'first_name'        => $validated['first_name'],
+            'last_name'         => $validated['last_name'],
+            'email'             => $email,
+            'password'          => bcrypt(\Illuminate\Support\Str::random(16)),
+            'job_title'         => $jobTitle,
             'company_entity_id' => optional(\App\Models\CompanyEntity::primary())->id,
-            'job_location_id' => $validated['job_location_id'] ?? null,
-            'use_custom_timezone' => $request->boolean('use_custom_timezone'),
-            // users.timezone is NOT NULL (default 'UTC'); when not using a custom
-            // timezone the employee inherits the entity tz, so the stored value is ignored.
-            'timezone'      => $request->boolean('use_custom_timezone') ? ($validated['timezone'] ?? 'UTC') : 'UTC',
-            'salary'        => $validated['salary'] ?? null,
-            'salary_currency' => $validated['salary_currency'] ?? 'PKR',
-            'status'        => 'active',
-            'account_status'  => 'invited', // Added for invitation logic
-            'employee_status' => 'active',
-            'joined_at'     => now(),
+            'timezone'          => 'UTC',
+            'salary_currency'   => 'PKR',
+            'status'            => 'active',
+            'account_status'    => 'invited',
+            'employee_status'   => 'active',
+            'joined_at'         => now(),
         ]);
-
-        // Keep the job location's cached employee count in sync
-        if (!empty($validated['job_location_id'])) {
-            optional(\App\Models\JobLocation::find($validated['job_location_id']))->refreshEmployeeCount();
-        }
 
         // Assign Role — default to the standard "employee" role when none chosen.
         $role = !empty($validated['role_id'])
             ? \App\Models\Role::find($validated['role_id'])
             : \App\Models\Role::where('slug', 'employee')->first();
         if ($role) {
-            $user->roles()->attach($role->id, [
-                'assigned_by' => $auth->id,
-                'assigned_at' => now(),
-            ]);
+            $user->roles()->attach($role->id, ['assigned_by' => $auth->id, 'assigned_at' => now()]);
         }
 
+        // Persist every submitted template field — native column when the key is a
+        // fillable attribute, otherwise a dynamic EmployeeFieldValue. Same rules as the
+        // profile editor (EmployeeProfileController::update) so create/view/edit agree.
+        foreach ($request->input('fields', []) as $key => $value) {
+            $field = \App\Models\ProfileField::where('key', $key)->first();
+            if (!$field) {
+                continue;
+            }
+            $hasFile = $request->hasFile("fields.{$key}");
+            if (!$hasFile && (is_null($value) || $value === '' || (is_array($value) && count($value) === 0))) {
+                continue;
+            }
+            if ($field->type === 'file' && $hasFile) {
+                $path = $request->file("fields.{$key}")->store("employee-files/{$user->id}/{$key}", 'public');
+                $value = \Illuminate\Support\Facades\Storage::url($path);
+            } elseif (in_array($field->type, ['multi_select', 'date_range']) && is_array($value)) {
+                $value = json_encode($value);
+            }
+            try {
+                if ($user->isFillable($key) || array_key_exists($key, $user->getAttributes())) {
+                    $user->update([$key => $value]);
+                } else {
+                    \App\Models\EmployeeFieldValue::updateOrCreate(
+                        ['user_id' => $user->id, 'field_id' => $field->id],
+                        ['value' => $value, 'updated_by' => $auth->id]
+                    );
+                }
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning("Create employee: field '{$key}' skipped — " . $e->getMessage());
+            }
+        }
+
+        // Keep the template's "Full name" field in sync with first/last name.
+        if ($fullNameField = \App\Models\ProfileField::where('key', 'full_name')->first()) {
+            \App\Models\EmployeeFieldValue::updateOrCreate(
+                ['user_id' => $user->id, 'field_id' => $fullNameField->id],
+                ['value' => trim($user->first_name . ' ' . $user->last_name), 'updated_by' => $auth->id]
+            );
+        }
+
+        // Keep the job location's cached employee count in sync (if one was set via a field).
+        if ($user->job_location_id) {
+            optional(\App\Models\JobLocation::find($user->job_location_id))->refreshEmployeeCount();
+        }
+
+        // Mirror into the legacy employees table so the new hire shows in the directory.
         $employee = Employee::create([
             'user_id'         => $user->id,
             'company_id'      => $user->company_id,
-            'department_id'   => $validated['department_id'] ?? null,
-            'location_id'     => $validated['location_id'] ?? null,
+            'department_id'   => $user->department_id,
             'first_name'      => $user->first_name,
             'last_name'       => $user->last_name,
             'email'           => $user->email,
-            'job_title'       => $user->job_title,
+            'job_title'       => $user->job_title ?: 'Employee',
             'employment_type' => 'full_time',
-            'hire_date'       => now(),
+            'hire_date'       => $user->hire_date ?? now(),
             'status'          => 'active',
             'salary'          => $user->salary,
             'currency'        => $user->salary_currency ?? 'PKR',
+            'phone'           => $user->phone,
         ]);
-
-        // Profile templates (Workable model): the DEFAULT template applies to every
-        // employee globally and is never attached; DYNAMIC templates are assigned
-        // explicitly later (per employee / department / role). So we attach nothing here.
-        if (!empty($validated['dynamic_fields'])) {
-            foreach ($validated['dynamic_fields'] as $fieldId => $value) {
-                if (!is_null($value)) {
-                    // For array types like multi_select
-                    if (is_array($value)) {
-                        $value = json_encode($value);
-                    }
-                    \App\Models\EmployeeFieldValue::create([
-                        'user_id'    => $user->id,
-                        'field_id'   => $fieldId,
-                        'value'      => (string) $value,
-                        'updated_by' => $auth->id,
-                    ]);
-                }
-            }
-        }
 
         $invitationService = app(\App\Services\InvitationService::class);
         $method = $validated['onboarding_method'] ?? 'invite';

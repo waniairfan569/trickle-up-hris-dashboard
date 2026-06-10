@@ -103,9 +103,9 @@
         @case('employee_lookup')
             @php
                 // Bug #4: Exclude the current employee so they cannot set themselves as manager
-                $allUsersForLookup = isset($allUsers) 
-                    ? $allUsers 
-                    : \App\Models\User::orderBy('first_name')->where('id', '!=', $employee->id)->with('department')->get();
+                $allUsersForLookup = isset($allUsers)
+                    ? $allUsers
+                    : \App\Models\User::orderBy('first_name')->where('id', '!=', optional($employee)->id ?? 0)->with('department')->get();
             @endphp
             <select name="fields[{{ $field->key }}]" 
                     class="{{ $inputClasses }}">
