@@ -268,6 +268,45 @@ class EmployeeController extends Controller
     }
 
     /**
+     * Permanently delete an employee (and their dependent records).
+     */
+    public function destroy(Request $request, User $employee)
+    {
+        $auth = $request->user();
+
+        // Only Super Admin / HR Admin may delete employees.
+        if (!$auth || !$auth->isAdmin()) {
+            abort(403, 'Forbidden: you do not have permission to delete employees.');
+        }
+
+        // Safety guards: never delete yourself or the last Super Admin (avoids lockout).
+        if ($auth->id === $employee->id) {
+            return back()->with('error', 'You cannot delete your own account.');
+        }
+        if ($employee->hasRole('super_admin')
+            && User::whereHas('roles', fn ($q) => $q->where('slug', 'super_admin'))->count() <= 1) {
+            return back()->with('error', 'You cannot delete the last Super Admin.');
+        }
+
+        $name = $employee->full_name;
+        $jobLocationId = $employee->job_location_id;
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($employee) {
+            // employees.user_id is SET NULL on delete, so remove the directory mirror
+            // explicitly. Every other dependent (field values, attendance, leave,
+            // role/policy pivots, …) is removed by ON DELETE CASCADE.
+            Employee::where('user_id', $employee->id)->delete();
+            $employee->delete();
+        });
+
+        if ($jobLocationId) {
+            optional(\App\Models\JobLocation::find($jobLocationId))->refreshEmployeeCount();
+        }
+
+        return redirect()->route('employees.index')->with('success', "{$name} has been deleted.");
+    }
+
+    /**
      * Display the specified resource.
      */
     public function show(Request $request, User $employee)

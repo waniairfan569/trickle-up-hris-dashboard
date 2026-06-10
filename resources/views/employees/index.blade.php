@@ -203,6 +203,18 @@
                                             Edit
                                         </a>
                                     @endif
+
+                                    @if($auth->isAdmin() && $auth->id !== $emp->user_id)
+                                        <form action="{{ route('employees.destroy', $emp->user_id) }}" method="POST" class="inline"
+                                              onsubmit="return confirm('Delete {{ $fullName }}? This permanently removes their profile, attendance, leave and all related records. This cannot be undone.');">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" title="Delete employee"
+                                                    class="rounded-xl bg-rose-50 px-2.5 py-1.5 text-[10px] font-bold text-rose-700 hover:bg-rose-100 transition dark:bg-rose-500/10 dark:text-rose-400 dark:hover:bg-rose-500/20">
+                                                Delete
+                                            </button>
+                                        </form>
+                                    @endif
                                 </div>
                             </td>
                         </tr>
