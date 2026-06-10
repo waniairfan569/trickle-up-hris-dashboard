@@ -54,14 +54,50 @@
             <form action="{{ route('time-off-policies.assign', $timeOffPolicy) }}" method="POST">
                 @csrf
                 <div class="flex flex-col md:flex-row gap-4 items-end">
-                    <div class="flex-1">
+                    <div class="flex-1" x-data="{
+                            search: '',
+                            selected: 0,
+                            allSelected: false,
+                            boxes() { return Array.from(this.$refs.list.querySelectorAll('input.emp-cb')); },
+                            visible() { return this.boxes().filter(b => b.closest('label').style.display !== 'none'); },
+                            toggleAll(checked) { this.visible().forEach(b => b.checked = checked); this.refresh(); },
+                            refresh() { this.selected = this.boxes().filter(b => b.checked).length; const v = this.visible(); this.allSelected = v.length > 0 && v.every(b => b.checked); }
+                        }" x-init="$nextTick(() => refresh())">
                         <label class="block text-xs font-bold text-slate-700 uppercase mb-2 dark:text-slate-300">Assign Employees to Policy</label>
-                        <select name="user_ids[]" multiple required class="w-full rounded-xl border-slate-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm dark:bg-slate-800 dark:border-slate-600 dark:text-white h-24">
-                            @foreach($availableUsers as $user)
-                                <option value="{{ $user->id }}">{{ $user->first_name }} {{ $user->last_name }} ({{ $user->email }})</option>
-                            @endforeach
-                        </select>
-                        <p class="text-[10px] text-slate-500 mt-1">Hold Ctrl/Cmd to select multiple.</p>
+                        <div class="rounded-xl border border-slate-300 bg-white overflow-hidden dark:bg-slate-800 dark:border-slate-600">
+                            <!-- Search + Select all -->
+                            <div class="flex items-center gap-2 px-3 py-2 border-b border-slate-200 bg-slate-50 dark:bg-slate-900/40 dark:border-slate-700">
+                                <div class="relative flex-1">
+                                    <i data-lucide="search" class="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400"></i>
+                                    <input type="text" x-model="search" @input="$nextTick(() => refresh())" placeholder="Search employees..."
+                                           class="w-full rounded-lg border border-slate-200 pl-8 pr-3 py-1.5 text-xs focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:bg-slate-900 dark:border-slate-700 dark:text-white">
+                                </div>
+                                <label class="flex items-center gap-1.5 text-xs font-bold text-slate-600 cursor-pointer whitespace-nowrap dark:text-slate-300">
+                                    <input type="checkbox" @change="toggleAll($event.target.checked)" :checked="allSelected"
+                                           class="rounded border-slate-300 text-brand-600 focus:ring-brand-500 h-4 w-4">
+                                    Select all
+                                </label>
+                            </div>
+                            <!-- Employee list (names only) -->
+                            <div x-ref="list" class="max-h-48 overflow-y-auto px-2 py-1.5 space-y-0.5">
+                                @forelse($availableUsers as $user)
+                                    @php $nm = trim($user->first_name . ' ' . $user->last_name) ?: 'Unnamed'; @endphp
+                                    <label data-name="{{ mb_strtolower($nm) }}"
+                                           x-show="search === '' || $el.dataset.name.includes(search.toLowerCase())"
+                                           class="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-slate-50 cursor-pointer dark:hover:bg-slate-700/40">
+                                        <input type="checkbox" name="user_ids[]" value="{{ $user->id }}" @change="refresh()"
+                                               class="emp-cb rounded border-slate-300 text-brand-600 focus:ring-brand-500 h-4 w-4">
+                                        <span class="text-sm text-slate-700 dark:text-slate-200">{{ $nm }}</span>
+                                    </label>
+                                @empty
+                                    <p class="text-xs text-slate-400 px-2 py-3 text-center">All employees are already assigned to this policy.</p>
+                                @endforelse
+                            </div>
+                            <!-- Footer count -->
+                            <div class="px-3 py-1.5 border-t border-slate-200 bg-slate-50 text-[11px] font-semibold text-slate-500 dark:bg-slate-900/40 dark:border-slate-700">
+                                <span x-text="selected"></span> selected
+                            </div>
+                        </div>
                     </div>
                     <div class="w-full md:w-48">
                         <label class="block text-xs font-bold text-slate-700 uppercase mb-2 dark:text-slate-300">Custom Days (Optional)</label>
