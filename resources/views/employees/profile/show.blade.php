@@ -135,10 +135,15 @@
                 'experience'   => 'Experience',
                 'emergency'    => 'Emergency',
             ];
+            // These tabs hold HR-managed / sensitive data — hidden on the employee side,
+            // visible only to Super Admin / HR Admin.
+            $canSeeHrTabs = $auth->isAdmin();
+            $hrOnlyTabs = ['compensation', 'legal', 'experience', 'emergency'];
         @endphp
         <div class="flex items-center justify-between border-t border-slate-100 px-6 dark:border-slate-700/60 gap-4">
             <div class="flex overflow-x-auto select-none">
                 @foreach($profileTabs as $key => $label)
+                    @if(in_array($key, $hrOnlyTabs) && !$canSeeHrTabs) @continue @endif
                     <button @click="tab = '{{ $key }}'" :class="tab === '{{ $key }}' ? 'border-brand-500 text-brand-600 dark:text-brand-400' : 'border-transparent text-slate-400 hover:text-slate-650'"
                         class="whitespace-nowrap border-b-2 py-4 px-4 text-xs font-bold transition">{{ $label }}</button>
                 @endforeach
@@ -323,8 +328,9 @@
          class="bg-white border border-slate-200/80 rounded-2xl shadow-sm dark:bg-slate-800 dark:border-slate-700 p-6 sm:p-8">
         @foreach($templates as $template)
             @foreach($template->sections as $section)
-                @if($section->fields->isNotEmpty())
-                    <div id="section-{{ $section->id }}" x-show="tab === '{{ $section->tab ?? 'personal' }}'" x-cloak
+                @php $secTab = $section->tab ?? 'personal'; @endphp
+                @if($section->fields->isNotEmpty() && !(in_array($secTab, $hrOnlyTabs) && !$canSeeHrTabs))
+                    <div id="section-{{ $section->id }}" x-show="tab === '{{ $secTab }}'" x-cloak
                          class="border-b border-slate-100 dark:border-slate-700/60 pb-7 mb-7">
                         <div class="flex items-center justify-between mb-5">
                             <h3 class="text-base font-bold text-slate-800 dark:text-white">{{ $section->name }}</h3>
