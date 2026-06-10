@@ -91,6 +91,8 @@ class EmployeeController extends Controller
 
         $pendingUsers = User::with(['department', 'invitedBy', 'roles'])
             ->whereNull('invitation_accepted_at')
+            // Archived (deactivated) accounts are never "pending".
+            ->where('account_status', '!=', 'deactivated')
             ->where(function($query) {
                 $query->where('account_status', 'invited')
                       ->orWhere(function($subQuery) {
