@@ -1,13 +1,13 @@
 @php $isSensitive = isset($field) && in_array($field->visibility ?? 'public', ['private', 'internal', 'manager']); @endphp
 <div class="flex flex-col gap-0.5">
-    <span class="text-xs text-slate-400 font-bold dark:text-slate-500 uppercase tracking-wider flex items-center gap-1">
+    <span class="text-xs text-slate-400 font-medium dark:text-slate-500 flex items-center gap-1">
         <span>{{ $field->name }}</span>
         @if($field->is_encrypted)
             <i data-lucide="shield-check" class="h-3 w-3 text-emerald-500 inline-block" title="Encrypted at rest"></i>
         @endif
     </span>
-    
-    <span class="text-sm font-bold text-slate-800 dark:text-slate-200">
+
+    <span class="text-sm font-semibold text-slate-800 dark:text-slate-200">
         @if($isSensitive)
             <span x-show="!showSensitive" class="text-slate-400 tracking-widest select-none">••••••••</span>
         @endif

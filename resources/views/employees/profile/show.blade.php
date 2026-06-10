@@ -67,11 +67,21 @@
                     </div>
                 </div>
                 <p class="text-xs font-semibold text-brand-600 dark:text-brand-400">
-                    {{ $employee->job_title ?? 'Employee' }} 
+                    {{ $employee->job_title ?? 'Employee' }}
                     @if($employee->department)
                         &bull; <span class="inline-flex items-center rounded bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-800 dark:bg-slate-700 dark:text-slate-100">{{ $employee->department->name }}</span>
                     @endif
                 </p>
+                <div class="flex flex-wrap items-center gap-2 justify-center sm:justify-start pt-1">
+                    @if($employee->companyEntity)
+                        <span class="text-xs text-slate-500 dark:text-slate-400">{{ $employee->companyEntity->name }}</span>
+                    @endif
+                    @if($employee->email)
+                        <a href="mailto:{{ $employee->email }}" class="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-200 transition dark:bg-slate-700 dark:text-slate-300">
+                            <i data-lucide="mail" class="h-3 w-3"></i>{{ $employee->email }}
+                        </a>
+                    @endif
+                </div>
             </div>
 
             <!-- Profile Action Buttons -->
@@ -269,13 +279,18 @@
         </div>
     </div>
 
+    @endif {{-- end self/admin-only tabs --}}
+
     {{-- ======================================================= --}}
-    {{-- FULL TEMPLATE FIELDS (shown under Personal+Job for self/admin) --}}
+    {{-- PROFILE INFORMATION — all 6 tabs, visible to everyone     --}}
+    {{-- (per-field visibility still controls what each viewer sees) --}}
     {{-- ======================================================= --}}
+    @php $infoTabsJs = "['personal','job','compensation','legal','experience','emergency']"; @endphp
+
     @if($editing)
-    <form id="profile-edit-form" action="{{ route('employees.profile.update', $employee->id) }}" method="POST" enctype="multipart/form-data" class="space-y-8">
+    <form id="profile-edit-form" action="{{ route('employees.profile.update', $employee->id) }}" method="POST" enctype="multipart/form-data" class="space-y-6" novalidate>
         @csrf @method('PUT')
-        <div class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm dark:bg-slate-800">
+        <div x-show="{{ $infoTabsJs }}.includes(tab)" x-cloak class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm dark:bg-slate-800 dark:border-slate-700">
             <div class="flex items-center gap-4">
                 <div class="relative flex-shrink-0">
                     @if($employee->avatar_url)
@@ -298,67 +313,61 @@
         </div>
     @endif
 
-    <div class="space-y-8">
-        @foreach($templates as $template)
-            <div class="space-y-4">
-                @if($template->type !== 'default')
-                <div class="border-b border-slate-200 pb-2 dark:border-slate-800">
-                    <h2 class="text-sm font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-wider">{{ $template->name }}</h2>
-                    @if($template->description)<p class="text-xs text-slate-400 mt-0.5">{{ $template->description }}</p>@endif
-                </div>
-                @endif
-                <div class="grid grid-cols-1 gap-6">
-                    @foreach($template->sections as $section)
-                        @if($section->fields->isNotEmpty())
-                            <div id="section-{{ $section->id }}" x-show="tab === '{{ $section->tab ?? 'personal' }}'" x-cloak class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm dark:bg-slate-800 space-y-6">
-                                <div class="flex items-center justify-between border-b border-slate-100 pb-4 dark:border-slate-700/60">
-                                    <div class="flex items-center gap-3">
-                                        <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10"><i data-lucide="{{ $lucideIcons[$section->icon] ?? 'user' }}" class="h-5 w-5"></i></div>
-                                        <h3 class="text-sm font-bold text-slate-900 dark:text-white">{{ $section->name }}</h3>
-                                    </div>
-                                    @if($canEdit && !$editing)
-                                        <a href="{{ route('employees.profile', ['employee'=>$employee->id,'edit'=>1]) }}#section-{{ $section->id }}"
-                                           class="inline-flex items-center gap-1.5 text-xs font-bold text-brand-600 hover:text-brand-700 transition">
-                                            <i data-lucide="edit-2" class="h-3.5 w-3.5"></i><span>Edit section</span>
-                                        </a>
-                                    @endif
-                                </div>
-                                <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3">
-                                    @foreach($section->fields as $field)
-                                        @php $value=$employee->getFieldValue($field->key); $isFieldEditable=$field->isEditableTo($auth,$employee); @endphp
-                                        @if($editing && $isFieldEditable)
-                                            @include('employees.partials.field-input',['field'=>$field,'value'=>$value,'employee'=>$employee])
-                                        @else
-                                            @include('employees.partials.field-display',['field'=>$field,'value'=>$value])
-                                        @endif
-                                    @endforeach
-                                </div>
-                            </div>
-                        @endif
-                    @endforeach
-                </div>
-            </div>
-        @endforeach
+    {{-- "Information" category pill --}}
+    <div x-show="{{ $infoTabsJs }}.includes(tab)" x-cloak>
+        <span class="inline-flex items-center rounded-lg bg-slate-800 px-4 py-2 text-xs font-bold text-white dark:bg-slate-700">Information</span>
     </div>
 
-    @if($auth->hasRole('super_admin') || $auth->hasRole('hr_admin'))
-        <div x-show="tab === 'job'" x-cloak class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm dark:bg-slate-800 space-y-6">
-            <div class="flex items-center gap-3 border-b border-slate-100 pb-4 dark:border-slate-700/60">
-                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600"><i data-lucide="fingerprint" class="h-5 w-5"></i></div>
-                <h3 class="text-sm font-bold text-slate-900 dark:text-white">ZKTeco Biometric Device Integration</h3>
-            </div>
-            <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                @if($editing)
-                    <div><label class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Device User ID (UID)</label><input type="number" name="zkteco_uid" value="{{ old('zkteco_uid',$employee->zkteco_uid) }}" class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-brand-500 sm:text-sm dark:bg-slate-900 dark:border-slate-700 dark:text-white"></div>
-                    <div><label class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Device Employee ID</label><input type="text" name="zkteco_employee_id" value="{{ old('zkteco_employee_id',$employee->zkteco_employee_id) }}" class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-brand-500 sm:text-sm dark:bg-slate-900 dark:border-slate-700 dark:text-white"></div>
-                @else
-                    <div><span class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Device User ID (UID)</span><div class="text-sm {{ $employee->zkteco_uid?'font-semibold text-slate-900 dark:text-white':'text-slate-400 italic' }}">{{ $employee->zkteco_uid??'Not mapped' }}</div></div>
-                    <div><span class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Device Employee ID</span><div class="text-sm {{ $employee->zkteco_employee_id?'font-semibold text-slate-900 dark:text-white':'text-slate-400 italic' }}">{{ $employee->zkteco_employee_id??'-' }}</div></div>
+    {{-- White content sheet — Workable-style grouped sections --}}
+    <div x-show="{{ $infoTabsJs }}.includes(tab)" x-cloak
+         class="bg-white border border-slate-200/80 rounded-2xl shadow-sm dark:bg-slate-800 dark:border-slate-700 p-6 sm:p-8">
+        @foreach($templates as $template)
+            @foreach($template->sections as $section)
+                @if($section->fields->isNotEmpty())
+                    <div id="section-{{ $section->id }}" x-show="tab === '{{ $section->tab ?? 'personal' }}'" x-cloak
+                         class="border-b border-slate-100 dark:border-slate-700/60 pb-7 mb-7">
+                        <div class="flex items-center justify-between mb-5">
+                            <h3 class="text-base font-bold text-slate-800 dark:text-white">{{ $section->name }}</h3>
+                            @if($canEdit && !$editing)
+                                <a href="{{ route('employees.profile', ['employee'=>$employee->id,'edit'=>1]) }}#section-{{ $section->id }}"
+                                   class="inline-flex items-center gap-1.5 text-xs font-bold text-brand-600 hover:text-brand-700 transition">
+                                    <i data-lucide="pencil" class="h-3.5 w-3.5"></i><span>Edit</span>
+                                </a>
+                            @endif
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-10 gap-y-6">
+                            @foreach($section->fields as $field)
+                                @php $value=$employee->getFieldValue($field->key); $isFieldEditable=$field->isEditableTo($auth,$employee); @endphp
+                                @if($editing && $isFieldEditable)
+                                    @include('employees.partials.field-input',['field'=>$field,'value'=>$value,'employee'=>$employee])
+                                @else
+                                    @include('employees.partials.field-display',['field'=>$field,'value'=>$value])
+                                @endif
+                            @endforeach
+                        </div>
+                    </div>
                 @endif
-            </div>
-        </div>
-    @endif
+            @endforeach
+        @endforeach
 
+        {{-- ZKTeco biometric mapping (admin only) — Job tab --}}
+        @if($auth->hasRole('super_admin') || $auth->hasRole('hr_admin'))
+            <div x-show="tab === 'job'" x-cloak class="border-b border-slate-100 dark:border-slate-700/60 pb-7 mb-7">
+                <h3 class="text-base font-bold text-slate-800 dark:text-white mb-5">Biometric Device (ZKTeco)</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-10 gap-y-6">
+                    @if($editing)
+                        <div class="flex flex-col gap-1.5"><label class="text-xs text-slate-500 font-bold dark:text-slate-400">Device User ID (UID)</label><input type="number" name="zkteco_uid" value="{{ old('zkteco_uid',$employee->zkteco_uid) }}" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-brand-500 dark:bg-slate-900 dark:border-slate-700 dark:text-white"></div>
+                        <div class="flex flex-col gap-1.5"><label class="text-xs text-slate-500 font-bold dark:text-slate-400">Device Employee ID</label><input type="text" name="zkteco_employee_id" value="{{ old('zkteco_employee_id',$employee->zkteco_employee_id) }}" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-brand-500 dark:bg-slate-900 dark:border-slate-700 dark:text-white"></div>
+                    @else
+                        <div class="flex flex-col gap-0.5"><span class="text-xs text-slate-400 font-medium dark:text-slate-500">Device User ID (UID)</span><span class="text-sm font-semibold {{ $employee->zkteco_uid?'text-slate-800 dark:text-white':'text-slate-400 italic' }}">{{ $employee->zkteco_uid??'Not mapped' }}</span></div>
+                        <div class="flex flex-col gap-0.5"><span class="text-xs text-slate-400 font-medium dark:text-slate-500">Device Employee ID</span><span class="text-sm font-semibold {{ $employee->zkteco_employee_id?'text-slate-800 dark:text-white':'text-slate-400 italic' }}">{{ $employee->zkteco_employee_id??'—' }}</span></div>
+                    @endif
+                </div>
+            </div>
+        @endif
+    </div>
+
+    {{-- Work schedule (Job tab) --}}
     <div x-show="tab === 'job'" x-cloak>
         @include('employees.partials.work-schedule')
     </div>
@@ -374,8 +383,6 @@
         </div>
         </form>
     @endif
-
-    @endif {{-- end isSelf/admin --}}
 
 </div>{{-- end profile-page-root --}}
 
