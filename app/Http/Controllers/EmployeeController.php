@@ -136,11 +136,12 @@ class EmployeeController extends Controller
             'first_name'    => 'required|string|max:255',
             'last_name'     => 'required|string|max:255',
             'email'         => 'required|email|unique:users,email|unique:employees,email',
-            'job_title'     => 'nullable|string|max:255',
+            'job_title'     => 'required|string|max:255',
             'salary'        => 'nullable|numeric',
             'salary_currency' => 'nullable|string|max:10',
-            // Only core credentials (name + email) are required to create the employee;
-            // these can be filled in later by HR or the employee themselves.
+            // Required: first name, last name, work email, job title. Everything else
+            // is optional and can be completed later on the profile (which is driven by
+            // the default profile template — the single source of truth for all fields).
             'role_id'       => 'nullable|exists:roles,id',
             'department_id' => 'nullable|exists:departments,id',
             'location_id'   => 'nullable|exists:locations,id',

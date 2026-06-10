@@ -6,7 +6,7 @@
 @section('content')
 <div class="max-w-7xl mx-auto" x-data="{ 
     activeSection: 'basic_info',
-    sections: ['basic_info', 'job_placement', 'account_setup' @foreach($templates as $t) @foreach($t->sections as $s) , 'section_{{ $s->id }}' @endforeach @endforeach],
+    sections: ['basic_info', 'job_placement', 'account_setup'],
     
     nextSection() {
         let currentIndex = this.sections.indexOf(this.activeSection);
@@ -90,19 +90,11 @@
                 </button>
             </nav>
 
-            @foreach($templates as $template)
-                <nav class="space-y-1">
-                    <div class="pb-2 text-[10px] font-extrabold uppercase tracking-widest text-slate-400 dark:text-slate-500">{{ $template->name }}</div>
-                    @foreach($template->sections as $section)
-                        <button type="button" @click="activeSection = 'section_{{ $section->id }}'" 
-                                :class="activeSection === 'section_{{ $section->id }}' ? 'bg-brand-50 text-brand-700 border-l-4 border-brand-600 dark:bg-brand-500/10 dark:text-brand-400' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 border-l-4 border-transparent dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-slate-900'"
-                                class="w-full flex items-center px-4 py-2.5 text-sm font-bold rounded-r-lg transition-colors text-left">
-                            <i data-lucide="layout" class="h-4 w-4 mr-3" :class="activeSection === 'section_{{ $section->id }}' ? 'text-brand-600 dark:text-brand-400' : 'text-slate-400'"></i>
-                            {{ $section->name }}
-                        </button>
-                    @endforeach
-                </nav>
-            @endforeach
+            <p class="px-4 pt-2 text-[10px] leading-relaxed text-slate-400 dark:text-slate-500">
+                Only name, work email and job title are required. The rest of the profile
+                (personal details, documents, etc.) is completed afterwards on the
+                employee's profile page.
+            </p>
         </div>
 
         <!-- Form Content Area -->
@@ -176,8 +168,8 @@
                         </div>
                         <div class="p-8 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
                             <div class="md:col-span-2">
-                                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 dark:text-slate-300">Job Title</label>
-                                <input type="text" name="job_title" value="{{ old('job_title') }}"
+                                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 dark:text-slate-300">Job Title <span class="text-red-500">*</span></label>
+                                <input type="text" name="job_title" value="{{ old('job_title') }}" required
                                        class="w-full rounded-xl border-slate-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white transition-colors"
                                        placeholder="e.g. Senior Software Engineer">
                             </div>
@@ -373,8 +365,12 @@
                     </div>
                 </div>
 
-                <!-- Dynamic Profile Sections -->
-                @foreach($templates as $template)
+                {{-- Profile fields are intentionally NOT collected on the create form.
+                     The employee is created with the core credentials above; the full
+                     profile (every section of the default template) is completed afterwards
+                     on the profile page — the single template-driven source of truth for
+                     both view and edit. This avoids duplicating template fields here. --}}
+                @foreach([] as $template)
                     @foreach($template->sections as $section)
                         <div x-show="activeSection === 'section_{{ $section->id }}'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-y-2" x-transition:enter-end="opacity-100 translate-y-0" style="display: none;">
                             <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 dark:bg-slate-800 dark:border-slate-700/80 overflow-hidden">
