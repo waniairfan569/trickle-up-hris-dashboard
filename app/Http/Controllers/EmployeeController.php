@@ -78,10 +78,10 @@ class EmployeeController extends Controller
         // Sorting (directory "Sort By" dropdown)
         switch ($request->get('sort', 'name_asc')) {
             case 'name_desc':
-                $query->orderBy('first_name', 'desc')->orderBy('last_name', 'desc');
+                $query->orderBy('last_name', 'desc')->orderBy('first_name', 'desc');
                 break;
             case 'job_title':
-                $query->orderBy('job_title')->orderBy('first_name');
+                $query->orderBy('job_title')->orderBy('last_name');
                 break;
             case 'department':
                 $query->leftJoin('departments', 'departments.id', '=', 'employees.department_id')
@@ -93,7 +93,8 @@ class EmployeeController extends Controller
                 break;
             case 'name_asc':
             default:
-                $query->orderBy('first_name')->orderBy('last_name');
+                // Alphabetical by last name, then first name (A→Z).
+                $query->orderBy('last_name')->orderBy('first_name');
                 break;
         }
 

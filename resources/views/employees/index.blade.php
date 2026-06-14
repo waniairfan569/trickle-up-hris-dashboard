@@ -163,7 +163,10 @@
                     @forelse($employees as $emp)
                         @if(!$emp->user) @continue @endif
                         @php
-                            $fullName = $emp->user->full_name ?? 'Unknown';
+                            // Display as "Last name, First name" (Workable style).
+                            $fullName = $emp->user->last_name
+                                ? trim($emp->user->last_name . ', ' . $emp->user->first_name)
+                                : ($emp->user->full_name ?? 'Unknown');
                             $title = $emp->job_title ?? 'Employee';
                             $deptName = $emp->department->name ?? 'Unassigned';
                             $roleSlug = $emp->user->role->slug ?? 'employee';
