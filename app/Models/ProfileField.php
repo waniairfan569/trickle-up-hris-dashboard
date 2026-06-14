@@ -61,19 +61,17 @@ class ProfileField extends Model
 
     public function isEditableTo(User $editor, User $employee): bool
     {
-        if ($this->is_system) {
-            return $editor->isAdmin();
-        }
-
         if ($editor->isAdmin()) {
             return true;
         }
 
-        // On their OWN profile, an employee may edit any non-system field (system fields
-        // — work email, department, manager, status, employee ID, full name — are blocked
-        // by the is_system check above and remain admin-only).
+        // On their OWN profile an employee may edit their own details — including
+        // full name, work email and personal email — except a few org-controlled
+        // fields (department, manager, employment status, employee ID) which only
+        // admins can change.
         if ($editor->id === $employee->id) {
-            return true;
+            $adminOnly = ['department_id', 'manager_id', 'employee_status', 'employee_id'];
+            return !in_array($this->key, $adminOnly, true);
         }
 
         return false;

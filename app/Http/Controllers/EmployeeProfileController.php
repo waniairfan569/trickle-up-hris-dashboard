@@ -136,6 +136,12 @@ class EmployeeProfileController extends Controller
                     ['value' => $value, 'updated_by' => $auth->id]
                 );
             }
+
+            // "Full name" isn't a native column — keep first/last name in sync when it's edited.
+            if ($key === 'full_name' && is_string($value) && trim($value) !== '') {
+                $parts = preg_split('/\s+/', trim($value), 2);
+                $employee->update(['first_name' => $parts[0], 'last_name' => $parts[1] ?? '']);
+            }
         }
 
         // Bug #3 Fix: Redirect to view mode after save (not back to ?edit=1)
