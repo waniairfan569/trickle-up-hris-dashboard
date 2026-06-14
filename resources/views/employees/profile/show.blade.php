@@ -24,7 +24,7 @@
 
 <style>[x-cloak]{display:none!important}</style>
 
-<div class="space-y-8" id="profile-page-root" x-data="{ tab: 'personal', showSensitive: false }">
+<div class="space-y-8" id="profile-page-root" x-data="{ tab: 'personal', section: 'information', showSensitive: false }">
     <!-- Back Button -->
     <div>
         <a href="{{ route('employees.index') }}" class="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-slate-800 transition dark:text-slate-400 dark:hover:text-white">
@@ -152,21 +152,30 @@
             $canSeeHrTabs = $auth->isAdmin() || $isSelf;
             $hrOnlyTabs = ['compensation', 'legal', 'experience', 'emergency'];
         @endphp
-        <div class="flex items-center justify-between border-t border-slate-100 px-6 dark:border-slate-700/60 gap-4">
+        <!-- Top-level tabs -->
+        <div class="flex items-center border-t border-slate-100 px-6 dark:border-slate-700/60">
+            <div class="flex overflow-x-auto select-none">
+                <button @click="section = 'information'" :class="section === 'information' ? 'border-brand-500 text-brand-600 dark:text-brand-400' : 'border-transparent text-slate-400 hover:text-slate-650'"
+                    class="whitespace-nowrap border-b-2 py-4 px-4 text-sm font-bold transition">Information</button>
+                @if($isSelf || $auth->isAdmin() || $auth->hasRole('hr_admin'))
+                    <button @click="section = 'files'" :class="section === 'files' ? 'border-brand-500 text-brand-600 dark:text-brand-400' : 'border-transparent text-slate-400 hover:text-slate-650'"
+                        class="whitespace-nowrap border-b-2 py-4 px-4 text-sm font-bold transition">Files</button>
+                    <button @click="section = 'timeoff'" :class="section === 'timeoff' ? 'border-brand-500 text-brand-600 dark:text-brand-400' : 'border-transparent text-slate-400 hover:text-slate-650'"
+                        class="whitespace-nowrap border-b-2 py-4 px-4 text-sm font-bold transition">Time off</button>
+                    <button @click="section = 'timetracking'" :class="section === 'timetracking' ? 'border-brand-500 text-brand-600 dark:text-brand-400' : 'border-transparent text-slate-400 hover:text-slate-650'"
+                        class="whitespace-nowrap border-b-2 py-4 px-4 text-sm font-bold transition">Time tracking</button>
+                @endif
+            </div>
+        </div>
+
+        <!-- Sub-tabs (within Information) -->
+        <div x-show="section === 'information'" x-cloak class="flex items-center justify-between border-t border-slate-100 px-6 dark:border-slate-700/60 gap-4">
             <div class="flex overflow-x-auto select-none">
                 @foreach($profileTabs as $key => $label)
                     @if(in_array($key, $hrOnlyTabs) && !$canSeeHrTabs) @continue @endif
                     <button @click="tab = '{{ $key }}'" :class="tab === '{{ $key }}' ? 'border-brand-500 text-brand-600 dark:text-brand-400' : 'border-transparent text-slate-400 hover:text-slate-650'"
                         class="whitespace-nowrap border-b-2 py-4 px-4 text-xs font-bold transition">{{ $label }}</button>
                 @endforeach
-                @if($isSelf || $auth->isAdmin() || $auth->hasRole('hr_admin'))
-                    <button @click="tab = 'timeoff'" :class="tab === 'timeoff' ? 'border-brand-500 text-brand-600 dark:text-brand-400' : 'border-transparent text-slate-400 hover:text-slate-650'"
-                        class="whitespace-nowrap border-b-2 py-4 px-4 text-xs font-bold transition">Time Off</button>
-                    <button @click="tab = 'attendance'" :class="tab === 'attendance' ? 'border-brand-500 text-brand-600 dark:text-brand-400' : 'border-transparent text-slate-400 hover:text-slate-650'"
-                        class="whitespace-nowrap border-b-2 py-4 px-4 text-xs font-bold transition">Attendance</button>
-                    <button @click="tab = 'documents'" :class="tab === 'documents' ? 'border-brand-500 text-brand-600 dark:text-brand-400' : 'border-transparent text-slate-400 hover:text-slate-650'"
-                        class="whitespace-nowrap border-b-2 py-4 px-4 text-xs font-bold transition">Documents</button>
-                @endif
             </div>
             <!-- Show sensitive data toggle (masks private/internal fields) -->
             <button type="button" @click="showSensitive = !showSensitive"
@@ -208,7 +217,7 @@
     @if($isSelf || $auth->isAdmin() || $auth->hasRole('hr_admin'))
 
     {{-- TIME OFF TAB --}}
-    <div x-show="tab === 'timeoff'" x-cloak class="space-y-6">
+    <div x-show="section === 'timeoff'" x-cloak class="space-y-6">
         <div class="bg-white border border-slate-200/80 rounded-2xl shadow-sm dark:bg-slate-800 dark:border-slate-700 overflow-hidden">
             <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
                 <h2 class="text-sm font-bold text-slate-800 dark:text-white">Time-Off Balances</h2>
@@ -257,7 +266,7 @@
     </div>
 
     {{-- ATTENDANCE TAB --}}
-    <div x-show="tab === 'attendance'" x-cloak class="space-y-6">
+    <div x-show="section === 'timetracking'" x-cloak class="space-y-6">
         <div class="bg-white border border-slate-200/80 rounded-2xl shadow-sm dark:bg-slate-800 dark:border-slate-700 overflow-hidden">
             <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700"><h2 class="text-sm font-bold text-slate-800 dark:text-white">Recent Attendance</h2></div>
             <div class="overflow-x-auto">
@@ -286,7 +295,7 @@
     </div>
 
     {{-- DOCUMENTS TAB --}}
-    <div x-show="tab === 'documents'" x-cloak>
+    <div x-show="section === 'files'" x-cloak>
         <div class="bg-white border border-slate-200/80 rounded-2xl shadow-sm dark:bg-slate-800 dark:border-slate-700 p-6">
             <div class="flex flex-col items-center justify-center py-12 text-center">
                 <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 dark:bg-slate-700 mb-3"><i data-lucide="file-text" class="h-7 w-7 text-slate-400"></i></div>
@@ -307,7 +316,7 @@
     @if($editing)
     <form id="profile-edit-form" action="{{ route('employees.profile.update', $employee->id) }}" method="POST" enctype="multipart/form-data" class="space-y-6" novalidate>
         @csrf @method('PUT')
-        <div x-show="{{ $infoTabsJs }}.includes(tab)" x-cloak class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm dark:bg-slate-800 dark:border-slate-700">
+        <div x-show="section === 'information'" x-cloak class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm dark:bg-slate-800 dark:border-slate-700">
             <div class="flex items-center gap-4">
                 <div class="relative flex-shrink-0">
                     @if($employee->avatar_url)
@@ -330,13 +339,8 @@
         </div>
     @endif
 
-    {{-- "Information" category pill --}}
-    <div x-show="{{ $infoTabsJs }}.includes(tab)" x-cloak>
-        <span class="inline-flex items-center rounded-lg bg-slate-800 px-4 py-2 text-xs font-bold text-white dark:bg-slate-700">Information</span>
-    </div>
-
-    {{-- White content sheet — Workable-style grouped sections --}}
-    <div x-show="{{ $infoTabsJs }}.includes(tab)" x-cloak
+    {{-- White content sheet — Workable-style grouped sections (within the Information tab) --}}
+    <div x-show="section === 'information'" x-cloak
          class="bg-white border border-slate-200/80 rounded-2xl shadow-sm dark:bg-slate-800 dark:border-slate-700 p-6 sm:p-8">
         @foreach($templates as $template)
             @foreach($template->sections as $section)
@@ -386,7 +390,7 @@
     </div>
 
     {{-- Work schedule (Job tab) --}}
-    <div x-show="tab === 'job'" x-cloak>
+    <div x-show="section === 'information' && tab === 'job'" x-cloak>
         @include('employees.partials.work-schedule')
     </div>
 
