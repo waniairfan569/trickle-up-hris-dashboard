@@ -46,6 +46,12 @@ class EmployeeController extends Controller
             });
         }
 
+        if ($request->filled('company_entity_id')) {
+            $query->whereHas('user', function ($q) use ($request) {
+                $q->where('company_entity_id', $request->company_entity_id);
+            });
+        }
+
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
@@ -96,8 +102,10 @@ class EmployeeController extends Controller
         // Pass all departments and roles for the filter dropdowns (ignoring scope for dropdown options for simplicity)
         $departments = \App\Models\Department::pluck('name');
         $rolesMap = \App\Models\Role::pluck('name', 'slug');
+        $entities = \App\Models\CompanyEntity::orderBy('name')->get(['id', 'name']);
+        $jobLocations = \App\Models\JobLocation::orderBy('name')->get(['id', 'name']);
 
-        return view('employees.index', compact('employees', 'departments', 'rolesMap'));
+        return view('employees.index', compact('employees', 'departments', 'rolesMap', 'entities', 'jobLocations'));
     }
 
     /**

@@ -44,7 +44,7 @@
         <form method="GET" action="{{ route('employees.index') }}" class="grid grid-cols-1 md:grid-cols-12 gap-4">
 
             <!-- Search -->
-            <div class="md:col-span-5">
+            <div class="md:col-span-6">
                 <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Search Employee</label>
                 <div class="relative">
                     <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
@@ -58,8 +58,32 @@
                 </div>
             </div>
 
-            <!-- Department Filter -->
+            <!-- Entity Filter -->
             <div class="md:col-span-3">
+                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Entity</label>
+                <select name="company_entity_id" onchange="this.form.submit()"
+                        class="w-full text-xs font-semibold border border-slate-200 rounded-xl px-3 py-2.5 bg-slate-50/50 text-slate-800 focus:border-brand-500 focus:bg-white focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-white">
+                    <option value="">All Entities</option>
+                    @foreach($entities as $ent)
+                        <option value="{{ $ent->id }}" {{ request('company_entity_id') == $ent->id ? 'selected' : '' }}>{{ $ent->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+
+            <!-- Location Filter -->
+            <div class="md:col-span-3">
+                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Location</label>
+                <select name="job_location_id" onchange="this.form.submit()"
+                        class="w-full text-xs font-semibold border border-slate-200 rounded-xl px-3 py-2.5 bg-slate-50/50 text-slate-800 focus:border-brand-500 focus:bg-white focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-white">
+                    <option value="">All Locations</option>
+                    @foreach($jobLocations as $loc)
+                        <option value="{{ $loc->id }}" {{ request('job_location_id') == $loc->id ? 'selected' : '' }}>{{ $loc->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+
+            <!-- Department Filter -->
+            <div class="md:col-span-4">
                 <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Department</label>
                 <select name="department" onchange="this.form.submit()"
                         class="w-full text-xs font-semibold border border-slate-200 rounded-xl px-3 py-2.5 bg-slate-50/50 text-slate-800 focus:border-brand-500 focus:bg-white focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-white">
@@ -71,7 +95,7 @@
             </div>
 
             <!-- Role Filter -->
-            <div class="md:col-span-2">
+            <div class="md:col-span-4">
                 <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Role Permission</label>
                 <select name="role" onchange="this.form.submit()"
                         class="w-full text-xs font-semibold border border-slate-200 rounded-xl px-3 py-2.5 bg-slate-50/50 text-slate-800 focus:border-brand-500 focus:bg-white focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-white">
@@ -84,7 +108,7 @@
 
             <!-- Sort -->
             @php $sort = request('sort', 'name_asc'); @endphp
-            <div class="md:col-span-2">
+            <div class="md:col-span-4">
                 <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Sort By</label>
                 <select name="sort" onchange="this.form.submit()"
                         class="w-full text-xs font-semibold border border-slate-200 rounded-xl px-3 py-2.5 bg-slate-50/50 text-slate-800 focus:border-brand-500 focus:bg-white focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-white">
