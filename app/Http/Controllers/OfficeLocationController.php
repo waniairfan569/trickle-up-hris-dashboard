@@ -75,7 +75,11 @@ class OfficeLocationController extends Controller
 
     public function assignView()
     {
-        $employees = User::whereHas('roles', function($q) { $q->where('name', 'employee')->orWhere('slug', 'employee'); })
+        // Everyone who can clock in/out is assignable to an office location — including
+        // the Super Admin and other admins, not just the "employee" role. Archived
+        // (deactivated) accounts are excluded.
+        $employees = User::where('account_status', '!=', 'deactivated')
+            ->orderBy('first_name')
             ->with(['officeLocations' => function($q) {
                 $q->wherePivot('is_primary', true);
             }])
