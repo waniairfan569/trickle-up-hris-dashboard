@@ -88,6 +88,12 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
         ->middleware(['role:super_admin,hr_admin'])
         ->name('reports.index');
 
+    // Company Files library (view: all; upload/delete: admin — enforced in controller)
+    Route::get('files', [\App\Http\Controllers\CompanyFileController::class, 'index'])->name('files.index');
+    Route::post('files', [\App\Http\Controllers\CompanyFileController::class, 'store'])->name('files.store');
+    Route::get('files/{file}/download', [\App\Http\Controllers\CompanyFileController::class, 'download'])->name('files.download');
+    Route::delete('files/{file}', [\App\Http\Controllers\CompanyFileController::class, 'destroy'])->name('files.destroy');
+
     // 2. Employees Resource (secured via employee.access middleware)
     Route::get('employees/export', [EmployeeController::class, 'exportCsv'])
         ->middleware(['role:super_admin,hr_admin'])

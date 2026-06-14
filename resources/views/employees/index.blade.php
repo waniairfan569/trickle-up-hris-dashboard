@@ -22,6 +22,10 @@
                 <i data-lucide="network" class="h-4 w-4"></i>
                 <span>Org Chart</span>
             </a>
+            <a href="{{ route('files.index') }}" class="inline-flex items-center gap-x-2 rounded-xl bg-white border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 transition duration-150 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-700">
+                <i data-lucide="folder" class="h-4 w-4"></i>
+                <span>Files</span>
+            </a>
             @if(auth()->user()->hasRole('super_admin') || auth()->user()->hasRole('hr_admin'))
                 <button type="button" @click="$dispatch('open-import-modal')" class="inline-flex items-center gap-x-2 rounded-xl bg-white border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 transition duration-150 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-700">
                     <i data-lucide="upload" class="h-4 w-4"></i>
