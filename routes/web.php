@@ -80,6 +80,9 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
     // 1. Dashboard
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
 
+    // Org Chart — visual reporting hierarchy (all authenticated users)
+    Route::get('org-chart', [EmployeeController::class, 'orgChart'])->name('org-chart');
+
     // 2. Employees Resource (secured via employee.access middleware)
     Route::get('employees/export', [EmployeeController::class, 'exportCsv'])
         ->middleware(['role:super_admin,hr_admin'])

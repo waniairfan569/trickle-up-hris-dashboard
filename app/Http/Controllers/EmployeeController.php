@@ -136,6 +136,31 @@ class EmployeeController extends Controller
     }
 
     /**
+     * Visual org chart — reporting hierarchy built from manager_id.
+     */
+    public function orgChart(Request $request)
+    {
+        $auth = $request->user();
+        if (!$auth) {
+            abort(401, 'Unauthenticated.');
+        }
+
+        $users = \App\Models\User::where('account_status', '!=', 'deactivated')
+            ->with('department:id,name')
+            ->get(['id', 'first_name', 'last_name', 'avatar_url', 'job_title', 'department_id', 'manager_id']);
+
+        $ids = $users->pluck('id')->all();
+        $byManager = $users->groupBy('manager_id');
+
+        // Roots: no manager, or a manager who isn't in the active set.
+        $roots = $users->filter(function ($u) use ($ids) {
+            return empty($u->manager_id) || !in_array($u->manager_id, $ids);
+        })->values();
+
+        return view('org-chart.index', compact('roots', 'byManager'));
+    }
+
+    /**
      * Show the form for creating a new resource.
      */
     public function create(Request $request)
