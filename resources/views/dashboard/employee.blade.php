@@ -45,25 +45,51 @@
                     <!-- Tabs -->
                     <div class="flex items-center gap-6 border-b border-slate-100 dark:border-slate-700 pb-2">
                         <div class="text-sm font-semibold text-slate-800 border-b-2 border-slate-800 pb-2 -mb-[9px] flex items-center gap-2 dark:text-white dark:border-white">
-                            Celebrations <span class="bg-slate-100 text-slate-500 text-[10px] px-1.5 py-0.5 rounded-md dark:bg-slate-700 dark:text-slate-300">0</span>
+                            Celebrations <span class="bg-slate-100 text-slate-500 text-[10px] px-1.5 py-0.5 rounded-md dark:bg-slate-700 dark:text-slate-300">{{ $celebrations->count() }}</span>
                         </div>
                         <div class="text-sm font-medium text-slate-400 flex items-center gap-2 pb-2 -mb-[9px]">
                             Holidays <span class="bg-slate-100 text-slate-500 text-[10px] px-1.5 py-0.5 rounded-md dark:bg-slate-700 dark:text-slate-300">0</span>
                         </div>
                     </div>
                     
-                    <!-- Empty State -->
-                    <div class="flex flex-col items-center justify-center mt-12 opacity-60">
-                        <div class="w-16 h-16 mb-2 relative">
-                            <!-- Faux lines to mimic the empty state icon -->
-                            <div class="absolute inset-0 flex flex-col gap-2 justify-center items-center">
-                                <div class="w-12 h-2 bg-slate-200 rounded-full flex items-center px-1"><div class="w-1 h-1 rounded-full bg-slate-300"></div></div>
-                                <div class="w-12 h-2 bg-slate-200 rounded-full flex items-center px-1"><div class="w-1 h-1 rounded-full bg-slate-300"></div></div>
-                                <div class="w-12 h-2 bg-slate-200 rounded-full flex items-center px-1"><div class="w-1 h-1 rounded-full bg-slate-300"></div></div>
+                    @if($celebrations->isEmpty())
+                        <!-- Empty State -->
+                        <div class="flex flex-col items-center justify-center mt-12 opacity-60">
+                            <div class="w-16 h-16 mb-2 relative">
+                                <div class="absolute inset-0 flex flex-col gap-2 justify-center items-center">
+                                    <div class="w-12 h-2 bg-slate-200 rounded-full flex items-center px-1"><div class="w-1 h-1 rounded-full bg-slate-300"></div></div>
+                                    <div class="w-12 h-2 bg-slate-200 rounded-full flex items-center px-1"><div class="w-1 h-1 rounded-full bg-slate-300"></div></div>
+                                    <div class="w-12 h-2 bg-slate-200 rounded-full flex items-center px-1"><div class="w-1 h-1 rounded-full bg-slate-300"></div></div>
+                                </div>
                             </div>
+                            <p class="text-xs font-semibold text-slate-500">No company celebrations</p>
                         </div>
-                        <p class="text-xs font-semibold text-slate-500">No company celebrations</p>
-                    </div>
+                    @else
+                        <!-- Celebrations feed: birthdays, work anniversaries, new joiners -->
+                        <div class="mt-4 space-y-3 max-h-72 overflow-y-auto pr-1">
+                            @foreach($celebrations as $c)
+                                @php
+                                    $icon = $c->type === 'birthday' ? 'cake' : ($c->type === 'anniversary' ? 'award' : 'user-plus');
+                                    $tint = $c->type === 'birthday' ? 'text-pink-500' : ($c->type === 'anniversary' ? 'text-amber-500' : 'text-emerald-500');
+                                @endphp
+                                <div class="flex items-center gap-3">
+                                    @if($c->user->avatar_url)
+                                        <img src="{{ $c->user->avatar_url }}" alt="{{ $c->user->full_name }}" class="h-9 w-9 rounded-xl object-cover ring-1 ring-slate-100 dark:ring-slate-700">
+                                    @else
+                                        <div class="h-9 w-9 rounded-xl bg-gradient-to-br from-brand-400 to-indigo-500 flex items-center justify-center text-white text-[11px] font-bold">{{ $c->user->initials }}</div>
+                                    @endif
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-sm font-bold text-slate-800 dark:text-white truncate">{{ $c->user->full_name }}</p>
+                                        <p class="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                                            <i data-lucide="{{ $icon }}" class="h-3 w-3 {{ $tint }}"></i>
+                                            <span class="truncate">{{ $c->label }}</span>
+                                        </p>
+                                    </div>
+                                    <span class="text-[10px] font-bold text-slate-400 whitespace-nowrap">{{ $c->sub }}</span>
+                                </div>
+                            @endforeach
+                        </div>
+                    @endif
                 </div>
 
                 <!-- Footer: Out of Office -->
