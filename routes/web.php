@@ -83,6 +83,11 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
     // Org Chart — visual reporting hierarchy (all authenticated users)
     Route::get('org-chart', [EmployeeController::class, 'orgChart'])->name('org-chart');
 
+    // Report Center (Super Admin / HR Admin)
+    Route::get('reports', [\App\Http\Controllers\ReportsController::class, 'index'])
+        ->middleware(['role:super_admin,hr_admin'])
+        ->name('reports.index');
+
     // 2. Employees Resource (secured via employee.access middleware)
     Route::get('employees/export', [EmployeeController::class, 'exportCsv'])
         ->middleware(['role:super_admin,hr_admin'])

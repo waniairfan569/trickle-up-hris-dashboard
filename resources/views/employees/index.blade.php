@@ -35,6 +35,10 @@
                     <i data-lucide="archive" class="h-4 w-4"></i>
                     <span>Archived</span>
                 </a>
+                <a href="{{ route('reports.index') }}" class="inline-flex items-center gap-x-2 rounded-xl bg-white border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 transition duration-150 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-700">
+                    <i data-lucide="bar-chart-3" class="h-4 w-4"></i>
+                    <span>Reports</span>
+                </a>
                 <a href="{{ route('employees.create') }}" class="inline-flex items-center gap-x-2 rounded-xl bg-brand-600 px-4 py-2 text-xs font-semibold text-slate-900 shadow-md shadow-brand-500/20 hover:bg-brand-700 transition duration-150">
                     <i data-lucide="user-plus" class="h-4 w-4"></i>
                     <span>Add New Employee</span>
