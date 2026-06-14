@@ -54,7 +54,6 @@
                 <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
                     <h1 class="text-xl font-extrabold text-slate-900 tracking-tight dark:text-white">{{ $employee->full_name }}</h1>
                     <div class="flex items-center gap-1.5 justify-center sm:justify-start flex-wrap">
-                        <x-role-badge :role="$employee->role" />
                         <span class="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[9px] font-bold text-emerald-700 capitalize dark:bg-emerald-500/10 dark:text-emerald-400">
                             {{ \Illuminate\Support\Str::title($employee->employee_status ?? 'Active') }}
                         </span>
