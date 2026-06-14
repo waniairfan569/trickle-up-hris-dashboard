@@ -69,12 +69,19 @@
                         @endif
                     </div>
                 </div>
+                @php
+                    $jt = trim((string) $employee->job_title);
+                    $showJobTitle = $jt !== '' && strtolower($jt) !== 'employee';
+                @endphp
+                @if($showJobTitle || $employee->department)
                 <p class="text-xs font-semibold text-brand-600 dark:text-brand-400">
-                    {{ $employee->job_title ?? 'Employee' }}
+                    @if($showJobTitle){{ $jt }}@endif
                     @if($employee->department)
-                        &bull; <span class="inline-flex items-center rounded bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-800 dark:bg-slate-700 dark:text-slate-100">{{ $employee->department->name }}</span>
+                        @if($showJobTitle) &bull; @endif
+                        <span class="inline-flex items-center rounded bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-800 dark:bg-slate-700 dark:text-slate-100">{{ $employee->department->name }}</span>
                     @endif
                 </p>
+                @endif
                 <div class="flex flex-wrap items-center gap-2 justify-center sm:justify-start pt-1">
                     @if($employee->companyEntity)
                         <span class="text-xs text-slate-500 dark:text-slate-400">{{ $employee->companyEntity->name }}</span>
