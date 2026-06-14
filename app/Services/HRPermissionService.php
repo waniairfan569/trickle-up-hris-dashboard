@@ -36,7 +36,7 @@ class HRPermissionService
         }
 
         if ($auth->id === $target->id) {
-            return $auth->hasPermission('edit_own_profile');
+            return true; // employees can always view & edit their own profile
         }
 
         if ($auth->canManage($target)) {

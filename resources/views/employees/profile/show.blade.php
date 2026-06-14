@@ -141,7 +141,9 @@
             ];
             // These tabs hold HR-managed / sensitive data — hidden on the employee side,
             // visible only to Super Admin / HR Admin.
-            $canSeeHrTabs = $auth->isAdmin();
+            // Admins see every tab on anyone's profile; employees see every tab on
+            // their OWN profile, but only Personal + Job on a colleague's profile.
+            $canSeeHrTabs = $auth->isAdmin() || $isSelf;
             $hrOnlyTabs = ['compensation', 'legal', 'experience', 'emergency'];
         @endphp
         <div class="flex items-center justify-between border-t border-slate-100 px-6 dark:border-slate-700/60 gap-4">

@@ -44,11 +44,17 @@ class ProfileField extends Model
 
     public function isVisibleTo(User $viewer, User $employee): bool
     {
+        // Employees can see ALL of their own fields (every visibility level) on their
+        // own profile. Colleagues only see public fields.
+        if ($viewer->id === $employee->id) {
+            return true;
+        }
+
         return match ($this->visibility) {
             'public' => true,
             'internal' => $viewer->isAdmin(),
-            'private' => $viewer->id === $employee->id || $viewer->isAdmin(),
-            'manager' => $viewer->id === $employee->id || $viewer->id === $employee->manager_id || $viewer->isAdmin(),
+            'private' => $viewer->isAdmin(),
+            'manager' => $viewer->id === $employee->manager_id || $viewer->isAdmin(),
             default => false,
         };
     }
@@ -63,7 +69,10 @@ class ProfileField extends Model
             return true;
         }
 
-        if ($editor->id === $employee->id && $this->employee_can_edit) {
+        // On their OWN profile, an employee may edit any non-system field (system fields
+        // — work email, department, manager, status, employee ID, full name — are blocked
+        // by the is_system check above and remain admin-only).
+        if ($editor->id === $employee->id) {
             return true;
         }
 
