@@ -146,7 +146,18 @@ class AttendanceController extends Controller
             'total_hours' => floor(AttendanceRecord::forUser($user)->whereMonth('date', $month)->whereYear('date', $year)->sum('total_minutes_worked') / 60),
         ];
 
-        return view('attendance.my-history', compact('records', 'date', 'summary'));
+        // Weekly time-tracking view (Mon–Sun day blocks).
+        $weekStart = $request->filled('week')
+            ? Carbon::parse($request->week)->startOfWeek(Carbon::MONDAY)
+            : Carbon::now()->startOfWeek(Carbon::MONDAY);
+        $weekDays = collect(range(0, 6))->map(fn ($i) => $weekStart->copy()->addDays($i));
+        $weekRecords = AttendanceRecord::forUser($user)
+            ->whereBetween('date', [$weekStart->toDateString(), $weekStart->copy()->addDays(6)->toDateString()])
+            ->get()
+            ->keyBy(fn ($r) => Carbon::parse($r->date)->toDateString());
+        $weekTotalMinutes = (int) $weekRecords->sum('total_minutes_worked');
+
+        return view('attendance.my-history', compact('records', 'date', 'summary', 'weekStart', 'weekDays', 'weekRecords', 'weekTotalMinutes'));
     }
 
     public function submitCorrection(Request $request)

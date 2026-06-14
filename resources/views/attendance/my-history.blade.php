@@ -37,6 +37,55 @@
         </div>
     </div>
 
+    <!-- Weekly Time Tracking -->
+    @php
+        $wt = $weekTotalMinutes;
+        $weekTotalLabel = intdiv($wt, 60) . 'h ' . ($wt % 60) . 'm';
+        $todayStr = \Carbon\Carbon::today()->toDateString();
+        $navBase = ['month' => $date->month, 'year' => $date->year];
+    @endphp
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+            <div class="flex items-center gap-3">
+                <h3 class="font-bold text-slate-800">Time Tracking</h3>
+                <span class="text-xs font-semibold text-slate-500">{{ $weekStart->format('d M') }} – {{ $weekStart->copy()->addDays(6)->format('d M Y') }}</span>
+            </div>
+            <div class="flex items-center gap-3">
+                <span class="text-sm font-bold text-brand-600">Week total: {{ $weekTotalLabel }}</span>
+                <div class="flex items-center gap-1 rounded-xl border border-slate-200 px-1 py-1">
+                    <a href="{{ route('attendance.my-history', array_merge($navBase, ['week' => $weekStart->copy()->subWeek()->toDateString()])) }}" class="h-7 w-7 grid place-items-center rounded-lg text-slate-500 hover:bg-slate-100"><i data-lucide="chevron-left" class="h-4 w-4"></i></a>
+                    <a href="{{ route('attendance.my-history', $navBase) }}" class="px-2 text-[10px] font-bold text-slate-500 hover:text-slate-800">This week</a>
+                    <a href="{{ route('attendance.my-history', array_merge($navBase, ['week' => $weekStart->copy()->addWeek()->toDateString()])) }}" class="h-7 w-7 grid place-items-center rounded-lg text-slate-500 hover:bg-slate-100"><i data-lucide="chevron-right" class="h-4 w-4"></i></a>
+                </div>
+            </div>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+            @foreach($weekDays as $day)
+                @php
+                    $rec = $weekRecords[$day->toDateString()] ?? null;
+                    $mins = $rec ? (int) $rec->total_minutes_worked : 0;
+                    $isToday = $day->toDateString() === $todayStr;
+                    $st = $rec->status ?? null;
+                @endphp
+                <div class="rounded-xl border p-3 text-center {{ $isToday ? 'border-brand-300 bg-brand-50/40' : 'border-slate-200 bg-slate-50/50' }}">
+                    <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">{{ $day->format('D') }}</div>
+                    <div class="text-xs font-bold text-slate-600 mb-2">{{ $day->format('j M') }}</div>
+                    @if($mins > 0)
+                        <div class="rounded-lg bg-emerald-100 text-emerald-700 text-xs font-bold py-2">{{ intdiv($mins, 60) }}h {{ $mins % 60 }}m</div>
+                    @elseif($st === 'on_leave')
+                        <div class="rounded-lg bg-indigo-100 text-indigo-600 text-[10px] font-bold py-2">On leave</div>
+                    @elseif($st === 'public_holiday')
+                        <div class="rounded-lg bg-amber-100 text-amber-600 text-[10px] font-bold py-2">Holiday</div>
+                    @elseif($st === 'absent')
+                        <div class="rounded-lg bg-rose-100 text-rose-600 text-[10px] font-bold py-2">Absent</div>
+                    @else
+                        <div class="rounded-lg bg-slate-100 text-slate-400 text-[10px] font-bold py-2">—</div>
+                    @endif
+                </div>
+            @endforeach
+        </div>
+    </div>
+
     <!-- Details Table -->
     <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         <div class="px-6 py-4 border-b border-slate-200">
