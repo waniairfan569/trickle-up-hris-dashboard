@@ -644,13 +644,14 @@ class EmployeeController extends Controller
         }
         $header[0] = preg_replace('/^\xEF\xBB\xBF/', '', (string) ($header[0] ?? ''));
 
-        // Map header => FIRST column index. Workable repeats some headers (Phone, Salary
-        // details, etc.) — keeping the first occurrence avoids later blank duplicates winning.
+        // Map each header => ALL its column indices. Workable repeats sections (Phone,
+        // Salary, Bank, …) and the populated value is often in the second block, so we
+        // keep every index and pick the last non-empty value below.
         $colMap = [];
         foreach ($header as $i => $name) {
             $key = strtolower(trim((string) $name));
-            if ($key !== '' && !array_key_exists($key, $colMap)) {
-                $colMap[$key] = $i;
+            if ($key !== '') {
+                $colMap[$key][] = $i;
             }
         }
 
@@ -690,22 +691,120 @@ class EmployeeController extends Controller
             'job_location'        => ['job location'],
         ];
 
-        // Resolve the first non-empty value for an app field from a row.
-        $resolve = function (array $row, string $field) use ($aliases, $colMap) {
-            foreach ($aliases[$field] ?? [] as $h) {
-                if (array_key_exists($h, $colMap)) {
-                    $val = $row[$colMap[$h]] ?? null;
+        // Pick the LAST non-empty value across every occurrence of the given headers.
+        $pick = function (array $row, array $headers) use ($colMap) {
+            $found = null;
+            foreach ($headers as $h) {
+                foreach ($colMap[$h] ?? [] as $idx) {
+                    $val = $row[$idx] ?? null;
                     if ($val !== null && trim((string) $val) !== '') {
-                        return trim((string) $val);
+                        $found = trim((string) $val);
                     }
                 }
             }
-            return null;
+            return $found;
+        };
+        $resolve = function (array $row, string $field) use ($aliases, $pick) {
+            return $pick($row, $aliases[$field] ?? []);
         };
         $parseDate = function ($v) {
             if (empty($v)) return null;
             try { return \Carbon\Carbon::parse($v)->format('Y-m-d'); } catch (\Throwable $e) { return null; }
         };
+
+        // Profile-template fields → Workable export headers. Each is saved into the right
+        // profile field (native column when fillable, else EmployeeFieldValue).
+        $profileFieldsByKey = \App\Models\ProfileField::get()->keyBy('key');
+        $authId = optional($request->user())->id ?? 1;
+        $profileFieldAliases = [
+            'personal_email'         => ['personal email'],
+            'phone_number'           => ['phone (phone)', 'phone'],
+            'phone_type'             => ['type (phone)'],
+            'phone_extension'        => ['extension (phone)'],
+            'date_of_birth'          => ['birthdate', 'date of birth'],
+            'gender'                 => ['gender'],
+            'home_address'           => ['address'],
+            'preferred_name'         => ['preferred name'],
+            'marital_status'         => ['status (marital status)'],
+            'birthplace'             => ['birthplace'],
+            'clothing_size'          => ['clothing size', 'size (clothing size)'],
+            'social_security_number' => ['social security number', 'number (social security number)'],
+            'team'                   => ['team'],
+            'work_email'             => ['work email'],
+            'job_title'              => ['job title'],
+            'start_date'             => ['start date'],
+            'contract_type'          => ['employment type (contract details)'],
+            'employment_type'        => ['employment type (contract details)'],
+            'work_location'          => ['workplace (contract details)'],
+            'hire_date'              => ['hire date'],
+            'notice_period_days'     => ['notice period in days'],
+            'salary'                 => ['pay rate | amount (salary details)'],
+            'pay_frequency'          => ['pay rate | frequency (salary details)'],
+            'currency'               => ['pay rate | currency (salary details)'],
+            'salary_effective_date'  => ['effective date (salary details)'],
+            'employee_id'            => ['employee id'],
+            'chat_type'              => ['type (chat & video call)'],
+            'chat_username'          => ['username (chat & video call)'],
+            'social_media_type'      => ['type (social media)'],
+            'social_media_url'       => ['url (social media)'],
+            'medical_conditions'     => ['medical conditions and allergies'],
+            'blood_group'            => ['blood group'],
+            'dietary_restrictions'   => ['dietary restrictions', 'dietry restrictions'],
+            'probation_start_date'   => ['start date (probation)'],
+            'probation_end_date'     => ['end date (probation)'],
+            'probation_note'         => ['note (probation)'],
+            'contract_effective_date' => ['effective date (contract details)'],
+            'workplace'              => ['workplace (contract details)'],
+            'contract_expiry_date'   => ['expiry date (contract details)'],
+            'contract_note'          => ['note (contract details)'],
+            'work_schedule'          => ['work schedule'],
+            'employment_status'      => ['employment status'],
+            'bank_name'              => ['bank name (bank details)'],
+            'iban'                   => ['iban (bank details)'],
+            'account_number'         => ['account number (bank details)'],
+            'sort_code'              => ['sort code (bank details)'],
+            'bic_swift'              => ['bic (swift) (bank details)'],
+            'aba_transit_number'     => ['aba/transit number (bank details)'],
+            'bank_state_branch'      => ['bank state branch (bsb) (bank details)'],
+            'routing_number'         => ['routing number (bank details)'],
+            'cnic_number'            => ['number (national identification number - cnic)'],
+            'cnic_issue_date'        => ['issue date (national identification number - cnic)'],
+            'sin_number'             => ['number (social insurance number)'],
+            'sin_issue_date'         => ['issue date (social insurance number)'],
+            'sin_insurance_carrier'  => ['insurance carrier (social insurance number)'],
+            'tax_number'             => ['number (tax identification number)'],
+            'tax_issue_date'         => ['issue date (tax identification number)'],
+            'nationality'            => ['nationality'],
+            'citizenship'            => ['citizenship'],
+            'passport_country'       => ['country (passport details)'],
+            'passport_number'        => ['number (passport details)'],
+            'passport_issue_date'    => ['issue date (passport details)'],
+            'passport_expiry_date'   => ['expiry date (passport details)'],
+            'visa_country'           => ['country (visa details)'],
+            'visa_type'              => ['type (visa details)'],
+            'visa_number'            => ['number (visa details)'],
+            'visa_issue_date'        => ['issue date (visa details)'],
+            'visa_expiry_date'       => ['expiry date (visa details)'],
+            'edu_start_date'         => ['start date (education details)'],
+            'edu_end_date'           => ['end date (education details)'],
+            'edu_degree'             => ['degree (education details)'],
+            'edu_field_of_study'     => ['field of study (education details)'],
+            'edu_school'             => ['school (education details)'],
+            'exp_start_date'         => ['start date (job details)'],
+            'exp_end_date'           => ['end date (job details)'],
+            'exp_job_title'          => ['job title (job details)'],
+            'exp_company'            => ['company (job details)'],
+            'exp_summary'            => ['summary (job details)'],
+            'exp_present'            => ['present (job details)'],
+            'skill'                  => ['skill'],
+            'language'               => ['language'],
+            'emergency_name'         => ['name (contact details)'],
+            'emergency_relationship' => ['relationship (contact details)'],
+            'emergency_phone'        => ['phone (contact details)'],
+            'emergency_email'        => ['email (contact details)'],
+            'emergency_country'      => ['country (contact details)'],
+            'emergency_address'      => ['address (contact details)'],
+        ];
 
         $entityDefault = \App\Models\CompanyEntity::primary() ?? \App\Models\CompanyEntity::first();
         $role = \App\Models\Role::where('slug', 'employee')->first();
@@ -823,6 +922,40 @@ class EmployeeController extends Controller
                 // Remember the "Reports to" value to link after every user exists.
                 if (!empty($managerName)) {
                     $managerRefs[$user->id] = $managerName;
+                }
+
+                // Save every mapped Workable column into its profile field.
+                foreach ($profileFieldAliases as $fkey => $fheaders) {
+                    $field = $profileFieldsByKey->get($fkey);
+                    if (!$field) {
+                        continue;
+                    }
+                    $val = $pick($csvLine, $fheaders);
+                    if ($val === null || $val === '') {
+                        continue;
+                    }
+                    if ($field->type === 'date') {
+                        $val = $parseDate($val) ?: $val;
+                    }
+                    try {
+                        if ($user->isFillable($fkey) || array_key_exists($fkey, $user->getAttributes())) {
+                            $user->update([$fkey => $val]);
+                        } else {
+                            \App\Models\EmployeeFieldValue::updateOrCreate(
+                                ['user_id' => $user->id, 'field_id' => $field->id],
+                                ['value' => $val, 'updated_by' => $authId]
+                            );
+                        }
+                    } catch (\Throwable $e) {
+                        // A single malformed field must not abort the row.
+                    }
+                }
+                // Keep the template "Full name" field in sync with first/last name.
+                if ($fnField = $profileFieldsByKey->get('full_name')) {
+                    \App\Models\EmployeeFieldValue::updateOrCreate(
+                        ['user_id' => $user->id, 'field_id' => $fnField->id],
+                        ['value' => trim($user->first_name . ' ' . $user->last_name), 'updated_by' => $authId]
+                    );
                 }
 
                 // Mirror into the legacy `employees` table so the imported person
