@@ -108,7 +108,7 @@
                         <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
                             <i data-lucide="mail" class="h-4.5 w-4.5"></i>
                         </div>
-                        <input type="email" name="email" id="email" required placeholder="admin@company.com" class="block w-full text-xs font-semibold border border-slate-800 rounded-xl pl-10 pr-3.5 py-3.5 bg-slate-950/60 text-white placeholder-slate-650 focus:border-brand-500 focus:outline-none transition duration-150">
+                        <input type="email" name="email" id="email" required placeholder="you@trickleup.co" class="block w-full text-xs font-semibold border border-slate-800 rounded-xl pl-10 pr-3.5 py-3.5 bg-slate-950/60 text-white placeholder-slate-650 focus:border-brand-500 focus:outline-none transition duration-150">
                     </div>
                 </div>
 
@@ -119,7 +119,7 @@
                         <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
                             <i data-lucide="key-round" class="h-4.5 w-4.5"></i>
                         </div>
-                        <input type="password" name="password" id="password" required placeholder="••••••••" class="block w-full text-xs font-semibold border border-slate-800 rounded-xl pl-10 pr-3.5 py-3.5 bg-slate-950/60 text-white placeholder-slate-650 focus:border-brand-500 focus:outline-none transition duration-150">
+                        <input type="password" name="password" id="password" required placeholder="Enter your password" class="block w-full text-xs font-semibold border border-slate-800 rounded-xl pl-10 pr-3.5 py-3.5 bg-slate-950/60 text-white placeholder-slate-650 focus:border-brand-500 focus:outline-none transition duration-150">
                     </div>
                 </div>
 
