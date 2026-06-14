@@ -262,21 +262,11 @@ class TimeOffController extends Controller
             $shouldAssign = false;
             $balanceToAdd = $policy->days_per_year;
             
-            if (str_contains($policy->name, 'Paternity')) {
-                if ($employee->gender === 'male' || $employee->gender === 'Male') {
-                    if ($monthsOfService >= 12) {
-                        $shouldAssign = true;
-                        $balanceToAdd = 10.0;
-                    } elseif ($monthsOfService >= 6) {
-                        $shouldAssign = true;
-                        $balanceToAdd = 5.0;
-                    }
-                }
-            } elseif (str_contains($policy->name, 'Maternity')) {
-                if (($employee->gender === 'female' || $employee->gender === 'Female') && $monthsOfService >= 12) {
-                    $shouldAssign = true;
-                    $balanceToAdd = 90.0;
-                }
+            // Maternity / Paternity are assigned ONLY to married employees.
+            // Casual Leave, Annual (planned) Leave and Eid Leave go to everyone.
+            if (str_contains($policy->name, 'Maternity') || str_contains($policy->name, 'Paternity')) {
+                $maritalStatus = strtolower(trim((string) $employee->getFieldValue('marital_status')));
+                $shouldAssign = $maritalStatus === 'married';
             } else {
                 $shouldAssign = true;
             }
@@ -303,7 +293,7 @@ class TimeOffController extends Controller
             }
         }
 
-        return back()->with('success', 'Default leave policies assigned based on tenure and gender.');
+        return back()->with('success', 'Default leave policies assigned (Maternity/Paternity only for married employees).');
     }
 
 }
