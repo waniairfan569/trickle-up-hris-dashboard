@@ -11,13 +11,13 @@
 <div class="space-y-6">
 
     <!-- Directory Header & Action -->
-    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div class="space-y-4">
         <div>
             <h1 class="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">Employee Directory</h1>
             <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Browse, filter, and view employee profiles according to your organizational scope.</p>
         </div>
-        
-        <div class="flex items-center space-x-3">
+
+        <div class="flex flex-wrap items-center gap-2">
             <a href="{{ route('org-chart') }}" class="inline-flex items-center gap-x-2 rounded-xl bg-white border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 transition duration-150 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-700">
                 <i data-lucide="network" class="h-4 w-4"></i>
                 <span>Org Chart</span>
