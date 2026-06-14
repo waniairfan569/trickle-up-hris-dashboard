@@ -25,71 +25,65 @@
             
             <!-- Date & Events Widget -->
             <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-6 flex flex-col h-[300px] justify-between relative dark:bg-slate-800 dark:border-slate-700">
-                <div>
+                <div x-data="celebrationsWidget()">
                     <!-- Date Header -->
                     <div class="flex items-center justify-between mb-4">
                         <div class="flex items-center gap-2 text-slate-700 font-semibold dark:text-slate-200">
                             <i data-lucide="calendar" class="h-5 w-5 text-slate-400"></i>
                             <div class="relative flex items-center">
-                                <span id="calendar-date-display" class="cursor-pointer" onclick="document.getElementById('date-picker').showPicker()">{{ date('l j F Y') }}</span>
-                                <input type="date" id="date-picker" class="absolute opacity-0 w-0 h-0" onchange="pickDate(this.value)">
+                                <span class="cursor-pointer" x-text="displayDate()" @click="$refs.picker.showPicker()"></span>
+                                <input type="date" x-ref="picker" x-model="current" class="absolute opacity-0 w-0 h-0">
                             </div>
-                            <i data-lucide="chevron-down" class="h-4 w-4 text-slate-400 cursor-pointer" onclick="document.getElementById('date-picker').showPicker()"></i>
+                            <i data-lucide="chevron-down" class="h-4 w-4 text-slate-400 cursor-pointer" @click="$refs.picker.showPicker()"></i>
                         </div>
                         <div class="flex items-center gap-2 text-slate-400">
-                            <button onclick="changeDate(-1)" class="hover:text-slate-600 transition"><i data-lucide="arrow-left" class="h-4 w-4"></i></button>
-                            <button onclick="changeDate(1)" class="hover:text-slate-600 transition"><i data-lucide="arrow-right" class="h-4 w-4"></i></button>
+                            <button @click="shift(-1)" class="hover:text-slate-600 transition"><i data-lucide="arrow-left" class="h-4 w-4"></i></button>
+                            <button @click="shift(1)" class="hover:text-slate-600 transition"><i data-lucide="arrow-right" class="h-4 w-4"></i></button>
                         </div>
                     </div>
                     
                     <!-- Tabs -->
                     <div class="flex items-center gap-6 border-b border-slate-100 dark:border-slate-700 pb-2">
                         <div class="text-sm font-semibold text-slate-800 border-b-2 border-slate-800 pb-2 -mb-[9px] flex items-center gap-2 dark:text-white dark:border-white">
-                            Celebrations <span class="bg-slate-100 text-slate-500 text-[10px] px-1.5 py-0.5 rounded-md dark:bg-slate-700 dark:text-slate-300">{{ $celebrations->count() }}</span>
+                            Celebrations <span class="bg-slate-100 text-slate-500 text-[10px] px-1.5 py-0.5 rounded-md dark:bg-slate-700 dark:text-slate-300" x-text="todays().length">0</span>
                         </div>
                         <div class="text-sm font-medium text-slate-400 flex items-center gap-2 pb-2 -mb-[9px]">
                             Holidays <span class="bg-slate-100 text-slate-500 text-[10px] px-1.5 py-0.5 rounded-md dark:bg-slate-700 dark:text-slate-300">0</span>
                         </div>
                     </div>
                     
-                    @if($celebrations->isEmpty())
-                        <!-- Empty State -->
-                        <div class="flex flex-col items-center justify-center mt-12 opacity-60">
-                            <div class="w-16 h-16 mb-2 relative">
-                                <div class="absolute inset-0 flex flex-col gap-2 justify-center items-center">
-                                    <div class="w-12 h-2 bg-slate-200 rounded-full flex items-center px-1"><div class="w-1 h-1 rounded-full bg-slate-300"></div></div>
-                                    <div class="w-12 h-2 bg-slate-200 rounded-full flex items-center px-1"><div class="w-1 h-1 rounded-full bg-slate-300"></div></div>
-                                    <div class="w-12 h-2 bg-slate-200 rounded-full flex items-center px-1"><div class="w-1 h-1 rounded-full bg-slate-300"></div></div>
+                    <!-- Empty state for the selected day -->
+                    <div x-show="todays().length === 0" class="flex flex-col items-center justify-center mt-12 opacity-60">
+                        <div class="w-16 h-16 mb-2 relative">
+                            <div class="absolute inset-0 flex flex-col gap-2 justify-center items-center">
+                                <div class="w-12 h-2 bg-slate-200 rounded-full flex items-center px-1"><div class="w-1 h-1 rounded-full bg-slate-300"></div></div>
+                                <div class="w-12 h-2 bg-slate-200 rounded-full flex items-center px-1"><div class="w-1 h-1 rounded-full bg-slate-300"></div></div>
+                                <div class="w-12 h-2 bg-slate-200 rounded-full flex items-center px-1"><div class="w-1 h-1 rounded-full bg-slate-300"></div></div>
+                            </div>
+                        </div>
+                        <p class="text-xs font-semibold text-slate-500">No celebrations on this day</p>
+                    </div>
+
+                    <!-- Celebrations for the selected day: birthdays, anniversaries, new joiners -->
+                    <div x-show="todays().length > 0" class="mt-4 space-y-3 max-h-72 overflow-y-auto pr-1">
+                        <template x-for="c in todays()" :key="c.name + c.type + c.date">
+                            <div class="flex items-center gap-3">
+                                <template x-if="c.avatar">
+                                    <img :src="c.avatar" class="h-9 w-9 rounded-xl object-cover ring-1 ring-slate-100 dark:ring-slate-700">
+                                </template>
+                                <template x-if="!c.avatar">
+                                    <div class="h-9 w-9 rounded-xl bg-gradient-to-br from-brand-400 to-indigo-500 flex items-center justify-center text-white text-[11px] font-bold" x-text="c.initials"></div>
+                                </template>
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm font-bold text-slate-800 dark:text-white truncate" x-text="c.name"></p>
+                                    <p class="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                                        <span x-text="icon(c.type)"></span>
+                                        <span class="truncate" x-text="c.label"></span>
+                                    </p>
                                 </div>
                             </div>
-                            <p class="text-xs font-semibold text-slate-500">No company celebrations</p>
-                        </div>
-                    @else
-                        <!-- Celebrations feed: birthdays, work anniversaries, new joiners -->
-                        <div class="mt-4 space-y-3 max-h-72 overflow-y-auto pr-1">
-                            @foreach($celebrations as $c)
-                                @php
-                                    $icon = $c->type === 'birthday' ? 'cake' : ($c->type === 'anniversary' ? 'award' : 'user-plus');
-                                    $tint = $c->type === 'birthday' ? 'text-pink-500' : ($c->type === 'anniversary' ? 'text-amber-500' : 'text-emerald-500');
-                                @endphp
-                                <div class="flex items-center gap-3">
-                                    @if($c->user->avatar_url)
-                                        <img src="{{ $c->user->avatar_url }}" alt="{{ $c->user->full_name }}" class="h-9 w-9 rounded-xl object-cover ring-1 ring-slate-100 dark:ring-slate-700">
-                                    @else
-                                        <div class="h-9 w-9 rounded-xl bg-gradient-to-br from-brand-400 to-indigo-500 flex items-center justify-center text-white text-[11px] font-bold">{{ $c->user->initials }}</div>
-                                    @endif
-                                    <div class="flex-1 min-w-0">
-                                        <p class="text-sm font-bold text-slate-800 dark:text-white truncate">{{ $c->user->full_name }}</p>
-                                        <p class="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
-                                            <i data-lucide="{{ $icon }}" class="h-3 w-3 {{ $tint }}"></i>
-                                            <span class="truncate">{{ $c->label }}</span>
-                                        </p>
-                                    </div>
-                                    <span class="text-[10px] font-bold text-slate-400 whitespace-nowrap">{{ $c->sub }}</span>
-                                </div>
-                            @endforeach
-                        </div>
-                    @endif
+                        </template>
+                    </div>
                 </div>
 
                 <!-- Footer: Out of Office -->
@@ -101,30 +95,23 @@
                 </div>
 
                 <script>
-                let currentDate = new Date('{{ date("Y-m-d") }}');
-                
-                function updateDisplayDate() {
-                    const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-                    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-                    
-                    const dayName = daysOfWeek[currentDate.getDay()];
-                    const dayNum = currentDate.getDate();
-                    const monthName = months[currentDate.getMonth()];
-                    const year = currentDate.getFullYear();
-                    
-                    document.getElementById('calendar-date-display').innerText = `${dayName} ${dayNum} ${monthName} ${year}`;
-                }
-
-                function changeDate(days) {
-                    currentDate.setDate(currentDate.getDate() + days);
-                    updateDisplayDate();
-                }
-
-                function pickDate(val) {
-                    if (val) {
-                        currentDate = new Date(val);
-                        updateDisplayDate();
-                    }
+                window.__celebrations = @json($celebrations);
+                function celebrationsWidget() {
+                    return {
+                        current: '{{ now()->toDateString() }}',
+                        events: window.__celebrations || [],
+                        todays() { return this.events.filter(e => e.date === this.current); },
+                        shift(days) {
+                            const d = new Date(this.current + 'T00:00:00');
+                            d.setDate(d.getDate() + days);
+                            this.current = d.toISOString().slice(0, 10);
+                        },
+                        displayDate() {
+                            const d = new Date(this.current + 'T00:00:00');
+                            return d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+                        },
+                        icon(type) { return type === 'birthday' ? '🎂' : (type === 'anniversary' ? '🏅' : '🟢'); },
+                    };
                 }
                 </script>
             </div>

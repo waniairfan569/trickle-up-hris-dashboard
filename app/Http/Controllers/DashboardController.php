@@ -66,54 +66,59 @@ class DashboardController extends Controller
     }
 
     /**
-     * Upcoming birthdays + work anniversaries (next 30 days) and recent new joiners
-     * (last 30 days), across all active employees, sorted by date.
+     * Birthdays, work anniversaries and new joiners across a date window, each tagged
+     * with the exact date it occurs on (so the dashboard calendar can show them on
+     * their own dates). Returns JSON-friendly arrays.
      */
     protected function upcomingCelebrations()
     {
         $today = today();
-        $windowEnd = $today->copy()->addDays(30);
-        $recentStart = $today->copy()->subDays(30);
+        $windowStart = $today->copy()->subDays(31);
+        $windowEnd = $today->copy()->addDays(60);
 
         $people = \App\Models\User::where('account_status', '!=', 'deactivated')
-            ->get(['id', 'first_name', 'last_name', 'avatar_url', 'job_title', 'date_of_birth', 'hire_date', 'joined_at']);
+            ->get(['id', 'first_name', 'last_name', 'avatar_url', 'date_of_birth', 'hire_date', 'joined_at']);
+
+        // Find the occurrence of a month/day that falls inside the window (this year, ±1).
+        $occurrence = function ($month, $day) use ($today, $windowStart, $windowEnd) {
+            foreach ([$today->year - 1, $today->year, $today->year + 1] as $yr) {
+                try {
+                    $occ = \Carbon\Carbon::create($yr, (int) $month, (int) $day)->startOfDay();
+                } catch (\Throwable $e) {
+                    continue;
+                }
+                if ($occ->betweenIncluded($windowStart, $windowEnd)) {
+                    return $occ;
+                }
+            }
+            return null;
+        };
 
         $items = collect();
 
         foreach ($people as $p) {
-            // Birthday — next occurrence within 30 days
+            $name = trim($p->first_name . ' ' . $p->last_name) ?: 'Employee';
+            $base = ['name' => $name, 'initials' => $p->initials, 'avatar' => $p->avatar_url];
+
             if ($p->date_of_birth) {
-                try {
-                    $dob = \Carbon\Carbon::parse($p->date_of_birth);
-                    $next = $today->copy()->setDate($today->year, $dob->month, $dob->day);
-                    if ($next->lt($today)) {
-                        $next->addYear();
-                    }
-                    if ($next->lte($windowEnd)) {
-                        $items->push((object) ['type' => 'birthday', 'user' => $p, 'date' => $next, 'label' => 'Birthday', 'sub' => $next->format('M j')]);
-                    }
-                } catch (\Throwable $e) {
+                $dob = \Carbon\Carbon::parse($p->date_of_birth);
+                if ($occ = $occurrence($dob->month, $dob->day)) {
+                    $items->push(array_merge($base, ['date' => $occ->toDateString(), 'type' => 'birthday', 'label' => 'Birthday']));
                 }
             }
 
             $start = $p->hire_date ?? $p->joined_at;
             if ($start) {
-                try {
-                    $s = \Carbon\Carbon::parse($start);
-                    // Work anniversary — completed >= 1 year, next occurrence within 30 days
-                    $next = $today->copy()->setDate($today->year, $s->month, $s->day);
-                    if ($next->lt($today)) {
-                        $next->addYear();
+                $s = \Carbon\Carbon::parse($start);
+                if ($occ = $occurrence($s->month, $s->day)) {
+                    $years = $occ->year - $s->year;
+                    if ($years >= 1) {
+                        $items->push(array_merge($base, ['date' => $occ->toDateString(), 'type' => 'anniversary', 'label' => $years . ' year' . ($years > 1 ? 's' : '') . ' at the company']));
                     }
-                    $years = $next->year - $s->year;
-                    if ($years >= 1 && $next->lte($windowEnd)) {
-                        $items->push((object) ['type' => 'anniversary', 'user' => $p, 'date' => $next, 'label' => $years . ' year' . ($years > 1 ? 's' : '') . ' at the company', 'sub' => $next->format('M j')]);
-                    }
-                    // New joiner — joined in the last 30 days
-                    if ($s->betweenIncluded($recentStart, $today)) {
-                        $items->push((object) ['type' => 'new_joiner', 'user' => $p, 'date' => $s, 'label' => 'Joined the team', 'sub' => $s->format('M j')]);
-                    }
-                } catch (\Throwable $e) {
+                }
+                // New joiner — the actual join date, when it falls in the window.
+                if ($s->betweenIncluded($windowStart, $windowEnd)) {
+                    $items->push(array_merge($base, ['date' => $s->toDateString(), 'type' => 'new_joiner', 'label' => 'Joined the team']));
                 }
             }
         }
