@@ -102,7 +102,8 @@
                 </select>
             </div>
 
-            <!-- Role Filter -->
+            <!-- Role Filter (admins/HR only) -->
+            @if($auth->isAdmin())
             <div class="md:col-span-4">
                 <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Role Permission</label>
                 <select name="role" onchange="this.form.submit()"
@@ -113,6 +114,7 @@
                     @endforeach
                 </select>
             </div>
+            @endif
 
             <!-- Sort -->
             @php $sort = request('sort', 'name_asc'); @endphp
@@ -142,8 +144,10 @@
                         <th class="py-4 px-6">Department</th>
                         <th class="py-4 px-6">Job Title</th>
                         <th class="py-4 px-6">Manager</th>
+                        @if($auth->isAdmin())
                         <th class="py-4 px-6">RBAC Role</th>
                         <th class="py-4 px-6">Status</th>
+                        @endif
                         <th class="py-4 px-6 text-right">Actions</th>
                     </tr>
                 </thead>
@@ -235,11 +239,12 @@
                                 @endif
                             </td>
 
+                            @if($auth->isAdmin())
                             <!-- Role Badge -->
                             <td class="py-4 px-6">
                                 <x-role-badge :role="$emp->user->role" />
                             </td>
-                            
+
                             <!-- Status -->
                             <td class="py-4 px-6">
                                 <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold {{ $statusClasses }}">
@@ -247,6 +252,7 @@
                                     {{ $statusLabel }}
                                 </span>
                             </td>
+                            @endif
                             
                             <!-- Actions -->
                             <td class="py-4 px-6 text-right font-medium">
@@ -276,7 +282,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="py-12 text-center">
+                            <td colspan="{{ $auth->isAdmin() ? 7 : 5 }}" class="py-12 text-center">
                                 <div class="flex flex-col items-center justify-center">
                                     <div class="flex h-12 w-12 items-center justify-center rounded-full bg-slate-50 text-slate-400 dark:bg-slate-750/50">
                                         <i data-lucide="users" class="h-6 w-6"></i>
