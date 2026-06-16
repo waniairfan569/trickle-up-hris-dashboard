@@ -149,8 +149,17 @@ class DocumentTemplateController extends Controller
     /** Rich preview — render the document with placed fields + a test-sign experience. */
     public function previewView(DocumentTemplate $documentTemplate)
     {
-        abort_unless($documentTemplate->isPdf(), 422, 'Preview is available for PDF templates only.');
         $documentTemplate->load(['fields', 'signers.employee']);
+
+        // Non-PDF templates can't render in-browser — show a download panel instead.
+        if (!$documentTemplate->isPdf()) {
+            return view('document-templates.preview-view', [
+                'documentTemplate' => $documentTemplate,
+                'fields' => collect(),
+                'signers' => collect(),
+                'isPdf' => false,
+            ]);
+        }
 
         $fields = $documentTemplate->fields
             ->filter(fn ($f) => $f->page)
@@ -170,7 +179,7 @@ class DocumentTemplateController extends Controller
             'role' => $s->signer_type === 'employee' ? 'specific' : ($s->role ?? 'specific'),
         ])->values();
 
-        return view('document-templates.preview-view', compact('documentTemplate', 'fields', 'signers'));
+        return view('document-templates.preview-view', compact('documentTemplate', 'fields', 'signers') + ['isPdf' => true]);
     }
 
     /** Generate page — pick an employee, then produce the auto-filled PDF in the browser. */

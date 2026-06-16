@@ -6,6 +6,29 @@
 @section('content')
 <style>[x-cloak]{display:none!important} .sigpad{touch-action:none}</style>
 
+@if(!$isPdf)
+    <div class="max-w-2xl mx-auto space-y-6">
+        <a href="{{ route('document-templates.index') }}" class="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white">
+            <i data-lucide="arrow-left" class="h-4 w-4"></i> Back to templates
+        </a>
+        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-8 text-center dark:bg-slate-800 dark:border-slate-700">
+            <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-50 text-amber-500 mb-4 mx-auto dark:bg-amber-500/10"><i data-lucide="file-text" class="h-7 w-7"></i></div>
+            <h1 class="text-lg font-bold text-slate-900 dark:text-white">{{ $documentTemplate->name }}</h1>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-2 max-w-md mx-auto">
+                This template is a <span class="font-semibold">{{ strtoupper(pathinfo($documentTemplate->file_name, PATHINFO_EXTENSION)) }}</span> file. In-browser preview, field placement and e-signing need a <span class="font-semibold">PDF</span>. Re-upload a PDF version to use the full workflow, or download the current file.
+            </p>
+            <div class="flex items-center justify-center gap-2 mt-5">
+                <a href="{{ route('document-templates.preview', $documentTemplate) }}" class="inline-flex items-center gap-2 rounded-xl bg-white border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200">
+                    <i data-lucide="download" class="h-4 w-4"></i> Download file
+                </a>
+                <a href="{{ route('document-templates.edit', $documentTemplate) }}" class="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-bold text-slate-900 shadow-md shadow-brand-500/20 hover:bg-brand-700">
+                    <i data-lucide="upload" class="h-4 w-4"></i> Edit &amp; upload PDF
+                </a>
+            </div>
+        </div>
+    </div>
+@else
+
 @php
     $fieldList = $fields->values()->map(fn ($f, $i) => array_merge($f, ['idx' => $i]))->all();
 @endphp
@@ -273,4 +296,5 @@
         };
     }
 </script>
+@endif
 @endsection

@@ -81,15 +81,9 @@
                                 <i data-lucide="file-down" class="h-4 w-4 text-slate-400"></i> Generate document
                             </a>
                         @endif
-                        @if($tpl->isPdf())
                         <a href="{{ route('document-templates.preview-view', $tpl) }}" class="flex items-center gap-2.5 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-700">
                             <i data-lucide="eye" class="h-4 w-4 text-slate-400"></i> Preview
                         </a>
-                        @else
-                        <a href="{{ route('document-templates.preview', $tpl) }}" target="_blank" class="flex items-center gap-2.5 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-700">
-                            <i data-lucide="eye" class="h-4 w-4 text-slate-400"></i> Preview
-                        </a>
-                        @endif
                         <form action="{{ route('document-templates.archive', $tpl) }}" method="POST">
                             @csrf
                             <button type="submit" class="w-full flex items-center gap-2.5 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-700">
