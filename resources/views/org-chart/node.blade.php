@@ -1,27 +1,35 @@
-@php $children = $byManager[$node->id] ?? collect(); @endphp
+@php $jt = trim((string)($node['title'] ?? '')); $showTitle = $jt !== '' && strtolower($jt) !== 'employee'; @endphp
 <li x-data="{ open: true }">
-    <div class="org-card" data-name="{{ strtolower($node->full_name . ' ' . ($node->job_title ?? '')) }}">
-        @if($node->avatar_url)
-            <img src="{{ $node->avatar_url }}" alt="{{ $node->full_name }}" class="org-avatar">
+    <div class="org-card" :class="open && {{ count($node['children']) ? 'true' : 'false' }} ? 'is-open' : ''"
+         data-name="{{ strtolower($node['name'] . ' ' . $jt) }}">
+        @if(!empty($node['avatar']))
+            <img src="{{ $node['avatar'] }}" alt="{{ $node['name'] }}" class="org-avatar">
         @else
-            <div class="org-avatar org-initials">{{ $node->initials }}</div>
+            <div class="org-avatar org-initials">{{ $node['initials'] }}</div>
         @endif
-        <a href="{{ route('employees.profile', $node->id) }}" class="org-name hover:underline">{{ $node->full_name }}</a>
-        <div class="org-title">{{ $node->job_title ?: 'Employee' }}</div>
-        @if($node->department)
-            <div class="org-dept">{{ $node->department->name }}</div>
-        @endif
-        @if($children->isNotEmpty())
-            <button type="button" @click="open = !open" class="org-toggle" title="Toggle direct reports">
-                <span x-text="open ? '−' : '+'"></span>&nbsp;{{ $children->count() }} report{{ $children->count() > 1 ? 's' : '' }}
+
+        <a href="{{ route('employees.profile', $node['id']) }}" class="org-3dot" title="Open profile"><i data-lucide="more-vertical" class="h-4 w-4"></i></a>
+
+        <div class="org-name">{{ $node['name'] }}</div>
+        @if($showTitle)<div class="org-line">{{ $jt }}</div>@endif
+        @if(!empty($node['dept']))<div class="org-line">{{ $node['dept'] }}</div>@endif
+        @if(!empty($node['location']))<div class="org-line">{{ $node['location'] }}</div>@endif
+
+        @if($node['count'] > 0)
+            <button type="button" @click="open = !open" class="org-count" :class="open ? 'open' : 'closed'" title="Collapse / expand team">
+                {{ $node['count'] }}
             </button>
         @endif
     </div>
 
-    @if($children->isNotEmpty())
-        <ul x-show="open" x-cloak>
-            @foreach($children as $child)
-                @include('org-chart.node', ['node' => $child, 'byManager' => $byManager])
+    @if($node['count'] > 0)
+        <ul x-show="open"
+            x-transition:enter="transition ease-out duration-200"
+            x-transition:enter-start="opacity-0 -translate-y-2"
+            x-transition:enter-end="opacity-100 translate-y-0"
+            x-cloak>
+            @foreach($node['children'] as $child)
+                @include('org-chart.node', ['node' => $child])
             @endforeach
         </ul>
     @endif

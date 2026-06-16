@@ -37,8 +37,15 @@ class EmployeeController extends Controller
 
         $query = $this->employeeAccessService->getScopedEmployeeQuery($auth)
             ->with(['user', 'department', 'user.roles', 'user.jobLocation', 'user.manager'])
-            // Hide archived (deactivated) employees from the main directory.
-            ->whereHas('user', fn ($q) => $q->where('account_status', '!=', 'deactivated'));
+            // Hide archived (deactivated) employees from the main directory. Non-admins
+            // only ever see ACTIVE colleagues; admins also see invited/pending/suspended.
+            ->whereHas('user', function ($q) use ($auth) {
+                if ($auth->isAdmin()) {
+                    $q->where('account_status', '!=', 'deactivated');
+                } else {
+                    $q->where('account_status', 'active');
+                }
+            });
 
         if ($request->filled('job_location_id')) {
             $query->whereHas('user', function ($q) use ($request) {
@@ -148,17 +155,36 @@ class EmployeeController extends Controller
 
         $users = \App\Models\User::where('account_status', '!=', 'deactivated')
             ->with('department:id,name')
-            ->get(['id', 'first_name', 'last_name', 'avatar_url', 'job_title', 'department_id', 'manager_id']);
+            ->get(['id', 'first_name', 'last_name', 'avatar_url', 'job_title', 'department_id', 'manager_id', 'city', 'country']);
 
         $ids = $users->pluck('id')->all();
         $byManager = $users->groupBy('manager_id');
 
-        // Roots: no manager, or a manager who isn't in the active set.
-        $roots = $users->filter(function ($u) use ($ids) {
-            return empty($u->manager_id) || !in_array($u->manager_id, $ids);
-        })->values();
+        // Build a nested tree (id, name, title, dept, location, avatar, initials, children).
+        $build = function ($u) use (&$build, $byManager) {
+            $children = $byManager->get($u->id, collect());
 
-        return view('org-chart.index', compact('roots', 'byManager'));
+            return [
+                'id' => $u->id,
+                'name' => $u->last_name ? trim($u->last_name . ', ' . $u->first_name) : ($u->first_name ?: 'Employee'),
+                'title' => $u->job_title,
+                'dept' => $u->department?->name,
+                'location' => trim(implode(', ', array_filter([$u->city, $u->country]))) ?: null,
+                'avatar' => $u->avatar_url,
+                'initials' => $u->initials,
+                'count' => $children->count(),
+                'children' => $children->sortBy('last_name')->map($build)->values()->all(),
+            ];
+        };
+
+        // Roots: no manager, or a manager who isn't in the active set.
+        $tree = $users->filter(fn ($u) => empty($u->manager_id) || !in_array($u->manager_id, $ids))
+            ->sortBy('last_name')
+            ->map($build)
+            ->values()
+            ->all();
+
+        return view('org-chart.index', compact('tree'));
     }
 
     /**
