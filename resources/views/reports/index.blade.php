@@ -12,9 +12,14 @@
             <h1 class="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">Report Center</h1>
             <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Headcount, distribution, and an exportable employee report.</p>
         </div>
-        <a href="{{ route('employees.export') }}" class="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-bold text-slate-900 shadow-md shadow-brand-500/20 hover:bg-brand-700 transition">
-            <i data-lucide="download" class="h-4 w-4"></i> Download Employee CSV
-        </a>
+        <div class="flex flex-wrap gap-2">
+            <a href="{{ route('reports.attendance') }}" class="inline-flex items-center gap-2 rounded-xl bg-white border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200">
+                <i data-lucide="clock" class="h-4 w-4"></i> Attendance report
+            </a>
+            <a href="{{ route('employees.export') }}" class="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-bold text-slate-900 shadow-md shadow-brand-500/20 hover:bg-brand-700 transition">
+                <i data-lucide="download" class="h-4 w-4"></i> Download Employee CSV
+            </a>
+        </div>
     </div>
 
     <!-- Summary cards -->

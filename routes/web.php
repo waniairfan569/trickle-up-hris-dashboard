@@ -233,6 +233,14 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
         Route::post('holiday-calendars/{holiday_calendar}/assign', [HolidayCalendarController::class, 'assign'])->name('holiday-calendars.assign');
         Route::delete('holiday-calendars/{holiday_calendar}/unassign/{user}', [HolidayCalendarController::class, 'unassign'])->name('holiday-calendars.unassign');
 
+        // Time Tracking Policies (how employees log hours; scoped to entities/departments)
+        Route::resource('time-tracking-policies', \App\Http\Controllers\TimeTrackingPolicyController::class)
+            ->parameters(['time-tracking-policies' => 'timeTrackingPolicy'])
+            ->except(['show']);
+
+        // Attendance deviation report (Reports → Attendance)
+        Route::get('reports/attendance', [\App\Http\Controllers\ReportsController::class, 'attendance'])->name('reports.attendance');
+
         Route::resource('time-off-policies', TimeOffPolicyController::class);
         Route::post('time-off-policies/{policy}/assign', [TimeOffPolicyController::class, 'assign'])->name('time-off-policies.assign');
         Route::post('time-off-policies/{policy}/unassign', [TimeOffPolicyController::class, 'unassign'])->name('time-off-policies.unassign');
