@@ -34,69 +34,78 @@
     </div>
 
     <!-- Header Hero Banner -->
+    @php
+        $lastFirst = $employee->last_name
+            ? trim($employee->last_name . ', ' . $employee->first_name)
+            : ($employee->full_name ?? 'Employee');
+        $jt = trim((string) $employee->job_title);
+        $showJobTitle = $jt !== '' && strtolower($jt) !== 'employee';
+        $contract = trim((string) $employee->contract_type);
+        $primaryLocation = $employee->primaryOfficeLocation();
+        $cityCountry = trim(implode(', ', array_filter([$employee->city, $employee->country])));
+        $locationBits = array_values(array_filter([
+            optional($employee->companyEntity)->name,
+            $cityCountry ?: null,
+            optional($primaryLocation)->name,
+        ]));
+    @endphp
     <div class="relative overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-sm dark:bg-slate-800 dark:border-slate-800">
-        <!-- Banner Gradient -->
-        <div class="h-32 bg-gradient-to-r from-brand-500 to-indigo-600"></div>
-        
-        <!-- Profile Picture & Brief -->
-        <div class="px-6 pb-6 relative flex flex-col items-center text-center sm:flex-row sm:items-end sm:text-left sm:gap-6 -mt-10">
-            <div class="relative">
+        <!-- Soft banner -->
+        <div class="h-32 bg-gradient-to-r from-teal-100/70 via-rose-50 to-sky-100/70 dark:from-slate-700 dark:via-slate-700/60 dark:to-slate-700"></div>
+
+        <!-- Identity row -->
+        <div class="relative px-6 pb-6 sm:px-8">
+            <!-- Avatar straddles the banner edge; everything else sits in the white area below -->
+            <div class="absolute -top-14 left-6 sm:left-8 shrink-0">
                 @if($employee->avatar_url)
-                    <img src="{{ $employee->avatar_url }}" alt="{{ $employee->full_name }}" class="h-24 w-24 rounded-2xl object-cover border-4 border-white bg-slate-100 ring-1 ring-slate-200/50 shadow-md dark:border-slate-800">
+                    <img src="{{ $employee->avatar_url }}" alt="{{ $employee->full_name }}" class="h-28 w-28 rounded-full object-cover border-4 border-white bg-slate-100 ring-1 ring-slate-200/60 shadow-md dark:border-slate-800">
                 @else
-                    <div class="flex h-24 w-24 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-400 to-indigo-500 text-3xl font-bold text-white border-4 border-white shadow-md dark:border-slate-800">
+                    <div class="flex h-28 w-28 items-center justify-center rounded-full bg-gradient-to-br from-brand-400 to-indigo-500 text-3xl font-bold text-white border-4 border-white ring-1 ring-slate-200/60 shadow-md dark:border-slate-800">
                         {{ $employee->initials }}
                     </div>
                 @endif
             </div>
 
-            <div class="mt-4 flex-1 sm:mt-0 space-y-1">
-                <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-                    <h1 class="text-xl font-extrabold text-slate-900 tracking-tight dark:text-white">{{ $employee->full_name }}</h1>
-                    <div class="flex items-center gap-1.5 justify-center sm:justify-start flex-wrap">
-                        <span class="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[9px] font-bold text-emerald-700 capitalize dark:bg-emerald-500/10 dark:text-emerald-400">
-                            {{ \Illuminate\Support\Str::title($employee->employee_status ?? 'Active') }}
-                        </span>
-                        
+            <!-- Content (name, meta, actions) — all inside the white section -->
+            <div class="pt-16 sm:pt-5 sm:pl-36 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                <!-- Name + meta -->
+                <div class="space-y-1.5">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight dark:text-white">{{ $lastFirst }}</h1>
                         @if($employee->account_status === 'invited')
-                            <span class="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[9px] font-bold text-amber-700 capitalize dark:bg-amber-500/10 dark:text-amber-400">
+                            <span class="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700 dark:bg-amber-500/10 dark:text-amber-400">
                                 <span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span> Pending
                             </span>
                         @elseif($employee->account_status === 'deactivated')
-                            <span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[9px] font-bold text-slate-600 capitalize dark:bg-slate-700 dark:text-slate-300">
-                                Archived
-                            </span>
+                            <span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600 dark:bg-slate-700 dark:text-slate-300">Archived</span>
                         @endif
                     </div>
-                </div>
-                @php
-                    $jt = trim((string) $employee->job_title);
-                    $showJobTitle = $jt !== '' && strtolower($jt) !== 'employee';
-                @endphp
-                @if($showJobTitle || $employee->department)
-                <p class="text-xs font-semibold text-brand-600 dark:text-brand-400">
-                    @if($showJobTitle){{ $jt }}@endif
-                    @if($employee->department)
-                        @if($showJobTitle) &bull; @endif
-                        <span class="inline-flex items-center rounded bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-800 dark:bg-slate-700 dark:text-slate-100">{{ $employee->department->name }}</span>
-                    @endif
-                </p>
-                @endif
-                <div class="flex flex-wrap items-center gap-2 justify-center sm:justify-start pt-1">
-                    @if($employee->companyEntity)
-                        <span class="text-xs text-slate-500 dark:text-slate-400">{{ $employee->companyEntity->name }}</span>
-                    @endif
-                    @if($employee->email)
-                        <a href="mailto:{{ $employee->email }}" class="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-200 transition dark:bg-slate-700 dark:text-slate-300">
-                            <i data-lucide="mail" class="h-3 w-3"></i>{{ $employee->email }}
-                        </a>
-                    @endif
-                </div>
-            </div>
 
-            <!-- Profile Action Buttons -->
-            @if($canEdit && !$editing)
-                <div class="mt-4 flex flex-wrap gap-2 sm:mt-0">
+                    @if($showJobTitle || $employee->department)
+                        <p class="text-sm text-slate-500 dark:text-slate-400">
+                            @if($showJobTitle)<span class="font-bold text-slate-700 dark:text-slate-200">{{ $jt }}</span>@if($contract) <span class="text-slate-400">({{ $contract }})</span>@endif @endif
+                            @if($employee->department)@if($showJobTitle)<span class="text-slate-400">in</span> @endif<span class="font-bold text-slate-700 dark:text-slate-200">{{ $employee->department->name }}</span>@endif
+                        </p>
+                    @endif
+
+                    @if(count($locationBits))
+                        <p class="text-sm text-slate-500 dark:text-slate-400">
+                            {!! implode(' <span class="text-slate-300 dark:text-slate-600">|</span> ', array_map('e', $locationBits)) !!}
+                        </p>
+                    @endif
+
+                    @if($employee->email)
+                        <div class="pt-1">
+                            <a href="mailto:{{ $employee->email }}" class="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-200 transition dark:bg-slate-700 dark:text-slate-300">
+                                <i data-lucide="mail" class="h-3.5 w-3.5"></i>{{ $employee->email }}
+                            </a>
+                        </div>
+                    @endif
+                </div>
+
+                <!-- Profile Action Buttons -->
+                @if($canEdit && !$editing)
+                    <div class="flex flex-wrap items-center gap-2 shrink-0">
                     @if(auth()->user()->hasRole('super_admin') || auth()->user()->hasRole('hr_admin'))
                     {{-- Bug #16: Add confirm dialog + tooltip to Assign Default Policies --}}
                     <form action="{{ route('employees.assign-default-policies', $employee->id) }}" method="POST">
@@ -132,7 +141,8 @@
                         <span>Edit Profile</span>
                     </a>
                 </div>
-            @endif
+                @endif
+            </div>
         </div>
 
         <!-- Tab List -->
