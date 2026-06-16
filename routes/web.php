@@ -168,6 +168,10 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
     Route::get('employees/{employee}/documents/{document}/download', [\App\Http\Controllers\EmployeeDocumentController::class, 'download'])->name('employees.documents.download');
     Route::delete('employees/{employee}/documents/{document}', [\App\Http\Controllers\EmployeeDocumentController::class, 'destroy'])->name('employees.documents.destroy');
 
+    // Pay reviews / salary history (Compensation tab) — admin records, self/admin view
+    Route::post('employees/{employee}/pay-reviews', [\App\Http\Controllers\PayReviewController::class, 'store'])->name('employees.pay-reviews.store');
+    Route::delete('employees/{employee}/pay-reviews/{payReview}', [\App\Http\Controllers\PayReviewController::class, 'destroy'])->name('employees.pay-reviews.destroy');
+
     Route::get('employees/{employee}/profile', [EmployeeProfileController::class, 'show'])->name('employees.profile');
     Route::get('employees/{employee}/profile/edit', [EmployeeProfileController::class, 'edit'])->name('employees.profile.edit');
     Route::put('employees/{employee}/profile', [EmployeeProfileController::class, 'update'])->name('employees.profile.update');

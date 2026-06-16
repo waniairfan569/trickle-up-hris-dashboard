@@ -55,6 +55,11 @@ class EmployeeProfileController extends Controller
         // Pass all employees for manager dropdown (excluding self), with department for context
         $allUsers = User::orderBy('first_name')->where('id', '!=', $employee->id)->with('department')->get();
 
+        // Pay reviews / salary history (Compensation tab), with derived statuses.
+        $payReviews = \App\Models\PayReview::withStatuses(
+            $employee->payReviews()->with('approver:id,first_name,last_name')->get()
+        );
+
         // E-signature documents involving this employee (as subject or a signer)
         $signatureRequests = \App\Models\DocumentRequest::with(['template', 'signers.user'])
             ->where('subject_employee_id', $employee->id)
@@ -62,7 +67,7 @@ class EmployeeProfileController extends Controller
             ->latest()
             ->get();
 
-        return view('employees.profile.show', compact('employee', 'templates', 'canEdit', 'allUsers', 'signatureRequests'));
+        return view('employees.profile.show', compact('employee', 'templates', 'canEdit', 'allUsers', 'signatureRequests', 'payReviews'));
     }
 
     public function edit(User $employee)

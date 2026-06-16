@@ -24,7 +24,7 @@
 
 <style>[x-cloak]{display:none!important}</style>
 
-<div class="space-y-8" id="profile-page-root" x-data="{ tab: 'personal', section: 'information', showSensitive: false, fileTab: 'upload', uploadOpen: false, fileSearch: '' }">
+<div class="space-y-8" id="profile-page-root" x-data="{ tab: 'personal', section: 'information', showSensitive: false, fileTab: 'upload', uploadOpen: false, fileSearch: '', payReviewOpen: false }">
     <!-- Back Button -->
     <div>
         <a href="{{ route('employees.index') }}" class="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-slate-800 transition dark:text-slate-400 dark:hover:text-white">
@@ -527,6 +527,174 @@
                 @endif
             @endforeach
         @endforeach
+
+        {{-- PAY REVIEW / SALARY HISTORY — Compensation tab --}}
+        @if($canSeeHrTabs)
+            @php
+                $cur = optional($payReviews->firstWhere('status', 'active'))->new_salary ?? $employee->salary;
+                $curCode = optional($payReviews->first())->currency ?: ($employee->salary_currency ?: 'PKR');
+                $money = fn ($n, $code) => $code . ' ' . number_format((float) $n, 0);
+            @endphp
+            <div x-show="tab === 'compensation'" x-cloak class="pt-1">
+                <div class="flex items-center justify-between mb-5">
+                    <div>
+                        <h3 class="text-base font-bold text-slate-800 dark:text-white">Pay review &amp; salary history</h3>
+                        <p class="text-xs text-slate-400 mt-0.5">Salary timeline. Amounts are shown only when “Show sensitive data” is on.</p>
+                    </div>
+                    @if($auth->isAdmin())
+                        <button type="button" @click="payReviewOpen = true" class="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-4 py-2 text-xs font-bold text-slate-900 shadow-md shadow-brand-500/20 hover:bg-brand-700">
+                            <i data-lucide="plus" class="h-3.5 w-3.5"></i> Add pay review
+                        </button>
+                    @endif
+                </div>
+
+                @if($payReviews->count())
+                    <ol class="relative border-l-2 border-slate-200 dark:border-slate-700 ml-2 space-y-6">
+                        @foreach($payReviews as $r)
+                            <li class="ml-6">
+                                <span class="absolute -left-[9px] flex h-4 w-4 items-center justify-center rounded-full {{ $r->status === 'active' ? 'bg-emerald-500' : ($r->status === 'upcoming' ? 'bg-amber-500' : 'bg-slate-300 dark:bg-slate-600') }}"></span>
+                                <div class="rounded-xl border border-slate-200/80 p-4 dark:border-slate-700">
+                                    <div class="flex flex-wrap items-center justify-between gap-2">
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-sm font-bold text-slate-800 dark:text-white">{{ $r->effective_date->format('d M Y') }}</span>
+                                            @if($r->status === 'active')
+                                                <span class="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400">CURRENT</span>
+                                            @elseif($r->status === 'upcoming')
+                                                <span class="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700 dark:bg-amber-500/10 dark:text-amber-400">UPCOMING</span>
+                                            @else
+                                                <span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-500 dark:bg-slate-700 dark:text-slate-300">HISTORICAL</span>
+                                            @endif
+                                            <span class="text-[11px] font-semibold text-slate-400">{{ $r->review_type_label }}</span>
+                                        </div>
+                                        @if($auth->isAdmin() && $r->status === 'upcoming')
+                                            <form action="{{ route('employees.pay-reviews.destroy', [$employee->id, $r->id]) }}" method="POST" onsubmit="return confirm('Remove this upcoming pay review?');">
+                                                @csrf @method('DELETE')
+                                                <button type="submit" title="Remove" class="text-slate-400 hover:text-rose-500"><i data-lucide="trash-2" class="h-4 w-4"></i></button>
+                                            </form>
+                                        @endif
+                                    </div>
+
+                                    <div class="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                                        <span class="text-lg font-extrabold text-slate-900 dark:text-white">
+                                            <span x-show="showSensitive">{{ $money($r->new_salary, $r->currency) }}</span>
+                                            <span x-show="!showSensitive" class="text-slate-400">••••••</span>
+                                            <span class="text-xs font-semibold text-slate-400">/ {{ $r->pay_schedule }}</span>
+                                        </span>
+                                        @if($r->increment_amount != 0 && $r->previous_salary !== null)
+                                            <span class="inline-flex items-center gap-0.5 text-xs font-bold {{ $r->increment_amount > 0 ? 'text-emerald-600' : 'text-rose-600' }}">
+                                                <i data-lucide="{{ $r->increment_amount > 0 ? 'trending-up' : 'trending-down' }}" class="h-3.5 w-3.5"></i>
+                                                <span x-show="showSensitive">{{ $r->increment_amount > 0 ? '+' : '' }}{{ $money($r->increment_amount, $r->currency) }}</span>
+                                                @if($r->increment_percent !== null)<span>({{ $r->increment_percent > 0 ? '+' : '' }}{{ rtrim(rtrim(number_format($r->increment_percent, 2), '0'), '.') }}%)</span>@endif
+                                            </span>
+                                        @elseif($r->previous_salary === null)
+                                            <span class="text-xs font-semibold text-slate-400">Starting salary</span>
+                                        @endif
+                                    </div>
+
+                                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-1.5">
+                                        {{ $r->reason }}
+                                        @if($r->months_since_last !== null) <span class="text-slate-300 dark:text-slate-600">·</span> {{ $r->months_since_last }} {{ Str::plural('month', $r->months_since_last) }} since last review @endif
+                                        @if($r->approver) <span class="text-slate-300 dark:text-slate-600">·</span> Approved by {{ $r->approver->full_name }} @endif
+                                    </p>
+                                    @if($r->note && $auth->isAdmin())
+                                        <p class="text-[11px] text-slate-400 mt-1 italic" x-show="showSensitive">{{ $r->note }}</p>
+                                    @endif
+                                </div>
+                            </li>
+                        @endforeach
+                    </ol>
+                @else
+                    <div class="flex flex-col items-center justify-center py-10 text-center rounded-xl border border-dashed border-slate-200 dark:border-slate-700">
+                        <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-50 text-slate-400 dark:bg-slate-700 mb-2"><i data-lucide="trending-up" class="h-6 w-6"></i></div>
+                        <p class="text-sm font-bold text-slate-600 dark:text-slate-300">No pay reviews yet</p>
+                        <p class="text-xs text-slate-400 mt-1">{{ $auth->isAdmin() ? 'Record the starting salary or a pay review to build the timeline.' : 'Salary history will appear here.' }}</p>
+                    </div>
+                @endif
+            </div>
+
+            {{-- Add pay review modal (admin) --}}
+            @if($auth->isAdmin())
+                <script>window.__payCurrent = @json($cur !== null ? (float) $cur : null);</script>
+                <div x-show="payReviewOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div class="absolute inset-0 bg-slate-900/50" @click="payReviewOpen = false"></div>
+                    <div class="relative w-full max-w-lg rounded-2xl bg-white shadow-xl dark:bg-slate-800 max-h-[90vh] overflow-y-auto"
+                         x-data="{ prev: window.__payCurrent, newSalary: '',
+                                   inc() { return (this.prev !== null && this.newSalary !== '') ? (parseFloat(this.newSalary) - this.prev) : null; },
+                                   pct() { return (this.prev && this.prev > 0 && this.newSalary !== '') ? Math.round((this.inc() / this.prev) * 10000) / 100 : null; } }">
+                        <form action="{{ route('employees.pay-reviews.store', $employee->id) }}" method="POST">
+                            @csrf
+                            <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-700/60">
+                                <h2 class="text-lg font-extrabold text-slate-900 dark:text-white">Add pay review</h2>
+                                <button type="button" @click="payReviewOpen = false" class="text-slate-400 hover:text-slate-700"><i data-lucide="x" class="h-5 w-5"></i></button>
+                            </div>
+                            <div class="p-6 space-y-4">
+                                <div class="rounded-xl bg-slate-50 border border-slate-200 p-3 text-xs dark:bg-slate-900 dark:border-slate-700">
+                                    <span class="text-slate-500">Previous salary:</span>
+                                    <span class="font-bold text-slate-800 dark:text-white" x-text="prev !== null ? ('{{ $curCode }} ' + Number(prev).toLocaleString()) : 'None (starting salary)'"></span>
+                                </div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Effective date <span class="text-rose-500">*</span></label>
+                                        <input type="date" name="effective_date" value="{{ now()->toDateString() }}" required class="w-full rounded-xl border-slate-300 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">New salary <span class="text-rose-500">*</span></label>
+                                        <input type="number" name="new_salary" x-model="newSalary" min="0" step="0.01" required placeholder="0" class="w-full rounded-xl border-slate-300 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                                    </div>
+                                </div>
+                                <div x-show="inc() !== null" x-cloak class="flex items-center gap-2 text-xs font-bold" :class="inc() >= 0 ? 'text-emerald-600' : 'text-rose-600'">
+                                    <i data-lucide="trending-up" class="h-4 w-4"></i>
+                                    <span x-text="(inc() >= 0 ? '+' : '') + '{{ $curCode }} ' + Number(inc()).toLocaleString() + (pct() !== null ? ' (' + (pct() >= 0 ? '+' : '') + pct() + '%)' : '')"></span>
+                                </div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Pay type</label>
+                                        <select name="pay_type" class="w-full rounded-xl border-slate-300 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                                            <option value="salary">Salary</option><option value="hourly">Hourly</option><option value="contract">Contract</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Pay schedule</label>
+                                        <select name="pay_schedule" class="w-full rounded-xl border-slate-300 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                                            <option value="monthly">Monthly</option><option value="biweekly">Bi-weekly</option><option value="weekly">Weekly</option><option value="annual">Annual</option><option value="hourly">Hourly</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Review type</label>
+                                        <select name="review_type" class="w-full rounded-xl border-slate-300 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                                            <option value="annual">Annual</option><option value="mid_year">Mid-Year</option><option value="promotion">Promotion</option><option value="market_adjustment">Market Adjustment</option><option value="correction">Correction</option><option value="joining">Joining</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Approved by</label>
+                                        <select name="approved_by" class="w-full rounded-xl border-slate-300 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                                            <option value="">—</option>
+                                            @foreach($allUsers as $u)<option value="{{ $u->id }}">{{ trim(($u->last_name ? $u->last_name.', ' : '').$u->first_name) }}</option>@endforeach
+                                        </select>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Reason <span class="text-rose-500">*</span></label>
+                                    <input type="text" name="reason" required maxlength="255" placeholder="e.g. Annual appraisal" class="w-full rounded-xl border-slate-300 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                                    <p class="text-[11px] text-slate-400 mt-1">A reason is required (especially for any decrease).</p>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Note <span class="text-slate-400 normal-case font-medium">(private, optional)</span></label>
+                                    <textarea name="note" rows="2" maxlength="1000" class="w-full rounded-xl border-slate-300 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white resize-none"></textarea>
+                                </div>
+                                <input type="hidden" name="currency" value="{{ $curCode }}">
+                            </div>
+                            <div class="flex items-center justify-end gap-2 px-6 py-4 border-t border-slate-100 dark:border-slate-700/60">
+                                <button type="button" @click="payReviewOpen = false" class="rounded-xl bg-white border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200">Cancel</button>
+                                <button type="submit" class="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-bold text-slate-900 shadow-md shadow-brand-500/20 hover:bg-brand-700"><i data-lucide="check" class="h-4 w-4"></i> Save pay review</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            @endif
+        @endif
 
         {{-- ZKTeco biometric mapping (admin only) — Job tab --}}
         @if($auth->hasRole('super_admin') || $auth->hasRole('hr_admin'))
