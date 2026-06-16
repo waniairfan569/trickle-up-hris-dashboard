@@ -54,8 +54,15 @@ class EmployeeProfileController extends Controller
 
         // Pass all employees for manager dropdown (excluding self), with department for context
         $allUsers = User::orderBy('first_name')->where('id', '!=', $employee->id)->with('department')->get();
-        
-        return view('employees.profile.show', compact('employee', 'templates', 'canEdit', 'allUsers'));
+
+        // E-signature documents involving this employee (as subject or a signer)
+        $signatureRequests = \App\Models\DocumentRequest::with(['template', 'signers.user'])
+            ->where('subject_employee_id', $employee->id)
+            ->orWhereHas('signers', fn ($q) => $q->where('user_id', $employee->id))
+            ->latest()
+            ->get();
+
+        return view('employees.profile.show', compact('employee', 'templates', 'canEdit', 'allUsers', 'signatureRequests'));
     }
 
     public function edit(User $employee)
