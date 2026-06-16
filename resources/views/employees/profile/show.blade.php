@@ -24,7 +24,7 @@
 
 <style>[x-cloak]{display:none!important}</style>
 
-<div class="space-y-8" id="profile-page-root" x-data="{ tab: 'personal', section: 'information', showSensitive: false, fileTab: 'upload', uploadOpen: false }">
+<div class="space-y-8" id="profile-page-root" x-data="{ tab: 'personal', section: 'information', showSensitive: false, fileTab: 'upload', uploadOpen: false, fileSearch: '' }">
     <!-- Back Button -->
     <div>
         <a href="{{ route('employees.index') }}" class="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-slate-800 transition dark:text-slate-400 dark:hover:text-white">
@@ -305,6 +305,7 @@
     </div>
 
     {{-- FILES TAB — E-signature + Upload sub-tabs --}}
+    <script>window.__empDocNames = @json($employee->documents->pluck('name')->map(fn ($n) => strtolower($n))->values());</script>
     <div x-show="section === 'files'" x-cloak class="space-y-4">
         <!-- Sub-tabs -->
         <div class="flex items-center gap-1 border-b border-slate-200 dark:border-slate-700">
@@ -370,15 +371,25 @@
         {{-- UPLOADS SUB-TAB --}}
         <div x-show="fileTab === 'upload'" x-cloak class="bg-white border border-slate-200/80 rounded-2xl shadow-sm dark:bg-slate-800 dark:border-slate-700">
             @if($employee->documents->count())
-                <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-700/60">
+                <div class="flex flex-col gap-3 px-6 py-4 border-b border-slate-100 dark:border-slate-700/60 sm:flex-row sm:items-center sm:justify-between">
                     <span class="text-sm font-bold text-slate-700 dark:text-slate-200">Uploaded files ({{ $employee->documents->count() }})</span>
-                    <button @click="uploadOpen = true" type="button" class="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-4 py-2 text-xs font-bold text-slate-900 shadow-md shadow-brand-500/20 hover:bg-brand-700">
-                        <i data-lucide="upload" class="h-3.5 w-3.5"></i> Upload
-                    </button>
+                    <div class="flex items-center gap-2">
+                        <div class="relative">
+                            <i data-lucide="search" class="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400"></i>
+                            <input type="text" x-model="fileSearch" placeholder="Search files…"
+                                   class="rounded-xl border-slate-300 pl-8 pr-3 py-1.5 text-xs dark:bg-slate-900 dark:border-slate-600 dark:text-white w-44">
+                        </div>
+                        <button @click="uploadOpen = true" type="button" class="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-4 py-2 text-xs font-bold text-slate-900 shadow-md shadow-brand-500/20 hover:bg-brand-700 shrink-0">
+                            <i data-lucide="upload" class="h-3.5 w-3.5"></i> Upload
+                        </button>
+                    </div>
                 </div>
-                <div>
+                <div x-data="{ names: (window.__empDocNames || []) }">
+                    <p x-show="fileSearch && !names.some(n => n.includes(fileSearch.toLowerCase()))" x-cloak class="px-6 py-8 text-center text-sm text-slate-400">No files match “<span x-text="fileSearch"></span>”.</p>
                     @foreach($employee->documents as $doc)
-                        <div class="flex items-center gap-4 px-6 py-3.5 border-b border-slate-100 last:border-0 dark:border-slate-700/60">
+                        <div data-doc data-name="{{ strtolower($doc->name) }}"
+                             x-show="fileSearch === '' || $el.dataset.name.includes(fileSearch.toLowerCase())"
+                             class="flex items-center gap-4 px-6 py-3.5 border-b border-slate-100 last:border-0 dark:border-slate-700/60">
                             <span class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-500/10"><i data-lucide="file" class="h-4 w-4"></i></span>
                             <div class="flex-1 min-w-0">
                                 <p class="text-sm font-bold text-slate-800 dark:text-white truncate">{{ $doc->name }}</p>
