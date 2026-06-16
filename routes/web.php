@@ -245,6 +245,11 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
         // Attendance deviation report (Reports → Attendance)
         Route::get('reports/attendance', [\App\Http\Controllers\ReportsController::class, 'attendance'])->name('reports.attendance');
 
+        // Company Events (admin manage; shown to all on the dashboard)
+        Route::post('events/{event}/archive', [\App\Http\Controllers\EventController::class, 'archive'])->name('events.archive');
+        Route::post('events/{event}/restore', [\App\Http\Controllers\EventController::class, 'restore'])->name('events.restore');
+        Route::resource('events', \App\Http\Controllers\EventController::class)->only(['index', 'store', 'update', 'destroy']);
+
         Route::resource('time-off-policies', TimeOffPolicyController::class);
         Route::post('time-off-policies/{policy}/assign', [TimeOffPolicyController::class, 'assign'])->name('time-off-policies.assign');
         Route::post('time-off-policies/{policy}/unassign', [TimeOffPolicyController::class, 'unassign'])->name('time-off-policies.unassign');

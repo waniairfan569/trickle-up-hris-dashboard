@@ -61,8 +61,57 @@ class DashboardController extends Controller
             ->get();
 
         $celebrations = $this->upcomingCelebrations();
+        $events = $this->companyEvents();
+        $holidays = $this->companyHolidays();
 
-        return view('dashboard.employee', compact('upcomingTimeOff', 'outOfOfficeCount', 'timeOffBalances', 'celebrations'));
+        return view('dashboard.employee', compact('upcomingTimeOff', 'outOfOfficeCount', 'timeOffBalances', 'celebrations', 'events', 'holidays'));
+    }
+
+    /** Active company events in a window, expanded to each day they cover. */
+    protected function companyEvents()
+    {
+        $windowStart = today()->copy()->subDays(31);
+        $windowEnd = today()->copy()->addDays(180);
+
+        return \App\Models\Event::active()
+            ->whereDate('date', '<=', $windowEnd)
+            ->where(function ($q) use ($windowStart) {
+                $q->whereDate('date', '>=', $windowStart)
+                    ->orWhereDate('end_date', '>=', $windowStart);
+            })
+            ->orderBy('date')
+            ->get()
+            ->flatMap(function ($e) use ($windowStart, $windowEnd) {
+                $start = $e->date->copy()->max($windowStart);
+                $end = ($e->end_date ?: $e->date)->copy()->min($windowEnd);
+                $days = collect();
+                for ($d = $start->copy(); $d->lte($end); $d->addDay()) {
+                    $days->push([
+                        'id' => $e->id,
+                        'title' => $e->title,
+                        'date' => $d->toDateString(),
+                        'location' => $e->location,
+                        'color' => $e->color ?: 'brand',
+                        'multi' => (bool) $e->is_multi_day,
+                    ]);
+                }
+                return $days;
+            })
+            ->sortBy('date')->values();
+    }
+
+    /** Public holidays in the same window (name + date). */
+    protected function companyHolidays()
+    {
+        $windowStart = today()->copy()->subDays(31)->toDateString();
+        $windowEnd = today()->copy()->addDays(180)->toDateString();
+
+        return \App\Models\Holiday::whereBetween('date', [$windowStart, $windowEnd])
+            ->orderBy('date')
+            ->get(['id', 'name', 'date'])
+            ->map(fn ($h) => ['name' => $h->name, 'date' => \Carbon\Carbon::parse($h->date)->toDateString()])
+            ->unique(fn ($h) => $h['date'] . '|' . $h['name'])
+            ->values();
     }
 
     /**
