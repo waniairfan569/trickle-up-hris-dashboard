@@ -168,6 +168,15 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
     Route::put('employees/{employee}/profile', [EmployeeProfileController::class, 'update'])->name('employees.profile.update');
     Route::post('employees/{employee}/assign-default-policies', [App\Http\Controllers\TimeOffController::class, 'assignDefaultPolicies'])->name('employees.assign-default-policies');
 
+    // Documents for signature — inbox + signing flow (any participant)
+    Route::get('documents', [\App\Http\Controllers\DocumentRequestController::class, 'index'])->name('documents.index');
+    Route::get('documents/{documentRequest}', [\App\Http\Controllers\DocumentRequestController::class, 'show'])->name('documents.show');
+    Route::get('documents/{documentRequest}/file', [\App\Http\Controllers\DocumentRequestController::class, 'file'])->name('documents.file');
+    Route::get('documents/{documentRequest}/signed-data', [\App\Http\Controllers\DocumentRequestController::class, 'signedData'])->name('documents.signed-data');
+    Route::get('documents/{documentRequest}/sign', [\App\Http\Controllers\DocumentRequestController::class, 'sign'])->name('documents.sign');
+    Route::post('documents/{documentRequest}/sign', [\App\Http\Controllers\DocumentRequestController::class, 'storeSignature'])->name('documents.sign.store');
+    Route::post('documents/{documentRequest}/decline', [\App\Http\Controllers\DocumentRequestController::class, 'decline'])->name('documents.decline');
+
     // Notifications
     Route::get('notifications', [App\Http\Controllers\NotificationController::class, 'index'])->name('notifications.index');
     Route::post('notifications/{id}/mark-read', [App\Http\Controllers\NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
@@ -193,6 +202,19 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
 
         Route::resource('departments', DepartmentController::class);
         Route::get('departments/{department}/employees', [DepartmentController::class, 'employees'])->name('departments.employees');
+
+        // Document Templates (contracts, NDAs, letters — reusable + auto-fill)
+        Route::post('document-templates/{documentTemplate}/archive', [\App\Http\Controllers\DocumentTemplateController::class, 'archive'])->name('document-templates.archive');
+        Route::post('document-templates/{documentTemplate}/restore', [\App\Http\Controllers\DocumentTemplateController::class, 'restore'])->name('document-templates.restore');
+        Route::get('document-templates/{documentTemplate}/preview', [\App\Http\Controllers\DocumentTemplateController::class, 'preview'])->name('document-templates.preview');
+        Route::get('document-templates/{documentTemplate}/preview-view', [\App\Http\Controllers\DocumentTemplateController::class, 'previewView'])->name('document-templates.preview-view');
+        Route::get('document-templates/{documentTemplate}/generate', [\App\Http\Controllers\DocumentTemplateController::class, 'generate'])->name('document-templates.generate');
+        Route::get('document-templates/{documentTemplate}/fill-data', [\App\Http\Controllers\DocumentTemplateController::class, 'fillData'])->name('document-templates.fill-data');
+        Route::get('document-templates/{documentTemplate}/send', [\App\Http\Controllers\DocumentRequestController::class, 'sendForm'])->name('document-templates.send-form');
+        Route::post('document-templates/{documentTemplate}/send', [\App\Http\Controllers\DocumentRequestController::class, 'send'])->name('document-templates.send');
+        Route::resource('document-templates', \App\Http\Controllers\DocumentTemplateController::class)
+            ->parameters(['document-templates' => 'documentTemplate'])
+            ->except(['show']);
         
         Route::resource('company-entities', CompanyEntityController::class);
         Route::post('company-entities/{entity}/set-primary', [CompanyEntityController::class, 'setPrimary'])->name('company-entities.set-primary');

@@ -48,10 +48,16 @@
         <span>My Schedule</span>
     </a>
 
-    <a href="{{ route('performance.index') }}" 
+    <a href="{{ route('performance.index') }}"
        class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ Str::startsWith($routeName, 'performance') ? 'bg-brand-600 text-slate-900 shadow-md shadow-brand-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
         <i data-lucide="award" class="h-4 w-4 shrink-0 transition {{ Str::startsWith($routeName, 'performance') ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>
         <span>Performance Reviews</span>
+    </a>
+
+    <a href="{{ route('documents.index') }}"
+       class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ Str::startsWith($routeName, 'documents') ? 'bg-brand-600 text-slate-900 shadow-md shadow-brand-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
+        <i data-lucide="file-signature" class="h-4 w-4 shrink-0 transition {{ Str::startsWith($routeName, 'documents') ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>
+        <span>Documents</span>
     </a>
 </div>
 
@@ -102,7 +108,13 @@
         <span>Profile Templates</span>
     </a>
 
-    <a href="{{ route('time-off-policies.index') }}" 
+    <a href="{{ route('document-templates.index') }}"
+       class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ Str::startsWith($routeName, 'document-templates') ? 'bg-brand-600 text-slate-900 shadow-md shadow-brand-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
+        <i data-lucide="file-signature" class="h-4 w-4 shrink-0 transition {{ Str::startsWith($routeName, 'document-templates') ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>
+        <span>Document Templates</span>
+    </a>
+
+    <a href="{{ route('time-off-policies.index') }}"
        class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ Str::startsWith($routeName, 'time-off-policies') ? 'bg-brand-600 text-slate-900 shadow-md shadow-brand-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
         <i data-lucide="settings-2" class="h-4 w-4 shrink-0 transition {{ Str::startsWith($routeName, 'time-off-policies') ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>
         <span>Time Off Policies</span>
