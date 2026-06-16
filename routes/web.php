@@ -163,6 +163,11 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
     Route::delete('profile-fields/{field}', [ProfileTemplateController::class, 'destroyField'])->name('profile-fields.destroy')->middleware('role:super_admin,hr_admin');
     Route::resource('profile-templates', ProfileTemplateController::class)->middleware('role:super_admin,hr_admin');
 
+    // Per-employee document uploads (Files → Uploads tab) — self or admin (enforced in controller)
+    Route::post('employees/{employee}/documents', [\App\Http\Controllers\EmployeeDocumentController::class, 'store'])->name('employees.documents.store');
+    Route::get('employees/{employee}/documents/{document}/download', [\App\Http\Controllers\EmployeeDocumentController::class, 'download'])->name('employees.documents.download');
+    Route::delete('employees/{employee}/documents/{document}', [\App\Http\Controllers\EmployeeDocumentController::class, 'destroy'])->name('employees.documents.destroy');
+
     Route::get('employees/{employee}/profile', [EmployeeProfileController::class, 'show'])->name('employees.profile');
     Route::get('employees/{employee}/profile/edit', [EmployeeProfileController::class, 'edit'])->name('employees.profile.edit');
     Route::put('employees/{employee}/profile', [EmployeeProfileController::class, 'update'])->name('employees.profile.update');

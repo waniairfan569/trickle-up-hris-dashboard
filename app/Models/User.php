@@ -303,6 +303,11 @@ class User extends Authenticatable
         return $valueModel ? $valueModel->getDisplayValue() : null;
     }
 
+    public function documents()
+    {
+        return $this->hasMany(EmployeeDocument::class, 'user_id')->latest();
+    }
+
     public function officeLocations()
     {
         return $this->belongsToMany(OfficeLocation::class, 'employee_office_locations')

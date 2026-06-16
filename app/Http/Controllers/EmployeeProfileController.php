@@ -26,7 +26,7 @@ class EmployeeProfileController extends Controller
         // All authenticated employees can view any colleague's profile (read-only)
         // Editing is separately controlled via $canEdit
 
-        $employee->load('fieldValues.field', 'department', 'manager');
+        $employee->load('fieldValues.field', 'department', 'manager', 'documents.uploader');
 
         // Workable model: the DEFAULT template applies to every employee automatically
         // (it is never individually assigned). Dynamic templates appear ONLY when the

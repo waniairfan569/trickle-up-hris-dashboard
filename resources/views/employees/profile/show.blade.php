@@ -24,7 +24,7 @@
 
 <style>[x-cloak]{display:none!important}</style>
 
-<div class="space-y-8" id="profile-page-root" x-data="{ tab: 'personal', section: 'information', showSensitive: false }">
+<div class="space-y-8" id="profile-page-root" x-data="{ tab: 'personal', section: 'information', showSensitive: false, fileTab: 'upload', uploadOpen: false }">
     <!-- Back Button -->
     <div>
         <a href="{{ route('employees.index') }}" class="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-slate-800 transition dark:text-slate-400 dark:hover:text-white">
@@ -304,13 +304,107 @@
         </div>
     </div>
 
-    {{-- DOCUMENTS TAB --}}
-    <div x-show="section === 'files'" x-cloak>
-        <div class="bg-white border border-slate-200/80 rounded-2xl shadow-sm dark:bg-slate-800 dark:border-slate-700 p-6">
+    {{-- FILES TAB — E-signature + Upload sub-tabs --}}
+    <div x-show="section === 'files'" x-cloak class="space-y-4">
+        <!-- Sub-tabs -->
+        <div class="flex items-center gap-1 border-b border-slate-200 dark:border-slate-700">
+            <button @click="fileTab = 'esign'" :class="fileTab === 'esign' ? 'border-brand-500 text-brand-600 dark:text-brand-400' : 'border-transparent text-slate-400 hover:text-slate-650'"
+                    class="border-b-2 px-4 py-2.5 text-sm font-bold transition">E-signature</button>
+            <button @click="fileTab = 'upload'" :class="fileTab === 'upload' ? 'border-brand-500 text-brand-600 dark:text-brand-400' : 'border-transparent text-slate-400 hover:text-slate-650'"
+                    class="border-b-2 px-4 py-2.5 text-sm font-bold transition">Uploads</button>
+        </div>
+
+        {{-- E-SIGNATURE SUB-TAB (placeholder for now) --}}
+        <div x-show="fileTab === 'esign'" x-cloak class="bg-white border border-slate-200/80 rounded-2xl shadow-sm dark:bg-slate-800 dark:border-slate-700 p-6">
             <div class="flex flex-col items-center justify-center py-12 text-center">
-                <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 dark:bg-slate-700 mb-3"><i data-lucide="file-text" class="h-7 w-7 text-slate-400"></i></div>
-                <p class="text-sm font-bold text-slate-600 dark:text-slate-300">No documents yet</p>
-                <p class="text-xs text-slate-400 mt-1">Documents will appear here.</p>
+                <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 dark:bg-slate-700 mb-3"><i data-lucide="file-signature" class="h-7 w-7 text-slate-400"></i></div>
+                <p class="text-sm font-bold text-slate-600 dark:text-slate-300">E-signature documents</p>
+                <p class="text-xs text-slate-400 mt-1">Documents sent for signature will appear here.</p>
+                <a href="{{ route('documents.index') }}" class="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-slate-100 px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-200">
+                    <i data-lucide="external-link" class="h-3.5 w-3.5"></i> Open Documents
+                </a>
+            </div>
+        </div>
+
+        {{-- UPLOADS SUB-TAB --}}
+        <div x-show="fileTab === 'upload'" x-cloak class="bg-white border border-slate-200/80 rounded-2xl shadow-sm dark:bg-slate-800 dark:border-slate-700">
+            @if($employee->documents->count())
+                <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-700/60">
+                    <span class="text-sm font-bold text-slate-700 dark:text-slate-200">Uploaded files ({{ $employee->documents->count() }})</span>
+                    <button @click="uploadOpen = true" type="button" class="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-4 py-2 text-xs font-bold text-slate-900 shadow-md shadow-brand-500/20 hover:bg-brand-700">
+                        <i data-lucide="upload" class="h-3.5 w-3.5"></i> Upload
+                    </button>
+                </div>
+                <div>
+                    @foreach($employee->documents as $doc)
+                        <div class="flex items-center gap-4 px-6 py-3.5 border-b border-slate-100 last:border-0 dark:border-slate-700/60">
+                            <span class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-500/10"><i data-lucide="file" class="h-4 w-4"></i></span>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-bold text-slate-800 dark:text-white truncate">{{ $doc->name }}</p>
+                                <p class="text-xs text-slate-400 truncate">{{ $doc->readable_size }} · {{ $doc->created_at->format('d M Y') }}@if($doc->uploader) · {{ $doc->uploader->full_name }}@endif</p>
+                            </div>
+                            <a href="{{ route('employees.documents.download', [$employee->id, $doc->id]) }}" title="Download" class="inline-flex h-8 w-8 items-center justify-center rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-700">
+                                <i data-lucide="download" class="h-4 w-4"></i>
+                            </a>
+                            <form action="{{ route('employees.documents.destroy', [$employee->id, $doc->id]) }}" method="POST" onsubmit="return confirm('Delete “{{ $doc->name }}”?');">
+                                @csrf @method('DELETE')
+                                <button type="submit" title="Delete" class="inline-flex h-8 w-8 items-center justify-center rounded-xl text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10"><i data-lucide="trash-2" class="h-4 w-4"></i></button>
+                            </form>
+                        </div>
+                    @endforeach
+                </div>
+            @else
+                <div class="flex flex-col items-center justify-center py-12 text-center">
+                    <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 dark:bg-slate-700 mb-3"><i data-lucide="folder-open" class="h-7 w-7 text-slate-400"></i></div>
+                    <p class="text-sm font-bold text-slate-600 dark:text-slate-300">No uploaded files yet</p>
+                    <button @click="uploadOpen = true" type="button" class="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-bold text-slate-900 shadow-md shadow-brand-500/20 hover:bg-brand-700">
+                        <i data-lucide="upload" class="h-4 w-4"></i> Upload
+                    </button>
+                </div>
+            @endif
+        </div>
+
+        {{-- UPLOAD MODAL --}}
+        <div x-show="uploadOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div class="absolute inset-0 bg-slate-900/50" @click="uploadOpen = false"></div>
+            <div class="relative w-full max-w-lg rounded-2xl bg-white shadow-xl dark:bg-slate-800"
+                 x-data="{ fileName: '',
+                           pick(files) { this.fileName = (files && files[0]) ? files[0].name : ''; },
+                           drop(e) { const f = e.dataTransfer.files; if (f && f.length) { $refs.fileInput.files = f; this.pick(f); } } }">
+                <form action="{{ route('employees.documents.store', $employee->id) }}" method="POST" enctype="multipart/form-data">
+                    @csrf
+                    <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-700/60">
+                        <h2 class="text-lg font-extrabold text-slate-900 dark:text-white">Upload file</h2>
+                        <button type="button" @click="uploadOpen = false" class="text-slate-400 hover:text-slate-700"><i data-lucide="x" class="h-5 w-5"></i></button>
+                    </div>
+                    <div class="p-6 space-y-4">
+                        <div x-data="{ n: '' }">
+                            <div class="flex items-center justify-between mb-1.5">
+                                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Name <span class="text-rose-500">*</span></label>
+                                <span class="text-[11px]" :class="n.length > 70 ? 'text-rose-500' : 'text-slate-400'" x-text="n.length + '/70'"></span>
+                            </div>
+                            <input type="text" name="name" x-model="n" required maxlength="70" placeholder="e.g. Signed Contract 2026"
+                                   class="w-full rounded-xl border-slate-300 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">File <span class="text-rose-500">*</span></label>
+                            <label class="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-300 px-4 py-8 cursor-pointer hover:border-brand-400 hover:bg-brand-50/30 dark:border-slate-600"
+                                   @dragover.prevent @drop.prevent="drop($event)">
+                                <i data-lucide="upload-cloud" class="h-7 w-7 text-slate-400"></i>
+                                <span class="text-sm text-slate-500 dark:text-slate-400" x-show="!fileName">Click to browse or drag &amp; drop</span>
+                                <span class="text-sm font-semibold text-slate-700 dark:text-white" x-show="fileName" x-text="fileName"></span>
+                                <span class="text-[11px] text-slate-400">PDF, DOC, DOCX, XLS, XLSX, TXT, JPG, PNG, GIF · max 20 MB</span>
+                                <input type="file" name="file" x-ref="fileInput" required @change="pick($event.target.files)" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.jpg,.jpeg,.png,.gif" class="hidden">
+                            </label>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-end gap-2 px-6 py-4 border-t border-slate-100 dark:border-slate-700/60">
+                        <button type="button" @click="uploadOpen = false" class="rounded-xl bg-white border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200">Cancel</button>
+                        <button type="submit" class="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-bold text-slate-900 shadow-md shadow-brand-500/20 hover:bg-brand-700">
+                            <i data-lucide="upload" class="h-4 w-4"></i> Upload
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
