@@ -172,6 +172,14 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
     Route::post('employees/{employee}/pay-reviews', [\App\Http\Controllers\PayReviewController::class, 'store'])->name('employees.pay-reviews.store');
     Route::delete('employees/{employee}/pay-reviews/{payReview}', [\App\Http\Controllers\PayReviewController::class, 'destroy'])->name('employees.pay-reviews.destroy');
 
+    // Probation lifecycle (Job tab) — admin manages, self/admin view
+    Route::post('employees/{employee}/probation', [\App\Http\Controllers\ProbationController::class, 'store'])->name('employees.probation.store');
+    Route::post('employees/{employee}/probation/{probation}/extend', [\App\Http\Controllers\ProbationController::class, 'extend'])->name('employees.probation.extend');
+    Route::post('employees/{employee}/probation/{probation}/confirm', [\App\Http\Controllers\ProbationController::class, 'confirm'])->name('employees.probation.confirm');
+    Route::post('employees/{employee}/probation/{probation}/fail', [\App\Http\Controllers\ProbationController::class, 'fail'])->name('employees.probation.fail');
+    Route::post('employees/{employee}/probation/{probation}/note', [\App\Http\Controllers\ProbationController::class, 'note'])->name('employees.probation.note');
+    Route::delete('employees/{employee}/probation/{probation}', [\App\Http\Controllers\ProbationController::class, 'destroy'])->name('employees.probation.destroy');
+
     Route::get('employees/{employee}/profile', [EmployeeProfileController::class, 'show'])->name('employees.profile');
     Route::get('employees/{employee}/profile/edit', [EmployeeProfileController::class, 'edit'])->name('employees.profile.edit');
     Route::put('employees/{employee}/profile', [EmployeeProfileController::class, 'update'])->name('employees.profile.update');

@@ -55,6 +55,9 @@ class EmployeeProfileController extends Controller
         // Pass all employees for manager dropdown (excluding self), with department for context
         $allUsers = User::orderBy('first_name')->where('id', '!=', $employee->id)->with('department')->get();
 
+        // Probation — latest record + history (Job tab).
+        $probation = $employee->probations()->with('events.reviewer:id,first_name,last_name')->latest('id')->first();
+
         // Pay reviews / salary history (Compensation tab), with derived statuses.
         $payReviews = \App\Models\PayReview::withStatuses(
             $employee->payReviews()->with('approver:id,first_name,last_name')->get()
@@ -67,7 +70,7 @@ class EmployeeProfileController extends Controller
             ->latest()
             ->get();
 
-        return view('employees.profile.show', compact('employee', 'templates', 'canEdit', 'allUsers', 'signatureRequests', 'payReviews'));
+        return view('employees.profile.show', compact('employee', 'templates', 'canEdit', 'allUsers', 'signatureRequests', 'payReviews', 'probation'));
     }
 
     public function edit(User $employee)

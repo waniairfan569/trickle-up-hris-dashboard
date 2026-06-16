@@ -318,6 +318,11 @@ class User extends Authenticatable
         return $this->hasMany(PayReview::class, 'user_id');
     }
 
+    public function probations()
+    {
+        return $this->hasMany(Probation::class, 'user_id');
+    }
+
     public function officeLocations()
     {
         return $this->belongsToMany(OfficeLocation::class, 'employee_office_locations')

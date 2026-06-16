@@ -696,6 +696,118 @@
             @endif
         @endif
 
+        {{-- PROBATION — Job tab (admin + self) --}}
+        @if($auth->isAdmin() || $isSelf)
+            @php $isAdminViewer = $auth->isAdmin(); @endphp
+            <div x-show="tab === 'job'" x-cloak class="border-b border-slate-100 dark:border-slate-700/60 pb-7 mb-7" x-data="{ extend: false, fail: false }">
+                <div class="flex items-center justify-between mb-5">
+                    <h3 class="text-base font-bold text-slate-800 dark:text-white">Probation</h3>
+                </div>
+
+                @if($probation)
+                    @php
+                        $days = $probation->days_remaining;
+                        $badge = $probation->status === 'passed' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400'
+                            : ($probation->status === 'failed' ? 'bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400'
+                            : ($probation->end_date->lt(now()->startOfDay()) ? 'bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400' : 'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400'));
+                    @endphp
+                    <div class="rounded-xl border border-slate-200/80 p-4 dark:border-slate-700 space-y-3">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold {{ $badge }}">{{ $probation->status_label }}</span>
+                            @if($probation->is_extended)<span class="inline-flex items-center rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400">Extended</span>@endif
+                            @if($probation->status === 'active')
+                                <span class="text-xs font-semibold {{ $days < 0 ? 'text-rose-600' : ($days <= 14 ? 'text-amber-600' : 'text-slate-400') }}">
+                                    {{ $days < 0 ? abs($days).' '.Str::plural('day', abs($days)).' overdue' : $days.' '.Str::plural('day', $days).' remaining' }}
+                                </span>
+                            @endif
+                        </div>
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-x-8 gap-y-2 text-sm">
+                            <div><span class="block text-[11px] font-bold text-slate-400 uppercase">Start</span>{{ $probation->start_date->format('d M Y') }}</div>
+                            <div><span class="block text-[11px] font-bold text-slate-400 uppercase">End</span>{{ $probation->end_date->format('d M Y') }}</div>
+                            @if($probation->is_extended)<div><span class="block text-[11px] font-bold text-slate-400 uppercase">Original end</span>{{ $probation->original_end_date->format('d M Y') }}</div>@endif
+                        </div>
+                        @if($probation->note)<p class="text-sm text-slate-600 dark:text-slate-300">{{ $probation->note }}</p>@endif
+
+                        @if($isAdminViewer && $probation->status === 'active')
+                            <div class="flex flex-wrap gap-2 pt-1">
+                                <button type="button" @click="extend = true" class="inline-flex items-center gap-1.5 rounded-xl bg-white border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200"><i data-lucide="calendar-plus" class="h-3.5 w-3.5"></i> Extend</button>
+                                <form action="{{ route('employees.probation.confirm', [$employee->id, $probation->id]) }}" method="POST" onsubmit="return confirm('Confirm {{ $employee->first_name }} — probation passed?');">@csrf<button type="submit" class="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-2 text-xs font-bold text-white hover:bg-emerald-700"><i data-lucide="check" class="h-3.5 w-3.5"></i> Confirm</button></form>
+                                <button type="button" @click="fail = true" class="inline-flex items-center gap-1.5 rounded-xl bg-white border border-rose-200 px-3 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 dark:bg-slate-700 dark:border-rose-500/30"><i data-lucide="x-circle" class="h-3.5 w-3.5"></i> Not confirmed</button>
+                            </div>
+                        @endif
+
+                        @if($probation->events->count())
+                            <div class="pt-2 border-t border-slate-100 dark:border-slate-700/60 space-y-2">
+                                <span class="text-[11px] font-bold text-slate-400 uppercase">History</span>
+                                @foreach($probation->events as $ev)
+                                    <div class="text-xs text-slate-500 dark:text-slate-400 flex items-start gap-2">
+                                        <i data-lucide="dot" class="h-3.5 w-3.5 mt-0.5 text-slate-400"></i>
+                                        <span>
+                                            <span class="font-semibold capitalize text-slate-700 dark:text-slate-200">{{ $ev->action }}</span>
+                                            @if($ev->new_end_date) → {{ $ev->new_end_date->format('d M Y') }} @endif
+                                            @if($ev->note) — {{ $ev->note }} @endif
+                                            <span class="text-slate-300 dark:text-slate-600">·</span> {{ optional($ev->created_at)->format('d M Y') }}@if($ev->reviewer) by {{ $ev->reviewer->full_name }}@endif
+                                        </span>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
+
+                        @if($isAdminViewer)
+                            <form action="{{ route('employees.probation.destroy', [$employee->id, $probation->id]) }}" method="POST" onsubmit="return confirm('Remove this probation record?');" class="pt-1">@csrf @method('DELETE')<button type="submit" class="text-[11px] font-semibold text-slate-400 hover:text-rose-500">Remove probation record</button></form>
+                        @endif
+                    </div>
+
+                    {{-- Extend modal --}}
+                    @if($isAdminViewer)
+                        <div x-show="extend" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4">
+                            <div class="absolute inset-0 bg-slate-900/50" @click="extend = false"></div>
+                            <div class="relative w-full max-w-md rounded-2xl bg-white shadow-xl dark:bg-slate-800">
+                                <form action="{{ route('employees.probation.extend', [$employee->id, $probation->id]) }}" method="POST">
+                                    @csrf
+                                    <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-700/60"><h2 class="text-lg font-extrabold text-slate-900 dark:text-white">Extend probation</h2><button type="button" @click="extend = false" class="text-slate-400 hover:text-slate-700"><i data-lucide="x" class="h-5 w-5"></i></button></div>
+                                    <div class="p-6 space-y-4">
+                                        <p class="text-xs text-slate-500">Current end: <span class="font-bold text-slate-800 dark:text-white">{{ $probation->end_date->format('d M Y') }}</span></p>
+                                        <div><label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">New end date <span class="text-rose-500">*</span></label><input type="date" name="new_end_date" required min="{{ $probation->end_date->copy()->addDay()->toDateString() }}" value="{{ $probation->end_date->copy()->addMonths(1)->toDateString() }}" class="w-full rounded-xl border-slate-300 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white"></div>
+                                        <div><label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Reason <span class="text-rose-500">*</span></label><textarea name="reason" required rows="2" maxlength="1000" placeholder="e.g. Needs more time to meet performance targets" class="w-full rounded-xl border-slate-300 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white resize-none"></textarea></div>
+                                    </div>
+                                    <div class="flex items-center justify-end gap-2 px-6 py-4 border-t border-slate-100 dark:border-slate-700/60"><button type="button" @click="extend = false" class="rounded-xl bg-white border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200">Cancel</button><button type="submit" class="rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-bold text-slate-900 hover:bg-brand-700">Extend</button></div>
+                                </form>
+                            </div>
+                        </div>
+                        {{-- Fail modal --}}
+                        <div x-show="fail" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4">
+                            <div class="absolute inset-0 bg-slate-900/50" @click="fail = false"></div>
+                            <div class="relative w-full max-w-md rounded-2xl bg-white shadow-xl dark:bg-slate-800">
+                                <form action="{{ route('employees.probation.fail', [$employee->id, $probation->id]) }}" method="POST">
+                                    @csrf
+                                    <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-700/60"><h2 class="text-lg font-extrabold text-slate-900 dark:text-white">Mark not confirmed</h2><button type="button" @click="fail = false" class="text-slate-400 hover:text-slate-700"><i data-lucide="x" class="h-5 w-5"></i></button></div>
+                                    <div class="p-6 space-y-4"><div><label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Reason <span class="text-rose-500">*</span></label><textarea name="reason" required rows="3" maxlength="1000" class="w-full rounded-xl border-slate-300 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white resize-none"></textarea></div></div>
+                                    <div class="flex items-center justify-end gap-2 px-6 py-4 border-t border-slate-100 dark:border-slate-700/60"><button type="button" @click="fail = false" class="rounded-xl bg-white border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200">Cancel</button><button type="submit" class="rounded-xl bg-rose-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-rose-700">Mark not confirmed</button></div>
+                                </form>
+                            </div>
+                        </div>
+                    @endif
+                @else
+                    <div class="rounded-xl border border-dashed border-slate-200 dark:border-slate-700 p-5 text-center">
+                        <p class="text-sm font-semibold text-slate-600 dark:text-slate-300">No probation set</p>
+                        @if($isAdminViewer)
+                            @php $defStart = $employee->hire_date ? \Carbon\Carbon::parse($employee->hire_date) : now(); @endphp
+                            <p class="text-xs text-slate-400 mt-1">Start a 3-month probation (defaults from the hire date).</p>
+                            <form action="{{ route('employees.probation.store', $employee->id) }}" method="POST" class="mt-3 flex flex-wrap items-end justify-center gap-2">
+                                @csrf
+                                <div class="text-left"><label class="block text-[10px] font-bold text-slate-400 uppercase">Start</label><input type="date" name="start_date" value="{{ $defStart->toDateString() }}" class="rounded-lg border-slate-300 text-xs dark:bg-slate-900 dark:border-slate-600 dark:text-white"></div>
+                                <div class="text-left"><label class="block text-[10px] font-bold text-slate-400 uppercase">End</label><input type="date" name="end_date" value="{{ $defStart->copy()->addMonths(3)->toDateString() }}" class="rounded-lg border-slate-300 text-xs dark:bg-slate-900 dark:border-slate-600 dark:text-white"></div>
+                                <button type="submit" class="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-4 py-2 text-xs font-bold text-slate-900 hover:bg-brand-700"><i data-lucide="play" class="h-3.5 w-3.5"></i> Start probation</button>
+                            </form>
+                        @else
+                            <p class="text-xs text-slate-400 mt-1">No probation period is currently recorded.</p>
+                        @endif
+                    </div>
+                @endif
+            </div>
+        @endif
+
         {{-- ZKTeco biometric mapping (admin only) — Job tab --}}
         @if($auth->hasRole('super_admin') || $auth->hasRole('hr_admin'))
             <div x-show="tab === 'job'" x-cloak class="border-b border-slate-100 dark:border-slate-700/60 pb-7 mb-7">
