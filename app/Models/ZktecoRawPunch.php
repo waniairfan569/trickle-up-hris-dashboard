@@ -41,12 +41,12 @@ class ZktecoRawPunch extends Model
 
     public function getPunchTypeLabelAttribute()
     {
+        // Only Check-In (0) and Check-Out (1) affect attendance.
+        // Break (2/3) and Overtime (4/5) punches are ignored.
         return match ((int)$this->punch_state) {
             0 => 'clock_in',
             1 => 'clock_out',
-            4 => 'break_out',
-            5 => 'break_in',
-            default => 'clock_in',
+            default => 'other',
         };
     }
 }

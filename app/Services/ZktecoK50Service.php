@@ -178,6 +178,15 @@ class ZktecoK50Service
 
     public function processPunch(ZktecoRawPunch $punch, User $user, string $sourceOverride = null): void
     {
+        $punchType = $punch->punch_type_label;
+
+        // Only Check-In / Check-Out drive attendance. Ignore Break / Overtime
+        // punches entirely (don't even create a record), but mark them processed.
+        if (!in_array($punchType, ['clock_in', 'clock_out'], true)) {
+            $punch->update(['is_processed' => true, 'processed_at' => now(), 'user_id' => $user->id]);
+            return;
+        }
+
         $tz = app(TimezoneService::class);
         $shiftService = app(ShiftService::class);
 
@@ -193,8 +202,6 @@ class ZktecoK50Service
             ['user_id' => $user->id, 'date' => $date],
             ['status' => 'absent', 'source' => $source]
         );
-
-        $punchType = $punch->punch_type_label;
         $shift = $shiftService->getShiftForUserOnDate($user, $localPunch->copy());
 
         if ($punchType === 'clock_in') {
