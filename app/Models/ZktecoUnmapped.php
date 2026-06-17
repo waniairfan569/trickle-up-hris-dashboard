@@ -34,4 +34,14 @@ class ZktecoUnmapped extends Model
     {
         return $query->where('is_resolved', false);
     }
+
+    public function device()
+    {
+        return $this->belongsTo(ZktecoDevice::class, 'device_id');
+    }
+
+    public function resolvedUser()
+    {
+        return $this->belongsTo(User::class, 'resolved_user_id');
+    }
 }
