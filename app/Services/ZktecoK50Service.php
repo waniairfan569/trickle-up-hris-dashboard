@@ -18,14 +18,31 @@ class ZktecoK50Service
 {
     public function connect(ZktecoDevice $device): ZKTeco
     {
+        // Fast pre-flight reachability check so an offline / wrong-network device
+        // fails in a few seconds with a clear message instead of hanging until
+        // PHP's max_execution_time (which surfaces as a 500 error).
+        $this->assertReachable($device);
+
         $zk = new ZKTeco($device->ip_address, $device->port);
         $connected = $zk->connect();
-        
+
         if (!$connected) {
-            throw new Exception("Cannot connect to ZKTeco K50 at {$device->ip_address}:{$device->port}. Check: 1) LAN cable connected, 2) IP correct, 3) Same network");
+            throw new Exception("Cannot connect to ZKTeco at {$device->ip_address}:{$device->port}. Check: 1) device powered on, 2) IP correct, 3) device and server on the same network.");
         }
-        
+
         return $zk;
+    }
+
+    /** Quick TCP probe (3s) — the K50 listens on its TCP Comm port. */
+    private function assertReachable(ZktecoDevice $device): void
+    {
+        $errno = 0;
+        $errstr = '';
+        $sock = @fsockopen($device->ip_address, (int) $device->port, $errno, $errstr, 3);
+        if ($sock === false) {
+            throw new Exception("Device unreachable at {$device->ip_address}:{$device->port} — make sure it is powered on and on the same network as this server (your PC's IP must start with the same numbers as the device's IP). [{$errstr}]");
+        }
+        fclose($sock);
     }
 
     public function testConnection(ZktecoDevice $device): array
@@ -91,15 +108,24 @@ class ZktecoK50Service
 
                 $user = User::where('zkteco_uid', $log['uid'])->first();
 
-                $rawPunch = ZktecoRawPunch::create([
-                    'device_id' => $device->id,
-                    'zkteco_uid' => $log['uid'],
-                    'zkteco_employee_id' => $log['id'],
-                    'user_id' => $user?->id,
-                    'punched_at' => $punchedAt,
-                    'punch_state' => $log['state'],
-                    'verify_type' => $log['type'],
-                ]);
+                try {
+                    $rawPunch = ZktecoRawPunch::create([
+                        'device_id' => $device->id,
+                        'zkteco_uid' => $log['uid'],
+                        'zkteco_employee_id' => $log['id'],
+                        'user_id' => $user?->id,
+                        'punched_at' => $punchedAt,
+                        'punch_state' => $log['state'],
+                        'verify_type' => $log['type'],
+                    ]);
+                } catch (\Illuminate\Database\QueryException $e) {
+                    // Duplicate punch (unique device+uid+time) — skip, don't abort the sync.
+                    if (($e->getCode() === '23000') || str_contains($e->getMessage(), 'Duplicate entry')) {
+                        $duplicates++;
+                        continue;
+                    }
+                    throw $e;
+                }
 
                 $synced++;
 
