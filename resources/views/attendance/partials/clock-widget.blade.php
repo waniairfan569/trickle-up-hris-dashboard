@@ -4,58 +4,38 @@
     $expectedStart = ($activeAssignment && $activeAssignment->shift) ? \Carbon\Carbon::parse($activeAssignment->shift->start_time)->format('h:i A') : '--:--';
 @endphp
 
-<div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex flex-col items-center text-center space-y-4" id="clock-widget">
-    <div>
-        <h3 class="text-lg font-bold text-slate-800" id="live-date"></h3>
-        <div class="text-4xl font-black text-brand-600 tracking-tight my-2" id="live-time"></div>
-        <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-            {{ $userTimezone ?? config('app.timezone') }}<span id="live-tz-abbr">{{ isset($userTimezoneAbbr) ? ' · '.$userTimezoneAbbr : '' }}</span>
+<div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 dark:bg-slate-800 dark:border-slate-700" id="clock-widget">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <!-- Time + date -->
+        <div class="flex items-baseline gap-2 min-w-0">
+            <span class="text-2xl font-black text-brand-600 tracking-tight" id="live-time"></span>
+            <span class="text-sm font-semibold text-slate-500 dark:text-slate-300 truncate" id="live-date"></span>
+            <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider hidden md:inline">{{ $userTimezone ?? config('app.timezone') }}<span id="live-tz-abbr">{{ isset($userTimezoneAbbr) ? ' · '.$userTimezoneAbbr : '' }}</span></span>
+        </div>
+
+        <!-- Status + action -->
+        <div class="flex items-center gap-3 sm:flex-shrink-0">
+            @if(!$status['clock_in'])
+                <span class="text-xs text-slate-400 hidden sm:inline">Expected {{ $expectedStart }}</span>
+                <button id="btn-clock-in" onclick="attendanceAction('clock-in')" class="bg-green-600 hover:bg-green-700 disabled:bg-slate-400 disabled:cursor-not-allowed text-white font-bold text-sm px-6 py-2.5 rounded-lg shadow-sm transition">
+                    Clock In
+                </button>
+            @elseif($status['clock_in'] && !$status['clock_out'])
+                <span class="text-xs text-slate-500 dark:text-slate-400">In at {{ $status['clock_in'] }} · <span class="font-bold text-slate-800 dark:text-white" id="live-worked-timer">0h 0m 0s</span></span>
+                <button id="btn-clock-out" onclick="attendanceAction('clock-out')" class="bg-slate-800 hover:bg-slate-900 text-white font-bold text-sm px-6 py-2.5 rounded-lg shadow-sm transition flex items-center justify-center">
+                    <span class="w-2.5 h-2.5 bg-white mr-2"></span> Clock out
+                </button>
+            @elseif($status['clock_out'])
+                <span class="text-xs text-slate-500 dark:text-slate-400">Completed · <span class="font-bold text-slate-800 dark:text-white" id="completed-worked-timer">0h 0m 0s</span></span>
+                <button id="btn-clock-in" onclick="attendanceAction('clock-in')" class="bg-brand-600 hover:bg-brand-700 text-slate-900 font-bold text-sm px-6 py-2.5 rounded-lg shadow-sm transition">
+                    Clock In Again
+                </button>
+            @endif
         </div>
     </div>
 
     <!-- Geofence Status Badge -->
-    <div id="geofence-status" class="hidden w-full text-sm font-medium py-2 px-3 rounded-md mb-2"></div>
-
-    @if(!$status['clock_in'])
-        <p class="text-slate-500 text-sm">You haven't clocked in yet. <br> Expected start: <span class="font-semibold">{{ $expectedStart }}</span></p>
-        <div class="w-full text-left">
-            <label class="block text-xs font-semibold text-slate-400 mb-1">Standard workday</label>
-            <select id="expected-hours" onchange="localStorage.setItem('expectedHours', this.value)" class="w-full rounded-lg border border-slate-200 text-sm py-2 px-3 mb-1 dark:bg-slate-900 dark:border-slate-700 dark:text-white">
-                <option value="8">8 hours</option>
-                <option value="8.5" selected>8.5 hours</option>
-                <option value="9">9 hours</option>
-                <option value="9.5">9.5 hours</option>
-                <option value="10">10 hours</option>
-            </select>
-        </div>
-        <button id="btn-clock-in" onclick="attendanceAction('clock-in')" class="w-full bg-green-600 hover:bg-green-700 disabled:bg-slate-400 disabled:cursor-not-allowed text-white font-bold py-3 rounded-lg shadow-md transition transform hover:-translate-y-0.5">
-            Clock In
-        </button>
-        <script>
-            (function () { var el = document.getElementById('expected-hours'); if (el) el.value = localStorage.getItem('expectedHours') || '8.5'; })();
-        </script>
-    @elseif($status['clock_in'] && !$status['clock_out'])
-        <div class="flex flex-col items-center justify-center mb-6">
-            <div class="text-3xl font-bold text-slate-800 tracking-tight dark:text-white" id="live-worked-timer">
-                0h 0m 0s
-            </div>
-            <p class="text-slate-500 font-medium text-sm mt-1">Today &middot; Clocked in at {{ $status['clock_in'] }} - <span class="text-brand-600 font-semibold">Ongoing</span></p>
-        </div>
-
-        <button id="btn-clock-out" onclick="attendanceAction('clock-out')" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-3 rounded-lg shadow-md transition transform hover:-translate-y-0.5 flex items-center justify-center">
-            <div class="w-3 h-3 bg-white mr-2"></div> Clock out
-        </button>
-    @elseif($status['clock_out'])
-        <div class="flex flex-col items-center justify-center mb-6">
-            <div class="text-3xl font-bold text-slate-800 tracking-tight" id="completed-worked-timer">
-                0h 0m 0s
-            </div>
-            <p class="text-slate-500 font-medium text-sm mt-1">Today &middot; Clocked in at {{ $status['clock_in'] }} - <span class="text-green-600 font-semibold">Completed</span></p>
-        </div>
-        <button id="btn-clock-in" onclick="attendanceAction('clock-in')" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-3 rounded-lg shadow-md transition transform hover:-translate-y-0.5 mt-2">
-            Clock In Again
-        </button>
-    @endif
+    <div id="geofence-status" class="hidden text-xs font-medium py-1.5 px-3 rounded-md mt-2"></div>
 </div>
 
 <script>
