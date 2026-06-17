@@ -33,17 +33,7 @@ class DashboardController extends Controller
             abort(401, 'Unauthenticated.');
         }
 
-        // super_admin/hr_admin → dashboard.admin
-        if ($user->isAdmin()) {
-            return view('dashboard.admin');
-        }
-
-        // manager → dashboard.manager
-        if ($user->isManager()) {
-            return view('dashboard.manager');
-        }
-
-        // employee/restricted → dashboard.employee
+        // Shared widgets shown on every dashboard (calendar + time-off balances).
         $upcomingTimeOff = \App\Models\TimeOffRequest::where('user_id', $user->id)
             ->where('start_date', '>=', today())
             ->where('status', 'approved')
@@ -64,7 +54,20 @@ class DashboardController extends Controller
         $events = $this->companyEvents();
         $holidays = $this->companyHolidays();
 
-        return view('dashboard.employee', compact('upcomingTimeOff', 'outOfOfficeCount', 'timeOffBalances', 'celebrations', 'events', 'holidays'));
+        $shared = compact('upcomingTimeOff', 'outOfOfficeCount', 'timeOffBalances', 'celebrations', 'events', 'holidays');
+
+        // super_admin/hr_admin → dashboard.admin
+        if ($user->isAdmin()) {
+            return view('dashboard.admin', $shared);
+        }
+
+        // manager → dashboard.manager
+        if ($user->isManager()) {
+            return view('dashboard.manager', $shared);
+        }
+
+        // employee/restricted → dashboard.employee
+        return view('dashboard.employee', $shared);
     }
 
     /** Active company events in a window, expanded to each day they cover. */

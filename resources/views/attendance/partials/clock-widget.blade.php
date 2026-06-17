@@ -18,31 +18,32 @@
 
     @if(!$status['clock_in'])
         <p class="text-slate-500 text-sm">You haven't clocked in yet. <br> Expected start: <span class="font-semibold">{{ $expectedStart }}</span></p>
+        <div class="w-full text-left">
+            <label class="block text-xs font-semibold text-slate-400 mb-1">Standard workday</label>
+            <select id="expected-hours" onchange="localStorage.setItem('expectedHours', this.value)" class="w-full rounded-lg border border-slate-200 text-sm py-2 px-3 mb-1 dark:bg-slate-900 dark:border-slate-700 dark:text-white">
+                <option value="8">8 hours</option>
+                <option value="8.5" selected>8.5 hours</option>
+                <option value="9">9 hours</option>
+                <option value="9.5">9.5 hours</option>
+                <option value="10">10 hours</option>
+            </select>
+        </div>
         <button id="btn-clock-in" onclick="attendanceAction('clock-in')" class="w-full bg-green-600 hover:bg-green-700 disabled:bg-slate-400 disabled:cursor-not-allowed text-white font-bold py-3 rounded-lg shadow-md transition transform hover:-translate-y-0.5">
             Clock In
         </button>
-    @elseif($status['clock_in'] && !$status['clock_out'] && !$status['is_on_break'])
+        <script>
+            (function () { var el = document.getElementById('expected-hours'); if (el) el.value = localStorage.getItem('expectedHours') || '8.5'; })();
+        </script>
+    @elseif($status['clock_in'] && !$status['clock_out'])
         <div class="flex flex-col items-center justify-center mb-6">
-            <div class="text-3xl font-bold text-slate-800 tracking-tight" id="live-worked-timer">
+            <div class="text-3xl font-bold text-slate-800 tracking-tight dark:text-white" id="live-worked-timer">
                 0h 0m 0s
             </div>
             <p class="text-slate-500 font-medium text-sm mt-1">Today &middot; Clocked in at {{ $status['clock_in'] }} - <span class="text-brand-600 font-semibold">Ongoing</span></p>
         </div>
-        
-        <div class="grid grid-cols-2 gap-3 w-full">
-            <button id="btn-break-start" onclick="attendanceAction('break/start')" class="bg-amber-100 hover:bg-amber-200 text-amber-700 font-bold py-3 rounded-lg shadow-sm transition">
-                Start Break
-            </button>
-            <button id="btn-clock-out" onclick="attendanceAction('clock-out')" class="bg-slate-800 hover:bg-slate-900 text-white font-bold py-3 rounded-lg shadow-md transition transform hover:-translate-y-0.5 flex items-center justify-center">
-                <div class="w-3 h-3 bg-white mr-2"></div> Clock out
-            </button>
-        </div>
-    @elseif($status['is_on_break'])
-        <p class="text-amber-600 font-medium bg-amber-50 px-3 py-1 rounded-full">On break since {{ $status['current_break_start'] }}</p>
-        <p class="text-slate-500 text-sm mb-2" id="break-timer">Break time counting...</p>
-        
-        <button id="btn-break-end" onclick="attendanceAction('break/end')" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg shadow-md transition transform hover:-translate-y-0.5">
-            End Break
+
+        <button id="btn-clock-out" onclick="attendanceAction('clock-out')" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-3 rounded-lg shadow-md transition transform hover:-translate-y-0.5 flex items-center justify-center">
+            <div class="w-3 h-3 bg-white mr-2"></div> Clock out
         </button>
     @elseif($status['clock_out'])
         <div class="flex flex-col items-center justify-center mb-6">

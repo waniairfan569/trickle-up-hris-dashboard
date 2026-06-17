@@ -51,6 +51,12 @@
     <!-- Attendance Clock Widget -->
     @include('attendance.partials.clock-widget')
 
+    <!-- Calendar + Time-off balances (shared across dashboards) -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        @include('dashboard.partials.calendar-widget')
+        @include('dashboard.partials.timeoff-balances')
+    </div>
+
     <!-- Team Overview & Presence Indicator -->
     <div class="rounded-2xl bg-white border border-slate-200/80 shadow-sm p-6 dark:bg-slate-800 dark:border-slate-800">
         <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 pb-4 dark:border-slate-700/60">

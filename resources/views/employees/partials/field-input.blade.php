@@ -111,9 +111,8 @@
                     class="{{ $inputClasses }}">
                 <option value="">Select Employee...</option>
                 @foreach($allUsersForLookup as $u)
-                    {{-- Bug #19: Show job title and department for context --}}
                     <option value="{{ $u->id }}" {{ intval(old('fields.'.$field->key, $value)) === intval($u->id) ? 'selected' : '' }}>
-                        {{ $u->full_name }}{{ $u->job_title ? ' — ' . $u->job_title : '' }}{{ $u->department ? ' (' . $u->department->name . ')' : '' }}
+                        {{ $u->full_name }}
                     </option>
                 @endforeach
             </select>
