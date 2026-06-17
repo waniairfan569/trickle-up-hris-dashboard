@@ -9,7 +9,7 @@ Artisan::command('inspire', function () {
 
 use Illuminate\Support\Facades\Schedule;
 
-Schedule::command('zkteco:sync-k50')->everyFiveMinutes()->withoutOverlapping();
+Schedule::command('zkteco:sync-k50')->everyMinute()->withoutOverlapping();
 Schedule::command('attendance:generate-daily')->dailyAt('00:05');
 // Time-tracking reminders fire when the current minute matches a configured time.
 Schedule::command('time-tracking:send-reminders')->everyMinute()->withoutOverlapping();
