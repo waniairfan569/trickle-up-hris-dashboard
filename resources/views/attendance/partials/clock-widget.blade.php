@@ -39,13 +39,13 @@
 </div>
 
 <script>
-    let workedSeconds = {{ $status['worked_seconds'] ?? 0 }};
+    let workedSeconds = Math.floor({{ $status['worked_seconds'] ?? 0 }});
     const isClockedIn = {{ ($status['clock_in'] && !$status['clock_out'] && !$status['is_on_break']) ? 'true' : 'false' }};
     
     function formatWorkedTime(totalSeconds) {
         const h = Math.floor(totalSeconds / 3600);
         const m = Math.floor((totalSeconds % 3600) / 60);
-        const s = totalSeconds % 60;
+        const s = Math.floor(totalSeconds % 60);
         return `${h}h ${m}m ${s}s`;
     }
 
