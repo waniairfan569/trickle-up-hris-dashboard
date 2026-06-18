@@ -1,5 +1,5 @@
 @php
-    $inputClasses = "w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-brand-500 focus:border-brand-500 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100";
+    $inputClasses = "w-full border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm focus:ring-1 focus:ring-brand-500 focus:border-brand-500 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100";
     $checkboxClasses = "rounded border-slate-350 text-brand-600 focus:ring-brand-500 h-4 w-4 dark:bg-slate-900 dark:border-slate-700";
 @endphp
 

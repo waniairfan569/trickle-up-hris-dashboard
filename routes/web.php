@@ -206,6 +206,7 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
     // 7. Admin-only routes
     Route::middleware(['role:super_admin,hr_admin'])->group(function() {
         Route::post('invitation/{employee}/resend', [\App\Http\Controllers\InvitationController::class, 'resendInvitation'])->name('invitation.resend');
+        Route::post('invitation/{employee}/update-email', [\App\Http\Controllers\InvitationController::class, 'updateEmailAndResend'])->name('invitation.update-email');
         Route::post('invitation/{employee}/cancel', [\App\Http\Controllers\InvitationController::class, 'cancelInvitation'])->name('invitation.cancel');
 
         Route::get('/admin/audit-logs', [\App\Http\Controllers\AuditLogController::class, 'index'])->name('admin.audit-logs');

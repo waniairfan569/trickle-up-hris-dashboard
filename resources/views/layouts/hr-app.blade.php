@@ -249,7 +249,7 @@
 
                     <!-- User Brief Profile -->
                     <div class="flex items-center gap-3">
-                        <a href="{{ route('employees.show', auth()->id()) }}" class="flex items-center gap-x-2 group">
+                        <a href="{{ route('employees.profile', auth()->id()) }}" class="flex items-center gap-x-2 group">
                             @if(auth()->user()->avatar_url)
                                 <img src="{{ auth()->user()->avatar_url }}" alt="{{ auth()->user()->full_name }}" class="h-9 w-9 rounded-xl object-cover ring-2 ring-slate-100 dark:ring-slate-700 group-hover:ring-brand-500 transition duration-150">
                             @else

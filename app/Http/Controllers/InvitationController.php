@@ -64,6 +64,29 @@ class InvitationController extends Controller
         }
     }
 
+    public function updateEmailAndResend(Request $request, User $employee)
+    {
+        if ($employee->account_status !== 'invited') {
+            return back()->with('error', 'Only pending invitations can be edited.');
+        }
+
+        $validated = $request->validate([
+            'email' => [
+                'required', 'email', 'max:255',
+                \Illuminate\Validation\Rule::unique('users', 'email')->ignore($employee->id),
+            ],
+        ]);
+
+        try {
+            $employee->update(['email' => $validated['email']]);
+            $this->invitationService->resendInvitation($employee, auth()->user());
+
+            return back()->with('success', 'Invitation updated and sent to ' . $employee->email);
+        } catch (\Exception $e) {
+            return back()->with('error', $e->getMessage());
+        }
+    }
+
     public function cancelInvitation(User $employee)
     {
         try {

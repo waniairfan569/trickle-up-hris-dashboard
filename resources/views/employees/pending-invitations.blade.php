@@ -89,7 +89,11 @@
                             </td>
                             <td class="relative whitespace-nowrap py-4 pl-3 pr-4 sm:pr-6 text-right text-sm font-medium min-w-[140px]">
                                 @if($user->account_status === 'invited')
-                                    <div class="flex items-center justify-end gap-2">
+                                    <div class="flex items-center justify-end gap-2" x-data="{ editOpen: false }">
+                                        <button type="button" @click="editOpen = true" class="text-slate-600 hover:text-slate-900 dark:text-slate-300 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 px-2 py-1.5 rounded-lg transition-colors flex items-center gap-1.5" title="Edit email & resend">
+                                            <i data-lucide="pencil" class="h-4 w-4"></i>
+                                            <span class="hidden sm:inline">Edit email</span>
+                                        </button>
                                         <form action="{{ route('invitation.resend', $user->id) }}" method="POST">
                                             @csrf
                                             <button type="submit" class="text-brand-600 hover:text-brand-900 dark:text-brand-400 dark:hover:text-brand-300 bg-brand-50 hover:bg-brand-100 dark:bg-brand-500/10 dark:hover:bg-brand-500/20 px-2 py-1.5 rounded-lg transition-colors flex items-center gap-1.5" title="Resend Invitation">
@@ -103,6 +107,31 @@
                                                 <i data-lucide="x-circle" class="h-4 w-4"></i>
                                             </button>
                                         </form>
+
+                                        <!-- Edit-email modal -->
+                                        <div x-show="editOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4" style="display:none;">
+                                            <div class="absolute inset-0 bg-slate-900/50" @click="editOpen = false"></div>
+                                            <div class="relative w-full max-w-md rounded-2xl bg-white shadow-xl dark:bg-slate-800 text-left">
+                                                <form action="{{ route('invitation.update-email', $user->id) }}" method="POST">
+                                                    @csrf
+                                                    <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-700/60">
+                                                        <h2 class="text-lg font-extrabold text-slate-900 dark:text-white">Edit email &amp; resend</h2>
+                                                        <button type="button" @click="editOpen = false" class="text-slate-400 hover:text-slate-700"><i data-lucide="x" class="h-5 w-5"></i></button>
+                                                    </div>
+                                                    <div class="p-6 space-y-3">
+                                                        <p class="text-xs text-slate-500 dark:text-slate-400">Update the email for <span class="font-semibold">{{ $user->full_name }}</span> and resend the invitation to the new address.</p>
+                                                        <div>
+                                                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Email address</label>
+                                                            <input type="email" name="email" value="{{ $user->email }}" required class="w-full rounded-xl border-slate-300 px-3.5 py-2.5 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                                                        </div>
+                                                    </div>
+                                                    <div class="flex items-center justify-end gap-2 px-6 py-4 border-t border-slate-100 dark:border-slate-700/60">
+                                                        <button type="button" @click="editOpen = false" class="rounded-xl bg-white border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200">Cancel</button>
+                                                        <button type="submit" class="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-bold text-slate-900 hover:bg-brand-700"><i data-lucide="send" class="h-4 w-4"></i> Save &amp; resend</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
                                     </div>
                                 @endif
                             </td>

@@ -119,7 +119,12 @@
                         <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
                             <i data-lucide="key-round" class="h-4.5 w-4.5"></i>
                         </div>
-                        <input type="password" name="password" id="password" required placeholder="Enter your password" class="block w-full text-xs font-semibold border border-slate-800 rounded-xl pl-10 pr-3.5 py-3.5 bg-slate-950/60 text-white placeholder-slate-650 focus:border-brand-500 focus:outline-none transition duration-150">
+                        <input type="password" name="password" id="password" required placeholder="Enter your password" class="block w-full text-xs font-semibold border border-slate-800 rounded-xl pl-10 pr-11 py-3.5 bg-slate-950/60 text-white placeholder-slate-650 focus:border-brand-500 focus:outline-none transition duration-150">
+                        <button type="button" onclick="togglePwd()" tabindex="-1" aria-label="Show or hide password"
+                                class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-500 hover:text-slate-300 transition">
+                            <i id="eye-show" data-lucide="eye" class="h-4.5 w-4.5"></i>
+                            <i id="eye-hide" data-lucide="eye-off" class="h-4.5 w-4.5 hidden"></i>
+                        </button>
                     </div>
                 </div>
 
@@ -139,6 +144,15 @@
     <!-- Initialize Lucide Icons -->
     <script>
         lucide.createIcons();
+        function togglePwd() {
+            var input = document.getElementById('password');
+            var show = document.getElementById('eye-show');
+            var hide = document.getElementById('eye-hide');
+            var reveal = input.type === 'password';
+            input.type = reveal ? 'text' : 'password';
+            show.classList.toggle('hidden', reveal);
+            hide.classList.toggle('hidden', !reveal);
+        }
     </script>
 </body>
 </html>
