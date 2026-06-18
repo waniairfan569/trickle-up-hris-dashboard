@@ -37,7 +37,7 @@
                         <template x-if="!c.avatar"><div class="h-9 w-9 rounded-xl bg-gradient-to-br from-brand-400 to-indigo-500 flex items-center justify-center text-white text-[11px] font-bold" x-text="c.initials"></div></template>
                         <div class="flex-1 min-w-0">
                             <p class="text-sm font-bold text-slate-800 dark:text-white truncate" x-text="c.name"></p>
-                            <p class="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1"><span x-text="icon(c.type)"></span><span class="truncate" x-text="c.label"></span></p>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5"><span class="h-1.5 w-1.5 rounded-full flex-shrink-0" :class="dotColor(c.type)"></span><span class="truncate" x-text="c.label"></span></p>
                         </div>
                     </div>
                 </template>
@@ -110,7 +110,7 @@
             monthOf(ds) { return new Date(ds + 'T00:00:00').toLocaleDateString('en-GB', { month: 'short' }); },
             dayOf(ds) { return new Date(ds + 'T00:00:00').getDate(); },
             relDate(ds) { return new Date(ds + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }); },
-            icon(type) { return type === 'birthday' ? '🎂' : (type === 'anniversary' ? '🏅' : '🟢'); },
+            dotColor(type) { return { birthday: 'bg-pink-500', anniversary: 'bg-amber-500', new_joiner: 'bg-emerald-500' }[type] || 'bg-slate-400'; },
             dotBg(c) { return { brand: 'bg-brand-500', indigo: 'bg-indigo-500', emerald: 'bg-emerald-500', rose: 'bg-rose-500', sky: 'bg-sky-500' }[c] || 'bg-brand-500'; },
         };
     }
