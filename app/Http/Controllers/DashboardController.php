@@ -148,20 +148,29 @@ class DashboardController extends Controller
 
         $items = collect();
 
+        // Safely parse a possibly-malformed date value; null if unparseable.
+        $safeParse = function ($value) {
+            if (empty($value)) {
+                return null;
+            }
+            try {
+                return \Carbon\Carbon::parse($value);
+            } catch (\Throwable $e) {
+                return null;
+            }
+        };
+
         foreach ($people as $p) {
             $name = trim($p->first_name . ' ' . $p->last_name) ?: 'Employee';
             $base = ['name' => $name, 'initials' => $p->initials, 'avatar' => $p->avatar_url];
 
-            if ($p->date_of_birth) {
-                $dob = \Carbon\Carbon::parse($p->date_of_birth);
+            if ($dob = $safeParse($p->date_of_birth)) {
                 if ($occ = $occurrence($dob->month, $dob->day)) {
                     $items->push(array_merge($base, ['date' => $occ->toDateString(), 'type' => 'birthday', 'label' => 'Birthday']));
                 }
             }
 
-            $start = $p->hire_date ?? $p->joined_at;
-            if ($start) {
-                $s = \Carbon\Carbon::parse($start);
+            if ($s = $safeParse($p->hire_date ?? $p->joined_at)) {
                 if ($occ = $occurrence($s->month, $s->day)) {
                     $years = $occ->year - $s->year;
                     if ($years >= 1) {

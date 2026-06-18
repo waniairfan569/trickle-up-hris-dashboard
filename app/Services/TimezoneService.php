@@ -40,11 +40,27 @@ class TimezoneService
             return $this->canonicalTimezone();
         }
 
-        if ($user->use_custom_timezone && !empty($user->timezone)) {
-            return $user->timezone;
-        }
+        $candidate = ($user->use_custom_timezone && !empty($user->timezone))
+            ? $user->timezone
+            : (optional($user->companyEntity)->timezone ?: self::FALLBACK_TIMEZONE);
 
-        return optional($user->companyEntity)->timezone ?: self::FALLBACK_TIMEZONE;
+        // Never return an invalid timezone — it would throw when constructing
+        // Carbon/DateTimeZone and 500 every authenticated page for this user.
+        return $this->isValidTimezone($candidate) ? $candidate : self::FALLBACK_TIMEZONE;
+    }
+
+    /** True if the string is a valid PHP timezone identifier. */
+    private function isValidTimezone(?string $tz): bool
+    {
+        if (empty($tz)) {
+            return false;
+        }
+        try {
+            new DateTimeZone($tz);
+            return true;
+        } catch (\Throwable $e) {
+            return false;
+        }
     }
 
     /**
