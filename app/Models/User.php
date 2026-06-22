@@ -323,6 +323,11 @@ class User extends Authenticatable
         return $this->hasMany(Probation::class, 'user_id');
     }
 
+    public function formSubmissions()
+    {
+        return $this->hasMany(FormSubmission::class, 'user_id');
+    }
+
     public function officeLocations()
     {
         return $this->belongsToMany(OfficeLocation::class, 'employee_office_locations')

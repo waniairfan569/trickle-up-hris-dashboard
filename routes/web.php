@@ -185,6 +185,13 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
     Route::put('employees/{employee}/profile', [EmployeeProfileController::class, 'update'])->name('employees.profile.update');
     Route::post('employees/{employee}/assign-default-policies', [App\Http\Controllers\TimeOffController::class, 'assignDefaultPolicies'])->name('employees.assign-default-policies');
 
+    // Company Forms — employee side (fill assigned forms)
+    Route::get('my-forms', [\App\Http\Controllers\FormSubmissionController::class, 'myForms'])->name('my-forms.index');
+    Route::get('my-forms/{companyForm}', [\App\Http\Controllers\FormSubmissionController::class, 'fill'])->name('forms.fill');
+    Route::post('my-forms/{companyForm}/save', [\App\Http\Controllers\FormSubmissionController::class, 'save'])->name('forms.save');
+    Route::post('my-forms/{companyForm}/submit', [\App\Http\Controllers\FormSubmissionController::class, 'submit'])->name('forms.submit');
+    Route::get('form-responses/{response}/download', [\App\Http\Controllers\FormSubmissionController::class, 'downloadFile'])->name('forms.response.download');
+
     // Documents for signature — inbox + signing flow (any participant)
     Route::get('documents', [\App\Http\Controllers\DocumentRequestController::class, 'index'])->name('documents.index');
     Route::get('documents/{documentRequest}', [\App\Http\Controllers\DocumentRequestController::class, 'show'])->name('documents.show');
@@ -253,6 +260,22 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
 
         // Attendance deviation report (Reports → Attendance)
         Route::get('reports/attendance', [\App\Http\Controllers\ReportsController::class, 'attendance'])->name('reports.attendance');
+
+        // Company Forms — dynamic form builder (admin)
+        Route::get('company-forms', [\App\Http\Controllers\CompanyFormController::class, 'index'])->name('company-forms.index');
+        Route::post('company-forms', [\App\Http\Controllers\CompanyFormController::class, 'store'])->name('company-forms.store');
+        Route::get('company-forms/{companyForm}/builder', [\App\Http\Controllers\CompanyFormController::class, 'builder'])->name('company-forms.builder');
+        Route::put('company-forms/{companyForm}', [\App\Http\Controllers\CompanyFormController::class, 'update'])->name('company-forms.update');
+        Route::post('company-forms/{companyForm}/fields', [\App\Http\Controllers\CompanyFormController::class, 'addField'])->name('company-forms.fields.add');
+        Route::put('form-fields/{field}', [\App\Http\Controllers\CompanyFormController::class, 'updateField'])->name('company-forms.fields.update');
+        Route::delete('form-fields/{field}', [\App\Http\Controllers\CompanyFormController::class, 'deleteField'])->name('company-forms.fields.delete');
+        Route::post('form-fields/{field}/move', [\App\Http\Controllers\CompanyFormController::class, 'moveField'])->name('company-forms.fields.move');
+        Route::post('company-forms/{companyForm}/assign', [\App\Http\Controllers\CompanyFormController::class, 'assign'])->name('company-forms.assign');
+        Route::get('company-forms/{companyForm}/details', [\App\Http\Controllers\CompanyFormController::class, 'show'])->name('company-forms.show');
+        Route::get('company-forms/{companyForm}/responses', [\App\Http\Controllers\CompanyFormController::class, 'responses'])->name('company-forms.responses');
+        Route::get('company-forms/{companyForm}/export', [\App\Http\Controllers\CompanyFormController::class, 'exportResponses'])->name('company-forms.export');
+        Route::get('form-submissions/{submission}', [\App\Http\Controllers\CompanyFormController::class, 'viewSubmission'])->name('company-forms.submission');
+        Route::delete('company-forms/{companyForm}', [\App\Http\Controllers\CompanyFormController::class, 'destroy'])->name('company-forms.destroy');
 
         // Automated daily attendance report — settings, manual send, preview
         Route::prefix('attendance-reports')->name('attendance-reports.')->group(function () {
