@@ -254,6 +254,14 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
         // Attendance deviation report (Reports → Attendance)
         Route::get('reports/attendance', [\App\Http\Controllers\ReportsController::class, 'attendance'])->name('reports.attendance');
 
+        // Automated daily attendance report — settings, manual send, preview
+        Route::prefix('attendance-reports')->name('attendance-reports.')->group(function () {
+            Route::get('settings', [\App\Http\Controllers\AttendanceReportController::class, 'settings'])->name('settings');
+            Route::post('settings', [\App\Http\Controllers\AttendanceReportController::class, 'updateSettings'])->name('settings.update');
+            Route::post('send-manual', [\App\Http\Controllers\AttendanceReportController::class, 'sendManual'])->name('send-manual');
+            Route::get('preview', [\App\Http\Controllers\AttendanceReportController::class, 'previewReport'])->name('preview');
+        });
+
         // Company Events (admin manage; shown to all on the dashboard)
         Route::post('events/{event}/archive', [\App\Http\Controllers\EventController::class, 'archive'])->name('events.archive');
         Route::post('events/{event}/restore', [\App\Http\Controllers\EventController::class, 'restore'])->name('events.restore');

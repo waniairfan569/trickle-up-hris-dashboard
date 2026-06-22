@@ -132,6 +132,12 @@
         <span>Events</span>
     </a>
 
+    <a href="{{ route('attendance-reports.settings') }}"
+       class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ Str::startsWith($routeName, 'attendance-reports') ? 'bg-brand-600 text-slate-900 shadow-md shadow-brand-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
+        <i data-lucide="mail-check" class="h-4 w-4 shrink-0 transition {{ Str::startsWith($routeName, 'attendance-reports') ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>
+        <span>Attendance Reports</span>
+    </a>
+
     <a href="{{ route('shifts.index') }}" 
        class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ Str::startsWith($routeName, 'shifts.index') ? 'bg-brand-600 text-slate-900 shadow-md shadow-brand-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
         <i data-lucide="clock-4" class="h-4 w-4 shrink-0 transition {{ Str::startsWith($routeName, 'shifts.index') ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>
