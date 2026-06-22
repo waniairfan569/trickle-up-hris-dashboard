@@ -78,21 +78,23 @@
         </div>
     </div>
 
-    <div class="border-t border-slate-100 pt-3 mt-3 flex items-center justify-between dark:border-slate-700">
-        <div class="text-xs text-slate-600 font-medium dark:text-slate-400">
-            <span class="font-bold text-slate-800 dark:text-white">{{ $outOfOfficeCount }} employee{{ $outOfOfficeCount !== 1 ? 's' : '' }}</span> out of office
-        </div>
-        <i data-lucide="chevron-right" class="h-4 w-4 text-slate-400"></i>
-    </div>
+    @include('dashboard.partials.ooo-footer')
 
     <script>
     window.__celebrations = @json($celebrations);
     window.__events = @json($events);
     window.__holidays = @json($holidays);
+    window.__outOfOffice = @json($outOfOffice ?? []);
     function celebrationsWidget() {
         return {
             current: '{{ now()->toDateString() }}',
             tab: 'celebrations',
+            outOfOffice: window.__outOfOffice || [],
+            oooOpen: false,
+            oooSearch: '',
+            oooTab: 'leave',
+            oooOnDate() { return this.outOfOffice.filter(o => this.current >= o.start && this.current <= o.end); },
+            oooFiltered() { const q = this.oooSearch.toLowerCase(); return this.oooOnDate().filter(o => o.name.toLowerCase().includes(q)); },
             tabs: [{ key: 'celebrations', label: 'Celebrations' }, { key: 'holidays', label: 'Holidays' }, { key: 'events', label: 'Events' }],
             celebrations: window.__celebrations || [],
             events: window.__events || [],

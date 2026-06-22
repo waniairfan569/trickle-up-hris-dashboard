@@ -53,8 +53,9 @@ class DashboardController extends Controller
         $celebrations = $this->upcomingCelebrations();
         $events = $this->companyEvents();
         $holidays = $this->companyHolidays();
+        $outOfOffice = $this->outOfOffice();
 
-        $shared = compact('upcomingTimeOff', 'outOfOfficeCount', 'timeOffBalances', 'celebrations', 'events', 'holidays');
+        $shared = compact('upcomingTimeOff', 'outOfOfficeCount', 'outOfOffice', 'timeOffBalances', 'celebrations', 'events', 'holidays');
 
         // super_admin/hr_admin → dashboard.admin
         if ($user->isAdmin()) {
@@ -114,6 +115,34 @@ class DashboardController extends Controller
             ->get(['id', 'name', 'date'])
             ->map(fn ($h) => ['name' => $h->name, 'date' => \Carbon\Carbon::parse($h->date)->toDateString()])
             ->unique(fn ($h) => $h['date'] . '|' . $h['name'])
+            ->values();
+    }
+
+    /** Approved leaves overlapping the window — real "out of office" people per day. */
+    protected function outOfOffice()
+    {
+        $windowStart = today()->copy()->subDays(31)->toDateString();
+        $windowEnd = today()->copy()->addDays(180)->toDateString();
+
+        return \App\Models\TimeOffRequest::where('status', 'approved')
+            ->whereDate('start_date', '<=', $windowEnd)
+            ->whereDate('end_date', '>=', $windowStart)
+            ->with('employee:id,first_name,last_name,avatar_url')
+            ->get()
+            ->filter(fn ($r) => $r->employee)
+            ->map(function ($r) {
+                $emp = $r->employee;
+                $name = $emp->last_name ? trim($emp->last_name . ', ' . $emp->first_name) : ($emp->first_name ?: 'Employee');
+
+                return [
+                    'name' => $name,
+                    'avatar' => $emp->avatar_url,
+                    'initials' => $emp->initials,
+                    'start' => $r->start_date->toDateString(),
+                    'end' => $r->end_date->toDateString(),
+                    'range' => $r->start_date->format('d M Y') . ' – ' . $r->end_date->format('d M Y'),
+                ];
+            })
             ->values();
     }
 
