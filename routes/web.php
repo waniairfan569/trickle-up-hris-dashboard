@@ -276,6 +276,7 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
         Route::get('company-forms', [\App\Http\Controllers\CompanyFormController::class, 'index'])->name('company-forms.index');
         Route::post('company-forms', [\App\Http\Controllers\CompanyFormController::class, 'store'])->name('company-forms.store');
         Route::get('company-forms/{companyForm}/builder', [\App\Http\Controllers\CompanyFormController::class, 'builder'])->name('company-forms.builder');
+        Route::get('company-forms/{companyForm}/preview', [\App\Http\Controllers\CompanyFormController::class, 'preview'])->name('company-forms.preview');
         Route::put('company-forms/{companyForm}', [\App\Http\Controllers\CompanyFormController::class, 'update'])->name('company-forms.update');
         Route::post('company-forms/{companyForm}/fields', [\App\Http\Controllers\CompanyFormController::class, 'addField'])->name('company-forms.fields.add');
         Route::put('form-fields/{field}', [\App\Http\Controllers\CompanyFormController::class, 'updateField'])->name('company-forms.fields.update');

@@ -18,7 +18,7 @@ class IssueReportingFormSeeder extends Seeder
             [
                 'title' => 'Trickle Up - Issue Reporting form',
                 'description' => "This form is intended for employees who wish to report a matter or request a private discussion with someone. All submissions will be handled professionally and with confidentiality. If you need further assistance, you are always welcome to have a face to face with our People Team.",
-                'status' => 'draft',
+                'status' => 'active',
                 'is_anonymous' => true,
                 'allow_multiple_submissions' => true,
                 'show_progress_bar' => false,

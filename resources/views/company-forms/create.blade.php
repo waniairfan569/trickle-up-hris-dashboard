@@ -20,7 +20,7 @@
     <div class="flex items-center justify-between gap-3 flex-wrap">
         <a href="{{ route('company-forms.index') }}" class="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-slate-800 dark:text-slate-400"><i data-lucide="arrow-left" class="h-4 w-4"></i> All forms</a>
         <div class="flex items-center gap-2">
-            <a href="{{ route('forms.fill', $form) }}" target="_blank" class="rounded-xl bg-white border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200"><i data-lucide="eye" class="h-4 w-4 inline -mt-0.5"></i> Preview</a>
+            <a href="{{ route('company-forms.preview', $form) }}" target="_blank" class="rounded-xl bg-white border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200"><i data-lucide="eye" class="h-4 w-4 inline -mt-0.5"></i> Preview</a>
             <a href="{{ route('company-forms.show', $form) }}" class="rounded-xl bg-white border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200">Assign</a>
             <a href="{{ route('company-forms.responses', $form) }}" class="rounded-xl bg-white border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200">Responses</a>
         </div>

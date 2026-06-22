@@ -56,6 +56,14 @@ class CompanyFormController extends Controller
         return view('company-forms.create', ['form' => $companyForm, 'types' => self::TYPES]);
     }
 
+    /** Admin read-only preview — renders the form exactly as employees see it, works on drafts. */
+    public function preview(CompanyForm $companyForm)
+    {
+        $companyForm->load('fields');
+
+        return view('company-forms.preview', ['form' => $companyForm]);
+    }
+
     /** Update form-level details / settings / status. */
     public function update(Request $request, CompanyForm $companyForm)
     {
