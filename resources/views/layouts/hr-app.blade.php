@@ -212,12 +212,14 @@
                                                 </div>
                                             </div>
                                             <div class="flex-1 min-w-0">
-                                                <p class="text-sm font-semibold text-slate-900 dark:text-white mb-0.5">
-                                                    {{ $notification->data['title'] ?? 'Notification' }}
-                                                </p>
-                                                <p class="text-xs text-slate-600 dark:text-slate-400 leading-snug">
-                                                    {{ $notification->data['message'] ?? '' }}
-                                                </p>
+                                                <a href="{{ route('notifications.index') }}" class="block group">
+                                                    <p class="text-sm font-semibold text-slate-900 dark:text-white mb-0.5 group-hover:text-brand-600 dark:group-hover:text-brand-400 transition">
+                                                        {{ $notification->data['title'] ?? 'Notification' }}
+                                                    </p>
+                                                    <p class="text-xs text-slate-600 dark:text-slate-400 leading-snug">
+                                                        {{ $notification->data['message'] ?? '' }}
+                                                    </p>
+                                                </a>
                                                 <div class="mt-2 flex items-center justify-between">
                                                     <p class="text-[10px] font-medium text-slate-400 dark:text-slate-500">
                                                         {{ $notification->created_at->diffForHumans() }}
