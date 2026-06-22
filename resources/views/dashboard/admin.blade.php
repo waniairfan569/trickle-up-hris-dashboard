@@ -225,7 +225,7 @@
                                     
                                     <div class="flex items-center gap-4 pl-13 sm:pl-0">
                                         <div class="text-left sm:text-right">
-                                            <span class="text-sm font-extrabold text-slate-900 dark:text-white">{{ (float) $req->days_requested }} days</span>
+                                            <span class="text-sm font-extrabold text-slate-900 dark:text-white">{{ (float) $req->days_requested }} {{ \Illuminate\Support\Str::plural('day', (float) $req->days_requested) }}</span>
                                             <p class="text-[10px] text-slate-400 font-medium">
                                                 {{ $req->start_date->format('M d') }} - {{ $req->end_date->format('M d') }}
                                             </p>
