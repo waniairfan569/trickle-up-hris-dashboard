@@ -108,13 +108,25 @@
 <div class="mt-6 pt-6 border-t border-slate-850 space-y-1">
     <div class="px-3 mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">Administration</div>
     
-    <a href="{{ route('company-entities.index') }}" 
-       class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ Str::startsWith($routeName, 'company-entities') ? 'bg-brand-600 text-slate-900 shadow-md shadow-brand-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
-        <i data-lucide="building" class="h-4 w-4 shrink-0 transition {{ Str::startsWith($routeName, 'company-entities') ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>
-        <span>Company Settings</span>
-    </a>
-    
-    <a href="{{ route('departments.index') }}" 
+    @php
+        $companyChildRoutes = ['company-entities', 'company-forms', 'company-policies', 'company-documents', 'document-categories'];
+        $companyOpen = collect($companyChildRoutes)->contains(fn ($r) => Str::startsWith($routeName, $r));
+    @endphp
+    <div x-data="{ open: {{ $companyOpen ? 'true' : 'false' }} }">
+        <button type="button" @click="open = !open"
+           class="w-full flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ $companyOpen ? 'text-white bg-slate-800' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
+            <span class="flex items-center gap-x-3"><i data-lucide="building" class="h-4 w-4 shrink-0 transition {{ $companyOpen ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i> Company Settings</span>
+            <i data-lucide="chevron-down" class="h-4 w-4 shrink-0 transition-transform" :class="open ? 'rotate-180' : ''"></i>
+        </button>
+        <div x-show="open" x-cloak class="mt-1 ml-4 pl-3 border-l border-slate-800 space-y-1">
+            <a href="{{ route('company-entities.index') }}" class="block rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'company-entities') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">General</a>
+            <a href="{{ route('company-forms.index') }}" class="block rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'company-forms') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">Company Forms</a>
+            <a href="{{ route('company-policies.index') }}" class="block rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'company-policies') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">Company Policies</a>
+            <a href="{{ route('company-documents.admin') }}" class="block rounded-lg px-3 py-2 text-sm font-semibold transition {{ (Str::startsWith($routeName, 'company-documents') || Str::startsWith($routeName, 'document-categories')) ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">Company Documents</a>
+        </div>
+    </div>
+
+    <a href="{{ route('departments.index') }}"
        class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ Str::startsWith($routeName, 'departments') ? 'bg-brand-600 text-slate-900 shadow-md shadow-brand-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
         <i data-lucide="building-2" class="h-4 w-4 shrink-0 transition {{ Str::startsWith($routeName, 'departments') ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>
         <span>Departments</span>
@@ -156,25 +168,7 @@
         <span>Attendance Reports</span>
     </a>
 
-    <a href="{{ route('company-forms.index') }}"
-       class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ Str::startsWith($routeName, 'company-forms') ? 'bg-brand-600 text-slate-900 shadow-md shadow-brand-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
-        <i data-lucide="clipboard-pen" class="h-4 w-4 shrink-0 transition {{ Str::startsWith($routeName, 'company-forms') ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>
-        <span>Company Forms</span>
-    </a>
-
-    <a href="{{ route('company-policies.index') }}"
-       class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ Str::startsWith($routeName, 'company-policies') ? 'bg-brand-600 text-slate-900 shadow-md shadow-brand-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
-        <i data-lucide="book-text" class="h-4 w-4 shrink-0 transition {{ Str::startsWith($routeName, 'company-policies') ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>
-        <span>Company Policies</span>
-    </a>
-
-    <a href="{{ route('company-documents.admin') }}"
-       class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ (Str::startsWith($routeName, 'company-documents') || Str::startsWith($routeName, 'document-categories')) ? 'bg-brand-600 text-slate-900 shadow-md shadow-brand-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
-        <i data-lucide="folders" class="h-4 w-4 shrink-0 transition {{ (Str::startsWith($routeName, 'company-documents') || Str::startsWith($routeName, 'document-categories')) ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>
-        <span>Company Documents</span>
-    </a>
-
-    <a href="{{ route('shifts.index') }}" 
+    <a href="{{ route('shifts.index') }}"
        class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ Str::startsWith($routeName, 'shifts.index') ? 'bg-brand-600 text-slate-900 shadow-md shadow-brand-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
         <i data-lucide="clock-4" class="h-4 w-4 shrink-0 transition {{ Str::startsWith($routeName, 'shifts.index') ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>
         <span>Shift Management</span>
