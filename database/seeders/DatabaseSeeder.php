@@ -28,6 +28,9 @@ class DatabaseSeeder extends Seeder
             WorkableEmergencyTemplateSeeder::class,
             // Assign every section to its profile tab (run last — after all sections exist).
             ProfileSectionTabSeeder::class,
+
+            // Document library categories.
+            DocumentCategorySeeder::class,
         ]);
     }
 }
