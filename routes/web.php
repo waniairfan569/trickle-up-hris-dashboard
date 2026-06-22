@@ -192,6 +192,12 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
     Route::post('my-forms/{companyForm}/submit', [\App\Http\Controllers\FormSubmissionController::class, 'submit'])->name('forms.submit');
     Route::get('form-responses/{response}/download', [\App\Http\Controllers\FormSubmissionController::class, 'downloadFile'])->name('forms.response.download');
 
+    // Company Policies — employee side (view, download, acknowledge / e-sign)
+    Route::get('my-policies', [\App\Http\Controllers\PolicyAcknowledgmentController::class, 'myPolicies'])->name('my-policies.index');
+    Route::get('policies/{companyPolicy}', [\App\Http\Controllers\PolicyAcknowledgmentController::class, 'view'])->name('policies.view');
+    Route::post('policies/{companyPolicy}/acknowledge', [\App\Http\Controllers\PolicyAcknowledgmentController::class, 'acknowledge'])->name('policies.acknowledge');
+    Route::get('policies/{companyPolicy}/download', [\App\Http\Controllers\CompanyPolicyController::class, 'download'])->name('policies.download');
+
     // Documents for signature — inbox + signing flow (any participant)
     Route::get('documents', [\App\Http\Controllers\DocumentRequestController::class, 'index'])->name('documents.index');
     Route::get('documents/{documentRequest}', [\App\Http\Controllers\DocumentRequestController::class, 'show'])->name('documents.show');
@@ -276,6 +282,19 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
         Route::get('company-forms/{companyForm}/export', [\App\Http\Controllers\CompanyFormController::class, 'exportResponses'])->name('company-forms.export');
         Route::get('form-submissions/{submission}', [\App\Http\Controllers\CompanyFormController::class, 'viewSubmission'])->name('company-forms.submission');
         Route::delete('company-forms/{companyForm}', [\App\Http\Controllers\CompanyFormController::class, 'destroy'])->name('company-forms.destroy');
+
+        // Company Policies — admin (create, assign, track acknowledgments)
+        Route::get('company-policies', [\App\Http\Controllers\CompanyPolicyController::class, 'index'])->name('company-policies.index');
+        Route::get('company-policies/create', [\App\Http\Controllers\CompanyPolicyController::class, 'create'])->name('company-policies.create');
+        Route::post('company-policies', [\App\Http\Controllers\CompanyPolicyController::class, 'store'])->name('company-policies.store');
+        Route::get('company-policies/{companyPolicy}/edit', [\App\Http\Controllers\CompanyPolicyController::class, 'edit'])->name('company-policies.edit');
+        Route::put('company-policies/{companyPolicy}', [\App\Http\Controllers\CompanyPolicyController::class, 'update'])->name('company-policies.update');
+        Route::get('company-policies/{companyPolicy}', [\App\Http\Controllers\CompanyPolicyController::class, 'show'])->name('company-policies.show');
+        Route::post('company-policies/{companyPolicy}/assign', [\App\Http\Controllers\CompanyPolicyController::class, 'assign'])->name('company-policies.assign');
+        Route::get('company-policies/{companyPolicy}/acknowledgments', [\App\Http\Controllers\CompanyPolicyController::class, 'acknowledgments'])->name('company-policies.acknowledgments');
+        Route::get('company-policies/{companyPolicy}/export', [\App\Http\Controllers\CompanyPolicyController::class, 'export'])->name('company-policies.export');
+        Route::post('policy-acknowledgments/{acknowledgment}/remind', [\App\Http\Controllers\CompanyPolicyController::class, 'sendReminder'])->name('company-policies.remind');
+        Route::delete('company-policies/{companyPolicy}', [\App\Http\Controllers\CompanyPolicyController::class, 'destroy'])->name('company-policies.destroy');
 
         // Automated daily attendance report — settings, manual send, preview
         Route::prefix('attendance-reports')->name('attendance-reports.')->group(function () {
