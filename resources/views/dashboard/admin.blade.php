@@ -30,34 +30,40 @@
         ->get();
 
     // Live Activity Logs or premium fallbacks
-    $activities = \App\Models\ActivityLog::with('user')
-        ->latest()
-        ->take(5)
-        ->get();
-        
-    if ($activities->isEmpty()) {
-        // Safe, highly realistic fallbacks if logs are unpopulated
-        $activities = collect([
-            (object)[
-                'action' => 'User Created',
-                'description' => 'Super Admin registered employee Sarah Jenkins',
-                'created_at' => now()->subMinutes(12),
-                'user' => (object)['full_name' => 'System']
-            ],
-            (object)[
-                'action' => 'Leave Approved',
-                'description' => 'HR Admin approved Sick Leave for Marcus Vance',
-                'created_at' => now()->subHours(2),
-                'user' => (object)['full_name' => 'HR Admin']
-            ],
-            (object)[
-                'action' => 'Policy Updated',
-                'description' => 'Super Admin modified annual allowance to 20 days',
-                'created_at' => now()->subDays(1),
-                'user' => (object)['full_name' => 'System']
-            ]
+    // Build "Recent System Activity" from real records (newest first).
+    $activities = collect();
+
+    foreach (\App\Models\User::with('invitedBy')->latest('created_at')->take(6)->get() as $u) {
+        $activities->push((object) [
+            'action' => 'User Created',
+            'description' => (trim($u->first_name . ' ' . $u->last_name) ?: 'An employee') . ' was added to the directory',
+            'user' => (object) ['full_name' => optional($u->invitedBy)->full_name ?? 'System'],
+            'created_at' => $u->created_at,
         ]);
     }
+
+    foreach (\App\Models\TimeOffRequest::whereIn('status', ['approved', 'rejected'])->with(['employee', 'policy'])->latest('updated_at')->take(6)->get() as $r) {
+        $approved = $r->status === 'approved';
+        $activities->push((object) [
+            'action' => $approved ? 'Leave Approved' : 'Leave Rejected',
+            'description' => ($r->policy->name ?? 'Leave') . ' for ' . ($r->employee->full_name ?? 'an employee') . ($approved ? ' was approved' : ' was rejected'),
+            'user' => (object) ['full_name' => 'HR'],
+            'created_at' => $r->updated_at ?? $r->created_at,
+        ]);
+    }
+
+    if (class_exists(\App\Models\Event::class)) {
+        foreach (\App\Models\Event::with('creator')->latest('created_at')->take(3)->get() as $e) {
+            $activities->push((object) [
+                'action' => 'Event Added',
+                'description' => 'Event “' . $e->title . '” was created',
+                'user' => (object) ['full_name' => optional($e->creator)->full_name ?? 'System'],
+                'created_at' => $e->created_at,
+            ]);
+        }
+    }
+
+    $activities = $activities->filter(fn ($a) => $a->created_at)->sortByDesc('created_at')->take(6)->values();
 @endphp
 
 <div class="space-y-8">
@@ -308,12 +314,16 @@
                                         $iconColor = match(strtolower($act->action)) {
                                             'user created' => 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400',
                                             'leave approved' => 'bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400',
+                                            'leave rejected' => 'bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400',
+                                            'event added' => 'bg-sky-50 text-sky-600 dark:bg-sky-500/10 dark:text-sky-400',
                                             'policy updated' => 'bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400',
                                             default => 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-450'
                                         };
                                         $icon = match(strtolower($act->action)) {
                                             'user created' => 'user-check',
-                                            'leave approved' => 'check-circle2',
+                                            'leave approved' => 'check-circle-2',
+                                            'leave rejected' => 'x-circle',
+                                            'event added' => 'calendar-heart',
                                             'policy updated' => 'shield-alert',
                                             default => 'info'
                                         };
