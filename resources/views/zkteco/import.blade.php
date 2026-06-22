@@ -45,7 +45,7 @@
 
     <div class="bg-white rounded-lg shadow mb-8">
         <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
-            <h3 class="text-lg font-medium text-gray-900">Upload Attendance Log (.xlsx, .xls)</h3>
+            <h3 class="text-lg font-medium text-gray-900">Upload Attendance Log (.xlsx, .xls, .csv)</h3>
         </div>
         <div class="p-6">
             <form action="{{ route('zkteco.import.store') }}" method="POST" enctype="multipart/form-data">
@@ -53,7 +53,7 @@
                 <div class="flex items-center space-x-6">
                     <div class="flex-grow">
                         <label class="block text-sm font-medium text-gray-700 mb-2">Excel File</label>
-                        <input type="file" name="import_file" accept=".xlsx,.xls" required class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 border border-gray-300 rounded-md p-2">
+                        <input type="file" name="import_file" accept=".xlsx,.xls,.csv,.txt" required class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 border border-gray-300 rounded-md p-2">
                     </div>
                     <div class="pt-7">
                         <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md shadow-sm text-sm font-medium hover:bg-blue-700">Import Records</button>

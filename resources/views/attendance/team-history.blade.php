@@ -48,10 +48,10 @@
     <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         <div class="px-6 py-4 border-b border-slate-200 flex justify-between items-center">
             <h3 class="font-bold text-slate-800">History Records</h3>
-            @if(auth()->user()->isAdmin())
-            <button class="flex items-center text-sm font-semibold text-brand-600 bg-brand-50 hover:bg-brand-100 px-3 py-1.5 rounded-lg transition">
+            @if(auth()->user()->isAdmin() || auth()->user()->isManager())
+            <a href="{{ route('attendance.team.export', request()->query()) }}" class="flex items-center text-sm font-semibold text-brand-600 bg-brand-50 hover:bg-brand-100 px-3 py-1.5 rounded-lg transition">
                 <i data-lucide="download" class="w-4 h-4 mr-1.5"></i> Export CSV
-            </button>
+            </a>
             @endif
         </div>
         

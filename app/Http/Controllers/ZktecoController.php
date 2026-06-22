@@ -92,7 +92,7 @@ class ZktecoController extends Controller
     public function import(Request $request, ExcelImportService $service)
     {
         $request->validate([
-            'import_file' => 'required|mimes:xlsx,xls|max:5120',
+            'import_file' => 'required|mimes:xlsx,xls,csv,txt|max:5120',
         ]);
 
         try {

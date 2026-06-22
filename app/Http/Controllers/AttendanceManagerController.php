@@ -111,6 +111,58 @@ class AttendanceManagerController extends Controller
         return view('attendance.team-history', compact('records', 'departments', 'teamMembers'));
     }
 
+    /** Export the (filtered) team attendance history as CSV. */
+    public function teamHistoryExport(Request $request)
+    {
+        $user = $request->user();
+        abort_unless($user && ($user->isAdmin() || $user->isManager()), 403);
+
+        $query = AttendanceRecord::with('employee.department');
+        if (!$user->isAdmin()) {
+            $query->forTeam($user);
+        }
+        if ($request->filled('date_from')) {
+            $query->whereDate('date', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('date', '<=', $request->date_to);
+        }
+        if ($request->filled('employee_id')) {
+            $query->where('user_id', $request->employee_id);
+        }
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+        if ($request->filled('department_id')) {
+            $query->whereHas('employee', fn ($q) => $q->where('department_id', $request->department_id));
+        }
+
+        $records = $query->orderBy('date', 'desc')->get();
+
+        $fmt = fn ($min) => $min ? (intdiv((int) $min, 60) . 'h ' . ((int) $min % 60) . 'm') : '0h 0m';
+
+        $callback = function () use ($records, $fmt) {
+            $out = fopen('php://output', 'w');
+            fputcsv($out, ['Date', 'Employee', 'Department', 'Clock In', 'Clock Out', 'Worked', 'Status', 'Late (min)', 'Overtime (min)']);
+            foreach ($records as $r) {
+                fputcsv($out, [
+                    optional($r->date)->format('Y-m-d'),
+                    optional($r->employee)->full_name,
+                    optional(optional($r->employee)->department)->name,
+                    optional($r->clock_in)->format('H:i'),
+                    optional($r->clock_out)->format('H:i'),
+                    $fmt($r->total_minutes_worked),
+                    $r->status,
+                    $r->late_minutes ?: 0,
+                    $r->overtime_minutes ?: 0,
+                ]);
+            }
+            fclose($out);
+        };
+
+        return response()->streamDownload($callback, 'attendance-' . now()->format('Ymd-His') . '.csv', ['Content-Type' => 'text/csv']);
+    }
+
     public function manualEntry(Request $request)
     {
         $validated = $request->validate([

@@ -289,6 +289,7 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
         Route::middleware(['role:manager,hr_admin,super_admin'])->group(function () {
             Route::get('live', [AttendanceManagerController::class, 'liveBoard'])->name('live');
             Route::get('team', [AttendanceManagerController::class, 'teamHistory'])->name('team');
+            Route::get('team/export', [AttendanceManagerController::class, 'teamHistoryExport'])->name('team.export');
             Route::get('corrections', [AttendanceManagerController::class, 'pendingCorrections'])->name('corrections');
             Route::post('corrections/{correction}/approve', [AttendanceManagerController::class, 'approveCorrection'])->name('corrections.approve');
             Route::post('corrections/{correction}/reject', [AttendanceManagerController::class, 'rejectCorrection'])->name('corrections.reject');
