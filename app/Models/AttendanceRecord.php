@@ -52,6 +52,18 @@ class AttendanceRecord extends Model
         return $this->belongsTo(User::class, 'user_id');
     }
 
+    /** Clock-in formatted in the record owner's effective timezone (e.g. "09:03 AM"). */
+    public function getClockInLocalAttribute(): ?string
+    {
+        return $this->clock_in ? app(\App\Services\TimezoneService::class)->formatForUser($this->clock_in, $this->employee, 'h:i A') : null;
+    }
+
+    /** Clock-out formatted in the record owner's effective timezone. */
+    public function getClockOutLocalAttribute(): ?string
+    {
+        return $this->clock_out ? app(\App\Services\TimezoneService::class)->formatForUser($this->clock_out, $this->employee, 'h:i A') : null;
+    }
+
     public function breaks()
     {
         return $this->hasMany(BreakRecord::class);

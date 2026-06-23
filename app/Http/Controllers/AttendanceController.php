@@ -134,6 +134,7 @@ class AttendanceController extends Controller
         $date = Carbon::createFromDate($year, $month, 1);
 
         $records = AttendanceRecord::forUser($user)
+            ->with('employee')
             ->whereMonth('date', $month)
             ->whereYear('date', $year)
             ->orderBy('date', 'desc')

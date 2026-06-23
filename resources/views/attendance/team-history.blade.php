@@ -79,10 +79,10 @@
                                 <span class="font-medium text-slate-700">{{ $record->date->format('M d, Y') }}</span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap font-mono text-slate-700">
-                                {{ $record->clock_in ? $record->clock_in->format('h:i A') : '--:--' }}
+                                {{ $record->clock_in_local ?? '--:--' }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap font-mono text-slate-700">
-                                {{ $record->clock_out ? $record->clock_out->format('h:i A') : '--:--' }}
+                                {{ $record->clock_out_local ?? '--:--' }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap font-medium text-slate-800">
                                 {{ $record->hours_worked ?? '-' }}

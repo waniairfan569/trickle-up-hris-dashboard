@@ -41,10 +41,11 @@
                                 <span class="font-medium text-slate-700">{{ $c->correction_date->format('M d, Y') }}</span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-center">
+                                @php $tzSvc = app(\App\Services\TimezoneService::class); @endphp
                                 <div class="inline-flex items-center space-x-2 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200">
-                                    <span class="font-mono text-brand-700 font-semibold">{{ $c->requested_clock_in ? $c->requested_clock_in->format('h:i A') : '--:--' }}</span>
+                                    <span class="font-mono text-brand-700 font-semibold">{{ $c->requested_clock_in ? $tzSvc->formatForUser($c->requested_clock_in, $c->employee, 'h:i A') : '--:--' }}</span>
                                     <i data-lucide="arrow-right" class="w-4 h-4 text-slate-400"></i>
-                                    <span class="font-mono text-brand-700 font-semibold">{{ $c->requested_clock_out ? $c->requested_clock_out->format('h:i A') : '--:--' }}</span>
+                                    <span class="font-mono text-brand-700 font-semibold">{{ $c->requested_clock_out ? $tzSvc->formatForUser($c->requested_clock_out, $c->employee, 'h:i A') : '--:--' }}</span>
                                 </div>
                             </td>
                             <td class="px-6 py-4">

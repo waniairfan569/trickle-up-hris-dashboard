@@ -119,10 +119,10 @@
                                 <div class="text-xs text-slate-400">{{ $record->date->format('l') }}</div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap font-mono text-slate-700">
-                                {{ $record->clock_in ? $record->clock_in->format('h:i A') : '--:--' }}
+                                {{ $record->clock_in_local ?? '--:--' }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap font-mono text-slate-700">
-                                {{ $record->clock_out ? $record->clock_out->format('h:i A') : '--:--' }}
+                                {{ $record->clock_out_local ?? '--:--' }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap font-medium text-slate-800">
                                 {{ $record->hours_worked ?? '-' }}
@@ -134,7 +134,8 @@
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-right">
                                 @if(in_array($record->status, ['absent', 'missing_clock_out', 'late', 'early_departure']))
-                                    <button onclick="openCorrectionModal('{{ $record->date->format('Y-m-d') }}', '{{ $record->clock_in ? $record->clock_in->format('H:i') : '' }}', '{{ $record->clock_out ? $record->clock_out->format('H:i') : '' }}')" class="text-brand-600 hover:text-brand-800 font-medium text-sm transition">
+                                    @php $tzSvc = app(\App\Services\TimezoneService::class); @endphp
+                                    <button onclick="openCorrectionModal('{{ $record->date->format('Y-m-d') }}', '{{ $record->clock_in ? $tzSvc->formatForUser($record->clock_in, auth()->user(), 'H:i') : '' }}', '{{ $record->clock_out ? $tzSvc->formatForUser($record->clock_out, auth()->user(), 'H:i') : '' }}')" class="text-brand-600 hover:text-brand-800 font-medium text-sm transition">
                                         Submit Correction
                                     </button>
                                 @endif
