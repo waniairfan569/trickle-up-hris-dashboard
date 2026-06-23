@@ -268,13 +268,13 @@
                     
                     <div class="flex items-center gap-3">
                         @if(!$status['clock_in'] || $status['clock_out'])
-                            <button id="btn-clock-in" onclick="attendanceAction('clock-in')" class="bg-brand-600 hover:bg-brand-700 disabled:bg-slate-400 disabled:cursor-not-allowed text-slate-900 text-sm font-bold py-2.5 px-6 rounded-lg inline-flex items-center justify-center gap-2 whitespace-nowrap shrink-0 transition">
-                                <span class="w-2 h-2 bg-slate-900 rounded-sm"></span>
+                            <button id="btn-clock-in" onclick="attendanceAction('clock-in')" class="bg-green-700 hover:bg-green-800 disabled:bg-slate-400 disabled:cursor-not-allowed text-white text-sm font-bold py-3 px-6 rounded-xl inline-flex items-center justify-center gap-2 whitespace-nowrap shrink-0 transition">
+                                <i data-lucide="play" class="h-4 w-4 fill-current"></i>
                                 Clock in
                             </button>
                         @elseif($status['clock_in'] && !$status['clock_out'] && !$status['is_on_break'])
-                            <button id="btn-clock-out" onclick="attendanceAction('clock-out')" class="bg-slate-800 hover:bg-slate-900 disabled:bg-slate-400 disabled:cursor-not-allowed text-white text-sm font-bold py-2.5 px-6 rounded-lg inline-flex items-center justify-center gap-2 whitespace-nowrap shrink-0 transition">
-                                <span class="w-2 h-2 bg-white rounded-sm"></span>
+                            <button id="btn-clock-out" onclick="attendanceAction('clock-out')" class="bg-slate-800 hover:bg-slate-900 disabled:bg-slate-400 disabled:cursor-not-allowed text-white text-sm font-bold py-3 px-6 rounded-xl inline-flex items-center justify-center gap-2 whitespace-nowrap shrink-0 transition">
+                                <i data-lucide="square" class="h-3.5 w-3.5 fill-current"></i>
                                 Clock out
                             </button>
                         @endif
