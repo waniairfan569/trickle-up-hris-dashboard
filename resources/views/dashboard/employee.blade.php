@@ -246,26 +246,15 @@
         <div class="space-y-6">
             
             <!-- Time Tracking (Simple Header Version) -->
+            @php
+                $status = app(\App\Services\AttendanceService::class)->getTodayStatus(auth()->user());
+                $sessions = $status['sessions'] ?? [];
+                $currentIn = count($sessions) ? end($sessions)['in'] : $status['clock_in'];
+            @endphp
             <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-6 flex flex-col dark:bg-slate-800 dark:border-slate-700">
                 <div class="flex items-center justify-between gap-3">
-                    <div class="min-w-0">
-                        <h2 class="text-base font-semibold text-slate-800 dark:text-white">Time tracking</h2>
-                        @php
-                            $status = app(\App\Services\AttendanceService::class)->getTodayStatus(auth()->user());
-                            $sessions = $status['sessions'] ?? [];
-                            $currentIn = count($sessions) ? end($sessions)['in'] : $status['clock_in'];
-                        @endphp
-                        @if($status['clock_in'] && !$status['clock_out'] && !$status['is_on_break'])
-                            <div class="text-sm font-medium text-slate-500 mt-1">
-                                Today &middot; <span id="live-worked-timer" class="font-bold text-slate-700">0h 0m</span> in total: <span class="text-brand-600 font-semibold">{{ $currentIn }} – Ongoing</span>
-                            </div>
-                        @elseif($status['clock_out'])
-                            <div class="text-sm font-medium text-slate-500 mt-1">
-                                Today &middot; <span id="completed-worked-timer" class="font-bold text-slate-700">0h 0m</span> in total: <span class="text-green-600 font-semibold">{{ $currentIn }} – Completed</span>
-                            </div>
-                        @endif
-                    </div>
-                    
+                    <h2 class="text-base font-semibold text-slate-800 dark:text-white">Time tracking</h2>
+
                     <div class="flex items-center gap-3">
                         @if(!$status['clock_in'] || $status['clock_out'])
                             <button id="btn-clock-in" onclick="attendanceAction('clock-in')" class="bg-green-700 hover:bg-green-800 disabled:bg-slate-400 disabled:cursor-not-allowed text-white text-sm font-bold py-3 px-6 rounded-xl inline-flex items-center justify-center gap-2 whitespace-nowrap shrink-0 transition">
@@ -281,6 +270,16 @@
                         <i data-lucide="chevron-right" class="h-4 w-4 text-slate-400"></i>
                     </div>
                 </div>
+
+                @if($status['clock_in'] && !$status['clock_out'] && !$status['is_on_break'])
+                    <div class="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700/60 text-sm font-medium text-slate-500">
+                        Today &middot; <span id="live-worked-timer" class="font-bold text-slate-700 dark:text-slate-200">0h 0m</span> in total: <span class="text-brand-600 font-semibold">{{ $currentIn }} – Ongoing</span>
+                    </div>
+                @elseif($status['clock_out'])
+                    <div class="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700/60 text-sm font-medium text-slate-500">
+                        Today &middot; <span id="completed-worked-timer" class="font-bold text-slate-700 dark:text-slate-200">0h 0m</span> in total: <span class="text-green-600 font-semibold">{{ $currentIn }} – Completed</span>
+                    </div>
+                @endif
                 <div id="geofence-status" class="hidden w-full text-[10px] font-medium py-1 px-2 rounded mt-3"></div>
             </div>
             
