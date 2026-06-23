@@ -10,7 +10,7 @@
     </div>
 
     @if($activeAssignment)
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col relative max-w-lg mx-auto">
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col relative max-w-lg">
         <div class="absolute left-0 top-0 bottom-0 w-2" style="background-color: {{ $activeAssignment->shift->color }}"></div>
         
         <div class="p-6 pl-8 flex-grow">

@@ -56,7 +56,32 @@
     
     <style>
         [x-cloak] { display: none !important; }
-        
+
+        /* Default form-control styling — the Play CDN ships without @tailwindcss/forms,
+           so text inputs/textareas/selects would otherwise have no border or padding.
+           Wrapped in :where() for ZERO specificity, so any explicit border-*/px-*/py-*
+           utility on a field still wins (same approach as @tailwindcss/forms base). */
+        :where(input:not([type=checkbox]):not([type=radio]):not([type=file]):not([type=range]):not([type=color]):not([type=submit]):not([type=button]):not([type=hidden])),
+        :where(textarea),
+        :where(select) {
+            border-width: 1px;
+            border-style: solid;
+            border-color: #cbd5e1; /* slate-300 */
+            border-radius: 0.75rem;
+            padding: 0.625rem 0.875rem;
+            font-size: 0.875rem;
+            line-height: 1.5;
+            background-color: #ffffff;
+            color: #0f172a;
+        }
+        .dark :where(input:not([type=checkbox]):not([type=radio]):not([type=file]):not([type=range]):not([type=color]):not([type=submit]):not([type=button]):not([type=hidden])),
+        .dark :where(textarea),
+        .dark :where(select) {
+            background-color: #1a1a24; /* slate-900 */
+            border-color: #334155;     /* slate-700 */
+            color: #ffffff;
+        }
+
         /* Premium custom scrollbar styling */
         ::-webkit-scrollbar {
             width: 6px;
