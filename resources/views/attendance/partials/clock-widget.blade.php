@@ -10,7 +10,12 @@
         <div class="flex items-baseline gap-2 min-w-0">
             <span class="text-2xl font-black text-brand-600 tracking-tight" id="live-time"></span>
             <span class="text-sm font-semibold text-slate-500 dark:text-slate-300 truncate" id="live-date"></span>
-            <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider hidden md:inline">{{ $userTimezone ?? config('app.timezone') }}<span id="live-tz-abbr">{{ isset($userTimezoneAbbr) ? ' · '.$userTimezoneAbbr : '' }}</span></span>
+            @php
+                $tzRaw = $userTimezone ?? config('app.timezone');
+                $tzLabel = ['Asia/Karachi' => 'Islamabad'][$tzRaw]
+                    ?? \Illuminate\Support\Str::of($tzRaw)->afterLast('/')->replace('_', ' ');
+            @endphp
+            <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider hidden md:inline">{{ $tzLabel }}<span id="live-tz-abbr">{{ isset($userTimezoneAbbr) ? ' · '.$userTimezoneAbbr : '' }}</span></span>
         </div>
 
         <!-- Status + action -->
@@ -202,17 +207,13 @@
         });
 
     function attendanceAction(action) {
-        if (!confirm(`Are you sure you want to ${action.replace('-', ' ')}?`)) return;
-        
         let payload = {
             _token: '{{ csrf_token() }}'
         };
 
-        if (geofenceData && geofenceData.geofence_enabled && (action === 'clock-in' || action === 'clock-out')) {
-            if (currentLat === null || currentLng === null) {
-                alert("Location is required to clock in/out. Please allow location access.");
-                return;
-            }
+        // Send location when we have it (recorded server-side), but never block
+        // clocking in/out on it — just clock the action through.
+        if ((action === 'clock-in' || action === 'clock-out') && currentLat !== null && currentLng !== null) {
             payload.lat = currentLat;
             payload.lng = currentLng;
         }
