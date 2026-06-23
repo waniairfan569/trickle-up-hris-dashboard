@@ -58,6 +58,54 @@ class AttendanceRecord extends Model
         return $this->clock_in ? app(\App\Services\TimezoneService::class)->formatForUser($this->clock_in, $this->employee, 'h:i A') : null;
     }
 
+    /**
+     * The day's clock-in / clock-out sessions in order. Re-clocking in after a
+     * clock-out stores the out-period as an 'other' break, so each such gap
+     * splits the day into separate sessions. Sub-1-minute sessions (rapid
+     * re-clicks) are filtered out as noise.
+     *
+     * @return array<int, array{in: ?string, out: ?string}>
+     */
+    public function sessionSequence(): array
+    {
+        if (!$this->clock_in) {
+            return [];
+        }
+
+        $tz = app(\App\Services\TimezoneService::class);
+        $user = $this->employee;
+
+        $gaps = $this->breaks()
+            ->where('break_type', 'other')
+            ->whereNotNull('break_end')
+            ->orderBy('break_start')
+            ->get();
+
+        $pairs = [];
+        $currentIn = $this->clock_in;
+        foreach ($gaps as $gap) {
+            $pairs[] = [$currentIn, $gap->break_start];
+            $currentIn = $gap->break_end;
+        }
+        if ($currentIn) {
+            $pairs[] = [$currentIn, $this->clock_out];
+        }
+
+        $sessions = [];
+        foreach ($pairs as [$in, $out]) {
+            // Skip completed sessions shorter than a minute (rapid re-clicks).
+            if ($in && $out && $in->diffInSeconds($out) < 60) {
+                continue;
+            }
+            $sessions[] = [
+                'in' => $in ? $tz->formatForUser($in, $user, 'h:i A') : null,
+                'out' => $out ? $tz->formatForUser($out, $user, 'h:i A') : null,
+            ];
+        }
+
+        return $sessions;
+    }
+
     /** Clock-out formatted in the record owner's effective timezone. */
     public function getClockOutLocalAttribute(): ?string
     {

@@ -118,8 +118,12 @@
                                 <span class="font-medium text-slate-800">{{ $record->date->format('M d, Y') }}</span>
                                 <div class="text-xs text-slate-400">{{ $record->date->format('l') }}</div>
                             </td>
+                            @php $sessions = $record->sessionSequence(); @endphp
                             <td class="px-6 py-4 whitespace-nowrap font-mono text-slate-700">
                                 {{ $record->clock_in_local ?? '--:--' }}
+                                @if(count($sessions) > 1)
+                                    <div class="text-[10px] text-slate-400 font-sans mt-0.5">{{ collect($sessions)->map(fn ($s) => $s['in'] . '–' . ($s['out'] ?? 'now'))->implode(' · ') }}</div>
+                                @endif
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap font-mono text-slate-700">
                                 {{ $record->clock_out_local ?? '--:--' }}
