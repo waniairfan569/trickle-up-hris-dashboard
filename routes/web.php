@@ -62,6 +62,14 @@ Route::post('/logout', function (\Illuminate\Http\Request $request) {
     return redirect('/');
 })->name('logout');
 
+// Forgot / reset password (self-service — works for any account, employee or admin)
+Route::middleware('guest')->group(function () {
+    Route::get('/forgot-password', [\App\Http\Controllers\Auth\PasswordResetController::class, 'showRequestForm'])->name('password.request');
+    Route::post('/forgot-password', [\App\Http\Controllers\Auth\PasswordResetController::class, 'sendResetLink'])->name('password.email');
+    Route::get('/reset-password/{token}', [\App\Http\Controllers\Auth\PasswordResetController::class, 'showResetForm'])->name('password.reset');
+    Route::post('/reset-password', [\App\Http\Controllers\Auth\PasswordResetController::class, 'reset'])->name('password.store');
+});
+
 // Guest Invitation Routes
 Route::middleware('guest')->group(function () {
     Route::get('invitation/{token}', [\App\Http\Controllers\InvitationController::class, 'showAcceptForm'])->name('invitation.accept');

@@ -114,7 +114,10 @@
 
                 <!-- Password Input -->
                 <div class="space-y-1.5">
-                    <label for="password" class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Password</label>
+                    <div class="flex items-center justify-between">
+                        <label for="password" class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Password</label>
+                        <a href="{{ route('password.request') }}" class="text-[10px] font-bold text-brand-500 hover:text-brand-400 uppercase tracking-wider transition">Forgot password?</a>
+                    </div>
                     <div class="relative rounded-xl shadow-sm">
                         <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
                             <i data-lucide="key-round" class="h-4.5 w-4.5"></i>
