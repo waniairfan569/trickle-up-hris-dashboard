@@ -391,8 +391,14 @@
                             const clockOutBtn = document.getElementById('btn-clock-out');
                             if (clockInBtn) clockInBtn.disabled = false;
                             if (clockOutBtn) clockOutBtn.disabled = false;
-                        } else {
+                        } else if (!isClockedIn) {
+                            // Check location once for clock-in; not again until clock-out.
                             checkLocation();
+                        } else {
+                            // Already clocked in — don't re-check location.
+                            document.getElementById('geofence-status').classList.add('hidden');
+                            const clockOutBtn = document.getElementById('btn-clock-out');
+                            if (clockOutBtn) clockOutBtn.disabled = false;
                         }
                     })
                     .catch(err => {
@@ -401,15 +407,11 @@
                     });
 
                 function attendanceAction(action) {
-                    if (!confirm(`Are you sure you want to ${action.replace('-', ' ')}?`)) return;
-                    
                     let payload = { _token: '{{ csrf_token() }}' };
 
-                    if (geofenceData && geofenceData.geofence_enabled && (action === 'clock-in' || action === 'clock-out')) {
-                        if (currentLat === null || currentLng === null) {
-                            alert("Location is required to clock in/out. Please allow location access.");
-                            return;
-                        }
+                    // Send location when we have it (recorded server-side), but never
+                    // block the action on it — just clock straight through.
+                    if ((action === 'clock-in' || action === 'clock-out') && currentLat !== null && currentLng !== null) {
                         payload.lat = currentLat;
                         payload.lng = currentLng;
                     }

@@ -196,9 +196,14 @@
                 const clockOutBtn = document.getElementById('btn-clock-out');
                 if (clockInBtn) clockInBtn.disabled = false;
                 if (clockOutBtn) clockOutBtn.disabled = false;
-            } else {
+            } else if (!isClockedIn) {
+                // Check location once for clock-in; no repeated polling.
                 checkLocation();
-                setInterval(checkLocation, 30000); // Re-check every 30s
+            } else {
+                // Already clocked in — location was verified at clock-in, don't re-check until clock-out.
+                document.getElementById('geofence-status').classList.add('hidden');
+                const clockOutBtn = document.getElementById('btn-clock-out');
+                if (clockOutBtn) clockOutBtn.disabled = false;
             }
         })
         .catch(err => {
