@@ -274,7 +274,47 @@ class AttendanceService
             'total_break_minutes' => floor($totalBreakSecs / 60),
             'late_minutes' => $record->late_minutes,
             'overtime_minutes' => $record->overtime_minutes,
+            'sessions' => $this->buildSessions($record, $user, $tz),
         ];
+    }
+
+    /**
+     * Reconstruct the day's clock-in / clock-out sessions in order.
+     * Re-clocking in after a clock-out stores the out-period as an 'other'
+     * break, so each such break splits the day into separate sessions.
+     * Returns e.g. [['in' => '08:35 AM', 'out' => '05:00 PM'], ['in' => '06:00 PM', 'out' => null]].
+     */
+    private function buildSessions(AttendanceRecord $record, ?User $user, \App\Services\TimezoneService $tz): array
+    {
+        if (!$record->clock_in) {
+            return [];
+        }
+
+        $gaps = BreakRecord::where('attendance_record_id', $record->id)
+            ->where('break_type', 'other')
+            ->whereNotNull('break_end')
+            ->orderBy('break_start')
+            ->get();
+
+        $sessions = [];
+        $currentIn = $record->clock_in;
+
+        foreach ($gaps as $gap) {
+            $sessions[] = [
+                'in' => $tz->formatForUser($currentIn, $user, 'h:i A'),
+                'out' => $gap->break_start ? $tz->formatForUser($gap->break_start, $user, 'h:i A') : null,
+            ];
+            $currentIn = $gap->break_end; // the re-clock-in time
+        }
+
+        if ($currentIn) {
+            $sessions[] = [
+                'in' => $tz->formatForUser($currentIn, $user, 'h:i A'),
+                'out' => $record->clock_out ? $tz->formatForUser($record->clock_out, $user, 'h:i A') : null,
+            ];
+        }
+
+        return $sessions;
     }
 
     public function generateDailyRecords(Carbon $date): void

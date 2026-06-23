@@ -2,6 +2,9 @@
     $status = app(\App\Services\AttendanceService::class)->getTodayStatus(auth()->user());
     $activeAssignment = auth()->user()->shiftAssignments()->with('shift')->where('assignment_type', 'recurring')->first();
     $expectedStart = ($activeAssignment && $activeAssignment->shift) ? \Carbon\Carbon::parse($activeAssignment->shift->start_time)->format('h:i A') : '--:--';
+    $sessions = $status['sessions'] ?? [];
+    $currentIn = count($sessions) ? end($sessions)['in'] : $status['clock_in'];
+    $sessionSeq = collect($sessions)->map(fn ($s) => $s['in'] . ' – ' . ($s['out'] ?? 'now'))->implode(' · ');
 @endphp
 
 <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 dark:bg-slate-800 dark:border-slate-700" id="clock-widget">
@@ -26,12 +29,12 @@
                     Clock In
                 </button>
             @elseif($status['clock_in'] && !$status['clock_out'])
-                <span class="text-xs text-slate-500 dark:text-slate-400">In at {{ $status['clock_in'] }} · <span class="font-bold text-slate-800 dark:text-white" id="live-worked-timer">0h 0m 0s</span></span>
+                <span class="text-xs text-slate-500 dark:text-slate-400">In at {{ $currentIn }} · <span class="font-bold text-slate-800 dark:text-white" id="live-worked-timer">0h 0m 0s</span>@if(count($sessions) > 1)<span class="block text-[10px] text-slate-400">{{ $sessionSeq }}</span>@endif</span>
                 <button id="btn-clock-out" onclick="attendanceAction('clock-out')" class="bg-slate-800 hover:bg-slate-900 text-white font-bold text-sm px-6 py-2.5 rounded-lg shadow-sm transition flex items-center justify-center">
                     <span class="w-2.5 h-2.5 bg-white mr-2"></span> Clock out
                 </button>
             @elseif($status['clock_out'])
-                <span class="text-xs text-slate-500 dark:text-slate-400">Completed · <span class="font-bold text-slate-800 dark:text-white" id="completed-worked-timer">0h 0m 0s</span></span>
+                <span class="text-xs text-slate-500 dark:text-slate-400">Completed · <span class="font-bold text-slate-800 dark:text-white" id="completed-worked-timer">0h 0m 0s</span>@if(count($sessions) > 1)<span class="block text-[10px] text-slate-400">{{ $sessionSeq }}</span>@endif</span>
                 <button id="btn-clock-in" onclick="attendanceAction('clock-in')" class="bg-brand-600 hover:bg-brand-700 text-slate-900 font-bold text-sm px-6 py-2.5 rounded-lg shadow-sm transition">
                     Clock In Again
                 </button>

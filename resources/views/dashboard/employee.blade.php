@@ -252,14 +252,17 @@
                         <h2 class="text-base font-semibold text-slate-800 dark:text-white">Time tracking</h2>
                         @php
                             $status = app(\App\Services\AttendanceService::class)->getTodayStatus(auth()->user());
+                            $sessionSeq = collect($status['sessions'] ?? [])
+                                ->map(fn ($s) => $s['in'] . ' – ' . ($s['out'] ?? 'Ongoing'))
+                                ->implode(' · ');
                         @endphp
                         @if($status['clock_in'] && !$status['clock_out'] && !$status['is_on_break'])
                             <div class="text-sm font-medium text-slate-500 mt-1">
-                                Today &middot; <span id="live-worked-timer" class="font-bold text-slate-700">0h 0m</span> in total: <span class="text-brand-600 font-semibold">{{ $status['clock_in'] }} - Ongoing</span>
+                                Today &middot; <span id="live-worked-timer" class="font-bold text-slate-700">0h 0m</span> in total: <span class="text-brand-600 font-semibold">{{ $sessionSeq ?: $status['clock_in'] . ' - Ongoing' }}</span>
                             </div>
                         @elseif($status['clock_out'])
                             <div class="text-sm font-medium text-slate-500 mt-1">
-                                Today &middot; <span id="completed-worked-timer" class="font-bold text-slate-700">0h 0m</span> in total: <span class="text-green-600 font-semibold">{{ $status['clock_in'] }} - Completed</span>
+                                Today &middot; <span id="completed-worked-timer" class="font-bold text-slate-700">0h 0m</span> in total: <span class="text-green-600 font-semibold">{{ $sessionSeq ?: $status['clock_in'] . ' - Completed' }}</span>
                             </div>
                         @endif
                     </div>
