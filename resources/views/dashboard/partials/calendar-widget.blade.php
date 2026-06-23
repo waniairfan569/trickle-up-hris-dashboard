@@ -105,7 +105,7 @@
             count(key) {
                 if (key === 'celebrations') return this.todaysCelebrations().length;
                 if (key === 'holidays') return this.todaysHolidays().length;
-                return this.events.filter(e => e.date === this.current).length;
+                return this.upcomingEvents().length;
             },
             shift(days) { const d = new Date(this.current + 'T00:00:00'); d.setDate(d.getDate() + days); const y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, '0'), da = String(d.getDate()).padStart(2, '0'); this.current = `${y}-${m}-${da}`; },
             displayDate() { return new Date(this.current + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }); },

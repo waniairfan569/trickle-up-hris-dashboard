@@ -110,6 +110,8 @@ class FormSubmissionController extends Controller
             'ip_address' => $request->ip(),
         ]);
 
+        $this->notifyAdminsOfSubmission($companyForm, $user);
+
         return redirect()->route('my-forms.index')->with('success', 'Form submitted. Thank you!');
     }
 
@@ -161,6 +163,30 @@ class FormSubmissionController extends Controller
                 ['field_id' => $field->id],
                 ['field_key' => $field->field_key, 'field_label' => $field->label, 'value' => $value]
             );
+        }
+    }
+
+    /** Notify the form creator + HR admins that a response came in. */
+    private function notifyAdminsOfSubmission(CompanyForm $form, $submitter): void
+    {
+        $recipients = User::whereHas('roles', fn ($q) => $q->whereIn('slug', ['super_admin', 'hr_admin']))
+            ->where('account_status', '!=', 'deactivated')
+            ->get();
+
+        if ($form->created_by) {
+            $creator = User::find($form->created_by);
+            if ($creator && !$recipients->contains('id', $creator->id)) {
+                $recipients->push($creator);
+            }
+        }
+
+        $name = $form->is_anonymous ? null : trim($submitter->first_name . ' ' . $submitter->last_name);
+
+        foreach ($recipients->where('id', '!=', $submitter->id) as $recipient) {
+            try {
+                $recipient->notify(new \App\Notifications\FormSubmitted($form, $name));
+            } catch (\Throwable $e) {
+            }
         }
     }
 
