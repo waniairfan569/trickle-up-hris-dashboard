@@ -136,7 +136,12 @@
                             const boxW = f.w * pw, boxH = (f.h || 0.05) * ph;
                             const scale = Math.min(boxW / png.width, boxH / png.height);
                             const w = png.width * scale, h = png.height * scale;
-                            page.drawImage(png, { x: f.x * pw, y: ph - f.y * ph - h, width: w, height: h });
+                            const topY = ph - f.y * ph;
+                            page.drawImage(png, { x: f.x * pw, y: topY - h, width: w, height: h });
+                            if (f.name) {
+                                const ns = Math.max(6, Math.min(9, boxH * 0.32));
+                                page.drawText(String(f.name), { x: f.x * pw, y: topY - h - ns - 1, size: ns, font, color: rgb(0.45, 0.45, 0.5) });
+                            }
                             continue;
                         }
                         if (!f.value) continue;

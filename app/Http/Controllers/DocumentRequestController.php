@@ -148,11 +148,13 @@ class DocumentRequestController extends Controller
         $signer = $documentRequest->currentSigner();
         $documentRequest->logEvent('viewed', $user, null, $request->ip());
 
-        // Signature/initials boxes for this signer's party.
+        // Signature/initials boxes for this signer. With a single signer, show every
+        // box (they sign the whole document); with multiple, match by party.
+        $signerCount = $documentRequest->signers()->count();
         $myParty = $this->partyOf($signer->source_role);
         $myBoxes = $documentRequest->template->fields
             ->filter(fn ($f) => $f->page && in_array($f->field_type, ['signature', 'initials'], true)
-                && $this->partyOf($f->assignee) === $myParty)
+                && ($signerCount <= 1 || $this->partyOf($f->assignee) === $myParty))
             ->values();
 
         return view('documents.sign', compact('documentRequest', 'signer', 'myBoxes'));
@@ -228,26 +230,38 @@ class DocumentRequestController extends Controller
     public function signedData(DocumentRequest $documentRequest)
     {
         $this->authorizeView($documentRequest);
-        $documentRequest->load(['template.fields', 'subject', 'signers']);
+        $documentRequest->load(['template.fields', 'subject', 'signers.user']);
         $subject = $documentRequest->subject;
 
-        // Latest signature image per party (employee / sender_party / line_manager).
+        // Latest signature image + signer name per party (employee / sender_party / line_manager).
         $sigByParty = [];
+        $nameByParty = [];
         foreach ($documentRequest->signers as $s) {
             if ($s->signature_image) {
-                $sigByParty[$this->partyOf($s->source_role)] = $s->signature_image;
+                $party = $this->partyOf($s->source_role);
+                $sigByParty[$party] = $s->signature_image;
+                $nameByParty[$party] = optional($s->user)->full_name;
             }
         }
 
+        // Single-signer fallback: one person signs the whole document, so their
+        // signature/name fills every signature box regardless of assignee.
+        $signed = $documentRequest->signers->filter(fn ($s) => $s->signature_image)->values();
+        $fallbackSig = $signed->count() === 1 ? $signed[0]->signature_image : null;
+        $fallbackName = $signed->count() === 1 ? optional($signed[0]->user)->full_name : null;
+
         $fields = $documentRequest->template->fields
             ->filter(fn ($f) => $f->page)
-            ->map(function ($f) use ($subject, $sigByParty) {
+            ->map(function ($f) use ($subject, $sigByParty, $nameByParty, $fallbackSig, $fallbackName) {
                 $value = '';
                 $image = null;
+                $name = null;
                 if ($f->field_type === 'text' && $f->field_key) {
                     $value = (string) ($subject->getFieldValue($f->field_key) ?? '');
                 } elseif (in_array($f->field_type, ['signature', 'initials'], true)) {
-                    $image = $sigByParty[$this->partyOf($f->assignee)] ?? null;
+                    $party = $this->partyOf($f->assignee);
+                    $image = $sigByParty[$party] ?? $fallbackSig;
+                    $name = $nameByParty[$party] ?? $fallbackName;
                 }
 
                 return [
@@ -255,6 +269,7 @@ class DocumentRequestController extends Controller
                     'type' => $f->field_type,
                     'value' => $value,
                     'image' => $image,
+                    'name' => $name,
                     'page' => (int) $f->page,
                     'x' => (float) $f->pos_x,
                     'y' => (float) $f->pos_y,
