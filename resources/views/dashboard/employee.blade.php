@@ -255,11 +255,11 @@
                         @endphp
                         @if($status['clock_in'] && !$status['clock_out'] && !$status['is_on_break'])
                             <div class="text-sm font-medium text-slate-500 mt-1">
-                                Today &middot; <span id="live-worked-timer" class="font-bold text-slate-700">0h 0m</span> in total: <span class="text-brand-600 font-semibold">{{ \Carbon\Carbon::parse($status['clock_in'])->format('h:i A') }} - Ongoing</span>
+                                Today &middot; <span id="live-worked-timer" class="font-bold text-slate-700">0h 0m</span> in total: <span class="text-brand-600 font-semibold">{{ $status['clock_in'] }} - Ongoing</span>
                             </div>
                         @elseif($status['clock_out'])
                             <div class="text-sm font-medium text-slate-500 mt-1">
-                                Today &middot; <span id="completed-worked-timer" class="font-bold text-slate-700">0h 0m</span> in total: <span class="text-green-600 font-semibold">{{ \Carbon\Carbon::parse($status['clock_in'])->format('h:i A') }} - Completed</span>
+                                Today &middot; <span id="completed-worked-timer" class="font-bold text-slate-700">0h 0m</span> in total: <span class="text-green-600 font-semibold">{{ $status['clock_in'] }} - Completed</span>
                             </div>
                         @endif
                     </div>

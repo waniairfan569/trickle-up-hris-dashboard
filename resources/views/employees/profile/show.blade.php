@@ -285,13 +285,13 @@
                         <tr><th class="px-6 py-3">Date</th><th class="px-6 py-3">Clock In</th><th class="px-6 py-3">Clock Out</th><th class="px-6 py-3">Hours Worked</th><th class="px-6 py-3">Status</th></tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100 dark:divide-slate-700 text-xs">
-                        @php $atts=\App\Models\AttendanceRecord::where('user_id',$employee->id)->orderByDesc('date')->limit(14)->get(); @endphp
+                        @php $atts=\App\Models\AttendanceRecord::where('user_id',$employee->id)->orderByDesc('date')->limit(14)->get(); $tzSvc=app(\App\Services\TimezoneService::class); @endphp
                         @forelse($atts as $att)
                             @php $as=$att->status??'present'; $asc=match($as){'present'=>'bg-emerald-50 text-emerald-700','absent'=>'bg-red-50 text-red-700','late'=>'bg-amber-50 text-amber-700',default=>'bg-slate-50 text-slate-600'}; @endphp
                             <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-700/30">
                                 <td class="px-6 py-3 font-semibold text-slate-700 dark:text-slate-200">{{ \Carbon\Carbon::parse($att->date)->format('D, d M Y') }}</td>
-                                <td class="px-6 py-3 text-slate-600">{{ $att->clock_in?\Carbon\Carbon::parse($att->clock_in)->format('h:i A'):'-' }}</td>
-                                <td class="px-6 py-3 text-slate-600">{{ $att->clock_out?\Carbon\Carbon::parse($att->clock_out)->format('h:i A'):'-' }}</td>
+                                <td class="px-6 py-3 text-slate-600">{{ $att->clock_in?$tzSvc->formatForUser($att->clock_in,$employee,'h:i A'):'-' }}</td>
+                                <td class="px-6 py-3 text-slate-600">{{ $att->clock_out?$tzSvc->formatForUser($att->clock_out,$employee,'h:i A'):'-' }}</td>
                                 <td class="px-6 py-3 font-semibold text-slate-700 dark:text-slate-200">@if($att->clock_in&&$att->clock_out){{ floor($att->total_minutes_worked/60) }}h {{ $att->total_minutes_worked%60 }}m@else-@endif</td>
                                 <td class="px-6 py-3"><span class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold capitalize {{ $asc }}">{{ $as }}</span></td>
                             </tr>

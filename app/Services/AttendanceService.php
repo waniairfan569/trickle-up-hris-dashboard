@@ -258,14 +258,19 @@ class AttendanceService
             $workedSecs = max(0, $record->clock_in->diffInSeconds($end) - $totalBreakSecs);
         }
 
+        // Format clock times in the employee's effective timezone (not the raw
+        // server/canonical timezone), so displays are correct even if
+        // APP_TIMEZONE differs from the user's zone.
+        $tz = app(\App\Services\TimezoneService::class);
+
         return [
             'status' => $record->status,
-            'clock_in' => $record->clock_in ? $record->clock_in->format('h:i A') : null,
-            'clock_out' => $record->clock_out ? $record->clock_out->format('h:i A') : null,
+            'clock_in' => $record->clock_in ? $tz->formatForUser($record->clock_in, $user, 'h:i A') : null,
+            'clock_out' => $record->clock_out ? $tz->formatForUser($record->clock_out, $user, 'h:i A') : null,
             'hours_worked' => floor($workedSecs / 60), // in minutes for backward compatibility
             'worked_seconds' => $workedSecs,
             'is_on_break' => $openBreak !== null,
-            'current_break_start' => $openBreak ? $openBreak->break_start->format('h:i A') : null,
+            'current_break_start' => $openBreak ? $tz->formatForUser($openBreak->break_start, $user, 'h:i A') : null,
             'total_break_minutes' => floor($totalBreakSecs / 60),
             'late_minutes' => $record->late_minutes,
             'overtime_minutes' => $record->overtime_minutes,
