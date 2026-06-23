@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\AttendanceRecord;
 use App\Models\TimeTrackingPolicy;
 use App\Notifications\TimeTrackingReminder;
 use Carbon\Carbon;
@@ -37,16 +38,29 @@ class SendTimeTrackingReminders extends Command
                     }
                 }
             } else {
-                // Based on work schedule — start and end of each employee's shift.
+                // Based on each employee's shift: nudge 5 min before clock-in/out,
+                // and chase 5 min after if they still haven't clocked in/out.
                 foreach ($employees as $e) {
                     $ws = $e->workSchedule;
                     if (!$ws || !$ws->isWorkingDay($now)) {
                         continue;
                     }
-                    if ($this->hm($ws->start_time) === $nowHm) {
-                        $sent += $this->send($e, $policy, 'Time to clock in for your shift.', $dry);
-                    } elseif ($this->hm($ws->end_time) === $nowHm) {
-                        $sent += $this->send($e, $policy, 'Time to clock out — log your hours.', $dry);
+
+                    $start = $this->hm($ws->start_time);
+                    $end = $this->hm($ws->end_time);
+
+                    if ($nowHm === $this->shift($ws->start_time, -5)) {
+                        $sent += $this->send($e, $policy, "Your shift starts at {$start}. Please clock in.", $dry);
+                    } elseif ($nowHm === $this->shift($ws->start_time, 5)) {
+                        if (!$this->hasClockedIn($e, $now)) {
+                            $sent += $this->send($e, $policy, "Reminder: you haven't clocked in yet for your {$start} shift.", $dry);
+                        }
+                    } elseif ($nowHm === $this->shift($ws->end_time, -5)) {
+                        $sent += $this->send($e, $policy, "Your shift ends at {$end}. Remember to clock out.", $dry);
+                    } elseif ($nowHm === $this->shift($ws->end_time, 5)) {
+                        if ($this->hasClockedIn($e, $now) && !$this->hasClockedOut($e, $now)) {
+                            $sent += $this->send($e, $policy, "Reminder: you haven't clocked out yet from your {$end} shift.", $dry);
+                        }
                     }
                 }
             }
@@ -60,7 +74,14 @@ class SendTimeTrackingReminders extends Command
     private function send($employee, TimeTrackingPolicy $policy, string $body, bool $dry): int
     {
         if (!$dry) {
-            $employee->notify(new TimeTrackingReminder($policy, $body));
+            try {
+                $employee->notify(new TimeTrackingReminder($policy, $body));
+            } catch (\Throwable $e) {
+                // Don't let one failed email (e.g. SMTP hiccup) abort the run.
+                report($e);
+
+                return 0;
+            }
         }
 
         return 1;
@@ -77,5 +98,34 @@ class SendTimeTrackingReminders extends Command
         } catch (\Throwable $e) {
             return null;
         }
+    }
+
+    /** A time value shifted by N minutes, formatted H:i (null if unparseable). */
+    private function shift($time, int $minutes): ?string
+    {
+        if (!$time) {
+            return null;
+        }
+        try {
+            return Carbon::parse($time)->addMinutes($minutes)->format('H:i');
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
+    private function hasClockedIn($employee, Carbon $now): bool
+    {
+        return AttendanceRecord::where('user_id', $employee->id)
+            ->whereDate('date', $now->toDateString())
+            ->whereNotNull('clock_in')
+            ->exists();
+    }
+
+    private function hasClockedOut($employee, Carbon $now): bool
+    {
+        return AttendanceRecord::where('user_id', $employee->id)
+            ->whereDate('date', $now->toDateString())
+            ->whereNotNull('clock_out')
+            ->exists();
     }
 }

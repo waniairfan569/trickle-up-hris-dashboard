@@ -42,27 +42,22 @@ class AttendanceService
             }
         }
 
-        // --- Geofence Check ---
-        $geofenceStatus = $this->geofenceService->getStatusForFrontend($user);
-        if ($geofenceStatus['geofence_enabled']) {
-            if (!isset($options['lat']) || !isset($options['lng'])) {
-                throw new Exception('Location is required to clock in. Please allow location access in your browser.');
+        // --- Location (best-effort, non-blocking) ---
+        // Record coordinates / nearest office when available, but never block the
+        // clock-in over location (missing permission, outside radius, no office, etc.).
+        $lat = isset($options['lat']) ? (float) $options['lat'] : 0.0;
+        $lng = isset($options['lng']) ? (float) $options['lng'] : 0.0;
+
+        if ($lat !== 0.0 && $lng !== 0.0) {
+            try {
+                $geofenceCheck = $this->geofenceService->isWithinAnyOffice($user, $lat, $lng);
+                $record->office_location_id = $geofenceCheck['location']->id ?? null;
+                if (isset($geofenceCheck['distance']) && ($geofenceCheck['reason'] ?? null) !== 'remote_allowed') {
+                    $record->distance_at_clock_in = $geofenceCheck['distance'];
+                }
+            } catch (\Throwable $e) {
+                // No office assigned / calc error — location is optional, carry on.
             }
-        }
-        
-        // If lat/lng are provided or if they are required to have an office, check it
-        // We pass 0,0 if not provided, isWithinAnyOffice will handle the remote or empty logic
-        $lat = isset($options['lat']) ? (float)$options['lat'] : 0.0;
-        $lng = isset($options['lng']) ? (float)$options['lng'] : 0.0;
-        
-        $geofenceCheck = $this->geofenceService->isWithinAnyOffice($user, $lat, $lng);
-        if (!$geofenceCheck['allowed']) {
-            throw new GeofenceException($geofenceCheck['message'] ?? 'Outside geofence');
-        }
-        
-        $record->office_location_id = $geofenceCheck['location']->id ?? null;
-        if (isset($geofenceCheck['distance']) && $geofenceCheck['reason'] !== 'remote_allowed') {
-            $record->distance_at_clock_in = $geofenceCheck['distance'];
         }
 
         if ($isReclocking) {
@@ -124,24 +119,19 @@ class AttendanceService
             throw new Exception('Already clocked out');
         }
 
-        // --- Geofence Check ---
-        $geofenceStatus = $this->geofenceService->getStatusForFrontend($user);
-        if ($geofenceStatus['geofence_enabled']) {
-            if (!isset($options['lat']) || !isset($options['lng'])) {
-                throw new Exception('Location is required to clock out. Please allow location access in your browser.');
+        // --- Location (best-effort, non-blocking) ---
+        $lat = isset($options['lat']) ? (float) $options['lat'] : 0.0;
+        $lng = isset($options['lng']) ? (float) $options['lng'] : 0.0;
+
+        if ($lat !== 0.0 && $lng !== 0.0) {
+            try {
+                $geofenceCheck = $this->geofenceService->isWithinAnyOffice($user, $lat, $lng);
+                if (isset($geofenceCheck['distance']) && ($geofenceCheck['reason'] ?? null) !== 'remote_allowed') {
+                    $record->distance_at_clock_out = $geofenceCheck['distance'];
+                }
+            } catch (\Throwable $e) {
+                // location optional — carry on.
             }
-        }
-        
-        $lat = isset($options['lat']) ? (float)$options['lat'] : 0.0;
-        $lng = isset($options['lng']) ? (float)$options['lng'] : 0.0;
-        
-        $geofenceCheck = $this->geofenceService->isWithinAnyOffice($user, $lat, $lng);
-        if (!$geofenceCheck['allowed']) {
-            throw new GeofenceException($geofenceCheck['message'] ?? 'Outside geofence');
-        }
-        
-        if (isset($geofenceCheck['distance']) && $geofenceCheck['reason'] !== 'remote_allowed') {
-            $record->distance_at_clock_out = $geofenceCheck['distance'];
         }
 
         $record->clock_out = now();
