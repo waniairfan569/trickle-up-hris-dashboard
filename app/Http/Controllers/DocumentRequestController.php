@@ -28,6 +28,14 @@ class DocumentRequestController extends Controller
             ->orderBy('last_name')->orderBy('first_name')
             ->get(['id', 'first_name', 'last_name', 'job_title']);
 
+        // Always let the current admin send a document to themselves, even if they
+        // fall outside the template's entity/department scope.
+        $me = auth()->user();
+        if ($me && !$employees->contains('id', $me->id)) {
+            $employees->push(User::select('id', 'first_name', 'last_name', 'job_title')->find($me->id));
+            $employees = $employees->sortBy(fn ($u) => $u->last_name . ' ' . $u->first_name)->values();
+        }
+
         return view('documents.send', compact('documentTemplate', 'employees'));
     }
 

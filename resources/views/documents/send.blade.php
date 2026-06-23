@@ -9,7 +9,7 @@
 @php
     $employeeOpts = $employees->map(fn ($e) => [
         'id' => (string) $e->id,
-        'label' => trim(($e->last_name ? $e->last_name . ', ' : '') . $e->first_name) . ($e->job_title ? ' — ' . $e->job_title : ''),
+        'label' => trim(($e->last_name ? $e->last_name . ', ' : '') . $e->first_name) . ($e->job_title ? ' — ' . $e->job_title : '') . ($e->id === auth()->id() ? ' (You)' : ''),
     ])->values();
 @endphp
 <script>window.__sendEmployees = @json($employeeOpts);</script>
