@@ -27,7 +27,7 @@
         </template>
     </div>
 
-    <div class="flex-1 min-h-0 overflow-y-auto pr-1 mt-3">
+    <div class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden no-scrollbar pr-1 mt-3">
         <div x-show="tab === 'celebrations'">
             <template x-if="todaysCelebrations().length === 0"><p class="text-xs font-semibold text-slate-400 text-center mt-10">No celebrations on this day</p></template>
             <div class="space-y-3">

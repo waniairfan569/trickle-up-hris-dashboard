@@ -97,6 +97,10 @@
         ::-webkit-scrollbar-thumb:hover {
             background: rgba(148, 163, 184, 0.5);
         }
+
+        /* Hide scrollbars while keeping scroll functional (used on in-card scroll areas) */
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .no-scrollbar::-webkit-scrollbar { display: none; width: 0; height: 0; }
     </style>
 </head>
 <body class="h-full font-sans text-slate-800 antialiased bg-slate-50/50 dark:bg-slate-900 dark:text-slate-100" x-data="{ sidebarOpen: false }">
