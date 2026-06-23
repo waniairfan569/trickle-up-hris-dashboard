@@ -247,8 +247,8 @@
             
             <!-- Time Tracking (Simple Header Version) -->
             <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-6 flex flex-col dark:bg-slate-800 dark:border-slate-700">
-                <div class="flex items-center justify-between">
-                    <div>
+                <div class="flex items-center justify-between gap-3">
+                    <div class="min-w-0">
                         <h2 class="text-base font-semibold text-slate-800 dark:text-white">Time tracking</h2>
                         @php
                             $status = app(\App\Services\AttendanceService::class)->getTodayStatus(auth()->user());
@@ -268,13 +268,13 @@
                     
                     <div class="flex items-center gap-3">
                         @if(!$status['clock_in'] || $status['clock_out'])
-                            <button id="btn-clock-in" onclick="attendanceAction('clock-in')" class="bg-brand-600 hover:bg-brand-700 disabled:bg-slate-400 disabled:cursor-not-allowed text-slate-900 text-sm font-bold py-2.5 px-5 rounded-lg flex items-center gap-2 transition">
-                                <div class="w-2 h-2 bg-slate-900 rounded-sm"></div>
+                            <button id="btn-clock-in" onclick="attendanceAction('clock-in')" class="bg-brand-600 hover:bg-brand-700 disabled:bg-slate-400 disabled:cursor-not-allowed text-slate-900 text-sm font-bold py-2.5 px-6 rounded-lg inline-flex items-center justify-center gap-2 whitespace-nowrap shrink-0 transition">
+                                <span class="w-2 h-2 bg-slate-900 rounded-sm"></span>
                                 Clock in
                             </button>
                         @elseif($status['clock_in'] && !$status['clock_out'] && !$status['is_on_break'])
-                            <button id="btn-clock-out" onclick="attendanceAction('clock-out')" class="bg-slate-800 hover:bg-slate-900 disabled:bg-slate-400 disabled:cursor-not-allowed text-white text-sm font-bold py-2.5 px-5 rounded-lg flex items-center gap-2 transition">
-                                <div class="w-2 h-2 bg-white rounded-sm"></div>
+                            <button id="btn-clock-out" onclick="attendanceAction('clock-out')" class="bg-slate-800 hover:bg-slate-900 disabled:bg-slate-400 disabled:cursor-not-allowed text-white text-sm font-bold py-2.5 px-6 rounded-lg inline-flex items-center justify-center gap-2 whitespace-nowrap shrink-0 transition">
+                                <span class="w-2 h-2 bg-white rounded-sm"></span>
                                 Clock out
                             </button>
                         @endif
