@@ -70,14 +70,14 @@
                         <div>
                             <label class="block text-sm font-medium text-slate-700 mb-1">Email</label>
                             <input type="email" value="{{ $employee->email }}" disabled
-                                class="w-full rounded-lg border-slate-300 bg-slate-100 shadow-sm text-slate-500 cursor-not-allowed">
+                                class="w-full rounded-lg border border-slate-300 bg-slate-100 shadow-sm text-slate-500 cursor-not-allowed px-3.5 py-3 text-sm">
                         </div>
 
                         <!-- New Password -->
                         <div>
                             <label for="password" class="block text-sm font-medium text-slate-700 mb-1">Password</label>
                             <input id="password" type="password" name="password" required autofocus
-                                class="w-full rounded-lg border-slate-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 @error('password') border-red-300 focus:border-red-500 focus:ring-red-500 @enderror">
+                                class="w-full rounded-lg border border-slate-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 px-3.5 py-3 text-sm @error('password') border-red-300 focus:border-red-500 focus:ring-red-500 @enderror">
                             @error('password')
                                 <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                             @enderror
@@ -88,12 +88,12 @@
                         <div>
                             <label for="password_confirmation" class="block text-sm font-medium text-slate-700 mb-1">Confirm Password</label>
                             <input id="password_confirmation" type="password" name="password_confirmation" required
-                                class="w-full rounded-lg border-slate-300 shadow-sm focus:border-brand-500 focus:ring-brand-500">
+                                class="w-full rounded-lg border border-slate-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 px-3.5 py-3 text-sm">
                         </div>
                     </div>
 
                     <div class="mt-6">
-                        <button type="submit" class="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500">
+                        <button type="submit" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-bold text-slate-900 bg-brand-600 hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500">
                             Activate Account
                         </button>
                     </div>
