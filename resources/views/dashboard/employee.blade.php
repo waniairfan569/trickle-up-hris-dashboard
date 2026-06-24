@@ -10,7 +10,7 @@
 
 @endphp
 
-<div class="max-w-6xl mx-auto space-y-6 pb-12">
+<div class="mx-auto space-y-6 pb-12">
     
     <!-- Greeting -->
     <div>
@@ -251,36 +251,47 @@
                 $sessions = $status['sessions'] ?? [];
                 $currentIn = count($sessions) ? end($sessions)['in'] : $status['clock_in'];
             @endphp
-            <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-6 flex flex-col dark:bg-slate-800 dark:border-slate-700">
-                <div class="flex items-center justify-between gap-3">
-                    <h2 class="text-base font-semibold text-slate-800 dark:text-white">Time tracking</h2>
+            <div class="bg-white rounded-xl shadow-sm border border-slate-100 flex flex-col dark:bg-slate-800 dark:border-slate-700 overflow-hidden">
+                <!-- Top Section -->
+                <div class="p-6">
+                    <div class="flex items-center gap-4">
+                        <a href="{{ route('attendance.my-history') }}" class="text-base font-bold text-teal-800 dark:text-teal-400 hover:text-teal-955 dark:hover:text-teal-300 transition">
+                            Timesheet
+                        </a>
 
-                    <div class="flex items-center gap-3">
-                        @if(!$status['clock_in'] || $status['clock_out'])
-                            <button id="btn-clock-in" onclick="attendanceAction('clock-in')" class="bg-green-700 hover:bg-green-800 disabled:bg-slate-400 disabled:cursor-not-allowed text-white text-sm font-bold py-3 px-6 rounded-xl inline-flex items-center justify-center gap-2 whitespace-nowrap shrink-0 transition">
-                                <i data-lucide="play" class="h-4 w-4 fill-current"></i>
-                                Clock in
-                            </button>
-                        @elseif($status['clock_in'] && !$status['clock_out'] && !$status['is_on_break'])
-                            <button id="btn-clock-out" onclick="attendanceAction('clock-out')" class="bg-slate-800 hover:bg-slate-900 disabled:bg-slate-400 disabled:cursor-not-allowed text-white text-sm font-bold py-3 px-6 rounded-xl inline-flex items-center justify-center gap-2 whitespace-nowrap shrink-0 transition">
-                                <i data-lucide="square" class="h-3.5 w-3.5 fill-current"></i>
-                                Clock out
-                            </button>
-                        @endif
-                        <i data-lucide="chevron-right" class="h-4 w-4 text-slate-400"></i>
+                        <div class="flex-1 flex items-center gap-3">
+                            <!-- Timer Pill Container -->
+                            <div class="bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-700/50 rounded-lg px-6 py-2.5 flex items-center justify-center flex-1 h-11">
+                                <span id="live-worked-timer-seconds" class="text-base font-semibold text-slate-800 dark:text-slate-200 tracking-tight">0h 0m 0s</span>
+                            </div>
+
+                            @if(!$status['clock_in'] || $status['clock_out'])
+                                <button id="btn-clock-in" onclick="attendanceAction('clock-in')" class="bg-green-700 hover:bg-green-800 disabled:bg-slate-400 disabled:cursor-not-allowed text-white text-sm font-semibold h-11 px-6 rounded-lg inline-flex items-center justify-center gap-2 whitespace-nowrap shrink-0 transition">
+                                    <i data-lucide="play" class="h-4 w-4 fill-current"></i>
+                                    Clock in
+                                </button>
+                            @elseif($status['clock_in'] && !$status['clock_out'] && !$status['is_on_break'])
+                                <button id="btn-clock-out" onclick="attendanceAction('clock-out')" class="bg-[#2d3139] hover:bg-[#1f2229] disabled:bg-slate-400 disabled:cursor-not-allowed text-white text-sm font-semibold h-11 px-6 rounded-lg inline-flex items-center justify-center gap-2 whitespace-nowrap shrink-0 transition">
+                                    <span class="w-2.5 h-2.5 bg-white rounded-sm"></span>
+                                    Clock out
+                                </button>
+                            @endif
+                        </div>
                     </div>
+                    
+                    <div id="geofence-status" class="hidden text-[10px] font-medium py-1 px-2 rounded mt-3"></div>
                 </div>
 
+                <!-- Footer Section -->
                 @if($status['clock_in'] && !$status['clock_out'] && !$status['is_on_break'])
-                    <div class="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700/60 text-sm font-medium text-slate-500">
-                        Today &middot; <span id="live-worked-timer" class="font-bold text-slate-700 dark:text-slate-200">0h 0m</span> in total: <span class="text-brand-600 font-semibold">{{ $currentIn }} – Ongoing</span>
+                    <div class="px-6 py-4 border-t border-slate-100 dark:border-slate-700/60 bg-slate-50/50 dark:bg-slate-800/50 text-sm font-medium text-slate-500">
+                        Today &middot; <span id="live-worked-timer" class="font-bold text-slate-700 dark:text-slate-200">0h 0m</span> in total: <span class="text-slate-600 dark:text-slate-400 font-semibold">{{ $currentIn }} – Ongoing</span>
                     </div>
                 @elseif($status['clock_out'])
-                    <div class="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700/60 text-sm font-medium text-slate-500">
-                        Today &middot; <span id="completed-worked-timer" class="font-bold text-slate-700 dark:text-slate-200">0h 0m</span> in total: <span class="text-green-600 font-semibold">{{ $currentIn }} – Completed</span>
+                    <div class="px-6 py-4 border-t border-slate-100 dark:border-slate-700/60 bg-slate-50/50 dark:bg-slate-800/50 text-sm font-medium text-slate-500">
+                        Today &middot; <span id="completed-worked-timer" class="font-bold text-slate-700 dark:text-slate-200">0h 0m</span> in total: <span class="text-slate-600 dark:text-slate-400 font-semibold">{{ $currentIn }} – Completed</span>
                     </div>
                 @endif
-                <div id="geofence-status" class="hidden w-full text-[10px] font-medium py-1 px-2 rounded mt-3"></div>
             </div>
             
             <!-- Reusing the full script logic for clock-in/out -->
@@ -294,14 +305,25 @@
                     return `${h}h ${m}m`;
                 }
 
+                function formatWorkedTimeWithSeconds(totalSeconds) {
+                    const h = Math.floor(totalSeconds / 3600);
+                    const m = Math.floor((totalSeconds % 3600) / 60);
+                    const s = Math.floor(totalSeconds % 60);
+                    return `${h}h ${m}m ${s}s`;
+                }
+
                 const liveTimerEl = document.getElementById('live-worked-timer');
                 const completedTimerEl = document.getElementById('completed-worked-timer');
+                const liveTimerSecondsEl = document.getElementById('live-worked-timer-seconds');
+
+                if (liveTimerSecondsEl) liveTimerSecondsEl.innerText = formatWorkedTimeWithSeconds(workedSeconds);
                 if (liveTimerEl) liveTimerEl.innerText = formatWorkedTime(workedSeconds);
                 if (completedTimerEl) completedTimerEl.innerText = formatWorkedTime(workedSeconds);
 
                 function updateClock() {
                     if (isClockedIn) {
                         workedSeconds++;
+                        if (liveTimerSecondsEl) liveTimerSecondsEl.innerText = formatWorkedTimeWithSeconds(workedSeconds);
                         if (liveTimerEl) liveTimerEl.innerText = formatWorkedTime(workedSeconds);
                     }
                 }

@@ -15,6 +15,7 @@ class DatabaseSeeder extends Seeder
             PermissionSeeder::class,
             RolePermissionSeeder::class,
             AdminUserSeeder::class,
+            EmployeeUserSeeder::class,
             PublicHolidaySeeder::class,
             DefaultProfileTemplateSeeder::class,
             DynamicProfileTemplatesSeeder::class,
