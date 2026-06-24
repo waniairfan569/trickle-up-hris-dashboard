@@ -29,9 +29,9 @@
         ->pluck('employee.id')
         ->toArray();
         
-    // Team performance reviews
-    $reviews = \App\Models\PerformanceReview::whereIn('employee_id', $reportUserIds)
-        ->with(['employee', 'reviewer'])
+    // Team performance reviews (performance_reviews is keyed by reviewee_id)
+    $reviews = \App\Models\PerformanceReview::whereIn('reviewee_id', $reportUserIds)
+        ->with(['reviewee', 'reviewer'])
         ->latest()
         ->take(5)
         ->get();
@@ -149,19 +149,19 @@
                                 <div class="flex flex-col gap-4 py-4 sm:flex-row sm:items-center sm:justify-between">
                                     <div class="flex items-center space-x-3">
                                         <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-slate-100 to-slate-200 text-sm font-bold text-slate-755 dark:from-slate-700 dark:to-slate-650 dark:text-slate-200">
-                                            {{ $req->employee->user->initials ?? 'EM' }}
+                                            {{ $req->employee->initials ?? 'EM' }}
                                         </div>
                                         <div>
-                                            <h4 class="text-xs font-bold text-slate-900 dark:text-white">{{ $req->employee->user->full_name ?? 'Unknown' }}</h4>
+                                            <h4 class="text-xs font-bold text-slate-900 dark:text-white">{{ $req->employee->full_name ?? 'Unknown' }}</h4>
                                             <p class="text-[10px] text-slate-400 mt-0.5">
-                                                {{ $req->employee->department->name ?? 'Core' }} &bull; {{ $req->type_label }}
+                                                {{ optional($req->employee->department)->name ?? 'Core' }} &bull; {{ ucfirst(str_replace('_', ' ', $req->type)) }}
                                             </p>
                                         </div>
                                     </div>
                                     
                                     <div class="flex items-center gap-4 pl-13 sm:pl-0">
                                         <div class="text-left sm:text-right">
-                                            <span class="text-xs font-bold text-slate-900 dark:text-white">{{ $req->days_count }} days</span>
+                                            <span class="text-xs font-bold text-slate-900 dark:text-white">{{ $req->days_requested }} days</span>
                                             <p class="text-[10px] text-slate-400 font-medium">
                                                 {{ $req->start_date->format('M d') }} - {{ $req->end_date->format('M d') }}
                                             </p>
@@ -185,7 +185,7 @@
                                                 <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
                                                     <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl border border-slate-200 dark:bg-slate-800 dark:border-slate-700" @click.away="openReject = false">
                                                         <h3 class="text-sm font-bold text-slate-900 dark:text-white">Reject Leave Request</h3>
-                                                        <p class="text-xs text-slate-400 mt-1">Provide rejection reason for {{ $req->employee->user->first_name }}.</p>
+                                                        <p class="text-xs text-slate-400 mt-1">Provide rejection reason for {{ $req->employee->first_name }}.</p>
                                                         
                                                         <form action="{{ route('time-off.reject', $req->id) }}" method="POST" class="mt-4">
                                                             @csrf
@@ -235,10 +235,10 @@
                                 <div class="flex items-center justify-between border border-slate-100 rounded-xl p-3 bg-slate-50/30 dark:border-slate-700 dark:bg-slate-900/10">
                                     <div class="flex items-center space-x-3">
                                         <div class="h-8 w-8 rounded-full bg-gradient-to-br from-indigo-400 to-indigo-600 flex items-center justify-center text-white text-[10px] font-bold">
-                                            {{ $rev->employee->initials ?? 'EM' }}
+                                            {{ $rev->reviewee->initials ?? 'EM' }}
                                         </div>
                                         <div>
-                                            <h4 class="text-xs font-bold text-slate-900 dark:text-white">{{ $rev->employee->full_name ?? 'Unknown' }}</h4>
+                                            <h4 class="text-xs font-bold text-slate-900 dark:text-white">{{ $rev->reviewee->full_name ?? 'Unknown' }}</h4>
                                             <p class="text-[9px] text-slate-400 uppercase font-semibold mt-0.5">
                                                 Type: {{ $rev->type }} &bull; {{ $rev->status }}
                                             </p>
