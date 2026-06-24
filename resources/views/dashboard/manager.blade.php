@@ -12,12 +12,9 @@
     // Fetch direct and indirect reports dynamically
     $reports = $accessService->getReportingLine($auth);
     $reportUserIds = $reports->pluck('id');
-    
-    // Fetch corresponding Employee IDs
-    $reportEmployeeIds = \App\Models\Employee::whereIn('user_id', $reportUserIds)->pluck('id');
-    
-    // Pending team time-off requests
-    $teamRequests = \App\Models\TimeOffRequest::whereIn('employee_id', $reportEmployeeIds)
+
+    // Pending team time-off requests (time_off_requests is keyed by user_id)
+    $teamRequests = \App\Models\TimeOffRequest::whereIn('user_id', $reportUserIds)
         ->where('status', 'pending')
         ->with(['employee.department'])
         ->latest()
