@@ -277,7 +277,7 @@
                                     <div class="flex items-center justify-between border border-slate-100 rounded-xl p-3 bg-slate-50/20 dark:border-slate-700 dark:bg-slate-900/10">
                                         <div class="space-y-0.5">
                                             <h4 class="text-xs font-bold text-slate-950 dark:text-white capitalize">{{ optional($req->policy)->name }}</h4>
-                                            <p class="text-[10px] text-slate-400">{{ $req->start_date->format('M d, Y') }} - {{ $req->end_date->format('M d, Y') }} &bull; {{ $req->days_count }} days</p>
+                                            <p class="text-[10px] text-slate-400">{{ $req->start_date->format('M d, Y') }} - {{ $req->end_date->format('M d, Y') }} &bull; {{ $req->days_requested }} days</p>
                                         </div>
                                         <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-bold uppercase {{ $color }}">
                                             {{ $req->status }}
