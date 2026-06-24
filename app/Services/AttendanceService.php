@@ -223,7 +223,24 @@ class AttendanceService
         return $openBreak;
     }
 
+    /** Safe wrapper — a bad attendance record must never 500 the whole dashboard. */
     public function getTodayStatus(User $user): array
+    {
+        try {
+            return $this->buildTodayStatus($user);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return [
+                'status' => 'unknown', 'clock_in' => null, 'clock_out' => null,
+                'hours_worked' => null, 'worked_seconds' => 0, 'is_on_break' => false,
+                'current_break_start' => null, 'total_break_minutes' => 0,
+                'late_minutes' => 0, 'overtime_minutes' => 0, 'sessions' => [],
+            ];
+        }
+    }
+
+    private function buildTodayStatus(User $user): array
     {
         $today = Carbon::today();
         $record = AttendanceRecord::where('user_id', $user->id)->whereDate('date', $today)->first();
@@ -240,6 +257,7 @@ class AttendanceService
                 'total_break_minutes' => 0,
                 'late_minutes' => 0,
                 'overtime_minutes' => 0,
+                'sessions' => [],
             ];
         }
 
