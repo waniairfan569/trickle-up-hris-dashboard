@@ -18,23 +18,79 @@
     </div>
 
     <!-- Main Grid -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         
         <!-- Left Column -->
-        <div class="space-y-6">
+        <div class="space-y-4">
             
             <!-- Date & Events Widget -->
-            <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-6 flex flex-col h-[300px] dark:bg-slate-800 dark:border-slate-700"
+            <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-6 flex flex-col h-[460px] dark:bg-slate-800 dark:border-slate-700"
                  x-data="celebrationsWidget()">
                 <!-- Date Header -->
                 <div class="flex items-center justify-between mb-3">
-                    <div class="flex items-center gap-2 text-slate-700 font-semibold dark:text-slate-200">
-                        <i data-lucide="calendar" class="h-5 w-5 text-slate-400"></i>
-                        <div class="relative flex items-center">
-                            <span class="cursor-pointer text-sm" x-text="displayDate()" @click="$refs.picker.showPicker()"></span>
-                            <input type="date" x-ref="picker" x-model="current" class="absolute opacity-0 w-0 h-0">
+                    <div class="flex items-center gap-3 text-slate-700 font-semibold dark:text-slate-200 relative" @click.away="showPicker = false">
+                        <div class="h-10 w-10 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100/50 dark:border-slate-700/50 flex items-center justify-center text-slate-400">
+                            <i data-lucide="calendar" class="h-5 w-5"></i>
                         </div>
-                        <i data-lucide="chevron-down" class="h-4 w-4 text-slate-400 cursor-pointer" @click="$refs.picker.showPicker()"></i>
+                        
+                        <div class="flex items-center gap-1.5 cursor-pointer select-none" @click="showPicker = !showPicker; if (showPicker) initPicker()">
+                            <span class="text-base" x-text="displayDate()"></span>
+                            <svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </div>
+
+                        <!-- Custom Calendar Dropdown -->
+                        <div x-show="showPicker"
+                             x-transition
+                             x-cloak
+                             class="absolute left-12 top-12 w-64 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700 p-4 z-50">
+                            <div class="flex items-center justify-between mb-4 px-1">
+                                <!-- Prev Month -->
+                                <button type="button" @click.stop="changePickerMonth(-1)" class="p-1.5 bg-slate-50 dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 rounded-lg text-slate-600 dark:text-slate-200 transition">
+                                    <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+                                    </svg>
+                                </button>
+                                
+                                <!-- Month label -->
+                                <span class="text-[10px] font-extrabold uppercase text-slate-800 dark:text-white tracking-wider" x-text="getPickerMonthYearLabel()"></span>
+                                
+                                <!-- Next Month -->
+                                <button type="button" @click.stop="changePickerMonth(1)" class="p-1.5 bg-slate-50 dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 rounded-lg text-slate-600 dark:text-slate-200 transition">
+                                    <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                                    </svg>
+                                </button>
+                            </div>
+
+                            <div class="grid grid-cols-7 gap-1 text-center text-[10px] font-semibold text-slate-400 dark:text-slate-500 mb-2">
+                                <div>Su</div>
+                                <div>Mo</div>
+                                <div>Tu</div>
+                                <div>We</div>
+                                <div>Th</div>
+                                <div>Fr</div>
+                                <div>Sa</div>
+                            </div>
+
+                            <div class="grid grid-cols-7 gap-1">
+                                <template x-for="d in getPickerDays()" :key="d.dateString">
+                                    <button type="button"
+                                            @click.stop="selectPickerDate(d.dateString)"
+                                            class="h-7 w-7 rounded-lg flex items-center justify-center text-[10px] transition"
+                                            :class="[
+                                                d.dateString === current 
+                                                    ? 'bg-blue-600 text-white font-bold' 
+                                                    : (d.currentMonth 
+                                                        ? 'text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 font-medium' 
+                                                        : 'text-slate-300 dark:text-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800')
+                                            ]"
+                                            x-text="d.day">
+                                    </button>
+                                </template>
+                            </div>
+                        </div>
                     </div>
                     <div class="flex items-center gap-2 text-slate-400">
                         <button @click="shift(-1)" class="hover:text-slate-600 transition"><i data-lucide="arrow-left" class="h-4 w-4"></i></button>
@@ -146,6 +202,69 @@
                         relDate(ds) { return new Date(ds + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }); },
                         dotColor(type) { return { birthday: 'bg-pink-500', anniversary: 'bg-amber-500', new_joiner: 'bg-emerald-500' }[type] || 'bg-slate-400'; },
                         dotBg(c) { return { brand: 'bg-brand-500', indigo: 'bg-indigo-500', emerald: 'bg-emerald-500', rose: 'bg-rose-500', sky: 'bg-sky-500' }[c] || 'bg-brand-500'; },
+                        showPicker: false,
+                        pickerYear: new Date().getFullYear(),
+                        pickerMonth: new Date().getMonth(),
+                        initPicker() {
+                            const d = new Date(this.current + 'T00:00:00');
+                            this.pickerYear = d.getFullYear();
+                            this.pickerMonth = d.getMonth();
+                        },
+                        getPickerDays() {
+                            const year = this.pickerYear;
+                            const month = this.pickerMonth;
+                            const firstDayIndex = new Date(year, month, 1).getDay();
+                            const totalDays = new Date(year, month + 1, 0).getDate();
+                            const prevTotalDays = new Date(year, month, 0).getDate();
+                            const days = [];
+                            for (let i = firstDayIndex - 1; i >= 0; i--) {
+                                const d = prevTotalDays - i;
+                                const mStr = String(month === 0 ? 12 : month).padStart(2, '0');
+                                const yStr = month === 0 ? year - 1 : year;
+                                days.push({
+                                    day: d,
+                                    currentMonth: false,
+                                    dateString: `${yStr}-${mStr}-${String(d).padStart(2, '0')}`
+                                });
+                            }
+                            for (let i = 1; i <= totalDays; i++) {
+                                const mStr = String(month + 1).padStart(2, '0');
+                                days.push({
+                                    day: i,
+                                    currentMonth: true,
+                                    dateString: `${year}-${mStr}-${String(i).padStart(2, '0')}`
+                                });
+                            }
+                            const remaining = 42 - days.length;
+                            for (let i = 1; i <= remaining; i++) {
+                                const mStr = String(month === 11 ? 1 : month + 2).padStart(2, '0');
+                                const yStr = month === 11 ? year + 1 : year;
+                                days.push({
+                                    day: i,
+                                    currentMonth: false,
+                                    dateString: `${yStr}-${mStr}-${String(i).padStart(2, '0')}`
+                                });
+                            }
+                            return days;
+                        },
+                        selectPickerDate(dateStr) {
+                            this.current = dateStr;
+                            this.showPicker = false;
+                        },
+                        changePickerMonth(dir) {
+                            this.pickerMonth += dir;
+                            if (this.pickerMonth > 11) {
+                                this.pickerMonth = 0;
+                                this.pickerYear++;
+                            } else if (this.pickerMonth < 0) {
+                                this.pickerMonth = 11;
+                                this.pickerYear--;
+                            }
+                        },
+                        getPickerMonthYearLabel() {
+                            const months = ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"];
+                            return `${months[this.pickerMonth]} ${this.pickerYear}`;
+                        }
                     };
                 }
                 </script>
@@ -153,13 +272,20 @@
 
             <!-- Time-off Balances Widget -->
             <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-6 flex flex-col dark:bg-slate-800 dark:border-slate-700">
-                <div class="flex items-center gap-2 mb-6">
-                    <i data-lucide="calendar-check" class="h-5 w-5 text-slate-400"></i>
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="h-10 w-10 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100/50 dark:border-slate-700/50 flex items-center justify-center text-slate-400">
+                        <i data-lucide="calendar-check" class="h-5 w-5"></i>
+                    </div>
                     <h2 class="text-base font-semibold text-slate-800 dark:text-white">Your time-off balances</h2>
                 </div>
                 
-                <div x-data="balanceSlider({{ $timeOffBalances->count() }})">
-                    <div x-ref="slider" @scroll.debounce.50ms="onScroll()" class="flex gap-4 overflow-x-auto no-scrollbar snap-x snap-mandatory pb-1">
+                <div x-data="balanceSlider({{ $timeOffBalances->count() }})" class="relative">
+                    <!-- Left Arrow -->
+                    <button type="button" @click="scrollPrev()" x-show="active > 0" class="absolute -left-2 top-[56px] -translate-y-1/2 z-10 p-1.5 bg-slate-50 dark:bg-slate-700 border border-slate-100 dark:border-slate-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-600 transition flex items-center justify-center shadow-sm">
+                        <i data-lucide="chevron-left" class="h-4 w-4 text-slate-600 dark:text-slate-200"></i>
+                    </button>
+
+                    <div x-ref="slider" @scroll.debounce.50ms="onScroll()" class="flex gap-4 overflow-x-auto no-scrollbar snap-x snap-mandatory pb-1 scroll-smooth">
                         @forelse($timeOffBalances as $index => $b)
                             @php
                                 $total = $b->opening_balance + $b->accrued + $b->adjusted + $b->carried_over;
@@ -169,19 +295,27 @@
                                 if (stripos($policyName, 'Annual') !== false) {
                                     $displayName = 'Planned Leaves';
                                 } elseif (stripos($policyName, 'Casual') !== false) {
-                                    $displayName = 'Unplanned';
+                                    $displayName = 'Unplanned Leaves';
                                 } else {
                                     $displayName = $policyName;
                                 }
 
-                                $color = ['bg-cyan-400', 'bg-amber-400', 'bg-rose-400', 'bg-emerald-400', 'bg-indigo-400'][$index % 5];
+                                $color = ['bg-cyan-300', 'bg-amber-300', 'bg-rose-300', 'bg-emerald-300', 'bg-indigo-300'][$index % 5];
+                                $leaveUnit = optional(auth()->user()->company)->leave_unit ?? 'days';
+                                $isUnpaid = !$b->policy || !$b->policy->is_paid;
                             @endphp
-                            <div class="snap-start flex-shrink-0 w-44 border border-slate-100 rounded-xl p-4 flex flex-col justify-between h-28 relative overflow-hidden dark:border-slate-700">
-                                <div class="absolute left-0 top-0 bottom-0 w-1 {{ $color }}"></div>
-                                <h3 class="text-sm font-semibold text-slate-700 dark:text-slate-200 ml-2 truncate" title="{{ $policyName }}">{{ $displayName }}</h3>
-                                <div class="ml-2">
-                                    <span class="text-2xl font-bold text-slate-800 dark:text-white">{{ floatval($remaining) }}</span>
-                                    <span class="text-[11px] text-slate-500 font-medium">days available</span>
+                            <div class="snap-start flex-shrink-0 w-[calc(50%-8px)] min-w-[190px] border border-slate-100 rounded-xl p-4 flex flex-col justify-between h-28 relative overflow-hidden dark:border-slate-700 bg-white dark:bg-slate-800">
+                                <div class="absolute left-3 top-3 bottom-3 w-1 rounded-full {{ $color }}"></div>
+                                <h3 class="text-sm font-semibold text-slate-700 dark:text-slate-200 pl-2 truncate" title="{{ $policyName }}">{{ $displayName }}</h3>
+                                <div class="pl-2">
+                                    <span class="text-2xl font-bold text-slate-800 dark:text-white">
+                                        @if($isUnpaid)
+                                            &infin;
+                                        @else
+                                            {{ floatval($remaining) }}
+                                        @endif
+                                    </span>
+                                    <span class="text-[11px] text-slate-500 font-medium">{{ $leaveUnit === 'hours' ? 'hours available' : 'days available' }}</span>
                                 </div>
                             </div>
                         @empty
@@ -189,11 +323,16 @@
                         @endforelse
                     </div>
 
+                    <!-- Right Arrow -->
+                    <button type="button" @click="scrollNext()" x-show="active < count - 2" class="absolute -right-2 top-[56px] -translate-y-1/2 z-10 p-1.5 bg-slate-50 dark:bg-slate-700 border border-slate-100 dark:border-slate-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-600 transition flex items-center justify-center shadow-sm">
+                        <i data-lucide="chevron-right" class="h-4 w-4 text-slate-600 dark:text-slate-200"></i>
+                    </button>
+
                     <!-- Navigation dots -->
                     <div x-show="count > 1" class="flex justify-center gap-1.5 mt-4 mb-1">
                         <template x-for="i in count" :key="i">
                             <button type="button" @click="goTo(i - 1)" :aria-label="'Go to slide ' + i"
-                                    :class="active === (i - 1) ? 'bg-brand-500 w-4' : 'bg-slate-300 dark:bg-slate-600 w-1.5 hover:bg-slate-400'"
+                                    :class="active === (i - 1) ? 'bg-slate-800 dark:bg-slate-100 w-4' : 'bg-slate-300 dark:bg-slate-600 w-1.5 hover:bg-slate-400'"
                                     class="h-1.5 rounded-full transition-all duration-200"></button>
                         </template>
                     </div>
@@ -224,6 +363,16 @@
                                 const c = s.children[i];
                                 if (c) s.scrollTo({ left: c.offsetLeft - s.children[0].offsetLeft, behavior: 'smooth' });
                             },
+                            scrollNext() {
+                                if (this.active < this.count - 1) {
+                                    this.goTo(this.active + 1);
+                                }
+                            },
+                            scrollPrev() {
+                                if (this.active > 0) {
+                                    this.goTo(this.active - 1);
+                                }
+                            }
                         };
                     }
                 </script>
@@ -243,7 +392,7 @@
         </div>
 
         <!-- Right Column -->
-        <div class="space-y-6">
+        <div class="space-y-4">
             
             <!-- Time Tracking (Simple Header Version) -->
             @php
@@ -470,8 +619,10 @@
 
             <!-- To-dos Widget -->
             <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-6 flex flex-col dark:bg-slate-800 dark:border-slate-700">
-                <div class="flex items-center gap-2 mb-6">
-                    <i data-lucide="check-circle" class="h-5 w-5 text-slate-400"></i>
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="h-10 w-10 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100/50 dark:border-slate-700/50 flex items-center justify-center text-slate-400">
+                        <i data-lucide="check-circle" class="h-5 w-5"></i>
+                    </div>
                     <h2 class="text-base font-semibold text-slate-800 dark:text-white">To-dos</h2>
                 </div>
                 
@@ -485,13 +636,15 @@
             </div>
 
             <!-- Upcoming Time Off Widget -->
-            <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-6 flex flex-col dark:bg-slate-800 dark:border-slate-700">
-                <div class="flex items-center gap-2 mb-6">
-                    <i data-lucide="calendar-clock" class="h-5 w-5 text-slate-400"></i>
+            <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-6 flex flex-col h-[314px] dark:bg-slate-800 dark:border-slate-700">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="h-10 w-10 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100/50 dark:border-slate-700/50 flex items-center justify-center text-slate-400">
+                        <i data-lucide="calendar-clock" class="h-5 w-5"></i>
+                    </div>
                     <h2 class="text-base font-semibold text-slate-800 dark:text-white">Your upcoming time off</h2>
                 </div>
                 
-                <div class="bg-slate-50 rounded-xl p-8 flex flex-col items-center justify-center text-center dark:bg-slate-800/50">
+                <div class="bg-slate-50 rounded-xl p-8 flex flex-col items-center justify-center text-center dark:bg-slate-800/50 flex-1">
                     @if($upcomingTimeOff->isEmpty())
                         <div class="w-16 h-16 mb-2 relative opacity-60">
                             <!-- Faux lines -->

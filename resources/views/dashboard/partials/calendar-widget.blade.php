@@ -1,14 +1,70 @@
 <!-- Date & Events Widget (Celebrations / Holidays / Events) -->
-<div class="bg-white rounded-xl shadow-sm border border-slate-100 p-6 flex flex-col h-[300px] dark:bg-slate-800 dark:border-slate-700"
+<div class="bg-white rounded-xl shadow-sm border border-slate-100 p-6 flex flex-col h-[460px] dark:bg-slate-800 dark:border-slate-700"
      x-data="celebrationsWidget()">
     <div class="flex items-center justify-between mb-3">
-        <div class="flex items-center gap-2 text-slate-700 font-semibold dark:text-slate-200">
-            <i data-lucide="calendar" class="h-5 w-5 text-slate-400"></i>
-            <div class="relative flex items-center">
-                <span class="cursor-pointer text-sm" x-text="displayDate()" @click="$refs.picker.showPicker()"></span>
-                <input type="date" x-ref="picker" x-model="current" class="absolute opacity-0 w-0 h-0">
+        <div class="flex items-center gap-3 text-slate-700 font-semibold dark:text-slate-200 relative" @click.away="showPicker = false">
+            <div class="h-10 w-10 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100/50 dark:border-slate-700/50 flex items-center justify-center text-slate-400">
+                <i data-lucide="calendar" class="h-5 w-5"></i>
             </div>
-            <i data-lucide="chevron-down" class="h-4 w-4 text-slate-400 cursor-pointer" @click="$refs.picker.showPicker()"></i>
+            
+            <div class="flex items-center gap-1.5 cursor-pointer select-none" @click="showPicker = !showPicker; if (showPicker) initPicker()">
+                <span class="text-sm" x-text="displayDate()"></span>
+                <svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
+            </div>
+
+            <!-- Custom Calendar Dropdown -->
+            <div x-show="showPicker"
+                 x-transition
+                 x-cloak
+                 class="absolute left-12 top-12 w-64 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700 p-4 z-50">
+                <div class="flex items-center justify-between mb-4 px-1">
+                    <!-- Prev Month -->
+                    <button type="button" @click.stop="changePickerMonth(-1)" class="p-1.5 bg-slate-50 dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 rounded-lg text-slate-600 dark:text-slate-200 transition">
+                        <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+                        </svg>
+                    </button>
+                    
+                    <!-- Month label -->
+                    <span class="text-[10px] font-extrabold uppercase text-slate-800 dark:text-white tracking-wider" x-text="getPickerMonthYearLabel()"></span>
+                    
+                    <!-- Next Month -->
+                    <button type="button" @click.stop="changePickerMonth(1)" class="p-1.5 bg-slate-50 dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 rounded-lg text-slate-600 dark:text-slate-200 transition">
+                        <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-7 gap-1 text-center text-[10px] font-semibold text-slate-400 dark:text-slate-500 mb-2">
+                    <div>Su</div>
+                    <div>Mo</div>
+                    <div>Tu</div>
+                    <div>We</div>
+                    <div>Th</div>
+                    <div>Fr</div>
+                    <div>Sa</div>
+                </div>
+
+                <div class="grid grid-cols-7 gap-1">
+                    <template x-for="d in getPickerDays()" :key="d.dateString">
+                        <button type="button"
+                                @click.stop="selectPickerDate(d.dateString)"
+                                class="h-7 w-7 rounded-lg flex items-center justify-center text-[10px] transition"
+                                :class="[
+                                    d.dateString === current 
+                                        ? 'bg-blue-600 text-white font-bold' 
+                                        : (d.currentMonth 
+                                            ? 'text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 font-medium' 
+                                            : 'text-slate-300 dark:text-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800')
+                                ]"
+                                x-text="d.day">
+                        </button>
+                    </template>
+                </div>
+            </div>
         </div>
         <div class="flex items-center gap-2 text-slate-400">
             <button @click="shift(-1)" class="hover:text-slate-600 transition"><i data-lucide="arrow-left" class="h-4 w-4"></i></button>
@@ -114,6 +170,69 @@
             relDate(ds) { return new Date(ds + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }); },
             dotColor(type) { return { birthday: 'bg-pink-500', anniversary: 'bg-amber-500', new_joiner: 'bg-emerald-500' }[type] || 'bg-slate-400'; },
             dotBg(c) { return { brand: 'bg-brand-500', indigo: 'bg-indigo-500', emerald: 'bg-emerald-500', rose: 'bg-rose-500', sky: 'bg-sky-500' }[c] || 'bg-brand-500'; },
+            showPicker: false,
+            pickerYear: new Date().getFullYear(),
+            pickerMonth: new Date().getMonth(),
+            initPicker() {
+                const d = new Date(this.current + 'T00:00:00');
+                this.pickerYear = d.getFullYear();
+                this.pickerMonth = d.getMonth();
+            },
+            getPickerDays() {
+                const year = this.pickerYear;
+                const month = this.pickerMonth;
+                const firstDayIndex = new Date(year, month, 1).getDay();
+                const totalDays = new Date(year, month + 1, 0).getDate();
+                const prevTotalDays = new Date(year, month, 0).getDate();
+                const days = [];
+                for (let i = firstDayIndex - 1; i >= 0; i--) {
+                    const d = prevTotalDays - i;
+                    const mStr = String(month === 0 ? 12 : month).padStart(2, '0');
+                    const yStr = month === 0 ? year - 1 : year;
+                    days.push({
+                        day: d,
+                        currentMonth: false,
+                        dateString: `${yStr}-${mStr}-${String(d).padStart(2, '0')}`
+                    });
+                }
+                for (let i = 1; i <= totalDays; i++) {
+                    const mStr = String(month + 1).padStart(2, '0');
+                    days.push({
+                        day: i,
+                        currentMonth: true,
+                        dateString: `${year}-${mStr}-${String(i).padStart(2, '0')}`
+                    });
+                }
+                const remaining = 42 - days.length;
+                for (let i = 1; i <= remaining; i++) {
+                    const mStr = String(month === 11 ? 1 : month + 2).padStart(2, '0');
+                    const yStr = month === 11 ? year + 1 : year;
+                    days.push({
+                        day: i,
+                        currentMonth: false,
+                        dateString: `${yStr}-${mStr}-${String(i).padStart(2, '0')}`
+                    });
+                }
+                return days;
+            },
+            selectPickerDate(dateStr) {
+                this.current = dateStr;
+                this.showPicker = false;
+            },
+            changePickerMonth(dir) {
+                this.pickerMonth += dir;
+                if (this.pickerMonth > 11) {
+                    this.pickerMonth = 0;
+                    this.pickerYear++;
+                } else if (this.pickerMonth < 0) {
+                    this.pickerMonth = 11;
+                    this.pickerYear--;
+                }
+            },
+            getPickerMonthYearLabel() {
+                const months = ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"];
+                return `${months[this.pickerMonth]} ${this.pickerYear}`;
+            }
         };
     }
     </script>
