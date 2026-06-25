@@ -16,8 +16,11 @@ class SyncZktecoK50 extends Command
     {
         $deviceId = $this->option('device-id');
 
-        $query = ZktecoDevice::where('is_active', true);
-        
+        // Only PULL devices are dialed here. Push (ADMS) devices report to
+        // /iclock on their own and must not be marked "failed" by the puller.
+        $query = ZktecoDevice::where('is_active', true)
+            ->where(fn ($q) => $q->where('connection_mode', '!=', 'push')->orWhereNull('connection_mode'));
+
         if ($deviceId) {
             $query->where('id', $deviceId);
         }

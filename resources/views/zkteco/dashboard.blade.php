@@ -64,8 +64,12 @@
                 @forelse($devices as $device)
                 <tr>
                     <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="text-sm font-medium text-gray-900">{{ $device->name }}</div>
-                        <div class="text-sm text-gray-500">{{ $device->ip_address }}:{{ $device->port }}</div>
+                        @php $isPush = ($device->connection_mode ?? 'pull') === 'push'; @endphp
+                        <div class="text-sm font-medium text-gray-900 flex items-center gap-2">
+                            {{ $device->name }}
+                            <span class="px-2 py-0.5 inline-flex text-[10px] font-bold rounded-full {{ $isPush ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600' }}">{{ $isPush ? 'PUSH' : 'PULL' }}</span>
+                        </div>
+                        <div class="text-sm text-gray-500">{{ $isPush ? ('SN: ' . ($device->serial_number ?: '—')) : ($device->ip_address . ':' . $device->port) }}</div>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
                         <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ $device->status_badge }}">
@@ -79,10 +83,14 @@
                         {{ $device->total_records_synced }}
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <form action="{{ route('zkteco.devices.sync', $device) }}" method="POST" class="inline">
-                            @csrf
-                            <button type="submit" class="text-blue-600 hover:text-blue-900 mr-3">Sync Now</button>
-                        </form>
+                        @if($isPush)
+                            <span class="text-xs text-gray-400 italic">Reports automatically</span>
+                        @else
+                            <form action="{{ route('zkteco.devices.sync', $device) }}" method="POST" class="inline">
+                                @csrf
+                                <button type="submit" class="text-blue-600 hover:text-blue-900 mr-3">Sync Now</button>
+                            </form>
+                        @endif
                     </td>
                 </tr>
                 @empty

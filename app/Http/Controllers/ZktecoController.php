@@ -37,11 +37,37 @@ class ZktecoController extends Controller
             'name' => 'required|string|max:255',
             'ip_address' => 'required|ip',
             'port' => 'required|integer',
+            'serial_number' => 'nullable|string|max:100|unique:zkteco_devices,serial_number',
+            'connection_mode' => 'nullable|in:pull,push',
         ]);
+        $validated['connection_mode'] = $validated['connection_mode'] ?? 'pull';
 
         ZktecoDevice::create($validated);
 
         return back()->with('success', 'Device added successfully.');
+    }
+
+    public function updateDevice(Request $request, ZktecoDevice $device)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'ip_address' => 'required|ip',
+            'port' => 'required|integer',
+            'serial_number' => 'nullable|string|max:100|unique:zkteco_devices,serial_number,' . $device->id,
+            'connection_mode' => 'required|in:pull,push',
+        ]);
+
+        $device->update($validated);
+
+        return back()->with('success', "“{$device->name}” updated.");
+    }
+
+    public function destroyDevice(ZktecoDevice $device)
+    {
+        $name = $device->name;
+        $device->delete();
+
+        return back()->with('success', "“{$name}” removed.");
     }
 
     public function testConnection(ZktecoDevice $device, ZktecoK50Service $service)

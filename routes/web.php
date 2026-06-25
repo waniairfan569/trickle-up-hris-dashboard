@@ -414,6 +414,8 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
             Route::get('/', [\App\Http\Controllers\ZktecoController::class, 'dashboard'])->name('dashboard');
             Route::get('devices', [\App\Http\Controllers\ZktecoController::class, 'devices'])->name('devices');
             Route::post('devices', [\App\Http\Controllers\ZktecoController::class, 'storeDevice'])->name('devices.store');
+            Route::put('devices/{device}', [\App\Http\Controllers\ZktecoController::class, 'updateDevice'])->name('devices.update');
+            Route::delete('devices/{device}', [\App\Http\Controllers\ZktecoController::class, 'destroyDevice'])->name('devices.destroy');
             Route::post('devices/{device}/test', [\App\Http\Controllers\ZktecoController::class, 'testConnection'])->name('devices.test');
             Route::post('devices/{device}/sync', [\App\Http\Controllers\ZktecoController::class, 'syncNow'])->name('devices.sync');
             Route::get('unmapped', [\App\Http\Controllers\ZktecoController::class, 'unmapped'])->name('unmapped');
