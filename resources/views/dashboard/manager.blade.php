@@ -41,8 +41,7 @@
     
     <!-- Welcome Header -->
     <div>
-        <h1 class="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">Manager Dashboard</h1>
-        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Oversight of your reporting structure, direct approval queues, and upcoming reviews.</p>
+        <h1 class="text-2xl font-semibold text-slate-800 dark:text-white tracking-tight">Hello {{ auth()->user()->first_name }}!</h1>
     </div>
 
     <!-- Attendance Clock Widget -->
@@ -98,7 +97,7 @@
                                 ? 'bg-amber-500' 
                                 : ($isOffline ? 'bg-slate-400' : 'bg-emerald-500');
                         @endphp
-                        <a href="{{ route('employees.show', $report->id) }}" class="group relative flex flex-col items-center rounded-2xl border border-slate-100 bg-slate-50/50 p-4 text-center hover:bg-white hover:border-slate-200 hover:shadow-sm transition dark:border-slate-750 dark:bg-slate-850 dark:hover:bg-slate-800">
+                        <a href="{{ route('employees.profile', $report->id) }}" class="group relative flex flex-col items-center rounded-2xl border border-slate-100 bg-slate-50/50 p-4 text-center hover:bg-white hover:border-slate-200 hover:shadow-sm transition dark:border-slate-750 dark:bg-slate-850 dark:hover:bg-slate-800">
                             <!-- Avatar Ring -->
                             <div class="relative">
                                 @if($report->avatar_url)
