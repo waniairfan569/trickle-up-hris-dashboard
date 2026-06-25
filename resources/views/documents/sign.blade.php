@@ -205,10 +205,13 @@
                     const m = lib.Util.transform(vp.transform, item.transform);
                     const fontH = Math.hypot(m[2], m[3]) || 11;
                     const x = m[4], y = m[5] - fontH;
+                    // Cover at least the original run's width so leftover chars
+                    // (e.g. a trailing "]") don't peek out from under the value.
+                    const coverW = Math.ceil((item.width || 0) * (vp.scale || 1)) + 2;
                     const el = document.createElement('div');
                     el.textContent = replaced;
-                    el.style.cssText = 'position:absolute;background:#fff;color:#0f172a;white-space:nowrap;'
-                        + `left:${x}px;top:${y}px;height:${fontH * 1.25}px;line-height:${fontH * 1.25}px;`
+                    el.style.cssText = 'position:absolute;background:#fff;color:#0f172a;white-space:nowrap;overflow:hidden;'
+                        + `left:${x}px;top:${y}px;height:${fontH * 1.25}px;line-height:${fontH * 1.25}px;min-width:${coverW}px;`
                         + `font-size:${fontH}px;font-family:Helvetica,Arial,sans-serif;padding:0 1px;`;
                     container.appendChild(el);
                 });
