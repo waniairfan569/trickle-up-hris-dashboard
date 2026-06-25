@@ -63,7 +63,7 @@
                         $emp = \App\Models\User::find($value);
                     @endphp
                     @if($emp)
-                        <a href="{{ route('employees.show', $emp->id) }}" class="text-brand-600 hover:text-brand-700 transition dark:text-brand-400 underline">
+                        <a href="{{ route('employees.profile', $emp->id) }}" class="text-brand-600 hover:text-brand-700 transition dark:text-brand-400 underline">
                             {{ $emp->full_name }}
                         </a>
                     @else

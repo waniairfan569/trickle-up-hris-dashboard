@@ -181,7 +181,7 @@
                         <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Direct Line Manager</span>
                         <span class="text-xs font-bold text-slate-800 dark:text-slate-200 mt-1 block">
                             @if($employee->manager)
-                                <a href="{{ route('employees.show', $employee->manager->id) }}" class="text-brand-600 hover:text-brand-700 transition dark:text-brand-400">
+                                <a href="{{ route('employees.profile', $employee->manager->id) }}" class="text-brand-600 hover:text-brand-700 transition dark:text-brand-400">
                                     {{ $employee->manager->full_name }}
                                 </a>
                             @else

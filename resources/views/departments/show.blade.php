@@ -101,7 +101,7 @@
                                 @endif
                             </td>
                             <td class="px-6 py-4 text-right">
-                                <a href="{{ route('employees.show', $emp) }}" class="text-sm font-bold text-brand-600 hover:text-brand-800 dark:text-brand-400 transition">View</a>
+                                <a href="{{ route('employees.profile', $emp) }}" class="text-sm font-bold text-brand-600 hover:text-brand-800 dark:text-brand-400 transition">View</a>
                             </td>
                         </tr>
                     @empty
