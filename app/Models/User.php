@@ -295,12 +295,40 @@ class User extends Authenticatable
         }
 
         $field = $this->getAllProfileFields()->firstWhere('key', $key);
-        if (!$field) {
-            return null;
+        if ($field) {
+            $valueModel = $this->fieldValues->firstWhere('field_id', $field->id);
+            return $valueModel ? $valueModel->getDisplayValue() : null;
         }
 
-        $valueModel = $this->fieldValues->firstWhere('field_id', $field->id);
-        return $valueModel ? $valueModel->getDisplayValue() : null;
+        // Fallback: well-known document-template tokens (e.g. [candidate], [job],
+        // [today_date], [start_date]) that aren't backed by a column or profile
+        // field. Only reached when nothing above matched, so real fields win.
+        return $this->resolveDocumentToken($key);
+    }
+
+    /** Resolve common contract/letter placeholder tokens to real values. */
+    public function resolveDocumentToken(string $key) {
+        return match (strtolower(trim($key))) {
+            'candidate', 'employee', 'employee_name', 'full_name', 'name' => $this->full_name,
+            'job', 'position', 'designation', 'role', 'title' => $this->job_title,
+            'department', 'dept' => optional($this->department)->name,
+            'today_date', 'today', 'date', 'agreement_date', 'date_of_agreement', 'signing_date' => now()->format('d M Y'),
+            'start_date', 'commencement_date', 'date_of_commencement', 'joining_date', 'join_date' => $this->documentStartDate(),
+            'email', 'work_email' => $this->email,
+            default => null,
+        };
+    }
+
+    private function documentStartDate(): ?string {
+        $raw = $this->joined_at ?? $this->hire_date ?? null;
+        if (!$raw) {
+            return null;
+        }
+        try {
+            return \Carbon\Carbon::parse($raw)->format('d M Y');
+        } catch (\Throwable $e) {
+            return (string) $raw;
+        }
     }
 
     public function documents()
