@@ -157,7 +157,9 @@ class DocumentRequestController extends Controller
                 && ($signerCount <= 1 || $this->partyOf($f->assignee) === $myParty))
             ->values();
 
-        return view('documents.sign', compact('documentRequest', 'signer', 'myBoxes'));
+        $tokens = $this->resolveTokens($documentRequest->subject);
+
+        return view('documents.sign', compact('documentRequest', 'signer', 'myBoxes', 'tokens'));
     }
 
     /** POST documents/{request}/sign — store this signer's signature, advance the flow. */
@@ -282,10 +284,39 @@ class DocumentRequestController extends Controller
             'fileUrl' => route('documents.file', $documentRequest),
             'fileName' => pathinfo($documentRequest->template->file_name, PATHINFO_FILENAME) . ' — signed',
             'fields' => $fields,
+            'tokens' => $this->resolveTokens($subject),
         ]);
     }
 
     // ---------------------------------------------------------------------
+
+    /**
+     * Map bracketed template tokens (typed literally into the PDF) to the
+     * subject's real values, so the UI/PDF can overlay them, e.g.
+     * ['[candidate]' => 'Jane Doe', '[job]' => 'Designer', ...].
+     */
+    private function resolveTokens($subject): array
+    {
+        if (!$subject) {
+            return [];
+        }
+
+        $keys = [
+            'candidate', 'employee', 'employee_name', 'job', 'position', 'designation',
+            'today_date', 'date', 'agreement_date', 'start_date', 'commencement_date',
+            'date_of_commencement', 'department', 'email',
+        ];
+
+        $tokens = [];
+        foreach ($keys as $k) {
+            $v = $subject->getFieldValue($k);
+            if ($v !== null && $v !== '') {
+                $tokens['[' . $k . ']'] = (string) $v;
+            }
+        }
+
+        return $tokens;
+    }
 
     /**
      * Normalize a field assignee OR a signer role into a "party" so signature boxes

@@ -15,6 +15,7 @@
 <script>
     window.__signFileUrl = "{{ route('documents.file', $documentRequest) }}";
     window.__signBoxes = @json($boxOpts);
+    window.__docTokens = @json($tokens ?? []);
 </script>
 <script src="https://unpkg.com/pdfjs-dist@3.11.174/legacy/build/pdf.min.js"></script>
 <script>if (window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@3.11.174/legacy/build/pdf.worker.min.js';</script>
@@ -41,7 +42,7 @@
             <div x-show="!pdfReady && !pdfLoading" class="py-20 text-center text-sm text-slate-500" x-text="pdfError"></div>
             <div x-show="pdfReady" class="space-y-4 overflow-x-auto">
                 <template x-for="pg in pages" :key="'pg' + pg.num">
-                    <div class="relative mx-auto rounded-lg border border-slate-200 shadow-sm bg-white dark:border-slate-700" :style="`width:${pg.width}px;height:${pg.height}px`">
+                    <div class="relative mx-auto rounded-lg border border-slate-200 shadow-sm bg-white dark:border-slate-700" :style="`width:${pg.width}px;height:${pg.height}px`" :data-page="pg.num">
                         <canvas :id="'signcanvas-' + pg.num" class="block rounded-lg"></canvas>
                         <template x-for="b in boxesOnPage(pg.num)" :key="'b' + b.idx">
                             <button type="button" @click="openSign()" class="absolute rounded border-2 flex items-center justify-center text-[10px] font-bold uppercase tracking-wide bg-white/70 hover:bg-brand-50"
@@ -175,12 +176,42 @@
                         if (!c) continue;
                         c.width = meta[i].width; c.height = meta[i].height;
                         await __pdfPages[i].page.render({ canvasContext: c.getContext('2d'), viewport: __pdfPages[i].vp }).promise;
+                        await this.overlayTokens(__pdfPages[i].page, __pdfPages[i].vp, meta[i].num);
                     }
                     if (window.lucide) lucide.createIcons();
                 } catch (e) {
                     this.pdfReady = false; this.pdfLoading = false;
                     this.pdfError = 'Could not render the document (' + (e && e.message ? e.message : e) + ').';
                 }
+            },
+
+            // Overlay real values on top of literal [token] text in the PDF, so the
+            // signer sees the filled contract instead of [candidate]/[job]/etc.
+            async overlayTokens(page, vp, num) {
+                const tokens = window.__docTokens || {};
+                if (!Object.keys(tokens).length) return;
+                const container = document.querySelector(`[data-page="${num}"]`);
+                if (!container) return;
+                let tc;
+                try { tc = await page.getTextContent(); } catch (e) { return; }
+                const lib = window.pdfjsLib;
+                tc.items.forEach((item) => {
+                    const str = item.str || '';
+                    let replaced = str, hit = false;
+                    for (const [tok, val] of Object.entries(tokens)) {
+                        if (replaced.indexOf(tok) !== -1) { replaced = replaced.split(tok).join(val); hit = true; }
+                    }
+                    if (!hit) return;
+                    const m = lib.Util.transform(vp.transform, item.transform);
+                    const fontH = Math.hypot(m[2], m[3]) || 11;
+                    const x = m[4], y = m[5] - fontH;
+                    const el = document.createElement('div');
+                    el.textContent = replaced;
+                    el.style.cssText = 'position:absolute;background:#fff;color:#0f172a;white-space:nowrap;'
+                        + `left:${x}px;top:${y}px;height:${fontH * 1.25}px;line-height:${fontH * 1.25}px;`
+                        + `font-size:${fontH}px;font-family:Helvetica,Arial,sans-serif;padding:0 1px;`;
+                    container.appendChild(el);
+                });
             },
 
             // ---- signature modal ----
