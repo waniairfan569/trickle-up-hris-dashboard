@@ -32,6 +32,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
         $middleware->validateCsrfTokens(except: [
             'api/*',
+            'iclock/*', // ZKTeco ADMS push endpoints — devices can't send CSRF tokens
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

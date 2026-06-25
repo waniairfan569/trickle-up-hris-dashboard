@@ -11,6 +11,8 @@ class ZktecoDevice extends Model
 
     protected $fillable = [
         'name',
+        'serial_number',
+        'connection_mode',
         'ip_address',
         'port',
         'timezone',

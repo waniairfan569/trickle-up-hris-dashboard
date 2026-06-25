@@ -25,6 +25,13 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+// ZKTeco ADMS / push endpoints — devices POST punches here over the internet.
+// No auth (devices can't log in) and CSRF-excepted (see bootstrap/app.php).
+Route::match(['get', 'post'], '/iclock/cdata', [\App\Http\Controllers\ZktecoPushController::class, 'cdata']);
+Route::match(['get', 'post'], '/iclock/getrequest', [\App\Http\Controllers\ZktecoPushController::class, 'getrequest']);
+Route::match(['get', 'post'], '/iclock/devicecmd', [\App\Http\Controllers\ZktecoPushController::class, 'devicecmd']);
+Route::match(['get', 'post'], '/iclock/ping', [\App\Http\Controllers\ZktecoPushController::class, 'ping']);
+
 // Web Session Authentication Routes
 Route::get('/login', function () {
     return view('auth.login');

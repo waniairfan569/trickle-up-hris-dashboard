@@ -176,6 +176,64 @@ class ZktecoK50Service
         }
     }
 
+    /**
+     * Ingest a single punch (used by ADMS push mode). Dedupes, maps to a user
+     * or records it as unmapped, and runs it through the attendance pipeline.
+     * $punchedAt must already be in the canonical (app) timezone.
+     *
+     * @return string one of: imported, unmapped, duplicate
+     */
+    public function ingestPunch(ZktecoDevice $device, $uid, $employeeId, Carbon $punchedAt, int $state, int $verify): string
+    {
+        if (ZktecoRawPunch::where([
+            'device_id' => $device->id,
+            'zkteco_uid' => $uid,
+            'punched_at' => $punchedAt,
+        ])->exists()) {
+            return 'duplicate';
+        }
+
+        $user = User::where('zkteco_uid', $uid)->first();
+
+        try {
+            $punch = ZktecoRawPunch::create([
+                'device_id' => $device->id,
+                'zkteco_uid' => $uid,
+                'zkteco_employee_id' => $employeeId,
+                'user_id' => $user?->id,
+                'punched_at' => $punchedAt,
+                'punch_state' => $state,
+                'verify_type' => $verify,
+            ]);
+        } catch (\Illuminate\Database\QueryException $e) {
+            if (($e->getCode() === '23000') || str_contains($e->getMessage(), 'Duplicate entry')) {
+                return 'duplicate';
+            }
+            throw $e;
+        }
+
+        if (!$user) {
+            $unmapped = ZktecoUnmapped::firstOrNew([
+                'device_id' => $device->id,
+                'zkteco_uid' => $uid,
+            ]);
+            if (!$unmapped->exists) {
+                $unmapped->first_seen = $punchedAt;
+                $unmapped->punch_count = 0;
+            }
+            $unmapped->zkteco_employee_id = $employeeId;
+            $unmapped->punch_count++;
+            $unmapped->last_seen = $punchedAt;
+            $unmapped->save();
+
+            return 'unmapped';
+        }
+
+        $this->processPunch($punch, $user);
+
+        return 'imported';
+    }
+
     public function processPunch(ZktecoRawPunch $punch, User $user, string $sourceOverride = null): void
     {
         $punchType = $punch->punch_type_label;
