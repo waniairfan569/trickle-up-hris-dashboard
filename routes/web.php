@@ -135,6 +135,10 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
     Route::post('employees/{employee}/restore', [EmployeeController::class, 'restore'])
         ->middleware(['role:super_admin,hr_admin'])
         ->name('employees.restore');
+    // Change a user's RBAC role — super admin only.
+    Route::put('employees/{employee}/role', [EmployeeController::class, 'updateRole'])
+        ->middleware(['role:super_admin'])
+        ->name('employees.update-role');
 
     Route::resource('employees', EmployeeController::class)
         ->middleware(['employee.access']);

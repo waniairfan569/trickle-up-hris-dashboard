@@ -473,6 +473,36 @@ class EmployeeController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
+    /** Change a user's RBAC role (super admin only). */
+    public function updateRole(Request $request, User $employee)
+    {
+        $auth = $request->user();
+        abort_unless($auth && $auth->hasRole(\App\Models\Role::SUPER_ADMIN), 403, 'Only a super admin can change roles.');
+
+        if ($employee->id === $auth->id) {
+            return back()->withErrors(['role' => "You can't change your own role."]);
+        }
+
+        $validated = $request->validate([
+            'role' => ['required', \Illuminate\Validation\Rule::in([
+                \App\Models\Role::SUPER_ADMIN,
+                \App\Models\Role::HR_ADMIN,
+                \App\Models\Role::MANAGER,
+                \App\Models\Role::EMPLOYEE,
+                \App\Models\Role::RESTRICTED,
+            ])],
+        ]);
+
+        $role = \App\Models\Role::where('slug', $validated['role'])->firstOrFail();
+
+        // Replace all existing roles with the chosen one.
+        $employee->roles()->sync([
+            $role->id => ['assigned_by' => $auth->id, 'assigned_at' => now()],
+        ]);
+
+        return back()->with('success', $employee->full_name . "'s role updated to {$role->name}.");
+    }
+
     public function edit(Request $request, User $employee)
     {
         $auth = $request->user();

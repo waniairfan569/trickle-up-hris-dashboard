@@ -251,9 +251,21 @@
                             </td>
 
                             @if($auth->isAdmin())
-                            <!-- Role Badge -->
+                            <!-- Role Badge / super-admin role changer -->
                             <td class="py-4 px-6">
-                                <x-role-badge :role="$emp->user->role" />
+                                @if($auth->hasRole('super_admin') && $emp->user_id !== $auth->id)
+                                    <form action="{{ route('employees.update-role', $emp->user_id) }}" method="POST" class="inline-flex">
+                                        @csrf @method('PUT')
+                                        <select name="role" onchange="this.form.submit()" title="Change role"
+                                                class="rounded-lg border-slate-300 text-[11px] font-bold py-1 pl-2 pr-7 text-slate-700 shadow-sm focus:ring-brand-500 focus:border-brand-500 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200">
+                                            @foreach($rolesMap as $slug => $name)
+                                                <option value="{{ $slug }}" {{ (optional($emp->user->role)->slug ?? 'employee') === $slug ? 'selected' : '' }}>{{ $name }}</option>
+                                            @endforeach
+                                        </select>
+                                    </form>
+                                @else
+                                    <x-role-badge :role="$emp->user->role" />
+                                @endif
                             </td>
 
                             <!-- Status -->
