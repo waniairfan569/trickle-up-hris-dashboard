@@ -121,7 +121,9 @@
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employee</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Device UID</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Emp ID</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Punches</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Check-ins</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Check-outs</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
                 </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
@@ -130,11 +132,13 @@
                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ trim($u->first_name . ' ' . $u->last_name) }}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 font-mono">{{ $u->zkteco_uid }}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">{{ $u->zkteco_employee_id ?? '—' }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm"><span class="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">{{ $u->checkin_count }} in</span></td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm"><span class="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700">{{ $u->checkout_count }} out</span></td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $u->punch_count }}</td>
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="4" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">No users mapped yet. Map device UIDs to employees on the Unmapped page.</td>
+                    <td colspan="6" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">No users mapped yet. Map device UIDs to employees on the Unmapped page.</td>
                 </tr>
                 @endforelse
             </tbody>

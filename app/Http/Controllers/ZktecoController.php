@@ -32,6 +32,8 @@ class ZktecoController extends Controller
             ->get(['id', 'first_name', 'last_name', 'zkteco_uid', 'zkteco_employee_id']);
         foreach ($syncedUsers as $u) {
             $u->punch_count = ZktecoRawPunch::where('zkteco_uid', $u->zkteco_uid)->count();
+            $u->checkin_count = ZktecoRawPunch::where('zkteco_uid', $u->zkteco_uid)->where('punch_state', 0)->count();
+            $u->checkout_count = ZktecoRawPunch::where('zkteco_uid', $u->zkteco_uid)->where('punch_state', 1)->count();
         }
 
         return view('zkteco.dashboard', compact('lastSync', 'todayImported', 'unmappedCount', 'totalDevices', 'devices', 'syncedUsers'));
