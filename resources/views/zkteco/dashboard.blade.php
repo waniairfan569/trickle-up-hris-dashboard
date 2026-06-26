@@ -5,6 +5,13 @@
     <div class="flex justify-between items-center mb-8">
         <h1 class="text-2xl font-bold text-gray-900">ZKTeco Dashboard</h1>
         <div class="flex space-x-4">
+            @if(auth()->user()->hasRole('super_admin'))
+            <form action="{{ route('zkteco.clear-data') }}" method="POST"
+                  onsubmit="return confirm('Clear ALL ZKTeco data?\n\nThis permanently deletes all device punches, unmapped records and device-sourced attendance, and resets device counters.\n\nEmployees and their mappings are kept. This cannot be undone.');">
+                @csrf
+                <button type="submit" class="px-4 py-2 border border-red-300 rounded-md shadow-sm text-sm font-medium text-red-700 bg-white hover:bg-red-50">Clear All Data</button>
+            </form>
+            @endif
             <a href="{{ route('zkteco.devices') }}" class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">Manage Devices</a>
             <a href="{{ route('zkteco.import') }}" class="px-4 py-2 bg-blue-600 text-white rounded-md shadow-sm text-sm font-medium hover:bg-blue-700">Manual Excel Import</a>
         </div>

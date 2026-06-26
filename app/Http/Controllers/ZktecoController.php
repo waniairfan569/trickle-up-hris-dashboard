@@ -3,13 +3,17 @@
 namespace App\Http\Controllers;
 
 use App\Models\AttendanceImportLog;
+use App\Models\AttendanceRecord;
+use App\Models\BreakRecord;
 use App\Models\User;
 use App\Models\ZktecoDevice;
+use App\Models\ZktecoRawPunch;
 use App\Models\ZktecoUnmapped;
 use App\Services\ExcelImportService;
 use App\Services\ZktecoK50Service;
 use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ZktecoController extends Controller
 {
@@ -127,5 +131,33 @@ class ZktecoController extends Controller
         } catch (Exception $e) {
             return back()->with('error', 'Failed to import: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Wipe all ZKTeco punch data for a fresh start: raw punches, unmapped UIDs,
+     * device-sourced attendance (+ their breaks), and reset device counters.
+     * Employees, mappings, and manual attendance are kept. Super admin only.
+     */
+    public function clearData(Request $request)
+    {
+        abort_unless($request->user() && $request->user()->hasRole('super_admin'), 403, 'Only a super admin can clear ZKTeco data.');
+
+        $counts = DB::transaction(function () {
+            $attIds = AttendanceRecord::where('source', 'zkteco')->pluck('id');
+            $breaks = BreakRecord::whereIn('attendance_record_id', $attIds)->delete();
+            $att = AttendanceRecord::whereIn('id', $attIds)->delete();
+
+            $punches = ZktecoRawPunch::query()->delete();
+            $unmapped = ZktecoUnmapped::query()->delete();
+
+            ZktecoDevice::query()->update([
+                'total_records_synced' => 0,
+                'last_synced_at' => null,
+            ]);
+
+            return compact('att', 'punches', 'unmapped', 'breaks');
+        });
+
+        return back()->with('success', "ZKTeco data cleared — {$counts['punches']} punches, {$counts['unmapped']} unmapped, {$counts['att']} attendance records removed. Device counters reset.");
     }
 }

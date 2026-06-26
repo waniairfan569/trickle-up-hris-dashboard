@@ -422,6 +422,7 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
             Route::post('unmapped/resolve', [\App\Http\Controllers\ZktecoController::class, 'resolveMapping'])->name('unmapped.resolve');
             Route::get('import', [\App\Http\Controllers\ZktecoController::class, 'showImport'])->name('import');
             Route::post('import', [\App\Http\Controllers\ZktecoController::class, 'import'])->name('import.store');
+            Route::post('clear-data', [\App\Http\Controllers\ZktecoController::class, 'clearData'])->name('clear-data')->middleware('role:super_admin');
         });
     });
 });
