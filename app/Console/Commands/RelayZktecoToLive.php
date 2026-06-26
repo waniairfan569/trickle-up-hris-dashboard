@@ -43,7 +43,8 @@ class RelayZktecoToLive extends Command
         $url = rtrim($this->option('url') ?: env('ZKTECO_RELAY_URL', 'https://hour.trickleup.co'), '/');
         $sn = $this->option('sn') ?: ($device->serial_number ?: 'K50-' . str_replace('.', '-', $device->ip_address));
         $cursorKey = 'zkteco_relay_cursor_' . ($device->id ?: str_replace('.', '_', $device->ip_address));
-        $cursor = $this->option('all') ? null : Cache::get($cursorKey);
+        // Force the file cache store so the HR PC needs no database at all.
+        $cursor = $this->option('all') ? null : Cache::store('file')->get($cursorKey);
 
         $this->info("Relaying {$device->name} ({$device->ip_address}:{$device->port}) -> {$url}  (SN={$sn})");
 
@@ -114,7 +115,7 @@ class RelayZktecoToLive extends Command
         }
 
         if ($maxTs) {
-            Cache::forever($cursorKey, $maxTs->toDateTimeString());
+            Cache::store('file')->forever($cursorKey, $maxTs->toDateTimeString());
         }
 
         $this->info("Relayed {$sent} punch(es) to live.");
