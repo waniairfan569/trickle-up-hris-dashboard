@@ -6,6 +6,11 @@
         <h1 class="text-2xl font-bold text-gray-900">ZKTeco Dashboard</h1>
         <div class="flex space-x-4">
             @if(auth()->user()->hasRole('super_admin'))
+            <form action="{{ route('zkteco.rebuild-attendance') }}" method="POST"
+                  onsubmit="return confirm('Rebuild attendance from existing punches?\n\nThis re-pairs every device punch into check-ins / check-outs (1st punch of the day = check-in, the next = check-out). Raw punches and employee mappings are kept.');">
+                @csrf
+                <button type="submit" class="px-4 py-2 border border-indigo-300 rounded-md shadow-sm text-sm font-medium text-indigo-700 bg-white hover:bg-indigo-50">Rebuild Attendance</button>
+            </form>
             <form action="{{ route('zkteco.clear-data') }}" method="POST"
                   onsubmit="return confirm('Clear ALL ZKTeco data?\n\nThis permanently deletes all device punches, unmapped records and device-sourced attendance, and resets device counters.\n\nEmployees and their mappings are kept. This cannot be undone.');">
                 @csrf

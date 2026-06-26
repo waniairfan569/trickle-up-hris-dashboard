@@ -236,11 +236,10 @@ class ZktecoK50Service
 
     public function processPunch(ZktecoRawPunch $punch, User $user, string $sourceOverride = null): void
     {
-        $punchType = $punch->punch_type_label;
+        $rawType = $punch->punch_type_label;
 
-        // Only Check-In / Check-Out drive attendance. Ignore Break / Overtime
-        // punches entirely (don't even create a record), but mark them processed.
-        if (!in_array($punchType, ['clock_in', 'clock_out'], true)) {
+        // Ignore Break / Overtime punches entirely (don't create a record).
+        if (in_array($rawType, ['break_out', 'break_in', 'overtime_in', 'overtime_out'], true)) {
             $punch->update(['is_processed' => true, 'processed_at' => now(), 'user_id' => $user->id]);
             return;
         }
@@ -260,6 +259,21 @@ class ZktecoK50Service
             ['user_id' => $user->id, 'date' => $date],
             ['status' => 'absent', 'source' => $source]
         );
+
+        // Decide check-in vs check-out. Tap-to-punch devices (e.g. SpeedFace)
+        // send every punch as state 0 (check-in), so we PAIR by sequence instead
+        // of trusting the device state: the day's first punch = check-in, the
+        // next = check-out, and later punches keep extending the check-out time.
+        // An explicit check-out state (1) from a device that does send it is
+        // always honoured.
+        if ($rawType === 'clock_out') {
+            $punchType = 'clock_out';
+        } elseif (!$record->clock_in) {
+            $punchType = 'clock_in';
+        } else {
+            $punchType = 'clock_out';
+        }
+
         $shift = $shiftService->getShiftForUserOnDate($user, $localPunch->copy());
 
         if ($punchType === 'clock_in') {

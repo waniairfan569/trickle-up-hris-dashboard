@@ -32,8 +32,12 @@ class ZktecoController extends Controller
             ->get(['id', 'first_name', 'last_name', 'zkteco_uid', 'zkteco_employee_id']);
         foreach ($syncedUsers as $u) {
             $u->punch_count = ZktecoRawPunch::where('zkteco_uid', $u->zkteco_uid)->count();
-            $u->checkin_count = ZktecoRawPunch::where('zkteco_uid', $u->zkteco_uid)->where('punch_state', 0)->count();
-            $u->checkout_count = ZktecoRawPunch::where('zkteco_uid', $u->zkteco_uid)->where('punch_state', 1)->count();
+            // Check-ins / check-outs reflect the PAIRED attendance, not the raw
+            // device state (tap-to-punch devices report every punch as state 0).
+            $u->checkin_count = AttendanceRecord::where('user_id', $u->id)
+                ->where('source', 'zkteco')->whereNotNull('clock_in')->count();
+            $u->checkout_count = AttendanceRecord::where('user_id', $u->id)
+                ->where('source', 'zkteco')->whereNotNull('clock_out')->count();
         }
 
         return view('zkteco.dashboard', compact('lastSync', 'todayImported', 'unmappedCount', 'totalDevices', 'devices', 'syncedUsers'));
@@ -169,5 +173,53 @@ class ZktecoController extends Controller
         });
 
         return back()->with('success', "ZKTeco data cleared — {$counts['punches']} punches, {$counts['unmapped']} unmapped, {$counts['att']} attendance records removed. Device counters reset.");
+    }
+
+    /**
+     * Rebuild device-sourced attendance from the existing raw punches using the
+     * current pairing rules (1st punch of day = check-in, next = check-out).
+     * Use after changing the pairing logic, or when punches were imported before
+     * the device started reporting check-outs. Keeps the raw punches and the
+     * employee mappings; only the derived attendance is recomputed. Super admin only.
+     */
+    public function rebuildAttendance(Request $request, ZktecoK50Service $service)
+    {
+        abort_unless($request->user() && $request->user()->hasRole('super_admin'), 403, 'Only a super admin can rebuild attendance.');
+
+        $result = DB::transaction(function () use ($service) {
+            // Drop the derived attendance (+ breaks) so pairing starts fresh.
+            $attIds = AttendanceRecord::where('source', 'zkteco')->pluck('id');
+            BreakRecord::whereIn('attendance_record_id', $attIds)->delete();
+            AttendanceRecord::whereIn('id', $attIds)->delete();
+
+            // Reset processed flags so every mapped punch runs through again.
+            ZktecoRawPunch::whereNotNull('user_id')->update([
+                'is_processed' => false,
+                'processed_at' => null,
+            ]);
+
+            // Re-process in chronological order — pairing depends on punch order.
+            $punches = ZktecoRawPunch::whereNotNull('user_id')
+                ->with('user')
+                ->orderBy('punched_at')
+                ->get();
+
+            $processed = 0;
+            foreach ($punches as $punch) {
+                if (!$punch->user) {
+                    continue;
+                }
+                try {
+                    $service->processPunch($punch, $punch->user);
+                    $processed++;
+                } catch (\Throwable $e) {
+                    report($e);
+                }
+            }
+
+            return ['processed' => $processed];
+        });
+
+        return back()->with('success', "Attendance rebuilt — {$result['processed']} punches re-paired into check-ins / check-outs.");
     }
 }
