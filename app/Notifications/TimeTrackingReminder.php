@@ -28,7 +28,7 @@ class TimeTrackingReminder extends Notification
             ->greeting('Hi ' . ($notifiable->first_name ?? 'there') . ',')
             ->line($this->body)
             ->action('Open my attendance', route('attendance.my-history'))
-            ->line('This is an automated reminder from Trickle Up HRIS.');
+            ->line('This is an automated reminder from TrickleUp Hub.');
     }
 
     public function toDatabase($notifiable)

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trickle Up HRIS - Administrative Portal Access</title>
+    <title>TrickleUp Hub - Administrative Portal Access</title>
     <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}">
     
     <!-- Fonts -->

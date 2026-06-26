@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ============================================================
-# Trickle Up HRIS — Plesk Git deployment script
+# TrickleUp Hub — Plesk Git deployment script
 # Paste the body of this into:
 #   Plesk > Domain > Git > (your repo) > "Enable additional deployment actions"
 # OR run it manually over SSH from the project root after a git pull.

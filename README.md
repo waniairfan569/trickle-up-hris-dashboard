@@ -1,4 +1,4 @@
-# Trickle Up HRIS
+# TrickleUp Hub
 
 A Human Resources Information System (HRIS) admin dashboard built with **Laravel 13** (PHP 8.3). It is a server-rendered monolith with two interfaces over a single domain model:
 
