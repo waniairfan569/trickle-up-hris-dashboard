@@ -21,9 +21,12 @@ use Illuminate\Support\Facades\Http;
 class RelayZktecoToLive extends Command
 {
     protected $signature = 'zkteco:relay
-        {--device= : Device id or IP (defaults to first active pull device)}
+        {--device= : Device id or IP from the local DB (optional)}
+        {--ip= : Device IP — use this to relay without a DB record}
+        {--port=4370 : Device TCP port (used with --ip)}
         {--url= : Live base URL (default: ZKTECO_RELAY_URL or https://hour.trickleup.co)}
-        {--sn= : Serial to register the device under on live (default: device serial or K50-<id>)}
+        {--sn= : Serial to register the device under on live (default: device serial or K50-<ip>)}
+        {--tz= : Device timezone (used with --ip, default Asia/Karachi)}
         {--all : Relay all logs (ignore the saved cursor)}
         {--dry : Connect + count, but do not POST}';
 
@@ -38,8 +41,8 @@ class RelayZktecoToLive extends Command
         }
 
         $url = rtrim($this->option('url') ?: env('ZKTECO_RELAY_URL', 'https://hour.trickleup.co'), '/');
-        $sn = $this->option('sn') ?: ($device->serial_number ?: 'K50-' . $device->id);
-        $cursorKey = "zkteco_relay_cursor_{$device->id}";
+        $sn = $this->option('sn') ?: ($device->serial_number ?: 'K50-' . str_replace('.', '-', $device->ip_address));
+        $cursorKey = 'zkteco_relay_cursor_' . ($device->id ?: str_replace('.', '_', $device->ip_address));
         $cursor = $this->option('all') ? null : Cache::get($cursorKey);
 
         $this->info("Relaying {$device->name} ({$device->ip_address}:{$device->port}) -> {$url}  (SN={$sn})");
@@ -121,11 +124,26 @@ class RelayZktecoToLive extends Command
 
     private function resolveDevice(): ?ZktecoDevice
     {
+        // Standalone mode (no DB record needed) — just point at the K50's IP.
+        if ($this->option('ip')) {
+            return new ZktecoDevice([
+                'name' => 'K50',
+                'ip_address' => $this->option('ip'),
+                'port' => (int) $this->option('port') ?: 4370,
+                'timezone' => $this->option('tz') ?: 'Asia/Karachi',
+            ]);
+        }
+
         $opt = $this->option('device');
         if ($opt) {
-            return is_numeric($opt)
+            $found = is_numeric($opt)
                 ? ZktecoDevice::find($opt)
                 : ZktecoDevice::where('ip_address', $opt)->first();
+            // If an IP was given but no DB row exists, relay it anyway.
+            if (!$found && !is_numeric($opt)) {
+                return new ZktecoDevice(['name' => 'K50', 'ip_address' => $opt, 'port' => (int) $this->option('port') ?: 4370, 'timezone' => 'Asia/Karachi']);
+            }
+            return $found;
         }
 
         return ZktecoDevice::where('is_active', true)
