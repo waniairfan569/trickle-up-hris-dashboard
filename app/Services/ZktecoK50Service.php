@@ -336,8 +336,14 @@ class ZktecoK50Service
             ->where('is_processed', false)
             ->get();
 
+        // Process historical punches, but never let one bad punch fail the whole
+        // mapping (the employee link + UID on the profile must still succeed).
         foreach ($unprocessedPunches as $punch) {
-            $this->processPunch($punch, $employee);
+            try {
+                $this->processPunch($punch, $employee);
+            } catch (\Throwable $e) {
+                report($e);
+            }
         }
     }
 }

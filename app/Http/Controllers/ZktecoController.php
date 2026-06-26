@@ -26,7 +26,15 @@ class ZktecoController extends Controller
 
         $devices = ZktecoDevice::all();
 
-        return view('zkteco.dashboard', compact('lastSync', 'todayImported', 'unmappedCount', 'totalDevices', 'devices'));
+        // Mapped (synced) users with their device UID + punch count.
+        $syncedUsers = User::whereNotNull('zkteco_uid')
+            ->orderBy('first_name')->orderBy('last_name')
+            ->get(['id', 'first_name', 'last_name', 'zkteco_uid', 'zkteco_employee_id']);
+        foreach ($syncedUsers as $u) {
+            $u->punch_count = ZktecoRawPunch::where('zkteco_uid', $u->zkteco_uid)->count();
+        }
+
+        return view('zkteco.dashboard', compact('lastSync', 'todayImported', 'unmappedCount', 'totalDevices', 'devices', 'syncedUsers'));
     }
 
     public function devices()

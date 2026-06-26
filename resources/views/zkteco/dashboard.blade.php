@@ -108,5 +108,37 @@
             </tbody>
         </table>
     </div>
+
+    <!-- Synced Users -->
+    <div class="bg-white shadow rounded-lg overflow-hidden mt-8">
+        <div class="px-6 py-5 border-b border-gray-200 flex items-center justify-between">
+            <h3 class="text-lg font-medium text-gray-900">Synced Users</h3>
+            <span class="text-sm text-gray-500">{{ $syncedUsers->count() }} mapped</span>
+        </div>
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employee</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Device UID</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Emp ID</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Punches</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                @forelse($syncedUsers as $u)
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ trim($u->first_name . ' ' . $u->last_name) }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 font-mono">{{ $u->zkteco_uid }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">{{ $u->zkteco_employee_id ?? '—' }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $u->punch_count }}</td>
+                </tr>
+                @empty
+                <tr>
+                    <td colspan="4" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">No users mapped yet. Map device UIDs to employees on the Unmapped page.</td>
+                </tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
 </div>
 @endsection
