@@ -22,6 +22,15 @@ return Application::configure(basePath: dirname(__DIR__))
             'force.password.change' => \App\Http\Middleware\ForcePasswordChange::class,
             'user.timezone'    => \App\Http\Middleware\SetUserTimezone::class,
         ]);
+        // Trust Plesk's reverse proxy so $request->secure() reflects the real
+        // scheme (X-Forwarded-Proto) — required for ForceHttps to work without looping.
+        $middleware->trustProxies(at: '*');
+
+        // Force HTTPS (except /iclock) — runs first; controlled by config('app.force_https').
+        $middleware->web(prepend: [
+            \App\Http\Middleware\ForceHttps::class,
+        ]);
+
         // Resolve the authenticated user's display timezone on every web request
         // (the middleware no-ops for guests).
         $middleware->web(append: [
