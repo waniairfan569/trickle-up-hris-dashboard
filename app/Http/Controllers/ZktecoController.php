@@ -200,17 +200,17 @@ class ZktecoController extends Controller
 
             // Re-process in chronological order — pairing depends on punch order.
             $punches = ZktecoRawPunch::whereNotNull('user_id')
-                ->with('user')
+                ->with('employee')
                 ->orderBy('punched_at')
                 ->get();
 
             $processed = 0;
             foreach ($punches as $punch) {
-                if (!$punch->user) {
+                if (!$punch->employee) {
                     continue;
                 }
                 try {
-                    $service->processPunch($punch, $punch->user);
+                    $service->processPunch($punch, $punch->employee);
                     $processed++;
                 } catch (\Throwable $e) {
                     report($e);
