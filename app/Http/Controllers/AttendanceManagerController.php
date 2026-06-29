@@ -83,6 +83,37 @@ class AttendanceManagerController extends Controller
         return TimeOffRequest::onLeaveToday($ids);
     }
 
+    /**
+     * Re-evaluate attendance status against the current late rule (09:30 cutoff)
+     * for a given day — fixes records created before the rule existed, regardless
+     * of source (device or app). Admin only. Defaults to today.
+     */
+    public function recalcLate(Request $request)
+    {
+        abort_unless($request->user() && $request->user()->isAdmin(), 403);
+
+        $date = $request->input('date', today()->toDateString());
+        $count = 0;
+        $changed = 0;
+
+        AttendanceRecord::with('employee')
+            ->whereDate('date', $date)
+            ->whereNotNull('clock_in')
+            ->chunkById(300, function ($records) use (&$count, &$changed) {
+                foreach ($records as $r) {
+                    $before = $r->status . '|' . $r->late_minutes;
+                    $r->recalculate();
+                    $count++;
+                    if ($before !== $r->status . '|' . $r->late_minutes) {
+                        $r->save();
+                        $changed++;
+                    }
+                }
+            });
+
+        return back()->with('success', "Re-checked {$count} record(s) for " . \Carbon\Carbon::parse($date)->format('d M Y') . " against the 09:30 rule — {$changed} updated.");
+    }
+
     /** Dedicated "On Leave" page: who's out today + upcoming approved leave. */
     public function onLeave(Request $request)
     {

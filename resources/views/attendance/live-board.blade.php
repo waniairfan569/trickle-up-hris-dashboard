@@ -6,10 +6,22 @@
 @section('content')
 <div class="space-y-6">
 
-    <div class="flex items-center justify-between">
+    <div class="flex items-center justify-between gap-2 flex-wrap">
         <h2 class="text-2xl font-bold text-slate-800">Today: {{ now()->format('l, F j, Y') }}</h2>
-        <a href="{{ route('attendance.on-leave') }}" class="inline-flex items-center gap-1.5 text-sm font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition"><i data-lucide="palmtree" class="w-4 h-4"></i> On Leave</a>
+        <div class="flex items-center gap-2">
+            @if(auth()->user()->isAdmin())
+            <form method="POST" action="{{ route('attendance.recalc-late') }}" onsubmit="return confirm('Re-check today\'s attendance against the 09:30 late rule? Anyone who clocked in after 09:30 will be marked Late.');">
+                @csrf
+                <button type="submit" class="inline-flex items-center gap-1.5 text-sm font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 px-3 py-1.5 rounded-lg transition"><i data-lucide="alarm-clock" class="w-4 h-4"></i> Fix late status</button>
+            </form>
+            @endif
+            <a href="{{ route('attendance.on-leave') }}" class="inline-flex items-center gap-1.5 text-sm font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition"><i data-lucide="palmtree" class="w-4 h-4"></i> On Leave</a>
+        </div>
     </div>
+
+    @if(session('success'))
+        <div class="rounded-xl bg-emerald-50 p-3 border border-emerald-200 text-sm text-emerald-800 flex items-center gap-2"><i data-lucide="check-circle" class="h-5 w-5"></i>{{ session('success') }}</div>
+    @endif
 
     <!-- On leave today -->
     @include('partials.on-leave-today', ['people' => $onLeavePeople, 'compact' => true])

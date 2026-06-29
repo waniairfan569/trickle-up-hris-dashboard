@@ -388,6 +388,7 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
             Route::post('manual', [AttendanceManagerController::class, 'manualEntry'])->name('manual');
             Route::get('all', [AttendanceManagerController::class, 'allHistory'])->name('all');
             Route::put('records/{record}/times', [AttendanceManagerController::class, 'updateTimes'])->name('records.update-times');
+            Route::post('recalc-late', [AttendanceManagerController::class, 'recalcLate'])->name('recalc-late');
         });
     });
 
