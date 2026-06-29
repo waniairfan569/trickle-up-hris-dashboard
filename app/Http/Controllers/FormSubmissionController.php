@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\CompanyForm;
 use App\Models\FormSubmission;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -110,7 +111,11 @@ class FormSubmissionController extends Controller
             'ip_address' => $request->ip(),
         ]);
 
-        $this->notifyAdminsOfSubmission($companyForm, $user);
+        try {
+            $this->notifyAdminsOfSubmission($companyForm, $user);
+        } catch (\Throwable $e) {
+            report($e); // never let a notification problem fail a saved submission
+        }
 
         return redirect()->route('my-forms.index')->with('success', 'Form submitted. Thank you!');
     }
