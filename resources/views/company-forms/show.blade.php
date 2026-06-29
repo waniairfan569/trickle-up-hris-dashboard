@@ -57,6 +57,11 @@
                 <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-50 text-brand-600 dark:bg-brand-500/10"><i data-lucide="{{ $a->assigned_to_type === 'all' ? 'users' : ($a->assigned_to_type === 'department' ? 'building-2' : 'user') }}" class="h-4 w-4"></i></span>
                 <span class="text-sm font-semibold text-slate-800 dark:text-white">{{ $a->label }}</span>
                 <span class="text-xs text-slate-400 ml-auto">{{ optional($a->assigned_at)->format('d M Y') }}</span>
+                <form action="{{ route('company-forms.unassign', [$form, $a]) }}" method="POST" onsubmit="return confirm('Unassign “{{ $a->label }}” from this form?\n\nPending (not-yet-submitted) responses for these people will be removed. Already-submitted responses are kept.');">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" title="Unassign" class="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-500/10"><i data-lucide="x" class="h-4 w-4"></i></button>
+                </form>
             </div>
         @empty
             <p class="px-6 py-8 text-center text-sm text-slate-400">Not assigned to anyone yet.</p>

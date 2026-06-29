@@ -95,6 +95,42 @@ class TimeOffRequest extends Model
         return $this->belongsTo(User::class, 'requested_by');
     }
 
+    /**
+     * People with approved leave covering today, as normalized display rows.
+     * Pass $userIds to scope to a manager's team. Used by the dashboard card,
+     * the Team Attendance "on leave" strip and the dedicated On Leave page.
+     *
+     * @return \Illuminate\Support\Collection<int, array>
+     */
+    public static function onLeaveToday($userIds = null)
+    {
+        $q = static::where('status', 'approved')
+            ->whereDate('start_date', '<=', today())
+            ->whereDate('end_date', '>=', today())
+            ->with(['employee:id,first_name,last_name,avatar_url', 'policy:id,name']);
+
+        if (is_array($userIds)) {
+            $q->whereIn('user_id', $userIds);
+        }
+
+        return $q->orderBy('end_date')->get()
+            ->filter(fn ($r) => $r->employee)
+            ->map(function ($r) {
+                $emp = $r->employee;
+                $name = trim(($emp->first_name ?? '') . ' ' . ($emp->last_name ?? '')) ?: 'Employee';
+
+                return [
+                    'name' => $name,
+                    'initials' => $emp->initials,
+                    'avatar' => $emp->avatar_url,
+                    'until' => $r->end_date->isToday() ? 'today' : $r->end_date->format('d M'),
+                    'returns' => $r->end_date->copy()->addDay()->format('d M Y'),
+                    'policy' => optional($r->policy)->name,
+                    'half' => $r->is_half_day ? ($r->half_day_period ? ucfirst($r->half_day_period) . ' half' : 'Half day') : null,
+                ];
+            })->values();
+    }
+
     // --- Scopes ---
 
     public function scopePending($query)

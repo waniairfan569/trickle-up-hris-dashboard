@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\AttendanceCorrection;
 use App\Models\AttendanceRecord;
 use App\Models\Department;
+use App\Models\TimeOffRequest;
 use App\Models\User;
 use App\Services\AttendanceService;
 use Carbon\Carbon;
@@ -70,8 +71,34 @@ class AttendanceManagerController extends Controller
         ];
 
         $departments = Department::all();
+        $onLeavePeople = $this->onLeavePeople($user);
 
-        return view('attendance.live-board', compact('records', 'summary', 'departments'));
+        return view('attendance.live-board', compact('records', 'summary', 'departments', 'onLeavePeople'));
+    }
+
+    /** Approved-leave people covering today, scoped to a manager's team. */
+    private function onLeavePeople(User $user)
+    {
+        $ids = $user->isAdmin() ? null : $user->directReports()->pluck('id')->all();
+        return TimeOffRequest::onLeaveToday($ids);
+    }
+
+    /** Dedicated "On Leave" page: who's out today + upcoming approved leave. */
+    public function onLeave(Request $request)
+    {
+        $user = $request->user();
+        $onLeavePeople = $this->onLeavePeople($user);
+        $ids = $user->isAdmin() ? null : $user->directReports()->pluck('id')->all();
+
+        $upcoming = TimeOffRequest::where('status', 'approved')
+            ->whereDate('start_date', '>', today())
+            ->whereDate('start_date', '<=', today()->copy()->addDays(30))
+            ->when(is_array($ids), fn ($q) => $q->whereIn('user_id', $ids))
+            ->with(['employee:id,first_name,last_name,avatar_url', 'policy:id,name'])
+            ->orderBy('start_date')
+            ->get();
+
+        return view('attendance.on-leave', compact('onLeavePeople', 'upcoming'));
     }
 
     public function teamHistory(Request $request)
@@ -104,11 +131,12 @@ class AttendanceManagerController extends Controller
 
         $records = $query->orderBy('date', 'desc')->paginate(30);
         $departments = Department::all();
-        
+
         // For employee dropdown filter
         $teamMembers = $user->isAdmin() ? User::all() : User::where('manager_id', $user->id)->get();
+        $onLeavePeople = $this->onLeavePeople($user);
 
-        return view('attendance.team-history', compact('records', 'departments', 'teamMembers'));
+        return view('attendance.team-history', compact('records', 'departments', 'teamMembers', 'onLeavePeople'));
     }
 
     /** Export the (filtered) team attendance history as CSV. */

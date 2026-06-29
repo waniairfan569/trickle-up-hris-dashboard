@@ -8,7 +8,11 @@
 
     <div class="flex items-center justify-between">
         <h2 class="text-2xl font-bold text-slate-800">Today: {{ now()->format('l, F j, Y') }}</h2>
+        <a href="{{ route('attendance.on-leave') }}" class="inline-flex items-center gap-1.5 text-sm font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition"><i data-lucide="palmtree" class="w-4 h-4"></i> On Leave</a>
     </div>
+
+    <!-- On leave today -->
+    @include('partials.on-leave-today', ['people' => $onLeavePeople, 'compact' => true])
 
     <!-- Stat Cards -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-6">

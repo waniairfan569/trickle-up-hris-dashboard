@@ -88,8 +88,14 @@
         <i data-lucide="activity" class="h-4 w-4 shrink-0 transition {{ Str::startsWith($routeName, 'attendance.live') ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>
         <span>Live Board</span>
     </a>
-    
-    <a href="{{ route('attendance.team') }}" 
+
+    <a href="{{ route('attendance.on-leave') }}"
+       class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ Str::startsWith($routeName, 'attendance.on-leave') ? 'bg-brand-600 text-slate-900 shadow-md shadow-brand-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
+        <i data-lucide="palmtree" class="h-4 w-4 shrink-0 transition {{ Str::startsWith($routeName, 'attendance.on-leave') ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>
+        <span>On Leave</span>
+    </a>
+
+    <a href="{{ route('attendance.team') }}"
        class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ Str::startsWith($routeName, 'attendance.team') ? 'bg-brand-600 text-slate-900 shadow-md shadow-brand-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
         <i data-lucide="clipboard-list" class="h-4 w-4 shrink-0 transition {{ Str::startsWith($routeName, 'attendance.team') ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>
         <span>Team Attendance</span>

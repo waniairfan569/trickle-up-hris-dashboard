@@ -221,6 +221,29 @@ class CompanyFormController extends Controller
         return back()->with('success', "Form assigned. {$count} new employee(s) added.");
     }
 
+    /**
+     * Remove an assignment from a form. Any still-pending (not yet submitted)
+     * submissions for users who are no longer assigned through another rule are
+     * cleaned up; already-submitted responses are always kept.
+     */
+    public function unassign(CompanyForm $companyForm, FormAssignment $assignment)
+    {
+        abort_unless($assignment->form_id === $companyForm->id, 404);
+
+        $label = $assignment->label;
+        $assignment->delete();
+
+        // Whoever is still assigned through any remaining rule keeps their form.
+        $stillAssigned = $companyForm->getAssignedUsersFor()->pluck('id')->all();
+
+        $removed = $companyForm->submissions()
+            ->where('status', '!=', 'submitted')
+            ->whereNotIn('user_id', $stillAssigned ?: [0])
+            ->delete();
+
+        return back()->with('success', "Unassigned \"{$label}\". {$removed} pending submission(s) removed.");
+    }
+
     public function show(CompanyForm $companyForm)
     {
         $companyForm->load(['fields', 'assignments', 'submissions.employee']);

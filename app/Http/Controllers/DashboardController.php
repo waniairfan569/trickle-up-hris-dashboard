@@ -54,8 +54,9 @@ class DashboardController extends Controller
         $events = $this->companyEvents();
         $holidays = $this->companyHolidays();
         $outOfOffice = $this->outOfOffice();
+        $onLeavePeople = \App\Models\TimeOffRequest::onLeaveToday();
 
-        $shared = compact('upcomingTimeOff', 'outOfOfficeCount', 'outOfOffice', 'timeOffBalances', 'celebrations', 'events', 'holidays');
+        $shared = compact('upcomingTimeOff', 'outOfOfficeCount', 'outOfOffice', 'timeOffBalances', 'celebrations', 'events', 'holidays', 'onLeavePeople');
 
         // super_admin/hr_admin → dashboard.admin
         if ($user->isAdmin()) {

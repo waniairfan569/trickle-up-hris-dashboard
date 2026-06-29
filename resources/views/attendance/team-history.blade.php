@@ -8,6 +8,9 @@
 <style>[x-cloak]{display:none!important}</style>
 <div class="space-y-6">
 
+    <!-- On leave today -->
+    @include('partials.on-leave-today', ['people' => $onLeavePeople, 'compact' => true])
+
     <!-- Filters -->
     <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
         <form method="GET" class="grid grid-cols-1 md:grid-cols-5 gap-4">
