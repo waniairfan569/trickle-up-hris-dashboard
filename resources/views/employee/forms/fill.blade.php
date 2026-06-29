@@ -44,7 +44,7 @@
                         $name = 'fields[' . $field->field_key . ']';
                         $val = $existing[$field->field_key] ?? null;
                         $isReq = $field->is_required;
-                        $base = 'w-full rounded-xl border-slate-300 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white';
+                        $base = 'w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm shadow-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:bg-slate-900 dark:border-slate-600 dark:text-white';
                     @endphp
 
                     @if($field->type === 'heading')

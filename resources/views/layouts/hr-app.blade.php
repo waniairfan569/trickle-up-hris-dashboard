@@ -58,12 +58,14 @@
         [x-cloak] { display: none !important; }
 
         /* Default form-control styling — the Play CDN ships without @tailwindcss/forms,
-           so text inputs/textareas/selects would otherwise have no border or padding.
-           Wrapped in :where() for ZERO specificity, so any explicit border-*/px-*/py-*
-           utility on a field still wins (same approach as @tailwindcss/forms base). */
-        :where(input:not([type=checkbox]):not([type=radio]):not([type=file]):not([type=range]):not([type=color]):not([type=submit]):not([type=button]):not([type=hidden])),
-        :where(textarea),
-        :where(select) {
+           and its Preflight resets form-element padding to 0 (specificity 0,0,1) and
+           every border-width to 0 (via *). The `html` prefix here lifts our defaults to
+           specificity (0,0,2) so they reliably beat Preflight no matter the inject order,
+           while the :where() around the exclusions stays weightless — so any explicit
+           border-*/px-*/py- utility (0,1,0) on a field still wins. */
+        html input:where(:not([type=checkbox]):not([type=radio]):not([type=file]):not([type=range]):not([type=color]):not([type=submit]):not([type=button]):not([type=hidden])),
+        html textarea,
+        html select {
             border-width: 1px;
             border-style: solid;
             border-color: #cbd5e1; /* slate-300 */
@@ -74,9 +76,9 @@
             background-color: #ffffff;
             color: #0f172a;
         }
-        .dark :where(input:not([type=checkbox]):not([type=radio]):not([type=file]):not([type=range]):not([type=color]):not([type=submit]):not([type=button]):not([type=hidden])),
-        .dark :where(textarea),
-        .dark :where(select) {
+        .dark input:where(:not([type=checkbox]):not([type=radio]):not([type=file]):not([type=range]):not([type=color]):not([type=submit]):not([type=button]):not([type=hidden])),
+        .dark textarea,
+        .dark select {
             background-color: #1a1a24; /* slate-900 */
             border-color: #334155;     /* slate-700 */
             color: #ffffff;
