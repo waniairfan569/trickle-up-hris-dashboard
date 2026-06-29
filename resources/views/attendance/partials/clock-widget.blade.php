@@ -21,6 +21,7 @@
         </div>
 
         <!-- Status + action -->
+        @php $isLate = ($status['status'] ?? null) === 'late'; @endphp
         <div class="flex items-center gap-3 sm:flex-shrink-0">
             @if(!$status['clock_in'])
                 <span class="text-xs text-slate-400 hidden sm:inline">Expected {{ $expectedStart }}</span>
@@ -28,11 +29,13 @@
                     Clock In
                 </button>
             @elseif($status['clock_in'] && !$status['clock_out'])
+                @if($isLate)<span class="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-700"><i data-lucide="alarm-clock" class="h-3 w-3"></i> Late{{ $status['late_minutes'] ? ' · '.$status['late_minutes'].'m' : '' }}</span>@endif
                 <span class="text-xs text-slate-500 dark:text-slate-400">In at {{ $currentIn }} · <span class="font-bold text-slate-800 dark:text-white" id="live-worked-timer">0h 0m 0s</span></span>
                 <button id="btn-clock-out" onclick="attendanceAction('clock-out')" class="bg-slate-800 hover:bg-slate-900 text-white font-bold text-sm px-6 py-2.5 rounded-lg shadow-sm transition flex items-center justify-center">
                     <span class="w-2.5 h-2.5 bg-white mr-2"></span> Clock out
                 </button>
             @elseif($status['clock_out'])
+                @if($isLate)<span class="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-700"><i data-lucide="alarm-clock" class="h-3 w-3"></i> Late{{ $status['late_minutes'] ? ' · '.$status['late_minutes'].'m' : '' }}</span>@endif
                 <span class="text-xs text-slate-500 dark:text-slate-400">Completed · <span class="font-bold text-slate-800 dark:text-white" id="completed-worked-timer">0h 0m 0s</span></span>
                 <button id="btn-clock-in" onclick="attendanceAction('clock-in')" class="bg-brand-600 hover:bg-brand-700 text-slate-900 font-bold text-sm px-6 py-2.5 rounded-lg shadow-sm transition">
                     Clock In Again
