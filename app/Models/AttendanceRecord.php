@@ -46,6 +46,55 @@ class AttendanceRecord extends Model
         'clock_out_lng' => 'decimal:7',
     ];
 
+    /** Time of day (local) after which a clock-in counts as late, e.g. "09:30". */
+    public static function lateCutoff(): string
+    {
+        return config('attendance.late_after') ?: '09:30';
+    }
+
+    /**
+     * Recompute status, late_minutes and total_minutes_worked from the current
+     * clock_in / clock_out (used after an admin edits the times, or on clock-out).
+     * An employee whose clock-in — in their own timezone — is after the late
+     * cutoff is marked "late". Leave / holiday / weekend records are left alone.
+     */
+    public function recalculate(): void
+    {
+        if (in_array($this->status, ['on_leave', 'public_holiday', 'weekend'], true)) {
+            return;
+        }
+
+        // No clock-in at all -> absent.
+        if (!$this->clock_in) {
+            $this->status = 'absent';
+            $this->late_minutes = 0;
+            $this->total_minutes_worked = 0;
+            return;
+        }
+
+        // Worked minutes (minus completed breaks) when both ends are present.
+        if ($this->clock_out) {
+            $breakMinutes = $this->breaks()->whereNotNull('break_end')->sum('duration_minutes') ?? 0;
+            $this->total_minutes_worked = max(0, $this->clock_out->diffInMinutes($this->clock_in) - $breakMinutes);
+        }
+
+        // Late? Compare the clock-in (in the employee's timezone) to the cutoff.
+        $tz = app(\App\Services\TimezoneService::class);
+        $localIn = $tz->toUserTime($this->clock_in, $this->employee);
+        $cutoff = Carbon::parse($localIn->toDateString() . ' ' . self::lateCutoff(), $localIn->getTimezone());
+
+        if ($localIn->greaterThan($cutoff)) {
+            $this->late_minutes = (int) round($cutoff->diffInMinutes($localIn));
+            $this->status = 'late';
+        } else {
+            $this->late_minutes = 0;
+            // On time: clear a previous "late"/"absent" but keep overtime/early-departure.
+            if (in_array($this->status, ['absent', 'late', 'missing_clock_out'], true)) {
+                $this->status = 'present';
+            }
+        }
+    }
+
     // Relationships
     public function employee()
     {

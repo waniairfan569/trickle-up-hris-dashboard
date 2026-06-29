@@ -195,6 +195,42 @@ class AttendanceManagerController extends Controller
         return back()->with('success', 'Attendance record saved manually.');
     }
 
+    /**
+     * Admin edit of a single record's clock-in / clock-out time. Times come in
+     * as the employee's local wall-clock (datetime-local) and are stored in the
+     * canonical timezone. Status / late / worked minutes are recomputed.
+     */
+    public function updateTimes(Request $request, AttendanceRecord $record)
+    {
+        $user = $request->user();
+        abort_unless($user && $user->isAdmin(), 403);
+
+        $validated = $request->validate([
+            'clock_in' => 'nullable|date_format:Y-m-d\TH:i',
+            'clock_out' => 'nullable|date_format:Y-m-d\TH:i',
+        ]);
+
+        $tz = app(\App\Services\TimezoneService::class);
+        $userTz = $tz->getEffectiveTimezone($record->employee);
+        $canonical = config('app.timezone') ?: \App\Services\TimezoneService::FALLBACK_TIMEZONE;
+
+        $record->clock_in = !empty($validated['clock_in'])
+            ? Carbon::parse($validated['clock_in'], $userTz)->setTimezone($canonical) : null;
+        $record->clock_out = !empty($validated['clock_out'])
+            ? Carbon::parse($validated['clock_out'], $userTz)->setTimezone($canonical) : null;
+
+        if ($record->clock_in && $record->clock_out && $record->clock_out->lessThan($record->clock_in)) {
+            return back()->with('error', 'Clock-out cannot be before clock-in.');
+        }
+
+        $record->edited_by = $user->id;
+        $record->edited_at = now();
+        $record->recalculate();
+        $record->save();
+
+        return back()->with('success', 'Attendance time updated for ' . $record->employee->full_name . '.');
+    }
+
     public function pendingCorrections(Request $request)
     {
         $user = $request->user();

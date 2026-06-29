@@ -4,6 +4,8 @@
 @section('breadcrumb', 'Attendance > Team History')
 
 @section('content')
+@php $canEdit = auth()->user()->isAdmin(); @endphp
+<style>[x-cloak]{display:none!important}</style>
 <div class="space-y-6">
 
     <!-- Filters -->
@@ -67,6 +69,7 @@
                         <th class="px-6 py-3">Late (min)</th>
                         <th class="px-6 py-3">OT (min)</th>
                         <th class="px-6 py-3">Status</th>
+                        @if($canEdit)<th class="px-6 py-3 text-right">Actions</th>@endif
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-200">
@@ -98,10 +101,48 @@
                                     {{ str_replace('_', ' ', Str::title($record->status)) }}
                                 </span>
                             </td>
+                            @if($canEdit)
+                            @php
+                                $tzSvc = app(\App\Services\TimezoneService::class);
+                                $ciVal = $record->clock_in ? $tzSvc->toUserTime($record->clock_in, $record->employee)->format('Y-m-d\TH:i') : '';
+                                $coVal = $record->clock_out ? $tzSvc->toUserTime($record->clock_out, $record->employee)->format('Y-m-d\TH:i') : '';
+                            @endphp
+                            <td class="px-6 py-4 whitespace-nowrap text-right" x-data="{ open: false }">
+                                <button type="button" @click="open = true" class="inline-flex items-center text-sm font-semibold text-brand-600 hover:text-brand-800">
+                                    <i data-lucide="pencil" class="w-4 h-4 mr-1"></i> Edit
+                                </button>
+
+                                <!-- Edit times modal -->
+                                <div x-show="open" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4" style="display:none">
+                                    <div class="absolute inset-0 bg-slate-900/50" @click="open = false"></div>
+                                    <div class="relative bg-white rounded-xl shadow-xl w-full max-w-md p-6 text-left">
+                                        <h3 class="text-lg font-bold text-slate-800 mb-1">Edit attendance time</h3>
+                                        <p class="text-sm text-slate-500 mb-4">{{ $record->employee->first_name }} {{ $record->employee->last_name }} · {{ $record->date->format('M d, Y') }}</p>
+                                        <form method="POST" action="{{ route('attendance.records.update-times', $record) }}" class="space-y-4">
+                                            @csrf
+                                            @method('PUT')
+                                            <div>
+                                                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Clock In</label>
+                                                <input type="datetime-local" name="clock_in" value="{{ $ciVal }}" class="w-full text-sm rounded-lg border-slate-300 focus:ring-brand-500 focus:border-brand-500 shadow-sm py-2">
+                                            </div>
+                                            <div>
+                                                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Clock Out</label>
+                                                <input type="datetime-local" name="clock_out" value="{{ $coVal }}" class="w-full text-sm rounded-lg border-slate-300 focus:ring-brand-500 focus:border-brand-500 shadow-sm py-2">
+                                            </div>
+                                            <p class="text-xs text-slate-400">Times are in {{ $record->employee->first_name }}'s timezone. Clock-in after {{ \Carbon\Carbon::parse(\App\Models\AttendanceRecord::lateCutoff())->format('g:i A') }} is marked late.</p>
+                                            <div class="flex justify-end gap-2 pt-2">
+                                                <button type="button" @click="open = false" class="px-4 py-2 text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg">Cancel</button>
+                                                <button type="submit" class="px-4 py-2 text-sm font-semibold text-white bg-brand-600 hover:bg-brand-700 rounded-lg">Save</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </td>
+                            @endif
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="px-6 py-12 text-center text-slate-500">
+                            <td colspan="{{ $canEdit ? 9 : 8 }}" class="px-6 py-12 text-center text-slate-500">
                                 <i data-lucide="file-search" class="w-12 h-12 mx-auto text-slate-300 mb-3"></i>
                                 <p>No records match your filters.</p>
                             </td>

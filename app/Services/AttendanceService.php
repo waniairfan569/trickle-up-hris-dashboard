@@ -88,15 +88,16 @@ class AttendanceService
             $record->status = 'present';
         }
 
-        $settings = AttendanceSetting::first() ?? new AttendanceSetting();
-        $workSchedule = method_exists($user, 'workSchedule') ? $user->workSchedule : null;
-        
-        if (!$isReclocking && $workSchedule && $workSchedule->start_time) {
-            $expectedStart = Carbon::parse($today->format('Y-m-d') . ' ' . $workSchedule->start_time);
-            $graceEnd = $expectedStart->copy()->addMinutes($settings->grace_period_minutes);
-            
-            if (now()->greaterThan($graceEnd)) {
-                $record->late_minutes = $expectedStart->diffInMinutes(now());
+        // Late rule: clock-in (in the employee's timezone) after the cutoff
+        // (default 09:30) counts as late. Re-clocking after a clock-out doesn't
+        // re-evaluate lateness.
+        if (!$isReclocking) {
+            $tz = app(TimezoneService::class);
+            $localIn = $tz->toUserTime($record->clock_in, $user);
+            $cutoff = Carbon::parse($localIn->toDateString() . ' ' . AttendanceRecord::lateCutoff(), $localIn->getTimezone());
+
+            if ($localIn->greaterThan($cutoff)) {
+                $record->late_minutes = (int) round($cutoff->diffInMinutes($localIn));
                 $record->status = 'late';
             }
         }
