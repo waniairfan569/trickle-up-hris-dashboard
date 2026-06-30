@@ -40,6 +40,44 @@ class AppServiceProvider extends ServiceProvider
             \Illuminate\Auth\Events\Login::class,
             \App\Listeners\LogSuccessfulLogin::class
         );
+
+        // Cap the "remember me" cookie at exactly 360 days (Laravel defaults to
+        // 5 years). We re-queue Laravel's own recaller cookie value with a
+        // 360-day lifetime so the cookie expiry matches the 360-day session.
+        \Illuminate\Support\Facades\Event::listen(
+            \Illuminate\Auth\Events\Login::class,
+            function (\Illuminate\Auth\Events\Login $event) {
+                if (!($event->remember ?? false)) {
+                    return;
+                }
+                try {
+                    $guard = \Illuminate\Support\Facades\Auth::guard();
+                    if (!method_exists($guard, 'getRecallerName')) {
+                        return;
+                    }
+                    $name = $guard->getRecallerName();
+                    $jar = app(\Illuminate\Cookie\CookieJar::class);
+                    foreach ($jar->getQueuedCookies() as $cookie) {
+                        if ($cookie->getName() === $name) {
+                            $jar->queue($jar->make(
+                                $name,
+                                $cookie->getValue(),
+                                518400, // 360 days in minutes
+                                $cookie->getPath(),
+                                $cookie->getDomain(),
+                                $cookie->isSecure(),
+                                $cookie->isHttpOnly(),
+                                $cookie->isRaw(),
+                                $cookie->getSameSite()
+                            ));
+                            break;
+                        }
+                    }
+                } catch (\Throwable $e) {
+                    // Never block a login over a cookie-lifetime tweak.
+                }
+            }
+        );
     }
 
     /**

@@ -43,7 +43,9 @@ Route::post('/login', function (\Illuminate\Http\Request $request) {
         'password' => 'required',
     ]);
 
-    if (\Illuminate\Support\Facades\Auth::attempt($credentials)) {
+    // Always "remember" the login (true) so the session persists for the full
+    // configured lifetime (360 days) and survives the browser closing.
+    if (\Illuminate\Support\Facades\Auth::attempt($credentials, true)) {
         // Block archived (deactivated) / suspended accounts from signing in.
         if (in_array(\Illuminate\Support\Facades\Auth::user()->account_status, ['deactivated', 'suspended'], true)) {
             \Illuminate\Support\Facades\Auth::logout();
@@ -87,6 +89,18 @@ Route::middleware('guest')->group(function () {
 Route::middleware(['auth'])->group(function() {
     Route::get('/password/change', [\App\Http\Controllers\PasswordChangeController::class, 'showChangeForm'])->name('password.change');
     Route::post('/password/change', [\App\Http\Controllers\PasswordChangeController::class, 'update'])->name('password.update');
+
+    // Account security — a user's own active sessions + sign out other devices.
+    Route::get('/account/security', [\App\Http\Controllers\SessionManagementController::class, 'mySecurity'])->name('account.security');
+    Route::post('/account/security/logout-others', [\App\Http\Controllers\SessionManagementController::class, 'logoutOtherDevices'])->name('account.logout-others');
+
+    // Admin: active-session management (force logout users / everyone).
+    Route::middleware('role:super_admin,hr_admin')->prefix('admin/sessions')->name('admin.sessions.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\SessionManagementController::class, 'index'])->name('index');
+        Route::delete('{session}', [\App\Http\Controllers\SessionManagementController::class, 'revoke'])->name('revoke');
+        Route::post('user/{user}/revoke-all', [\App\Http\Controllers\SessionManagementController::class, 'revokeAllForUser'])->name('revoke-all');
+        Route::post('force-logout-everyone', [\App\Http\Controllers\SessionManagementController::class, 'forceLogoutEveryone'])->name('force-logout-everyone')->middleware('role:super_admin');
+    });
 });
 
 // Authenticated Routes
