@@ -75,7 +75,8 @@ class AttendanceRecord extends Model
         // Worked minutes (minus completed breaks) when both ends are present.
         if ($this->clock_out) {
             $breakMinutes = $this->breaks()->whereNotNull('break_end')->sum('duration_minutes') ?? 0;
-            $this->total_minutes_worked = max(0, $this->clock_out->diffInMinutes($this->clock_in) - $breakMinutes);
+            // Carbon 3 diffs are signed; use earlier->diff(later) so the span is positive.
+            $this->total_minutes_worked = max(0, (int) round($this->clock_in->diffInMinutes($this->clock_out)) - $breakMinutes);
         }
 
         // Late? Compare the clock-in (in the employee's timezone) to the cutoff.

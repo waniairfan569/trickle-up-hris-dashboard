@@ -302,7 +302,8 @@ class ZktecoK50Service
                 $record->clock_out = $punch->punched_at;
                 if ($record->clock_in) {
                     $breakMinutes = $record->breaks()->whereNotNull('break_end')->sum('duration_minutes') ?? 0;
-                    $record->total_minutes_worked = max(0, $punch->punched_at->diffInMinutes($record->clock_in) - $breakMinutes);
+                    // Carbon 3 diffs are signed ($a->diff($b) = b - a); use earlier->diff(later) for a positive span.
+                    $record->total_minutes_worked = max(0, (int) round($record->clock_in->diffInMinutes($punch->punched_at)) - $breakMinutes);
 
                     if ($shift && $shift->end_time) {
                         $overtimeGrace = 30;
@@ -311,7 +312,7 @@ class ZktecoK50Service
                             $expectedEnd->addDay();
                         }
                         $record->overtime_minutes = $localPunch->greaterThan($expectedEnd->copy()->addMinutes($overtimeGrace))
-                            ? $localPunch->diffInMinutes($expectedEnd) : 0;
+                            ? (int) round($expectedEnd->diffInMinutes($localPunch)) : 0;
                         if ($record->overtime_minutes > 0 && $record->status === 'present') $record->status = 'overtime';
                         if ($record->overtime_minutes > 0 && $record->status === 'late') $record->status = 'late';
                     }

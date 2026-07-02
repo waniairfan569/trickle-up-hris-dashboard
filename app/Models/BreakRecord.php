@@ -26,7 +26,8 @@ class BreakRecord extends Model
     {
         static::saving(function ($model) {
             if ($model->break_end && $model->duration_minutes === null) {
-                $model->duration_minutes = $model->break_end->diffInMinutes($model->break_start);
+                // Carbon 3 diffs are signed; earlier->diff(later) keeps it positive.
+                $model->duration_minutes = max(0, (int) round($model->break_start->diffInMinutes($model->break_end)));
             }
         });
     }

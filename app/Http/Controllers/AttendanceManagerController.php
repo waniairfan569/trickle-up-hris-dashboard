@@ -244,8 +244,8 @@ class AttendanceManagerController extends Controller
         $record->edited_at = now();
 
         if ($record->clock_in && $record->clock_out) {
-            $record->total_minutes_worked = $record->clock_out->diffInMinutes($record->clock_in);
-            $record->status = 'present'; 
+            $record->total_minutes_worked = max(0, (int) round($record->clock_in->diffInMinutes($record->clock_out)));
+            $record->status = 'present';
             // Minimal recalculation for manual entry. In reality you'd run it through AttendanceService
         }
 
