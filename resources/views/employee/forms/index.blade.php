@@ -34,7 +34,9 @@
                 <div class="min-w-0">
                     <div class="flex items-center gap-2">
                         <p class="text-sm font-bold text-slate-800 dark:text-white truncate">{{ $s->form->title }}</p>
-                        <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold {{ $badge[$s->status] }}">{{ $label[$s->status] }}</span>
+                        @if($s->status === 'submitted')
+                            <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold {{ $badge['submitted'] }}">Submitted</span>
+                        @endif
                     </div>
                     @if($s->form->description)<p class="text-xs text-slate-400 mt-1 truncate">{{ Str::limit($s->form->description, 90) }}</p>@endif
                     @if($s->form->deadline)
