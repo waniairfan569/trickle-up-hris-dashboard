@@ -49,7 +49,7 @@ class User extends Authenticatable
         // Invitation system fields:
         'account_status', 'invitation_token', 'invitation_token_hash',
         'invitation_sent_at', 'invitation_expires_at', 'invitation_accepted_at',
-        'must_change_password', 'invited_by',
+        'must_change_password', 'invited_by', 'attendance_mode',
     ];
 
     protected $casts = [
@@ -178,6 +178,15 @@ class User extends Authenticatable
     public function isAdmin(): bool
     {
         return $this->hasRole([Role::SUPER_ADMIN, Role::HR_ADMIN]);
+    }
+
+    /**
+     * Whether this user clocks in/out from the dashboard (remote) rather than
+     * only on the biometric device. Defaults to biometric when unset.
+     */
+    public function usesDashboardClockIn(): bool
+    {
+        return ($this->attendance_mode ?? 'biometric') === 'remote';
     }
 
     /**

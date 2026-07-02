@@ -153,6 +153,10 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
     Route::put('employees/{employee}/role', [EmployeeController::class, 'updateRole'])
         ->middleware(['role:super_admin'])
         ->name('employees.update-role');
+    // Change a user's attendance mode (biometric / remote) — admins.
+    Route::put('employees/{employee}/attendance-mode', [EmployeeController::class, 'updateAttendanceMode'])
+        ->middleware(['role:super_admin,hr_admin'])
+        ->name('employees.update-attendance-mode');
 
     Route::resource('employees', EmployeeController::class)
         ->middleware(['employee.access']);

@@ -21,11 +21,20 @@ class AttendanceController extends Controller
 
     public function clockIn(Request $request)
     {
+        // Biometric-mode users must punch on the ZKTeco device — the dashboard
+        // clock-in is hidden for them, so block the endpoint server-side too.
+        if (!$request->user()->usesDashboardClockIn()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Your attendance is recorded on the biometric device. Please clock in there.',
+            ], 403);
+        }
+
         $request->validate([
             'lat' => 'nullable|numeric|between:-90,90',
             'lng' => 'nullable|numeric|between:-180,180',
         ]);
-        
+
         try {
             $record = $this->service->clockIn($request->user(), [
                 'ip' => $request->ip(),
@@ -52,6 +61,13 @@ class AttendanceController extends Controller
 
     public function clockOut(Request $request)
     {
+        if (!$request->user()->usesDashboardClockIn()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Your attendance is recorded on the biometric device. Please clock out there.',
+            ], 403);
+        }
+
         $request->validate([
             'lat' => 'nullable|numeric|between:-90,90',
             'lng' => 'nullable|numeric|between:-180,180',

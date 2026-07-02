@@ -503,6 +503,25 @@ class EmployeeController extends Controller
         return back()->with('success', $employee->full_name . "'s role updated to {$role->name}.");
     }
 
+    /**
+     * Set an employee's attendance mode: biometric (device only — dashboard
+     * clock-in hidden) or remote (dashboard clock-in enabled). Admins only.
+     */
+    public function updateAttendanceMode(Request $request, User $employee)
+    {
+        $auth = $request->user();
+        abort_unless($auth && $auth->isAdmin(), 403, 'Only an admin can change attendance mode.');
+
+        $validated = $request->validate([
+            'attendance_mode' => ['required', \Illuminate\Validation\Rule::in(['biometric', 'remote'])],
+        ]);
+
+        $employee->update(['attendance_mode' => $validated['attendance_mode']]);
+
+        $label = $validated['attendance_mode'] === 'remote' ? 'Remote (dashboard clock-in)' : 'On-site (biometric device)';
+        return back()->with('success', $employee->full_name . "'s attendance mode set to {$label}.");
+    }
+
     public function edit(Request $request, User $employee)
     {
         $auth = $request->user();

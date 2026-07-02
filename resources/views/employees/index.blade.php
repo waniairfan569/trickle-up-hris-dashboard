@@ -154,6 +154,7 @@
                         <th class="py-4 px-6">Manager</th>
                         @if($auth->isAdmin())
                         <th class="py-4 px-6">RBAC Role</th>
+                        <th class="py-4 px-6">Attendance</th>
                         <th class="py-4 px-6">Status</th>
                         @endif
                         <th class="py-4 px-6 text-right">Actions</th>
@@ -268,6 +269,19 @@
                                 @endif
                             </td>
 
+                            <!-- Attendance mode (biometric / remote) -->
+                            <td class="py-4 px-6">
+                                @php $mode = $emp->user->attendance_mode ?? 'biometric'; @endphp
+                                <form action="{{ route('employees.update-attendance-mode', $emp->user_id) }}" method="POST" class="inline-flex">
+                                    @csrf @method('PUT')
+                                    <select name="attendance_mode" onchange="this.form.submit()" title="Attendance mode"
+                                            class="rounded-lg border-slate-300 text-[11px] font-bold py-1 pl-2 pr-7 shadow-sm focus:ring-brand-500 focus:border-brand-500 dark:bg-slate-700 dark:border-slate-600 {{ $mode === 'remote' ? 'text-emerald-700' : 'text-indigo-700' }}">
+                                        <option value="biometric" {{ $mode === 'biometric' ? 'selected' : '' }}>On-site · Biometric</option>
+                                        <option value="remote" {{ $mode === 'remote' ? 'selected' : '' }}>Remote · Dashboard</option>
+                                    </select>
+                                </form>
+                            </td>
+
                             <!-- Status -->
                             <td class="py-4 px-6">
                                 <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold {{ $statusClasses }}">
@@ -305,7 +319,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="{{ $auth->isAdmin() ? 7 : 5 }}" class="py-12 text-center">
+                            <td colspan="{{ $auth->isAdmin() ? 8 : 5 }}" class="py-12 text-center">
                                 <div class="flex flex-col items-center justify-center">
                                     <div class="flex h-12 w-12 items-center justify-center rounded-full bg-slate-50 text-slate-400 dark:bg-slate-750/50">
                                         <i data-lucide="users" class="h-6 w-6"></i>
