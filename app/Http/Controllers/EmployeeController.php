@@ -522,6 +522,48 @@ class EmployeeController extends Controller
         return back()->with('success', $employee->full_name . "'s attendance mode set to {$label}.");
     }
 
+    /** Bulk "Attendance Mode" page: pick many employees and set them at once. */
+    public function attendanceMode(Request $request)
+    {
+        abort_unless($request->user() && $request->user()->isAdmin(), 403);
+
+        $query = User::where('account_status', '!=', 'deactivated');
+
+        if ($search = trim((string) $request->get('search'))) {
+            $query->where(function ($q) use ($search) {
+                $q->where('first_name', 'like', "%{$search}%")
+                    ->orWhere('last_name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
+        if (in_array($request->get('mode'), ['biometric', 'remote'], true)) {
+            $query->where('attendance_mode', $request->get('mode'));
+        }
+
+        $employees = $query->orderBy('first_name')->orderBy('last_name')
+            ->get(['id', 'first_name', 'last_name', 'email', 'attendance_mode', 'zkteco_uid']);
+
+        return view('employees.attendance-mode', compact('employees'));
+    }
+
+    /** Apply an attendance mode to every selected employee. Admins only. */
+    public function bulkAttendanceMode(Request $request)
+    {
+        abort_unless($request->user() && $request->user()->isAdmin(), 403);
+
+        $validated = $request->validate([
+            'user_ids' => 'required|array|min:1',
+            'user_ids.*' => 'integer|exists:users,id',
+            'attendance_mode' => ['required', \Illuminate\Validation\Rule::in(['biometric', 'remote'])],
+        ]);
+
+        $count = User::whereIn('id', $validated['user_ids'])
+            ->update(['attendance_mode' => $validated['attendance_mode']]);
+
+        $label = $validated['attendance_mode'] === 'remote' ? 'Remote · Dashboard' : 'On-site · Biometric';
+        return back()->with('success', "{$count} employee(s) set to {$label}.");
+    }
+
     public function edit(Request $request, User $employee)
     {
         $auth = $request->user();

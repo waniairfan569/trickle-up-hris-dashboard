@@ -160,6 +160,13 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
     Route::put('employees/{employee}/attendance-mode', [EmployeeController::class, 'updateAttendanceMode'])
         ->middleware(['role:super_admin,hr_admin'])
         ->name('employees.update-attendance-mode');
+    // Bulk attendance-mode page — pick many employees, set them together.
+    Route::get('attendance-mode', [EmployeeController::class, 'attendanceMode'])
+        ->middleware(['role:super_admin,hr_admin'])
+        ->name('employees.attendance-mode');
+    Route::post('attendance-mode/bulk', [EmployeeController::class, 'bulkAttendanceMode'])
+        ->middleware(['role:super_admin,hr_admin'])
+        ->name('employees.attendance-mode.bulk');
 
     Route::resource('employees', EmployeeController::class)
         ->middleware(['employee.access']);
