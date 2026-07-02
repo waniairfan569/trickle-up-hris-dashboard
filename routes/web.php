@@ -91,8 +91,11 @@ Route::middleware(['auth'])->group(function() {
     Route::post('/password/change', [\App\Http\Controllers\PasswordChangeController::class, 'update'])->name('password.update');
 
     // Account security — a user's own active sessions + sign out other devices.
-    Route::get('/account/security', [\App\Http\Controllers\SessionManagementController::class, 'mySecurity'])->name('account.security');
-    Route::post('/account/security/logout-others', [\App\Http\Controllers\SessionManagementController::class, 'logoutOtherDevices'])->name('account.logout-others');
+    // Admins only (not shown to regular employees).
+    Route::middleware('role:super_admin,hr_admin')->group(function () {
+        Route::get('/account/security', [\App\Http\Controllers\SessionManagementController::class, 'mySecurity'])->name('account.security');
+        Route::post('/account/security/logout-others', [\App\Http\Controllers\SessionManagementController::class, 'logoutOtherDevices'])->name('account.logout-others');
+    });
 
     // Admin: active-session management (force logout users / everyone).
     Route::middleware('role:super_admin,hr_admin')->prefix('admin/sessions')->name('admin.sessions.')->group(function () {
