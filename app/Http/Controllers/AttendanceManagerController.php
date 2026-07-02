@@ -114,6 +114,81 @@ class AttendanceManagerController extends Controller
         return back()->with('success', "Re-checked {$count} record(s) for " . \Carbon\Carbon::parse($date)->format('d M Y') . " against the 09:30 rule — {$changed} updated.");
     }
 
+    /** Bulk backfill form — add attendance for many employees on a date. */
+    public function backfillForm(Request $request)
+    {
+        abort_unless($request->user() && $request->user()->isAdmin(), 403);
+        return view('attendance.backfill');
+    }
+
+    /**
+     * Create/refresh attendance for every active employee on a date with a
+     * fixed clock-in (and optional clock-out). Everyone is marked Present with
+     * no late minutes. Records are saved as source 'manual' so the ZKTeco
+     * Rebuild / Clear actions never remove them. Employees already on approved
+     * leave that day are skipped; existing records are only overwritten when
+     * asked. Admins only.
+     */
+    public function backfill(Request $request)
+    {
+        abort_unless($request->user() && $request->user()->isAdmin(), 403);
+
+        $validated = $request->validate([
+            'date' => 'required|date',
+            'clock_in' => 'required|date_format:H:i',
+            'clock_out' => 'nullable|date_format:H:i',
+            'overwrite' => 'nullable|boolean',
+        ]);
+
+        if (!empty($validated['clock_out']) && $validated['clock_out'] <= $validated['clock_in']) {
+            return back()->with('error', 'Clock-out must be after clock-in.')->withInput();
+        }
+
+        $tz = app(\App\Services\TimezoneService::class);
+        $canonical = config('app.timezone') ?: \App\Services\TimezoneService::FALLBACK_TIMEZONE;
+        $date = $validated['date'];
+        $overwrite = $request->boolean('overwrite');
+
+        $users = User::where('account_status', '!=', 'deactivated')->get();
+        $created = 0; $updated = 0; $skipped = 0; $onLeave = 0;
+
+        foreach ($users as $user) {
+            // Keep people who are on approved leave that day as-is.
+            $isOnLeave = TimeOffRequest::where('user_id', $user->id)
+                ->where('status', 'approved')
+                ->whereDate('start_date', '<=', $date)
+                ->whereDate('end_date', '>=', $date)
+                ->exists();
+            if ($isOnLeave) { $onLeave++; continue; }
+
+            $record = AttendanceRecord::where('user_id', $user->id)->whereDate('date', $date)->first();
+            $existed = (bool) $record;
+            if ($existed && !$overwrite) { $skipped++; continue; }
+
+            $userTz = $tz->getEffectiveTimezone($user);
+            $clockIn = Carbon::parse($date . ' ' . $validated['clock_in'], $userTz)->setTimezone($canonical);
+            $clockOut = !empty($validated['clock_out'])
+                ? Carbon::parse($date . ' ' . $validated['clock_out'], $userTz)->setTimezone($canonical)
+                : null;
+
+            $record = $record ?: new AttendanceRecord(['user_id' => $user->id, 'date' => $date]);
+            $record->clock_in = $clockIn;
+            $record->clock_out = $clockOut;
+            $record->status = 'present';
+            $record->late_minutes = 0;
+            $record->overtime_minutes = 0;
+            $record->source = 'manual';
+            $record->edited_by = $request->user()->id;
+            $record->edited_at = now();
+            $record->total_minutes_worked = $clockOut ? max(0, (int) round($clockIn->diffInMinutes($clockOut))) : 0;
+            $record->save();
+
+            $existed ? $updated++ : $created++;
+        }
+
+        return back()->with('success', "Backfill for " . \Carbon\Carbon::parse($date)->format('d M Y') . " — {$created} added, {$updated} updated, {$skipped} skipped (already had a record), {$onLeave} on leave.");
+    }
+
     /** Dedicated "On Leave" page: who's out today + upcoming approved leave. */
     public function onLeave(Request $request)
     {

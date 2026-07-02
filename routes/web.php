@@ -417,6 +417,8 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
             Route::get('all', [AttendanceManagerController::class, 'allHistory'])->name('all');
             Route::put('records/{record}/times', [AttendanceManagerController::class, 'updateTimes'])->name('records.update-times');
             Route::post('recalc-late', [AttendanceManagerController::class, 'recalcLate'])->name('recalc-late');
+            Route::get('backfill', [AttendanceManagerController::class, 'backfillForm'])->name('backfill');
+            Route::post('backfill', [AttendanceManagerController::class, 'backfill'])->name('backfill.store');
         });
     });
 

@@ -10,6 +10,7 @@
         <h2 class="text-2xl font-bold text-slate-800">Today: {{ now()->format('l, F j, Y') }}</h2>
         <div class="flex items-center gap-2">
             @if(auth()->user()->isAdmin())
+            <a href="{{ route('attendance.backfill') }}" class="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-700 bg-brand-50 hover:bg-brand-100 px-3 py-1.5 rounded-lg transition"><i data-lucide="calendar-plus" class="w-4 h-4"></i> Add attendance</a>
             <form method="POST" action="{{ route('attendance.recalc-late') }}" onsubmit="return confirm('Re-check today\'s attendance against the 09:30 late rule? Anyone who clocked in after 09:30 will be marked Late.');">
                 @csrf
                 <button type="submit" class="inline-flex items-center gap-1.5 text-sm font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 px-3 py-1.5 rounded-lg transition"><i data-lucide="alarm-clock" class="w-4 h-4"></i> Fix late status</button>
