@@ -36,10 +36,12 @@ $PHP artisan migrate --force
 # 3. Link storage so uploaded files / avatars are publicly served
 $PHP artisan storage:link || true
 
-# 4. Rebuild optimized caches (config, routes, views, events)
+# 4. Clear ALL caches so the freshly pulled code, views and config take effect.
+#    We deliberately do NOT run route:cache: the auth routes in routes/web.php
+#    use closures, which Laravel cannot serialize — `route:cache` throws and,
+#    with `set -e`, would abort the deploy and leave stale caches behind (the
+#    cause of new pages 500-ing and fixes not applying on live). Clearing is
+#    fast enough for this app and guarantees every deploy actually takes effect.
 $PHP artisan optimize:clear
-$PHP artisan config:cache
-$PHP artisan route:cache
-$PHP artisan view:cache
 
 echo "Deploy complete."
