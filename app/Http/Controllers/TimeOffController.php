@@ -22,6 +22,70 @@ class TimeOffController extends Controller
         $this->balanceService = $balanceService;
     }
 
+    /**
+     * Notify everyone who can act on a pending request: the employee's manager
+     * AND every HR / super admin (deduped, minus the requester). Previously only
+     * a single resolved approver was notified, so other admins saw nothing.
+     */
+    private function notifyApprovers(TimeOffRequest $request): void
+    {
+        if (!class_exists(\App\Notifications\TimeOffRequestSubmitted::class)) {
+            return;
+        }
+
+        $approvers = collect();
+
+        if ($request->employee && $request->employee->manager_id) {
+            if ($mgr = User::find($request->employee->manager_id)) {
+                $approvers->push($mgr);
+            }
+        }
+
+        $admins = User::whereHas('roles', function ($q) {
+            $q->whereIn('slug', ['hr_admin', 'super_admin'])
+              ->orWhereIn('name', ['hr_admin', 'super_admin']);
+        })->where('account_status', '!=', 'deactivated')->get();
+
+        $approvers = $approvers->concat($admins)
+            ->unique('id')
+            ->reject(fn ($u) => $u->id === $request->user_id);
+
+        foreach ($approvers as $approver) {
+            try {
+                $approver->notify(new \App\Notifications\TimeOffRequestSubmitted($request));
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
+    }
+
+    /** DB notification + email to the employee when their request is approved/rejected. */
+    private function notifyEmployeeOfDecision(TimeOffRequest $request, string $status): void
+    {
+        $employee = $request->employee;
+        if (!$employee) {
+            return;
+        }
+
+        try {
+            $employee->notify(new \App\Notifications\TimeOffRequestStatusChanged($request, $status));
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
+        // Best-effort email (never block the approval if mail fails).
+        try {
+            $mailable = $status === 'approved'
+                ? new \App\Mail\TimeOffRequestApproved($request)
+                : new \App\Mail\TimeOffRequestRejected($request);
+            if ($employee->email) {
+                Mail::to($employee->email)->send($mailable);
+            }
+        } catch (\Throwable $e) {
+            report($e);
+        }
+    }
+
     public function index(Request $request)
     {
         $user = auth()->user() ?? User::first();
@@ -186,19 +250,7 @@ class TimeOffController extends Controller
 
         if ($policy->requires_approval) {
             $this->balanceService->addPending($user, $policy, $days);
-            // Notify Approver
-            if (class_exists(\App\Notifications\TimeOffRequestSubmitted::class)) {
-                $superAdmin = \App\Models\User::whereHas('roles', function($q) { $q->where('name', 'super_admin')->orWhere('slug', 'super_admin'); })->first();
-                $hrAdmin = \App\Models\User::whereHas('roles', function($q) { $q->where('name', 'hr_admin')->orWhere('slug', 'hr_admin'); })->first();
-                
-                $approver = $policy->approval_type === 'hr_admin' 
-                    ? ($hrAdmin ?? $superAdmin) 
-                    : (\App\Models\User::find($user->manager_id) ?? $superAdmin);
-                
-                if ($approver) {
-                    $approver->notify(new \App\Notifications\TimeOffRequestSubmitted($timeOffRequest));
-                }
-            }
+            $this->notifyApprovers($timeOffRequest);
             return redirect()->route('time-off.index')->with('success', 'Time-off request submitted for approval.');
         } else {
             $this->balanceService->deductBalance($user, $policy, $days);
@@ -226,9 +278,7 @@ class TimeOffController extends Controller
         $this->balanceService->removePending($timeOffRequest->employee, $timeOffRequest->policy, $timeOffRequest->days_requested);
         $this->balanceService->deductBalance($timeOffRequest->employee, $timeOffRequest->policy, $timeOffRequest->days_requested);
 
-        if (class_exists(\App\Notifications\TimeOffRequestStatusChanged::class)) {
-            $timeOffRequest->employee->notify(new \App\Notifications\TimeOffRequestStatusChanged($timeOffRequest, 'approved'));
-        }
+        $this->notifyEmployeeOfDecision($timeOffRequest, 'approved');
 
         return back()->with('success', 'Request approved.');
     }
@@ -248,9 +298,7 @@ class TimeOffController extends Controller
 
         $this->balanceService->removePending($timeOffRequest->employee, $timeOffRequest->policy, $timeOffRequest->days_requested);
 
-        if (class_exists(\App\Notifications\TimeOffRequestStatusChanged::class)) {
-            $timeOffRequest->employee->notify(new \App\Notifications\TimeOffRequestStatusChanged($timeOffRequest, 'rejected'));
-        }
+        $this->notifyEmployeeOfDecision($timeOffRequest, 'rejected');
 
         return back()->with('success', 'Request rejected.');
     }
