@@ -21,9 +21,7 @@ use App\Http\Controllers\OfficeLocationController;
 use App\Http\Controllers\ShiftController;
 use App\Http\Controllers\ShiftAssignmentController;
 
-Route::get('/', function () {
-    return view('welcome');
-});
+Route::get('/', [\App\Http\Controllers\PageController::class, 'welcome']);
 
 // ZKTeco ADMS / push endpoints — devices POST punches here over the internet.
 // No auth (devices can't log in) and CSRF-excepted (see bootstrap/app.php).
@@ -33,43 +31,9 @@ Route::match(['get', 'post'], '/iclock/devicecmd', [\App\Http\Controllers\Zkteco
 Route::match(['get', 'post'], '/iclock/ping', [\App\Http\Controllers\ZktecoPushController::class, 'ping']);
 
 // Web Session Authentication Routes
-Route::get('/login', function () {
-    return view('auth.login');
-})->name('login');
-
-Route::post('/login', function (\Illuminate\Http\Request $request) {
-    $credentials = $request->validate([
-        'email' => 'required|email',
-        'password' => 'required',
-    ]);
-
-    // Always "remember" the login (true) so the session persists for the full
-    // configured lifetime (360 days) and survives the browser closing.
-    if (\Illuminate\Support\Facades\Auth::attempt($credentials, true)) {
-        // Block archived (deactivated) / suspended accounts from signing in.
-        if (in_array(\Illuminate\Support\Facades\Auth::user()->account_status, ['deactivated', 'suspended'], true)) {
-            \Illuminate\Support\Facades\Auth::logout();
-            $request->session()->invalidate();
-            $request->session()->regenerateToken();
-            return back()->withErrors([
-                'email' => 'This account has been deactivated. Please contact your administrator.',
-            ]);
-        }
-        $request->session()->regenerate();
-        return redirect()->intended('/dashboard');
-    }
-
-    return back()->withErrors([
-        'email' => 'The provided credentials do not match our records.',
-    ]);
-})->name('login.post');
-
-Route::post('/logout', function (\Illuminate\Http\Request $request) {
-    \Illuminate\Support\Facades\Auth::logout();
-    $request->session()->invalidate();
-    $request->session()->regenerateToken();
-    return redirect('/');
-})->name('logout');
+Route::get('/login', [\App\Http\Controllers\PageController::class, 'showLogin'])->name('login');
+Route::post('/login', [\App\Http\Controllers\PageController::class, 'login'])->name('login.post');
+Route::post('/logout', [\App\Http\Controllers\PageController::class, 'logout'])->name('logout');
 
 // Forgot / reset password (self-service — works for any account, employee or admin)
 Route::middleware('guest')->group(function () {
@@ -423,11 +387,7 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
     });
 
     // Employee personal routes
-    Route::get('my-schedule', function() {
-        $user = auth()->user();
-        $activeAssignment = $user->shiftAssignments()->with('shift')->where('assignment_type', 'recurring')->whereNull('recurring_end_date')->first();
-        return view('shifts.my-schedule', compact('activeAssignment'));
-    })->name('shifts.my-schedule');
+    Route::get('my-schedule', [\App\Http\Controllers\PageController::class, 'mySchedule'])->name('shifts.my-schedule');
 
     // Office Locations & Shifts (Admin Only)
     Route::middleware(['role:hr_admin,super_admin'])->group(function () {
