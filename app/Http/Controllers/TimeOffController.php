@@ -87,13 +87,14 @@ class TimeOffController extends Controller
         $year = Carbon::now()->year;
 
         // Offer every policy the employee can actually use: explicitly-assigned
-        // policies PLUS any they already hold a balance for — so every balance
-        // shown on the Time-Off page can be requested against (matches the cards).
-        $assigned = $user->timeOffPolicies()->active()->get();
+        // active policies PLUS any they already hold a balance for this year —
+        // even if that policy is inactive/archived — so every balance shown on
+        // the Time-Off page can be requested against (matches the cards).
+        $assignedIds = $user->timeOffPolicies()->active()->pluck('time_off_policies.id');
         $balancePolicyIds = \App\Models\TimeOffBalance::where('user_id', $user->id)
             ->where('year', $year)->pluck('policy_id');
-        $ids = $assigned->pluck('id')->merge($balancePolicyIds)->unique();
-        $myPolicies = TimeOffPolicy::active()->whereIn('id', $ids)->get();
+        $ids = $assignedIds->merge($balancePolicyIds)->unique()->values();
+        $myPolicies = TimeOffPolicy::whereIn('id', $ids)->get();
 
         $balances = [];
         foreach ($myPolicies as $policy) {
