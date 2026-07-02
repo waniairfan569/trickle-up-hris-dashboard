@@ -13,10 +13,10 @@
             </p>
         </div>
         @php
-            $calcPolicies = $myPolicies->map(fn($p) => [
-                'id' => $p->id,
-                'name' => $p->name,
-                'remaining' => isset($myBalances[$p->id]) ? (float) $myBalances[$p->id]->remaining : 0,
+            $calcPolicies = $timeOffBalances->map(fn($b) => [
+                'id' => $b->policy_id,
+                'name' => optional($b->policy)->name,
+                'remaining' => (float) max(0, ($b->opening_balance + $b->accrued + $b->carried_over + $b->adjusted) - $b->used - $b->pending),
             ])->values();
         @endphp
         <style>[x-cloak]{display:none!important}</style>
@@ -92,37 +92,41 @@
         </div>
     @endif
 
-    <!-- Balances Section -->
+    <!-- Balances Section (same source as the dashboard: the year's balance records) -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        @foreach($myPolicies as $policy)
-            @php 
-                $balance = $myBalances[$policy->id]; 
+        @forelse($timeOffBalances as $balance)
+            @php
                 $total = $balance->opening_balance + $balance->accrued + $balance->carried_over + $balance->adjusted;
                 $used = $balance->used;
                 $pending = $balance->pending;
-                $remaining = $balance->remaining;
+                $remaining = max(0, $total - $used - $pending);
                 $percentUsed = $total > 0 ? min(100, ($used / $total) * 100) : 0;
                 $percentPending = $total > 0 ? min(100 - $percentUsed, ($pending / $total) * 100) : 0;
+                $unit = optional(auth()->user()->company)->leave_unit ?? 'days';
             @endphp
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-6 dark:bg-slate-800 dark:border-slate-700/80">
                 <div class="flex justify-between items-start mb-4">
-                    <h3 class="text-lg font-bold text-slate-900 dark:text-white">{{ $policy->name }}</h3>
+                    <h3 class="text-lg font-bold text-slate-900 dark:text-white">{{ optional($balance->policy)->name ?? 'Leave' }}</h3>
                     <div class="text-2xl font-extrabold text-brand-600 dark:text-brand-400">{{ (float) $remaining }}</div>
                 </div>
-                <div class="text-xs text-slate-500 dark:text-slate-400 text-right mb-2">Days Remaining</div>
-                
+                <div class="text-xs text-slate-500 dark:text-slate-400 text-right mb-2">{{ $unit === 'hours' ? 'Hours' : 'Days' }} Remaining</div>
+
                 <div class="w-full bg-slate-100 rounded-full h-2.5 mb-4 dark:bg-slate-700 flex overflow-hidden">
                     <div class="bg-brand-600 h-2.5 rounded-l-full" style="width: {{ $percentUsed }}%"></div>
                     <div class="bg-amber-400 h-2.5" style="width: {{ $percentPending }}%"></div>
                 </div>
-                
+
                 <div class="flex justify-between text-xs text-slate-500 dark:text-slate-400">
                     <div>Used: <span class="font-bold text-slate-900 dark:text-white">{{ (float) $used }}</span></div>
                     <div>Pending: <span class="font-bold text-slate-900 dark:text-white">{{ (float) $pending }}</span></div>
                     <div>Allowance: <span class="font-bold text-slate-900 dark:text-white">{{ (float) $total }}</span></div>
                 </div>
             </div>
-        @endforeach
+        @empty
+            <div class="md:col-span-2 lg:col-span-3 bg-white rounded-2xl shadow-sm border border-slate-200/80 p-8 text-center text-sm text-slate-500 dark:bg-slate-800 dark:border-slate-700/80">
+                No time-off balances found yet.
+            </div>
+        @endforelse
     </div>
 
     <!-- Tabs -->

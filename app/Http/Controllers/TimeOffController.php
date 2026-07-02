@@ -33,6 +33,16 @@ class TimeOffController extends Controller
         foreach ($myPolicies as $policy) {
             $myBalances[$policy->id] = $this->balanceService->getOrCreateBalance($user, $policy, $year);
         }
+
+        // The balance CARDS use the actual balance records for the year (the same
+        // authoritative source the dashboard widget uses) so the two screens
+        // always agree — not the policy_user pivot, which can drift out of sync.
+        $timeOffBalances = \App\Models\TimeOffBalance::where('user_id', $user->id)
+            ->where('year', $year)
+            ->with('policy')
+            ->get()
+            ->filter(fn ($b) => $b->policy)
+            ->values();
         $myRequests = TimeOffRequest::with('policy', 'approver')
             ->forUser($user)
             ->orderBy('start_date', 'desc')
@@ -66,7 +76,7 @@ class TimeOffController extends Controller
         $allPolicies = TimeOffPolicy::active()->get();
 
         return view('time-off.index', compact(
-            'myPolicies', 'myBalances', 'myRequests', 
+            'myPolicies', 'myBalances', 'timeOffBalances', 'myRequests',
             'teamRequests', 'allRequests', 'allPolicies'
         ));
     }
