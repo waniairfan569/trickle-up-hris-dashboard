@@ -71,23 +71,39 @@
                 </div>
             </div>
 
-            <!-- Half Day Toggle -->
+            <!-- Duration type (single date only: full day / half day / hourly) -->
             <div x-show="startDate === endDate && startDate !== ''" style="display: none;" class="pt-4 pb-2">
-                <label class="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" name="is_half_day" value="1" x-model="isHalfDay" @change="calculateDays" class="sr-only peer">
-                    <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-brand-300 dark:peer-focus:ring-brand-800 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-brand-600"></div>
-                    <span class="ml-3 text-sm font-bold text-slate-700 dark:text-slate-300">Request Half Day</span>
-                </label>
-                
-                <div x-show="isHalfDay" class="mt-4 flex gap-4 ml-14">
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 dark:text-slate-300">Duration</label>
+                <div class="inline-flex rounded-xl border border-slate-300 p-1 dark:border-slate-600">
+                    <template x-for="opt in [{k:'full_day',l:'Full day'},{k:'half_day',l:'Half day'},{k:'hourly',l:'Hourly'}]" :key="opt.k">
+                        <button type="button" @click="durationType = opt.k; calculateDays()"
+                                :class="durationType === opt.k ? 'bg-brand-600 text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400'"
+                                class="px-4 py-1.5 text-sm font-bold rounded-lg transition" x-text="opt.l"></button>
+                    </template>
+                </div>
+
+                <!-- Half-day period -->
+                <div x-show="durationType === 'half_day'" class="mt-4 flex gap-4">
                     <label class="inline-flex items-center">
-                        <input type="radio" name="half_day_period" value="morning" class="text-brand-600 border-slate-300 focus:ring-brand-500 dark:bg-slate-900 dark:border-slate-600" checked>
+                        <input type="radio" name="half_day_period" value="morning" x-model="halfPeriod" class="text-brand-600 border-slate-300 focus:ring-brand-500 dark:bg-slate-900 dark:border-slate-600">
                         <span class="ml-2 text-sm text-slate-700 dark:text-slate-300">Morning</span>
                     </label>
                     <label class="inline-flex items-center">
-                        <input type="radio" name="half_day_period" value="afternoon" class="text-brand-600 border-slate-300 focus:ring-brand-500 dark:bg-slate-900 dark:border-slate-600">
+                        <input type="radio" name="half_day_period" value="afternoon" x-model="halfPeriod" class="text-brand-600 border-slate-300 focus:ring-brand-500 dark:bg-slate-900 dark:border-slate-600">
                         <span class="ml-2 text-sm text-slate-700 dark:text-slate-300">Afternoon</span>
                     </label>
+                </div>
+
+                <!-- Hourly time window -->
+                <div x-show="durationType === 'hourly'" class="mt-4 grid grid-cols-2 gap-4 max-w-sm">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1 dark:text-slate-300">Start time</label>
+                        <input type="time" name="start_time" x-model="startTime" @input="calculateDays" class="w-full rounded-xl border-slate-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1 dark:text-slate-300">End time</label>
+                        <input type="time" name="end_time" x-model="endTime" @input="calculateDays" class="w-full rounded-xl border-slate-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                    </div>
                 </div>
             </div>
 
@@ -97,15 +113,27 @@
                 <textarea name="reason" rows="3" placeholder="Add a note for your manager..." class="w-full rounded-xl border-slate-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white"></textarea>
             </div>
             
+            <input type="hidden" name="duration_type" x-model="durationType">
             <input type="hidden" name="days_requested" x-model="calculatedDays">
 
         </div>
-        
+
         <div class="px-8 py-5 bg-slate-50 border-t border-slate-200 flex items-center justify-between dark:bg-slate-900/50 dark:border-slate-700/60">
             <div class="text-sm">
                 <span class="text-slate-500 dark:text-slate-400">Requesting: </span>
-                <span class="font-extrabold text-lg text-slate-900 dark:text-white" x-text="calculatedDays">0</span>
-                <span class="text-slate-500 dark:text-slate-400"> working days</span>
+                <template x-if="durationType === 'hourly'">
+                    <span>
+                        <span class="font-extrabold text-lg text-slate-900 dark:text-white" x-text="hours">0</span>
+                        <span class="text-slate-500 dark:text-slate-400"> hours</span>
+                        <span class="text-xs text-slate-400" x-text="'(≈ ' + calculatedDays + ' day)'"></span>
+                    </span>
+                </template>
+                <template x-if="durationType !== 'hourly'">
+                    <span>
+                        <span class="font-extrabold text-lg text-slate-900 dark:text-white" x-text="calculatedDays">0</span>
+                        <span class="text-slate-500 dark:text-slate-400"> working day(s)</span>
+                    </span>
+                </template>
             </div>
             <button type="submit" class="inline-flex justify-center rounded-xl bg-brand-600 px-6 py-3 text-sm font-bold text-slate-900 shadow-md hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 transition">
                 Submit Request
@@ -120,47 +148,71 @@
             selectedPolicy: {{ old('policy_id', $myPolicies->first()->id ?? 'null') }},
             startDate: '{{ old('start_date') }}',
             endDate: '{{ old('end_date') }}',
-            isHalfDay: {{ old('is_half_day', 0) ? 'true' : 'false' }},
+            durationType: '{{ old('duration_type', 'full_day') }}',
+            startTime: '{{ old('start_time') }}',
+            endTime: '{{ old('end_time') }}',
+            halfPeriod: '{{ old('half_day_period', 'morning') }}',
+            hoursPerDay: {{ (float) \App\Models\TimeOffRequest::hoursPerDayFor(auth()->id()) }},
+            hours: 0,
             calculatedDays: 0,
-            
+
             init() {
                 this.$watch('startDate', value => {
                     if(!this.endDate || this.endDate < value) this.endDate = value;
-                    if(this.startDate !== this.endDate) this.isHalfDay = false;
+                    if(this.startDate !== this.endDate) this.durationType = 'full_day';
                     this.calculateDays();
                 });
                 this.$watch('endDate', value => {
                     if(this.startDate && value < this.startDate) this.startDate = value;
-                    if(this.startDate !== this.endDate) this.isHalfDay = false;
+                    if(this.startDate !== this.endDate) this.durationType = 'full_day';
                     this.calculateDays();
                 });
                 this.calculateDays();
             },
-            
+
+            computeHours() {
+                if(!this.startTime || !this.endTime) return 0;
+                const [sh, sm] = this.startTime.split(':').map(Number);
+                const [eh, em] = this.endTime.split(':').map(Number);
+                let mins = (eh * 60 + em) - (sh * 60 + sm);
+                return mins > 0 ? Math.round((mins / 60) * 100) / 100 : 0;
+            },
+
             calculateDays() {
+                this.hours = 0;
                 if(!this.startDate || !this.endDate) {
                     this.calculatedDays = 0;
                     return;
                 }
-                
-                if (this.isHalfDay && this.startDate === this.endDate) {
+
+                const single = this.startDate === this.endDate;
+                if(!single) this.durationType = 'full_day';
+
+                if (single && this.durationType === 'half_day') {
                     this.calculatedDays = 0.5;
                     return;
                 }
 
-                // Basic frontend calculation (ignoring holidays for now, server handles exact)
-                // We count weekdays
+                if (single && this.durationType === 'hourly') {
+                    this.hours = this.computeHours();
+                    this.calculatedDays = this.hoursPerDay > 0
+                        ? Math.round((this.hours / this.hoursPerDay) * 100) / 100
+                        : 0;
+                    return;
+                }
+
+                // Full day: count weekdays (server does the exact holiday-aware count)
                 let start = new Date(this.startDate);
                 let end = new Date(this.endDate);
                 let count = 0;
                 let cur = new Date(start);
-                
+
                 while (cur <= end) {
                     let dayOfWeek = cur.getDay();
                     if(dayOfWeek !== 0 && dayOfWeek !== 6) count++; // Not Sunday(0) or Saturday(6)
                     cur.setDate(cur.getDate() + 1);
                 }
-                
+
                 this.calculatedDays = count;
             }
         }

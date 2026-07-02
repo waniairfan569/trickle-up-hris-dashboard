@@ -23,12 +23,12 @@ class TimeOffBalance extends Model
 
     protected $casts = [
         'year' => 'integer',
-        'opening_balance' => 'decimal:1',
-        'accrued' => 'decimal:1',
-        'used' => 'decimal:1',
-        'pending' => 'decimal:1',
-        'carried_over' => 'decimal:1',
-        'adjusted' => 'decimal:1',
+        'opening_balance' => 'decimal:2',
+        'accrued' => 'decimal:2',
+        'used' => 'decimal:2',
+        'pending' => 'decimal:2',
+        'carried_over' => 'decimal:2',
+        'adjusted' => 'decimal:2',
     ];
 
     public function user()

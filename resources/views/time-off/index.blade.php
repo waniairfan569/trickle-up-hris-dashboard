@@ -166,13 +166,15 @@
                             {{ $request->policy->name }}
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">
-                            {{ $request->start_date->format('M d, Y') }} - {{ $request->end_date->format('M d, Y') }}
-                            @if($request->is_half_day)
+                            {{ $request->start_date->format('M d, Y') }}@if($request->start_date != $request->end_date) - {{ $request->end_date->format('M d, Y') }}@endif
+                            @if($request->duration_type === 'hourly')
+                                <span class="text-xs bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-md ml-2 dark:bg-indigo-500/10 dark:text-indigo-300">{{ $request->time_range }}</span>
+                            @elseif($request->is_half_day)
                                 <span class="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md ml-2 dark:bg-slate-700 dark:text-slate-300">Half Day ({{ ucfirst($request->half_day_period) }})</span>
                             @endif
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">
-                            {{ (float) $request->days_requested }}
+                            {{ $request->duration_label }}
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold {{ $request->status_color }}">
@@ -215,7 +217,7 @@
                             </div>
                         </div>
                         <div class="text-right">
-                            <div class="text-lg font-extrabold text-slate-900 dark:text-white">{{ (float) $request->days_requested }} <span class="text-sm font-normal text-slate-500">days</span></div>
+                            <div class="text-lg font-extrabold text-slate-900 dark:text-white">{{ $request->duration_label }}</div>
                         </div>
                     </div>
                     <div class="bg-slate-50 rounded-xl p-3 mb-3 border border-slate-100 dark:bg-slate-900 dark:border-slate-700/60">
@@ -225,7 +227,9 @@
                             @if($request->start_date != $request->end_date)
                                 - {{ $request->end_date->format('D, M d Y') }}
                             @endif
-                            @if($request->is_half_day)
+                            @if($request->duration_type === 'hourly')
+                                <span class="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded ml-2 dark:bg-indigo-500/10 dark:text-indigo-300">{{ $request->time_range }}</span>
+                            @elseif($request->is_half_day)
                                 <span class="text-xs bg-slate-200 text-slate-700 px-2 py-0.5 rounded ml-2 dark:bg-slate-700 dark:text-slate-300">Half Day ({{ ucfirst($request->half_day_period) }})</span>
                             @endif
                         </div>

@@ -47,7 +47,7 @@
                                 - {{ $req->end_date->format('M d') }}
                             @endif
                         </div>
-                        <div class="text-xs text-slate-500 mt-1">{{ (float) $req->days_requested }} days</div>
+                        <div class="text-xs text-slate-500 mt-1">{{ $req->duration_label }}</div>
                     </div>
                 </div>
             @empty

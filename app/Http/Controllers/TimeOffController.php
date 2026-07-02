@@ -93,32 +93,57 @@ class TimeOffController extends Controller
             'policy_id' => 'required|exists:time_off_policies,id',
             'start_date' => 'required|date|after_or_equal:today',
             'end_date' => 'required|date|after_or_equal:start_date',
-            'is_half_day' => 'boolean',
+            'duration_type' => 'nullable|in:full_day,half_day,hourly',
             'half_day_period' => 'nullable|in:morning,afternoon',
+            'start_time' => 'nullable|date_format:H:i',
+            'end_time' => 'nullable|date_format:H:i',
             'reason' => 'nullable|string',
-            'days_requested' => 'required|numeric|min:0.5' // From JS calculator
+            'days_requested' => 'nullable|numeric|min:0' // full-day: from JS; half/hourly: server computes
         ]);
 
         $policy = TimeOffPolicy::findOrFail($validated['policy_id']);
         $year = Carbon::parse($validated['start_date'])->year;
         $balance = $this->balanceService->getOrCreateBalance($user, $policy, $year);
 
-        // Validation Rules
-        if (!$policy->allow_half_days && $request->is_half_day) {
-            return back()->withErrors(['Half days are not allowed for this policy.'])->withInput();
+        // Resolve the duration type (fall back to the legacy half-day checkbox).
+        $durationType = $validated['duration_type'] ?? ($request->has('is_half_day') ? 'half_day' : 'full_day');
+        $isPartial = in_array($durationType, ['half_day', 'hourly'], true);
+
+        // Half-day / hourly reuse the policy's "allow half days" flag.
+        if ($isPartial && !$policy->allow_half_days) {
+            return back()->withErrors(['Partial-day (half-day / hourly) leave is not allowed for this policy.'])->withInput();
         }
-        
-        if ($request->is_half_day && $validated['start_date'] !== $validated['end_date']) {
-            return back()->withErrors(['Half days can only be selected for a single date.'])->withInput();
+        if ($isPartial && $validated['start_date'] !== $validated['end_date']) {
+            return back()->withErrors(['Half-day and hourly leave can only be for a single date.'])->withInput();
         }
-        
+
+        // Compute the authoritative day-equivalent server-side (don't trust JS).
+        $hours = null;
+        if ($durationType === 'hourly') {
+            if (empty($validated['start_time']) || empty($validated['end_time'])) {
+                return back()->withErrors(['Please provide a start and end time for an hourly request.'])->withInput();
+            }
+            $hours = TimeOffRequest::hoursBetween($validated['start_time'], $validated['end_time']);
+            if ($hours <= 0) {
+                return back()->withErrors(['End time must be after start time.'])->withInput();
+            }
+            $days = round($hours / TimeOffRequest::hoursPerDayFor($user->id), 2);
+        } elseif ($durationType === 'half_day') {
+            $days = 0.5;
+        } else {
+            $days = (float) ($validated['days_requested'] ?? 0);
+            if ($days < 0.5) {
+                return back()->withErrors(['Please select a valid date range.'])->withInput();
+            }
+        }
+
         $noticeDiff = Carbon::now()->startOfDay()->diffInDays(Carbon::parse($validated['start_date']));
         if ($noticeDiff < $policy->min_notice_days) {
             return back()->withErrors(["This policy requires at least {$policy->min_notice_days} days notice."])->withInput();
         }
 
-        if (!$policy->allow_negative_balance && $balance->remaining < $validated['days_requested']) {
-            return back()->withErrors(['Insufficient balance. You cannot request more days than you have remaining.'])->withInput();
+        if (!$policy->allow_negative_balance && $balance->remaining < $days) {
+            return back()->withErrors(['Insufficient balance. You cannot request more than you have remaining.'])->withInput();
         }
 
         // Create Request
@@ -128,16 +153,20 @@ class TimeOffController extends Controller
             'requested_by' => $user->id,
             'start_date' => $validated['start_date'],
             'end_date' => $validated['end_date'],
-            'days_requested' => $validated['days_requested'],
-            'is_half_day' => $request->has('is_half_day'),
-            'half_day_period' => $validated['half_day_period'] ?? null,
+            'days_requested' => $days,
+            'duration_type' => $durationType,
+            'hours_requested' => $durationType === 'hourly' ? $hours : null,
+            'start_time' => $durationType === 'hourly' ? $validated['start_time'] : null,
+            'end_time' => $durationType === 'hourly' ? $validated['end_time'] : null,
+            'is_half_day' => $durationType === 'half_day',
+            'half_day_period' => $durationType === 'half_day' ? ($validated['half_day_period'] ?? null) : null,
             'reason' => $validated['reason'],
             'status' => $policy->requires_approval ? 'pending' : 'approved',
             'approved_at' => $policy->requires_approval ? null : now(),
         ]);
 
         if ($policy->requires_approval) {
-            $this->balanceService->addPending($user, $policy, $validated['days_requested']);
+            $this->balanceService->addPending($user, $policy, $days);
             // Notify Approver
             if (class_exists(\App\Notifications\TimeOffRequestSubmitted::class)) {
                 $superAdmin = \App\Models\User::whereHas('roles', function($q) { $q->where('name', 'super_admin')->orWhere('slug', 'super_admin'); })->first();
@@ -153,7 +182,7 @@ class TimeOffController extends Controller
             }
             return redirect()->route('time-off.index')->with('success', 'Time-off request submitted for approval.');
         } else {
-            $this->balanceService->deductBalance($user, $policy, $validated['days_requested']);
+            $this->balanceService->deductBalance($user, $policy, $days);
             return redirect()->route('time-off.index')->with('success', 'Time-off request auto-approved.');
         }
     }

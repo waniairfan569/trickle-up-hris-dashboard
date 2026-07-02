@@ -17,6 +17,10 @@ class TimeOffRequest extends Model
         'start_date',
         'end_date',
         'days_requested',
+        'duration_type',
+        'hours_requested',
+        'start_time',
+        'end_time',
         'is_half_day',
         'half_day_period',
         'reason',
@@ -32,7 +36,8 @@ class TimeOffRequest extends Model
     protected $casts = [
         'start_date' => 'date',
         'end_date' => 'date',
-        'days_requested' => 'decimal:1',
+        'days_requested' => 'decimal:2',
+        'hours_requested' => 'decimal:2',
         'is_half_day' => 'boolean',
         'approved_at' => 'datetime',
         'rejected_at' => 'datetime',
@@ -48,13 +53,25 @@ class TimeOffRequest extends Model
         parent::boot();
 
         static::creating(function ($request) {
+            // Keep is_half_day in sync with duration_type for backward compatibility.
+            if ($request->duration_type === 'half_day') {
+                $request->is_half_day = true;
+            } elseif ($request->duration_type === 'hourly') {
+                $request->is_half_day = false;
+            }
+
             if (empty($request->days_requested)) {
-                if ($request->is_half_day) {
+                if ($request->duration_type === 'hourly') {
+                    $hours = $request->hours_requested
+                        ?: self::hoursBetween($request->start_time, $request->end_time);
+                    $request->hours_requested = $hours;
+                    $request->days_requested = round($hours / self::hoursPerDayFor($request->user_id), 2);
+                } elseif ($request->is_half_day || $request->duration_type === 'half_day') {
                     $request->days_requested = 0.5;
                 } else {
                     $user = User::find($request->user_id);
                     $schedule = $user->workSchedule ?? WorkSchedule::default()->first();
-                    
+
                     if ($schedule) {
                         $request->days_requested = $schedule->countWorkingDays(
                             Carbon::parse($request->start_date),
@@ -71,6 +88,54 @@ class TimeOffRequest extends Model
                 }
             }
         });
+    }
+
+    /** Standard working hours in a day for this user (schedule → default → 8). */
+    public static function hoursPerDayFor($userId): float
+    {
+        $user = $userId ? User::find($userId) : null;
+        $schedule = ($user ? $user->workSchedule : null) ?? WorkSchedule::default()->first();
+        $hours = $schedule && $schedule->hours_per_day ? (float) $schedule->hours_per_day : 8.0;
+
+        return $hours > 0 ? $hours : 8.0;
+    }
+
+    /** Whole hours between two "H:i(:s)" times on the same day. */
+    public static function hoursBetween(?string $start, ?string $end): float
+    {
+        if (!$start || !$end) {
+            return 0.0;
+        }
+        $s = Carbon::parse($start);
+        $e = Carbon::parse($end);
+
+        // Carbon 3 diffs are signed ($a->diff($b) = b - a); order so it's positive.
+        return $e->greaterThan($s) ? round($s->floatDiffInHours($e), 2) : 0.0;
+    }
+
+    /** Human-friendly duration, e.g. "3 hours", "Half day (Morning)", "2 days". */
+    public function getDurationLabelAttribute(): string
+    {
+        $trim = fn ($n) => rtrim(rtrim(number_format((float) $n, 2, '.', ''), '0'), '.');
+
+        if ($this->duration_type === 'hourly') {
+            $h = $trim($this->hours_requested);
+            return $h . ' hour' . (((float) $this->hours_requested) === 1.0 ? '' : 's');
+        }
+        if ($this->duration_type === 'half_day' || $this->is_half_day) {
+            return 'Half day' . ($this->half_day_period ? ' (' . ucfirst($this->half_day_period) . ')' : '');
+        }
+        $d = $trim($this->days_requested);
+        return $d . ' day' . (((float) $this->days_requested) === 1.0 ? '' : 's');
+    }
+
+    /** "10:00 AM – 1:00 PM" for hourly requests, else null. */
+    public function getTimeRangeAttribute(): ?string
+    {
+        if ($this->duration_type !== 'hourly' || !$this->start_time || !$this->end_time) {
+            return null;
+        }
+        return Carbon::parse($this->start_time)->format('g:i A') . ' – ' . Carbon::parse($this->end_time)->format('g:i A');
     }
 
     // --- Relationships ---
