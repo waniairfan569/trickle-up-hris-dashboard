@@ -235,21 +235,25 @@
                             <div class="max-h-96 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-700/50">
                                 @if(auth()->user() && auth()->user()->unreadNotifications->count() > 0)
                                     @foreach(auth()->user()->unreadNotifications as $notification)
-                                    <div class="p-4 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition duration-150">
+                                    @php $isUrgent = $notification->data['urgent'] ?? false; @endphp
+                                    <div class="p-4 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition duration-150 {{ $isUrgent ? 'bg-rose-50/40 dark:bg-rose-500/5 border-l-2 border-rose-500' : '' }}">
                                         <div class="flex gap-3">
                                             <div class="flex-shrink-0 mt-0.5">
-                                                <div class="h-8 w-8 rounded-full bg-brand-100 flex items-center justify-center dark:bg-brand-500/20 text-brand-600 dark:text-brand-400">
+                                                <div class="h-8 w-8 rounded-full flex items-center justify-center {{ $isUrgent ? 'bg-rose-100 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400' : 'bg-brand-100 text-brand-600 dark:bg-brand-500/20 dark:text-brand-400' }}">
                                                     <i data-lucide="{{ $notification->data['icon'] ?? 'bell' }}" class="h-4 w-4"></i>
                                                 </div>
                                             </div>
                                             <div class="flex-1 min-w-0">
-                                                <a href="{{ route('notifications.index') }}" class="block group">
-                                                    <p class="text-sm font-semibold text-slate-900 dark:text-white mb-0.5 group-hover:text-brand-600 dark:group-hover:text-brand-400 transition">
+                                                <a href="{{ $notification->data['url'] ?? route('notifications.index') }}" class="block group">
+                                                    <p class="text-sm font-semibold {{ $isUrgent ? 'text-rose-700 dark:text-rose-400' : 'text-slate-900 dark:text-white' }} mb-0.5 transition">
                                                         {{ $notification->data['title'] ?? 'Notification' }}
                                                     </p>
                                                     <p class="text-xs text-slate-600 dark:text-slate-400 leading-snug">
                                                         {{ $notification->data['message'] ?? '' }}
                                                     </p>
+                                                    @if(!empty($notification->data['code']))
+                                                        <div class="mt-1.5 inline-block rounded-lg bg-slate-900 px-3 py-1.5 font-mono text-base font-extrabold tracking-widest text-white dark:bg-slate-950">{{ $notification->data['code'] }}</div>
+                                                    @endif
                                                 </a>
                                                 <div class="mt-2 flex items-center justify-between">
                                                     <p class="text-[10px] font-medium text-slate-400 dark:text-slate-500">

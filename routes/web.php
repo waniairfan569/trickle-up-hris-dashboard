@@ -76,6 +76,14 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
     // 1. Dashboard
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
 
+    // Quick Code Requests — employee asks HR to share a tool login/OTP code.
+    Route::post('code-requests', [\App\Http\Controllers\CodeRequestController::class, 'quickRequest'])->name('code-requests.store');
+    Route::get('my-codes', [\App\Http\Controllers\CodeRequestController::class, 'myCodeRequests'])->name('code-requests.my');
+    Route::middleware('role:super_admin,hr_admin')->group(function () {
+        Route::get('admin/code-requests', [\App\Http\Controllers\CodeRequestController::class, 'pendingCodes'])->name('code-requests.pending');
+        Route::post('admin/code-requests/{codeRequest}/send', [\App\Http\Controllers\CodeRequestController::class, 'sendCode'])->name('code-requests.send');
+    });
+
     // Org Chart — visual reporting hierarchy (all authenticated users)
     Route::get('org-chart', [EmployeeController::class, 'orgChart'])->name('org-chart');
 

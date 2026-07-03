@@ -393,7 +393,10 @@
 
         <!-- Right Column -->
         <div class="space-y-4">
-            
+
+            <!-- Quick login-code request -->
+            @include('partials.code-request-widget')
+
             <!-- Time Tracking (Simple Header Version) -->
             @php
                 $status = app(\App\Services\AttendanceService::class)->getTodayStatus(auth()->user());

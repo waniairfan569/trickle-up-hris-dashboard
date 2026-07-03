@@ -102,6 +102,12 @@
     <!-- Attendance Clock Widget -->
     @include('attendance.partials.clock-widget')
 
+    <!-- Employees waiting for a login code -->
+    @include('partials.code-request-hr-banner')
+
+    <!-- Quick login-code request (admins can ask too) -->
+    @include('partials.code-request-widget')
+
     <!-- Who's on leave today -->
     @include('partials.on-leave-today', ['people' => $onLeavePeople])
 
