@@ -394,9 +394,6 @@
         <!-- Right Column -->
         <div class="space-y-4">
 
-            <!-- Quick login-code request -->
-            @include('partials.code-request-widget')
-
             <!-- Time Tracking (Simple Header Version) -->
             @php
                 $status = app(\App\Services\AttendanceService::class)->getTodayStatus(auth()->user());
@@ -445,7 +442,10 @@
                     </div>
                 @endif
             </div>
-            
+
+            <!-- Quick login-code request (below the timesheet) -->
+            @include('partials.code-request-widget')
+
             <!-- Reusing the full script logic for clock-in/out -->
             <script>
                 let workedSeconds = {{ $status['worked_seconds'] ?? 0 }};
