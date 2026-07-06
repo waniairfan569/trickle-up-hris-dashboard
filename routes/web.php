@@ -307,6 +307,7 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
         Route::get('company-forms/{companyForm}/responses', [\App\Http\Controllers\CompanyFormController::class, 'responses'])->name('company-forms.responses');
         Route::get('company-forms/{companyForm}/export', [\App\Http\Controllers\CompanyFormController::class, 'exportResponses'])->name('company-forms.export');
         Route::get('form-submissions/{submission}', [\App\Http\Controllers\CompanyFormController::class, 'viewSubmission'])->name('company-forms.submission');
+        Route::post('form-submissions/{submission}/review', [\App\Http\Controllers\CompanyFormController::class, 'reviewSubmission'])->name('company-forms.submission.review');
         Route::delete('company-forms/{companyForm}', [\App\Http\Controllers\CompanyFormController::class, 'destroy'])->name('company-forms.destroy');
 
         // Company Policies — admin (create, assign, track acknowledgments)

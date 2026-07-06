@@ -268,9 +268,36 @@ class CompanyFormController extends Controller
 
     public function viewSubmission(FormSubmission $submission)
     {
-        $submission->load(['form.fields', 'employee', 'responses']);
+        $submission->load(['form.fields', 'employee', 'responses', 'reviewer']);
 
         return view('company-forms.view-submission', ['submission' => $submission]);
+    }
+
+    /** Admin: approve/reject a submission with an optional suggestion; notify the employee. */
+    public function reviewSubmission(Request $request, FormSubmission $submission)
+    {
+        $validated = $request->validate([
+            'action' => ['required', Rule::in(['approve', 'reject'])],
+            'review_note' => 'nullable|string|max:2000',
+        ]);
+
+        $submission->update([
+            'review_status' => $validated['action'] === 'approve' ? 'approved' : 'rejected',
+            'review_note' => $validated['review_note'] ?? null,
+            'reviewed_by' => auth()->id(),
+            'reviewed_at' => now(),
+        ]);
+
+        if ($submission->employee) {
+            try {
+                $submission->employee->notify(new \App\Notifications\FormReviewed($submission));
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
+
+        $label = $validated['action'] === 'approve' ? 'approved' : 'rejected';
+        return back()->with('success', "Response {$label}. The employee has been notified.");
     }
 
     public function exportResponses(CompanyForm $companyForm)

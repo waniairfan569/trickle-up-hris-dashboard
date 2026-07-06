@@ -37,7 +37,12 @@
                         <tr class="border-b border-slate-100 last:border-0 dark:border-slate-700/60">
                             <td class="px-5 py-2.5 font-semibold text-slate-800 dark:text-white">{{ $form->is_anonymous ? 'Anonymous' : (optional($s->employee)->full_name ?? '—') }}</td>
                             <td class="px-5 py-2.5 text-slate-500">{{ optional(optional($s->employee)->department)->name ?? '—' }}</td>
-                            <td class="px-5 py-2.5"><span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold {{ $badge[$s->status] }}">{{ ucfirst(str_replace('_',' ',$s->status)) }}</span></td>
+                            <td class="px-5 py-2.5">
+                                <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold {{ $badge[$s->status] }}">{{ ucfirst(str_replace('_',' ',$s->status)) }}</span>
+                                @if(in_array($s->review_status, ['approved', 'rejected'], true))
+                                    <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold ml-1 {{ $s->reviewBadgeClass() }}">{{ $s->reviewLabel() }}</span>
+                                @endif
+                            </td>
                             <td class="px-5 py-2.5 text-slate-500 whitespace-nowrap">{{ optional($s->submitted_at)->format('d M Y, H:i') ?? '—' }}</td>
                             <td class="px-5 py-2.5 text-right">@if($s->status === 'submitted')<a href="{{ route('company-forms.submission', $s) }}" class="text-xs font-bold text-brand-600 hover:underline">View response</a>@endif</td>
                         </tr>
