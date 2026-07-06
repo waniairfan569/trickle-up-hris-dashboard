@@ -107,8 +107,8 @@
                             @if($canEdit)
                             @php
                                 $tzSvc = app(\App\Services\TimezoneService::class);
-                                $ciVal = $record->clock_in ? $tzSvc->toUserTime($record->clock_in, $record->employee)->format('Y-m-d\TH:i') : '';
-                                $coVal = $record->clock_out ? $tzSvc->toUserTime($record->clock_out, $record->employee)->format('Y-m-d\TH:i') : '';
+                                $ciVal = $record->clock_in ? $tzSvc->toUserTime($record->clock_in, $record->employee)->format('H:i') : '';
+                                $coVal = $record->clock_out ? $tzSvc->toUserTime($record->clock_out, $record->employee)->format('H:i') : '';
                             @endphp
                             <td class="px-6 py-4 whitespace-nowrap text-right" x-data="{ open: false }">
                                 <button type="button" @click="open = true" class="inline-flex items-center text-sm font-semibold text-brand-600 hover:text-brand-800">
@@ -120,17 +120,17 @@
                                     <div class="absolute inset-0 bg-slate-900/50" @click="open = false"></div>
                                     <div class="relative bg-white rounded-xl shadow-xl w-full max-w-md p-6 text-left">
                                         <h3 class="text-lg font-bold text-slate-800 mb-1">Edit attendance time</h3>
-                                        <p class="text-sm text-slate-500 mb-4">{{ $record->employee->first_name }} {{ $record->employee->last_name }} · {{ $record->date->format('M d, Y') }}</p>
+                                        <p class="text-sm text-slate-500 mb-4">{{ $record->employee->first_name }} {{ $record->employee->last_name }} · <b>{{ $record->date->format('M d, Y') }}</b></p>
                                         <form method="POST" action="{{ route('attendance.records.update-times', $record) }}" class="space-y-4">
                                             @csrf
                                             @method('PUT')
                                             <div>
                                                 <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Clock In</label>
-                                                <input type="datetime-local" name="clock_in" value="{{ $ciVal }}" class="w-full text-sm rounded-lg border-slate-300 focus:ring-brand-500 focus:border-brand-500 shadow-sm py-2">
+                                                <input type="time" name="clock_in" value="{{ $ciVal }}" class="w-full text-sm rounded-lg border-slate-300 focus:ring-brand-500 focus:border-brand-500 shadow-sm py-2">
                                             </div>
                                             <div>
                                                 <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Clock Out</label>
-                                                <input type="datetime-local" name="clock_out" value="{{ $coVal }}" class="w-full text-sm rounded-lg border-slate-300 focus:ring-brand-500 focus:border-brand-500 shadow-sm py-2">
+                                                <input type="time" name="clock_out" value="{{ $coVal }}" class="w-full text-sm rounded-lg border-slate-300 focus:ring-brand-500 focus:border-brand-500 shadow-sm py-2">
                                             </div>
                                             <p class="text-xs text-slate-400">Times are in {{ $record->employee->first_name }}'s timezone. Clock-in after {{ \Carbon\Carbon::parse(\App\Models\AttendanceRecord::lateCutoff())->format('g:i A') }} is marked late.</p>
                                             <div class="flex justify-end gap-2 pt-2">

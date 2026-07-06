@@ -340,18 +340,22 @@ class AttendanceManagerController extends Controller
         abort_unless($user && $user->isAdmin(), 403);
 
         $validated = $request->validate([
-            'clock_in' => 'nullable|date_format:Y-m-d\TH:i',
-            'clock_out' => 'nullable|date_format:Y-m-d\TH:i',
+            'clock_in' => 'nullable|date_format:H:i',
+            'clock_out' => 'nullable|date_format:H:i',
         ]);
 
         $tz = app(\App\Services\TimezoneService::class);
         $userTz = $tz->getEffectiveTimezone($record->employee);
         $canonical = config('app.timezone') ?: \App\Services\TimezoneService::FALLBACK_TIMEZONE;
+        // Always apply the times to THIS record's own date (not today / not a
+        // date carried by a datetime picker) — the times are entered in the
+        // employee's timezone and stored canonical.
+        $date = $record->date->format('Y-m-d');
 
         $record->clock_in = !empty($validated['clock_in'])
-            ? Carbon::parse($validated['clock_in'], $userTz)->setTimezone($canonical) : null;
+            ? Carbon::parse($date . ' ' . $validated['clock_in'], $userTz)->setTimezone($canonical) : null;
         $record->clock_out = !empty($validated['clock_out'])
-            ? Carbon::parse($validated['clock_out'], $userTz)->setTimezone($canonical) : null;
+            ? Carbon::parse($date . ' ' . $validated['clock_out'], $userTz)->setTimezone($canonical) : null;
 
         if ($record->clock_in && $record->clock_out && $record->clock_out->lessThan($record->clock_in)) {
             return back()->with('error', 'Clock-out cannot be before clock-in.');
