@@ -27,10 +27,8 @@ class AttendanceService
     {
         $today = Carbon::today();
         
-        $record = AttendanceRecord::firstOrNew([
-            'user_id' => $user->id,
-            'date' => $today,
-        ]);
+        // Trashed-aware: a soft-deleted (user,date) row would block a new insert.
+        $record = AttendanceRecord::findOrNewForDate($user->id, $today->toDateString());
 
         $isReclocking = false;
         if ($record->exists && $record->clock_in) {

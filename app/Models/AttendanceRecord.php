@@ -53,6 +53,32 @@ class AttendanceRecord extends Model
     }
 
     /**
+     * Find the (user, date) record — INCLUDING a soft-deleted one — restoring it
+     * if trashed, or return a fresh unsaved model. The attendance_records table
+     * has a UNIQUE(user_id, date) index that still counts soft-deleted rows, so
+     * a plain firstOrCreate would try to INSERT over a trashed row and blow up
+     * with a 1062 duplicate-entry error. Always route (user, date) upserts here.
+     */
+    public static function findOrNewForDate($userId, $date): self
+    {
+        $dateStr = $date instanceof Carbon ? $date->toDateString() : (string) $date;
+
+        $record = static::withTrashed()
+            ->where('user_id', $userId)
+            ->whereDate('date', $dateStr)
+            ->first();
+
+        if ($record) {
+            if ($record->trashed()) {
+                $record->restore();
+            }
+            return $record;
+        }
+
+        return new static(['user_id' => $userId, 'date' => $dateStr]);
+    }
+
+    /**
      * Recompute status, late_minutes and total_minutes_worked from the current
      * clock_in / clock_out (used after an admin edits the times, or on clock-out).
      * An employee whose clock-in — in their own timezone — is after the late

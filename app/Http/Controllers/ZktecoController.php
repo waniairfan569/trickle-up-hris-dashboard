@@ -157,9 +157,11 @@ class ZktecoController extends Controller
         abort_unless($request->user() && $request->user()->hasRole('super_admin'), 403, 'Only a super admin can clear ZKTeco data.');
 
         $counts = DB::transaction(function () {
+            // Hard-delete: a soft-deleted row still occupies UNIQUE(user_id,date)
+            // and would block re-creating attendance for that day.
             $attIds = AttendanceRecord::where('source', 'zkteco')->pluck('id');
             $breaks = BreakRecord::whereIn('attendance_record_id', $attIds)->delete();
-            $att = AttendanceRecord::whereIn('id', $attIds)->delete();
+            $att = AttendanceRecord::whereIn('id', $attIds)->forceDelete();
 
             $punches = ZktecoRawPunch::query()->delete();
             $unmapped = ZktecoUnmapped::query()->delete();
@@ -188,9 +190,10 @@ class ZktecoController extends Controller
 
         $result = DB::transaction(function () use ($service) {
             // Drop the derived attendance (+ breaks) so pairing starts fresh.
+            // Hard-delete so re-processing punches can recreate the (user,date) rows.
             $attIds = AttendanceRecord::where('source', 'zkteco')->pluck('id');
             BreakRecord::whereIn('attendance_record_id', $attIds)->delete();
-            AttendanceRecord::whereIn('id', $attIds)->delete();
+            AttendanceRecord::whereIn('id', $attIds)->forceDelete();
 
             // Reset processed flags so every mapped punch runs through again.
             ZktecoRawPunch::whereNotNull('user_id')->update([

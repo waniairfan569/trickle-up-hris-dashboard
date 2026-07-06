@@ -161,9 +161,11 @@ class AttendanceManagerController extends Controller
                 ->exists();
             if ($isOnLeave) { $onLeave++; continue; }
 
-            $record = AttendanceRecord::where('user_id', $user->id)->whereDate('date', $date)->first();
-            $existed = (bool) $record;
-            if ($existed && !$overwrite) { $skipped++; continue; }
+            // Include soft-deleted rows: the UNIQUE(user_id,date) index counts
+            // them, so a trashed record must be restored & reused, not re-inserted.
+            $existing = AttendanceRecord::withTrashed()->where('user_id', $user->id)->whereDate('date', $date)->first();
+            $liveExisted = $existing && !$existing->trashed();
+            if ($liveExisted && !$overwrite) { $skipped++; continue; }
 
             $userTz = $tz->getEffectiveTimezone($user);
             $clockIn = Carbon::parse($date . ' ' . $validated['clock_in'], $userTz)->setTimezone($canonical);
@@ -171,7 +173,10 @@ class AttendanceManagerController extends Controller
                 ? Carbon::parse($date . ' ' . $validated['clock_out'], $userTz)->setTimezone($canonical)
                 : null;
 
-            $record = $record ?: new AttendanceRecord(['user_id' => $user->id, 'date' => $date]);
+            $record = $existing ?: new AttendanceRecord(['user_id' => $user->id, 'date' => $date]);
+            if ($record->exists && $record->trashed()) {
+                $record->restore();
+            }
             $record->clock_in = $clockIn;
             $record->clock_out = $clockOut;
             $record->status = 'present';
@@ -183,7 +188,7 @@ class AttendanceManagerController extends Controller
             $record->total_minutes_worked = $clockOut ? max(0, (int) round($clockIn->diffInMinutes($clockOut))) : 0;
             $record->save();
 
-            $existed ? $updated++ : $created++;
+            $liveExisted ? $updated++ : $created++;
         }
 
         return back()->with('success', "Backfill for " . \Carbon\Carbon::parse($date)->format('d M Y') . " — {$created} added, {$updated} updated, {$skipped} skipped (already had a record), {$onLeave} on leave.");
@@ -307,9 +312,7 @@ class AttendanceManagerController extends Controller
             'notes' => 'nullable|string',
         ]);
 
-        $record = AttendanceRecord::firstOrCreate(
-            ['user_id' => $validated['user_id'], 'date' => $validated['date']]
-        );
+        $record = AttendanceRecord::findOrNewForDate($validated['user_id'], $validated['date']);
 
         $record->clock_in = $validated['clock_in'] ? Carbon::parse($validated['clock_in']) : null;
         $record->clock_out = $validated['clock_out'] ? Carbon::parse($validated['clock_out']) : null;

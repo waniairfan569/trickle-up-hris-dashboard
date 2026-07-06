@@ -255,10 +255,14 @@ class ZktecoK50Service
         $date = $localPunch->toDateString();
         $source = $sourceOverride ?? 'zkteco';
 
-        $record = AttendanceRecord::firstOrCreate(
-            ['user_id' => $user->id, 'date' => $date],
-            ['status' => 'absent', 'source' => $source]
-        );
+        // Use the trashed-aware finder — a soft-deleted (user,date) row would
+        // otherwise block a fresh insert via the UNIQUE(user_id,date) index.
+        $record = AttendanceRecord::findOrNewForDate($user->id, $date);
+        if (!$record->exists) {
+            $record->status = 'absent';
+            $record->source = $source;
+            $record->save();
+        }
 
         // Decide check-in vs check-out. Tap-to-punch devices (e.g. SpeedFace)
         // send every punch as state 0 (check-in), so we PAIR by sequence instead
