@@ -74,7 +74,8 @@ class AttendanceReportService
             'late_employees' => $records->where('status', 'late')->map(fn ($r) => [
                 'name' => optional($r->employee)->full_name ?? 'Unknown',
                 'department' => optional(optional($r->employee)->department)->name,
-                'clock_in' => optional($r->clock_in)->format('h:i A'),
+                // Timezone-aware (employee's local time) — matches the Live Board.
+                'clock_in' => $r->clock_in_local ?? '—',
                 'late_minutes' => (int) $r->late_minutes,
                 'late_label' => ((int) $r->late_minutes) . ' min late',
             ])->sortByDesc('late_minutes')->values()->all(),
@@ -88,8 +89,8 @@ class AttendanceReportService
             'full_table' => $records->map(fn ($r) => [
                 'name' => optional($r->employee)->full_name ?? 'Unknown',
                 'department' => optional(optional($r->employee)->department)->name,
-                'clock_in' => optional($r->clock_in)->format('h:i A') ?? '—',
-                'clock_out' => optional($r->clock_out)->format('h:i A') ?? '—',
+                'clock_in' => $r->clock_in_local ?? '—',
+                'clock_out' => $r->clock_out_local ?? '—',
                 'hours_worked' => $this->hoursLabel($r->total_minutes_worked),
                 'late_minutes' => (int) $r->late_minutes,
                 'overtime_minutes' => (int) $r->overtime_minutes,
