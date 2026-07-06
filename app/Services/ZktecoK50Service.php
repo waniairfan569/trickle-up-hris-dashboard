@@ -290,7 +290,7 @@ class ZktecoK50Service
                 // in the employee's timezone) is late. 09:30:00 sharp = on time,
                 // 09:30:01 / 09:31 onward = late.
                 $cutoff = Carbon::parse($date . ' ' . AttendanceRecord::lateCutoff(), $userTz);
-                if ($localPunch->greaterThan($cutoff)) {
+                if ($localPunch->greaterThanOrEqualTo($cutoff)) {
                     $record->late_minutes = (int) max(1, round($cutoff->diffInMinutes($localPunch)));
                     $record->status = 'late';
                 } else {

@@ -110,7 +110,7 @@ class AttendanceRecord extends Model
         $localIn = $tz->toUserTime($this->clock_in, $this->employee);
         $cutoff = Carbon::parse($localIn->toDateString() . ' ' . self::lateCutoff(), $localIn->getTimezone());
 
-        if ($localIn->greaterThan($cutoff)) {
+        if ($localIn->greaterThanOrEqualTo($cutoff)) {
             $this->late_minutes = (int) max(1, round($cutoff->diffInMinutes($localIn)));
             $this->status = 'late';
         } else {

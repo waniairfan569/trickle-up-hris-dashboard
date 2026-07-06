@@ -94,7 +94,7 @@ class AttendanceService
             $localIn = $tz->toUserTime($record->clock_in, $user);
             $cutoff = Carbon::parse($localIn->toDateString() . ' ' . AttendanceRecord::lateCutoff(), $localIn->getTimezone());
 
-            if ($localIn->greaterThan($cutoff)) {
+            if ($localIn->greaterThanOrEqualTo($cutoff)) {
                 $record->late_minutes = (int) max(1, round($cutoff->diffInMinutes($localIn)));
                 $record->status = 'late';
             }
