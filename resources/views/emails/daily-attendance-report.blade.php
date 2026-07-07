@@ -102,6 +102,27 @@
     </td></tr>
     @endif
 
+    <!-- On leave today -->
+    @if(count($data['on_leave_employees'] ?? []) > 0)
+    <tr><td style="padding:8px 32px 16px;">
+        <div style="font-size:16px;font-weight:bold;border-left:4px solid #1565c0;padding-left:10px;margin-bottom:10px;">On Leave Today</div>
+        <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:13px;">
+            <tr style="background:#d6e6f7;text-align:left;">
+                <th style="padding:8px 10px;">Employee</th><th style="padding:8px 10px;">Department</th>
+                <th style="padding:8px 10px;">Type</th><th style="padding:8px 10px;">Leave</th>
+            </tr>
+            @foreach($data['on_leave_employees'] as $e)
+            <tr style="background:#EEF4FB;border-top:1px solid #cfe0f2;">
+                <td style="padding:8px 10px;font-weight:bold;">{{ $e['name'] }}</td>
+                <td style="padding:8px 10px;color:#64748b;">{{ $e['department'] ?? '—' }}</td>
+                <td style="padding:8px 10px;color:#1565c0;">{{ $e['note'] }}</td>
+                <td style="padding:8px 10px;color:#64748b;">{{ $e['policy'] ?? '—' }}</td>
+            </tr>
+            @endforeach
+        </table>
+    </td></tr>
+    @endif
+
     <!-- Full table -->
     @if($settings->include_full_table)
     <tr><td style="padding:8px 32px 24px;">

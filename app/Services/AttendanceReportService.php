@@ -54,10 +54,23 @@ class AttendanceReportService
             ->with('department')
             ->get();
 
-        $presentIds = $records->pluck('user_id')->all();
-        $noRecordUsers = $activeUsers->whereNotIn('id', $presentIds);
+        // Authoritative "on leave today" = approved leave covering the date.
+        $onLeaveRequests = \App\Models\TimeOffRequest::where('status', 'approved')
+            ->whereDate('start_date', '<=', $date->toDateString())
+            ->whereDate('end_date', '>=', $date->toDateString())
+            ->when($reportingIds, fn ($q) => $q->whereIn('user_id', $reportingIds->all()))
+            ->with(['employee.department', 'policy'])
+            ->get();
+        $onLeaveUserIds = $onLeaveRequests->pluck('user_id')->unique();
 
-        $absentRecords = $records->where('status', 'absent');
+        $presentIds = $records->pluck('user_id')->all();
+        // People on leave are NOT absent, even if they have no record / an absent row.
+        $noRecordUsers = $activeUsers
+            ->whereNotIn('id', $presentIds)
+            ->whereNotIn('id', $onLeaveUserIds->all());
+
+        $absentRecords = $records->where('status', 'absent')
+            ->filter(fn ($r) => !$onLeaveUserIds->contains($r->user_id));
 
         return [
             'date' => $date,
@@ -66,7 +79,7 @@ class AttendanceReportService
                 'present' => $records->whereIn('status', ['present', 'late', 'overtime', 'early_departure'])->count(),
                 'late' => $records->where('status', 'late')->count(),
                 'absent' => $absentRecords->count() + $noRecordUsers->count(),
-                'on_leave' => $records->where('status', 'on_leave')->count(),
+                'on_leave' => $onLeaveUserIds->count(),
                 'overtime' => $records->where('status', 'overtime')->count(),
                 'early_departure' => $records->where('status', 'early_departure')->count(),
                 'missing_clock_out' => $records->where('status', 'missing_clock_out')->count(),
@@ -86,6 +99,14 @@ class AttendanceReportService
                 'name' => $u->full_name,
                 'department' => optional($u->department)->name,
             ]))->values()->all(),
+            'on_leave_employees' => $onLeaveRequests->filter(fn ($r) => $r->employee)->map(fn ($r) => [
+                'name' => optional($r->employee)->full_name ?? 'Unknown',
+                'department' => optional(optional($r->employee)->department)->name,
+                'note' => $r->duration_type === 'hourly'
+                    ? ($r->time_range ?? 'Hourly')
+                    : ($r->is_half_day ? ('Half day' . ($r->half_day_period ? ' (' . ucfirst($r->half_day_period) . ')' : '')) : 'Full day'),
+                'policy' => optional($r->policy)->name,
+            ])->sortBy('name')->values()->all(),
             'full_table' => $records->map(fn ($r) => [
                 'name' => optional($r->employee)->full_name ?? 'Unknown',
                 'department' => optional(optional($r->employee)->department)->name,

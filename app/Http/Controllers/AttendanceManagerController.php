@@ -63,11 +63,22 @@ class AttendanceManagerController extends Controller
         }
         $stats = $statQuery->get();
 
+        // Authoritative on-leave = approved leave covering today (matches the strip).
+        $onLeaveIds = $this->onLeaveUserIds($user);
+
+        // Reflect on-leave in the live table too (a no-show on leave isn't absent).
+        $records->each(function ($r) use ($onLeaveIds) {
+            if ($onLeaveIds->contains($r->user_id) && in_array($r->status, ['absent', 'missing_clock_out'], true)) {
+                $r->status = 'on_leave';
+            }
+        });
+
         $summary = [
             'clocked_in' => $stats->whereIn('status', ['present', 'late', 'overtime', 'early_departure'])->count(),
             'late' => $stats->where('status', 'late')->count(),
-            'absent' => $stats->where('status', 'absent')->count(),
-            'on_leave' => $stats->where('status', 'on_leave')->count(),
+            // On-leave people are never counted absent.
+            'absent' => $stats->where('status', 'absent')->filter(fn ($r) => !$onLeaveIds->contains($r->user_id))->count(),
+            'on_leave' => $onLeaveIds->count(),
         ];
 
         $departments = Department::all();
@@ -81,6 +92,19 @@ class AttendanceManagerController extends Controller
     {
         $ids = $user->isAdmin() ? null : $user->directReports()->pluck('id')->all();
         return TimeOffRequest::onLeaveToday($ids);
+    }
+
+    /** User IDs on approved leave today (scoped to a manager's team). */
+    private function onLeaveUserIds(User $user)
+    {
+        $scope = $user->isAdmin() ? null : $user->directReports()->pluck('id')->all();
+
+        return TimeOffRequest::where('status', 'approved')
+            ->whereDate('start_date', '<=', Carbon::today())
+            ->whereDate('end_date', '>=', Carbon::today())
+            ->when(is_array($scope), fn ($q) => $q->whereIn('user_id', $scope))
+            ->pluck('user_id')
+            ->unique();
     }
 
     /**
