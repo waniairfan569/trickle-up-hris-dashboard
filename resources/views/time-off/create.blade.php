@@ -63,11 +63,11 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-slate-100 dark:border-slate-700/60">
                 <div>
                     <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 dark:text-slate-300">Start Date <span class="text-red-500">*</span></label>
-                    <input type="date" name="start_date" x-model="startDate" @change="calculateDays" required min="{{ date('Y-m-d') }}" class="w-full rounded-xl border-slate-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                    <input type="date" name="start_date" x-model="startDate" @change="calculateDays" required class="w-full rounded-xl border-slate-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 dark:text-slate-300">End Date <span class="text-red-500">*</span></label>
-                    <input type="date" name="end_date" x-model="endDate" @change="calculateDays" required min="{{ date('Y-m-d') }}" class="w-full rounded-xl border-slate-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                    <input type="date" name="end_date" x-model="endDate" @change="calculateDays" required class="w-full rounded-xl border-slate-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
                 </div>
             </div>
 

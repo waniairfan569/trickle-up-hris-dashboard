@@ -86,6 +86,50 @@ class TimeOffController extends Controller
         }
     }
 
+    /**
+     * Mark each full-day-leave day as "on leave" in attendance (so a day the
+     * employee didn't clock in reads as On Leave, not Absent). Days they
+     * actually clocked in are left untouched; half-day / hourly leave is skipped.
+     */
+    private function applyLeaveToAttendance(TimeOffRequest $request): void
+    {
+        if ($request->duration_type === 'hourly' || $request->is_half_day) {
+            return;
+        }
+
+        $end = Carbon::parse($request->end_date)->startOfDay();
+        for ($d = Carbon::parse($request->start_date)->startOfDay(); $d->lte($end); $d->addDay()) {
+            try {
+                $record = \App\Models\AttendanceRecord::findOrNewForDate($request->user_id, $d->toDateString());
+                if ($record->clock_in) {
+                    continue; // they worked that day — don't override
+                }
+                $record->status = 'on_leave';
+                $record->save();
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
+    }
+
+    /** Undo the on-leave marking when an approved leave is cancelled. */
+    private function revertLeaveFromAttendance(TimeOffRequest $request): void
+    {
+        if ($request->duration_type === 'hourly' || $request->is_half_day) {
+            return;
+        }
+
+        $end = Carbon::parse($request->end_date)->startOfDay();
+        for ($d = Carbon::parse($request->start_date)->startOfDay(); $d->lte($end); $d->addDay()) {
+            $record = \App\Models\AttendanceRecord::where('user_id', $request->user_id)
+                ->whereDate('date', $d->toDateString())->first();
+            if ($record && $record->status === 'on_leave' && !$record->clock_in) {
+                $record->status = 'absent';
+                $record->save();
+            }
+        }
+    }
+
     public function index(Request $request)
     {
         $user = auth()->user() ?? User::first();
@@ -174,7 +218,8 @@ class TimeOffController extends Controller
         
         $validated = $request->validate([
             'policy_id' => 'required|exists:time_off_policies,id',
-            'start_date' => 'required|date|after_or_equal:today',
+            // Past dates allowed: an employee can log leave for a day already gone by.
+            'start_date' => 'required|date',
             'end_date' => 'required|date|after_or_equal:start_date',
             'duration_type' => 'nullable|in:full_day,half_day,hourly',
             'half_day_period' => 'nullable|in:morning,afternoon',
@@ -220,9 +265,13 @@ class TimeOffController extends Controller
             }
         }
 
-        $noticeDiff = Carbon::now()->startOfDay()->diffInDays(Carbon::parse($validated['start_date']));
-        if ($noticeDiff < $policy->min_notice_days) {
-            return back()->withErrors(["This policy requires at least {$policy->min_notice_days} days notice."])->withInput();
+        // Notice period only applies to FUTURE leave — backdated requests are exempt.
+        $startDate = Carbon::parse($validated['start_date'])->startOfDay();
+        if ($startDate->gte(Carbon::today()) && $policy->min_notice_days > 0) {
+            $noticeDiff = Carbon::today()->diffInDays($startDate);
+            if ($noticeDiff < $policy->min_notice_days) {
+                return back()->withErrors(["This policy requires at least {$policy->min_notice_days} days notice."])->withInput();
+            }
         }
 
         if (!$policy->allow_negative_balance && $balance->remaining < $days) {
@@ -254,6 +303,7 @@ class TimeOffController extends Controller
             return redirect()->route('time-off.index')->with('success', 'Time-off request submitted for approval.');
         } else {
             $this->balanceService->deductBalance($user, $policy, $days);
+            $this->applyLeaveToAttendance($timeOffRequest);
             return redirect()->route('time-off.index')->with('success', 'Time-off request auto-approved.');
         }
     }
@@ -278,6 +328,7 @@ class TimeOffController extends Controller
         $this->balanceService->removePending($timeOffRequest->employee, $timeOffRequest->policy, $timeOffRequest->days_requested);
         $this->balanceService->deductBalance($timeOffRequest->employee, $timeOffRequest->policy, $timeOffRequest->days_requested);
 
+        $this->applyLeaveToAttendance($timeOffRequest);
         $this->notifyEmployeeOfDecision($timeOffRequest, 'approved');
 
         return back()->with('success', 'Request approved.');
@@ -319,6 +370,7 @@ class TimeOffController extends Controller
             $year = Carbon::parse($timeOff->start_date)->year;
             $balance = $this->balanceService->getOrCreateBalance($timeOff->employee, $timeOff->policy, $year);
             $balance->decrement('used', $timeOff->days_requested);
+            $this->revertLeaveFromAttendance($timeOff);
         }
 
         $timeOff->update([
