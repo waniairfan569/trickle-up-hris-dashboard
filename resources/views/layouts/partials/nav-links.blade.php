@@ -140,6 +140,12 @@
         </div>
     </div>
 
+    <a href="{{ route('announcements.index') }}"
+       class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ Str::startsWith($routeName, 'announcements') ? 'bg-brand-600 text-slate-900 shadow-md shadow-brand-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
+        <i data-lucide="megaphone" class="h-4 w-4 shrink-0 transition {{ Str::startsWith($routeName, 'announcements') ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>
+        <span>Announcements</span>
+    </a>
+
     <a href="{{ route('departments.index') }}"
        class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ Str::startsWith($routeName, 'departments') ? 'bg-brand-600 text-slate-900 shadow-md shadow-brand-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
         <i data-lucide="building-2" class="h-4 w-4 shrink-0 transition {{ Str::startsWith($routeName, 'departments') ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>

@@ -50,6 +50,9 @@
     <!-- Employees waiting for a login code -->
     @include('partials.code-request-hr-banner')
 
+    <!-- Announcements -->
+    @include('partials.announcements')
+
     <!-- Who's on leave today -->
     @include('partials.on-leave-today', ['people' => $onLeavePeople])
 

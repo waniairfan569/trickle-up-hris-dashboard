@@ -76,6 +76,15 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
     // 1. Dashboard
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
 
+    // Announcements — admins post; everyone sees them on the dashboard.
+    Route::middleware('role:super_admin,hr_admin')->group(function () {
+        Route::get('announcements', [\App\Http\Controllers\AnnouncementController::class, 'index'])->name('announcements.index');
+        Route::post('announcements', [\App\Http\Controllers\AnnouncementController::class, 'store'])->name('announcements.store');
+        Route::put('announcements/{announcement}', [\App\Http\Controllers\AnnouncementController::class, 'update'])->name('announcements.update');
+        Route::post('announcements/{announcement}/toggle', [\App\Http\Controllers\AnnouncementController::class, 'toggle'])->name('announcements.toggle');
+        Route::delete('announcements/{announcement}', [\App\Http\Controllers\AnnouncementController::class, 'destroy'])->name('announcements.destroy');
+    });
+
     // Quick Code Requests — employee asks HR to share a tool login/OTP code.
     Route::post('code-requests', [\App\Http\Controllers\CodeRequestController::class, 'quickRequest'])->name('code-requests.store');
     Route::get('my-codes', [\App\Http\Controllers\CodeRequestController::class, 'myCodeRequests'])->name('code-requests.my');

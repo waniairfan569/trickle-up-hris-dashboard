@@ -620,6 +620,9 @@
                 }
             </script>
 
+            <!-- Announcements (above To-dos) -->
+            @include('partials.announcements')
+
             <!-- To-dos Widget -->
             <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-6 flex flex-col dark:bg-slate-800 dark:border-slate-700">
                 <div class="flex items-center gap-3 mb-6">
