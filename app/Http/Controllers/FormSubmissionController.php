@@ -15,7 +15,7 @@ class FormSubmissionController extends Controller
     {
         $user = $request->user();
         $submissions = $user->formSubmissions()
-            ->with('form')
+            ->with(['form', 'reviewer'])
             ->get()
             ->filter(fn ($s) => $s->form && $s->form->status !== 'draft')
             ->sortByDesc('id')

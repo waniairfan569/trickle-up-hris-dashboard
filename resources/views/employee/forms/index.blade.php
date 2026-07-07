@@ -42,6 +42,18 @@
                         @endif
                     </div>
                     @if($s->form->description)<p class="text-xs text-slate-400 mt-1 truncate">{{ Str::limit($s->form->description, 90) }}</p>@endif
+
+                    {{-- Admin's review outcome + suggestion --}}
+                    @if(in_array($s->review_status, ['approved', 'rejected'], true))
+                        @php $approved = $s->review_status === 'approved'; @endphp
+                        <div class="mt-2 rounded-lg border px-3 py-2 text-xs {{ $approved ? 'border-emerald-200 bg-emerald-50/60 dark:border-emerald-500/20 dark:bg-emerald-500/5' : 'border-rose-200 bg-rose-50/60 dark:border-rose-500/20 dark:bg-rose-500/5' }}">
+                            <span class="font-bold {{ $approved ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400' }}">{{ $approved ? 'Approved' : 'Rejected' }} by {{ optional($s->reviewer)->full_name ?? 'HR' }}</span>
+                            @if($s->review_note)
+                                <span class="block text-slate-600 dark:text-slate-300 mt-0.5"><span class="font-semibold">Reason:</span> {{ $s->review_note }}</span>
+                            @endif
+                        </div>
+                    @endif
+
                     @if($s->form->deadline)
                         <p class="text-xs mt-1 {{ $s->form->isOverdue() && !$isSubmitted ? 'text-rose-600 font-semibold' : 'text-slate-400' }}">
                             <i data-lucide="clock" class="h-3 w-3 inline -mt-0.5"></i> Due {{ $s->form->deadline->format('d M Y, H:i') }}{{ $s->form->isOverdue() && !$isSubmitted ? ' · overdue' : '' }}
