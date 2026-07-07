@@ -242,6 +242,7 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
 
     // Notifications
     Route::get('notifications', [App\Http\Controllers\NotificationController::class, 'index'])->name('notifications.index');
+    Route::get('notifications/unread-json', [App\Http\Controllers\NotificationController::class, 'unreadJson'])->name('notifications.unread-json');
     Route::post('notifications/{id}/mark-read', [App\Http\Controllers\NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
     Route::post('notifications/mark-all-read', [App\Http\Controllers\NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
     // 6. Onboarding (Employee/Manager view)

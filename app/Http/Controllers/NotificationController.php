@@ -40,6 +40,21 @@ class NotificationController extends Controller
         ]);
     }
 
+    /** JSON of unread notifications — used to raise browser/desktop pop-ups. */
+    public function unreadJson(Request $request)
+    {
+        $items = $request->user()->unreadNotifications()->latest()->take(10)->get()
+            ->map(fn ($n) => [
+                'id' => $n->id,
+                'title' => $n->data['title'] ?? 'Notification',
+                'message' => $n->data['message'] ?? '',
+                'url' => $n->data['url'] ?? route('notifications.index'),
+                'icon' => $n->data['icon'] ?? 'bell',
+            ]);
+
+        return response()->json(['count' => $items->count(), 'items' => $items]);
+    }
+
     public function markAsRead($id)
     {
         $notification = auth()->user()->unreadNotifications->where('id', $id)->first();

@@ -3,7 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Announcement;
+use App\Models\User;
+use App\Notifications\AnnouncementPosted;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Notification;
 
 class AnnouncementController extends Controller
 {
@@ -29,15 +33,46 @@ class AnnouncementController extends Controller
             'is_pinned' => 'nullable|boolean',
         ]);
 
-        Announcement::create([
+        $announcement = Announcement::create([
             'title' => $validated['title'],
             'body' => $validated['body'],
             'is_pinned' => $request->boolean('is_pinned'),
             'is_active' => true,
             'created_by' => $request->user()->id,
         ]);
+        $announcement->setRelation('creator', $request->user());
 
-        return back()->with('success', 'Announcement posted.');
+        $this->broadcastAnnouncement($announcement, $request->user()->id);
+
+        return back()->with('success', 'Announcement posted — everyone has been notified.');
+    }
+
+    /** Bell notification to every active user + one BCC email to all (fast). */
+    private function broadcastAnnouncement(Announcement $announcement, int $exceptUserId): void
+    {
+        $users = User::where('account_status', '!=', 'deactivated')
+            ->where('id', '!=', $exceptUserId)
+            ->get();
+
+        // Bell (database) — bulk, fast.
+        try {
+            Notification::send($users, new AnnouncementPosted($announcement));
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
+        // Email — ONE message BCC'd to everyone, so posting doesn't hang on N sends.
+        $emails = $users->pluck('email')->filter()->unique()->values()->all();
+        if (!empty($emails)) {
+            try {
+                $from = config('mail.from.address') ?: 'no-reply@' . request()->getHost();
+                Mail::send('emails.announcement', ['announcement' => $announcement], function ($m) use ($from, $emails, $announcement) {
+                    $m->to($from)->bcc($emails)->subject('📢 ' . $announcement->title);
+                });
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
     }
 
     public function update(Request $request, Announcement $announcement)

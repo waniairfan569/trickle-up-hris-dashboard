@@ -357,5 +357,61 @@
             lucide.createIcons();
         });
     </script>
+
+    @auth
+    <!-- Live notification pop-ups (in-app toast + browser desktop notification) -->
+    <div id="notif-toasts" style="position:fixed;top:16px;right:16px;z-index:9999;display:flex;flex-direction:column;gap:8px;"></div>
+    <script>
+    (function () {
+        const KEY = 'notif_seen_{{ auth()->id() }}';
+        const URL = '{{ route('notifications.unread-json') }}';
+        let seen = new Set();
+        try { seen = new Set(JSON.parse(localStorage.getItem(KEY) || '[]')); } catch (e) {}
+        const firstEver = !localStorage.getItem(KEY);
+        function saveSeen() { try { localStorage.setItem(KEY, JSON.stringify([...seen].slice(-300))); } catch (e) {} }
+        function esc(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+
+        function toast(n) {
+            const wrap = document.getElementById('notif-toasts');
+            if (!wrap) return;
+            const el = document.createElement('a');
+            el.href = n.url || '#';
+            el.style.cssText = 'display:block;max-width:340px;background:#1a1a24;color:#fff;border-left:4px solid #fcd82f;border-radius:10px;padding:12px 14px;box-shadow:0 10px 30px rgba(0,0,0,.25);text-decoration:none;';
+            el.innerHTML = '<div style="font-weight:700;font-size:13px;">' + esc(n.title) + '</div>' + (n.message ? '<div style="font-size:12px;color:#cbd5e1;margin-top:3px;">' + esc(n.message) + '</div>' : '');
+            wrap.appendChild(el);
+            setTimeout(function () { el.style.transition = 'opacity .4s'; el.style.opacity = '0'; setTimeout(function () { el.remove(); }, 400); }, 7000);
+        }
+        function desktop(n) {
+            if (('Notification' in window) && Notification.permission === 'granted') {
+                try { const dn = new Notification(n.title, { body: n.message || '' }); dn.onclick = function () { window.focus(); if (n.url) location.href = n.url; }; } catch (e) {}
+            }
+        }
+        function handle(items) {
+            (items || []).forEach(function (n) {
+                if (!seen.has(n.id)) {
+                    seen.add(n.id);
+                    if (!firstEver) { toast(n); desktop(n); }
+                }
+            });
+            saveSeen();
+        }
+        function poll() {
+            fetch(URL, { headers: { 'Accept': 'application/json' } })
+                .then(function (r) { return r.json(); })
+                .then(function (d) { handle(d.items); })
+                .catch(function () {});
+        }
+        // Ask for desktop-notification permission on the first click (browser gesture requirement).
+        document.addEventListener('click', function () {
+            if (('Notification' in window) && Notification.permission === 'default') { Notification.requestPermission().catch(function () {}); }
+        }, { once: true });
+
+        // First load: seed the "seen" set silently so we don't blast existing unread.
+        if (firstEver) { poll(); localStorage.setItem(KEY, '[]'); }
+        else { setTimeout(poll, 3000); }
+        setInterval(poll, 45000);
+    })();
+    </script>
+    @endauth
 </body>
 </html>
