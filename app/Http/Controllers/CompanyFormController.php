@@ -253,6 +253,8 @@ class CompanyFormController extends Controller
 
     public function responses(Request $request, CompanyForm $companyForm)
     {
+        abort_unless($companyForm->canBeReviewedBy($request->user()), 403);
+
         $assigned = $companyForm->getAssignedUsersFor();
         $submissions = $companyForm->submissions()->with('employee.department')->latest('id')->get();
 
@@ -266,16 +268,19 @@ class CompanyFormController extends Controller
         return view('company-forms.responses', ['form' => $companyForm, 'submissions' => $submissions, 'stats' => $stats]);
     }
 
-    public function viewSubmission(FormSubmission $submission)
+    public function viewSubmission(Request $request, FormSubmission $submission)
     {
         $submission->load(['form.fields', 'employee', 'responses', 'reviewer']);
+        abort_unless(optional($submission->form)->canBeReviewedBy($request->user()), 403);
 
         return view('company-forms.view-submission', ['submission' => $submission]);
     }
 
-    /** Admin: approve/reject a submission with an optional suggestion; notify the employee. */
+    /** Admin or an assigned reviewer: approve/reject with an optional suggestion; notify the employee. */
     public function reviewSubmission(Request $request, FormSubmission $submission)
     {
+        abort_unless(optional($submission->form)->canBeReviewedBy($request->user()), 403);
+
         $validated = $request->validate([
             'action' => ['required', Rule::in(['approve', 'reject'])],
             'review_note' => 'nullable|string|max:2000',
@@ -298,6 +303,50 @@ class CompanyFormController extends Controller
 
         $label = $validated['action'] === 'approve' ? 'approved' : 'rejected';
         return back()->with('success', "Response {$label}. The employee has been notified.");
+    }
+
+    /** Super admin: grant an employee access to review this form's responses. */
+    public function assignReviewer(Request $request, CompanyForm $companyForm)
+    {
+        abort_unless($request->user() && $request->user()->hasRole('super_admin'), 403);
+
+        $validated = $request->validate(['user_id' => 'required|exists:users,id']);
+
+        $companyForm->reviewers()->syncWithoutDetaching([
+            $validated['user_id'] => ['assigned_by' => $request->user()->id],
+        ]);
+
+        if ($reviewer = User::find($validated['user_id'])) {
+            try {
+                $reviewer->notify(new \App\Notifications\FormReviewAccessGranted($companyForm));
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
+
+        return back()->with('success', 'Reviewer added — they can now view and review responses.');
+    }
+
+    /** Super admin: revoke a reviewer's access. */
+    public function removeReviewer(Request $request, CompanyForm $companyForm, User $user)
+    {
+        abort_unless($request->user() && $request->user()->hasRole('super_admin'), 403);
+
+        $companyForm->reviewers()->detach($user->id);
+
+        return back()->with('success', 'Reviewer removed.');
+    }
+
+    /** Landing page for reviewers: the forms they've been given access to review. */
+    public function myReviews(Request $request)
+    {
+        $user = $request->user();
+
+        $forms = $user->isAdmin()
+            ? CompanyForm::withCount('submissions')->latest()->get()
+            : $user->reviewableForms()->withCount('submissions')->latest()->get();
+
+        return view('company-forms.my-reviews', compact('forms'));
     }
 
     public function exportResponses(CompanyForm $companyForm)

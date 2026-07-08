@@ -62,6 +62,26 @@ class CompanyForm extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    /** Employees granted access to view responses + approve/reject/suggest. */
+    public function reviewers()
+    {
+        return $this->belongsToMany(User::class, 'form_reviewers', 'form_id', 'user_id')
+            ->withPivot('assigned_by')
+            ->withTimestamps();
+    }
+
+    /** Admins can always review; other users only if assigned as a reviewer. */
+    public function canBeReviewedBy(?User $user): bool
+    {
+        if (!$user) {
+            return false;
+        }
+        if ($user->isAdmin()) {
+            return true;
+        }
+        return $this->reviewers()->where('users.id', $user->id)->exists();
+    }
+
     public function scopeActive(Builder $q): Builder { return $q->where('status', 'active'); }
     public function scopeDraft(Builder $q): Builder { return $q->where('status', 'draft'); }
     public function scopeClosed(Builder $q): Builder { return $q->where('status', 'closed'); }

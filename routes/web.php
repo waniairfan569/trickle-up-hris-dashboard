@@ -215,6 +215,12 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
 
     // Company Forms — employee side (fill assigned forms)
     Route::get('my-forms', [\App\Http\Controllers\FormSubmissionController::class, 'myForms'])->name('my-forms.index');
+
+    // Company-form review — admins OR employees granted reviewer access (checked in controller).
+    Route::get('my-reviews', [\App\Http\Controllers\CompanyFormController::class, 'myReviews'])->name('company-forms.my-reviews');
+    Route::get('company-forms/{companyForm}/responses', [\App\Http\Controllers\CompanyFormController::class, 'responses'])->name('company-forms.responses');
+    Route::get('form-submissions/{submission}', [\App\Http\Controllers\CompanyFormController::class, 'viewSubmission'])->name('company-forms.submission');
+    Route::post('form-submissions/{submission}/review', [\App\Http\Controllers\CompanyFormController::class, 'reviewSubmission'])->name('company-forms.submission.review');
     Route::get('my-forms/{companyForm}', [\App\Http\Controllers\FormSubmissionController::class, 'fill'])->name('forms.fill');
     Route::post('my-forms/{companyForm}/save', [\App\Http\Controllers\FormSubmissionController::class, 'save'])->name('forms.save');
     Route::post('my-forms/{companyForm}/submit', [\App\Http\Controllers\FormSubmissionController::class, 'submit'])->name('forms.submit');
@@ -314,10 +320,10 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
         Route::post('company-forms/{companyForm}/assign', [\App\Http\Controllers\CompanyFormController::class, 'assign'])->name('company-forms.assign');
         Route::delete('company-forms/{companyForm}/assignments/{assignment}', [\App\Http\Controllers\CompanyFormController::class, 'unassign'])->name('company-forms.unassign');
         Route::get('company-forms/{companyForm}/details', [\App\Http\Controllers\CompanyFormController::class, 'show'])->name('company-forms.show');
-        Route::get('company-forms/{companyForm}/responses', [\App\Http\Controllers\CompanyFormController::class, 'responses'])->name('company-forms.responses');
         Route::get('company-forms/{companyForm}/export', [\App\Http\Controllers\CompanyFormController::class, 'exportResponses'])->name('company-forms.export');
-        Route::get('form-submissions/{submission}', [\App\Http\Controllers\CompanyFormController::class, 'viewSubmission'])->name('company-forms.submission');
-        Route::post('form-submissions/{submission}/review', [\App\Http\Controllers\CompanyFormController::class, 'reviewSubmission'])->name('company-forms.submission.review');
+        // Reviewer access management (super admin only — enforced in controller).
+        Route::post('company-forms/{companyForm}/reviewers', [\App\Http\Controllers\CompanyFormController::class, 'assignReviewer'])->name('company-forms.reviewers.add');
+        Route::delete('company-forms/{companyForm}/reviewers/{user}', [\App\Http\Controllers\CompanyFormController::class, 'removeReviewer'])->name('company-forms.reviewers.remove');
         Route::delete('company-forms/{companyForm}', [\App\Http\Controllers\CompanyFormController::class, 'destroy'])->name('company-forms.destroy');
 
         // Company Policies — admin (create, assign, track acknowledgments)

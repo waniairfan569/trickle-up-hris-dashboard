@@ -67,5 +67,37 @@
             <p class="px-6 py-8 text-center text-sm text-slate-400">Not assigned to anyone yet.</p>
         @endforelse
     </div>
+
+    @if(auth()->user()->hasRole('super_admin'))
+    <!-- Reviewers -->
+    <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm dark:bg-slate-800 dark:border-slate-700">
+        <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700/60">
+            <h2 class="text-sm font-bold text-slate-800 dark:text-white">Reviewers</h2>
+            <p class="text-xs text-slate-400 mt-0.5">These people can view responses and approve / reject / leave a suggestion — even if they aren't admins.</p>
+        </div>
+        <form action="{{ route('company-forms.reviewers.add', $form) }}" method="POST" class="flex flex-wrap items-end gap-3 p-6 border-b border-slate-100 dark:border-slate-700/60">
+            @csrf
+            <div class="flex-1 min-w-[220px]">
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Grant review access to</label>
+                <select name="user_id" required class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                    @foreach($users as $u)<option value="{{ $u->id }}">{{ trim(($u->last_name ? $u->last_name.', ' : '').$u->first_name) }}</option>@endforeach
+                </select>
+            </div>
+            <button type="submit" class="rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-bold text-slate-900 hover:bg-brand-700"><i data-lucide="user-plus" class="h-4 w-4 inline -mt-0.5"></i> Add reviewer</button>
+        </form>
+        @forelse($form->reviewers as $r)
+            <div class="flex items-center gap-3 px-6 py-3 border-b border-slate-100 last:border-0 dark:border-slate-700/60">
+                <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10"><i data-lucide="user-check" class="h-4 w-4"></i></span>
+                <span class="text-sm font-semibold text-slate-800 dark:text-white">{{ trim($r->first_name.' '.$r->last_name) }}</span>
+                <form action="{{ route('company-forms.reviewers.remove', [$form, $r]) }}" method="POST" class="ml-auto" onsubmit="return confirm('Remove review access for this person?');">
+                    @csrf @method('DELETE')
+                    <button type="submit" title="Remove reviewer" class="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-500/10"><i data-lucide="x" class="h-4 w-4"></i></button>
+                </form>
+            </div>
+        @empty
+            <p class="px-6 py-6 text-center text-sm text-slate-400">No extra reviewers yet — only admins can review this form's responses.</p>
+        @endforelse
+    </div>
+    @endif
 </div>
 @endsection

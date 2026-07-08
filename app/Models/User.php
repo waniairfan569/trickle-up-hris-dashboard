@@ -270,6 +270,12 @@ class User extends Authenticatable
             ->withPivot('assigned_by', 'assigned_at');
     }
 
+    /** Company forms this user has been granted access to review. */
+    public function reviewableForms() {
+        return $this->belongsToMany(CompanyForm::class, 'form_reviewers', 'user_id', 'form_id')
+            ->withTimestamps();
+    }
+
     // --- HR Profile Template Relationships ---
 
     public function profileTemplates() {
