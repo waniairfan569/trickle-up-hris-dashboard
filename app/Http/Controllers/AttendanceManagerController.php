@@ -363,6 +363,44 @@ class AttendanceManagerController extends Controller
     }
 
     /**
+     * Admin adds/edits an employee's clock-in / clock-out for ANY date from the
+     * employee's profile (Time tracking tab). Time-only inputs land on the given
+     * date in the employee's timezone; status/late/hours recomputed. Admins only.
+     */
+    public function profileAttendance(Request $request, User $employee)
+    {
+        abort_unless($request->user() && $request->user()->isAdmin(), 403);
+
+        $validated = $request->validate([
+            'date' => 'required|date',
+            'clock_in' => 'nullable|date_format:H:i',
+            'clock_out' => 'nullable|date_format:H:i',
+        ]);
+
+        if (!empty($validated['clock_in']) && !empty($validated['clock_out']) && $validated['clock_out'] <= $validated['clock_in']) {
+            return back()->withErrors(['clock_out' => 'Clock-out must be after clock-in.']);
+        }
+
+        $tz = app(\App\Services\TimezoneService::class);
+        $userTz = $tz->getEffectiveTimezone($employee);
+        $canonical = config('app.timezone') ?: \App\Services\TimezoneService::FALLBACK_TIMEZONE;
+        $date = $validated['date'];
+
+        $record = AttendanceRecord::findOrNewForDate($employee->id, $date);
+        $record->clock_in = !empty($validated['clock_in'])
+            ? Carbon::parse($date . ' ' . $validated['clock_in'], $userTz)->setTimezone($canonical) : null;
+        $record->clock_out = !empty($validated['clock_out'])
+            ? Carbon::parse($date . ' ' . $validated['clock_out'], $userTz)->setTimezone($canonical) : null;
+        $record->source = 'manual';
+        $record->edited_by = $request->user()->id;
+        $record->edited_at = now();
+        $record->recalculate();
+        $record->save();
+
+        return back()->with('success', 'Attendance saved for ' . $employee->full_name . ' on ' . Carbon::parse($date)->format('d M Y') . '.');
+    }
+
+    /**
      * Admin edit of a single record's clock-in / clock-out time. Times come in
      * as the employee's local wall-clock (datetime-local) and are stored in the
      * canonical timezone. Status / late / worked minutes are recomputed.

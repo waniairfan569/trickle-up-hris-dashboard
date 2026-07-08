@@ -130,6 +130,116 @@ class TimeOffController extends Controller
         }
     }
 
+    /**
+     * Null if allowed; otherwise an error message. Maternity / Paternity leave
+     * is only for MARRIED employees with at least 1 year of service.
+     */
+    private function maternityPaternityError(User $employee, TimeOffPolicy $policy): ?string
+    {
+        $name = strtolower((string) $policy->name);
+        $isMaternity = str_contains($name, 'maternity');
+        $isPaternity = str_contains($name, 'paternity');
+        if (!$isMaternity && !$isPaternity) {
+            return null;
+        }
+        $label = $isMaternity ? 'Maternity' : 'Paternity';
+
+        $marital = strtolower((string) (method_exists($employee, 'getFieldValue') ? $employee->getFieldValue('marital_status') : ''));
+        if ($marital !== 'married') {
+            return "{$label} leave is only available to married employees.";
+        }
+
+        $start = $employee->joined_at ?? $employee->hire_date;
+        if (!$start || Carbon::parse($start)->diffInMonths(Carbon::today()) < 12) {
+            return "{$label} leave requires at least 1 year of service.";
+        }
+
+        return null;
+    }
+
+    /**
+     * Admin files a time-off request ON BEHALF of an employee (from their
+     * profile). It is recorded as approved immediately (admin authority) and
+     * reflected in the employee's leave balance + attendance.
+     */
+    public function onBehalf(Request $request)
+    {
+        $auth = $request->user();
+        abort_unless($auth && $auth->isAdmin(), 403);
+
+        $validated = $request->validate([
+            'employee_id' => 'required|exists:users,id',
+            'policy_id' => 'required|exists:time_off_policies,id',
+            'start_date' => 'required|date',
+            'end_date' => 'required|date|after_or_equal:start_date',
+            'duration_type' => 'nullable|in:full_day,half_day,hourly',
+            'half_day_period' => 'nullable|in:morning,afternoon',
+            'start_time' => 'nullable|date_format:H:i',
+            'end_time' => 'nullable|date_format:H:i',
+            'reason' => 'nullable|string',
+        ]);
+
+        $employee = User::findOrFail($validated['employee_id']);
+        $policy = TimeOffPolicy::findOrFail($validated['policy_id']);
+
+        if ($err = $this->maternityPaternityError($employee, $policy)) {
+            return back()->withErrors([$err])->withInput();
+        }
+
+        $durationType = $validated['duration_type'] ?? 'full_day';
+        if (in_array($durationType, ['half_day', 'hourly'], true) && $validated['start_date'] !== $validated['end_date']) {
+            return back()->withErrors(['Half-day and hourly leave can only be for a single date.'])->withInput();
+        }
+
+        // Day-equivalent (server-authoritative).
+        $hours = null;
+        if ($durationType === 'hourly') {
+            if (empty($validated['start_time']) || empty($validated['end_time'])) {
+                return back()->withErrors(['Please provide a start and end time for hourly leave.'])->withInput();
+            }
+            $hours = TimeOffRequest::hoursBetween($validated['start_time'], $validated['end_time']);
+            if ($hours <= 0) {
+                return back()->withErrors(['End time must be after start time.'])->withInput();
+            }
+            $days = round($hours / TimeOffRequest::hoursPerDayFor($employee->id), 2);
+        } elseif ($durationType === 'half_day') {
+            $days = 0.5;
+        } else {
+            $schedule = $employee->workSchedule ?? \App\Models\WorkSchedule::default()->first();
+            $days = $schedule
+                ? $schedule->countWorkingDays(Carbon::parse($validated['start_date']), Carbon::parse($validated['end_date']), $employee->id)
+                : (Carbon::parse($validated['start_date'])->diffInDaysFiltered(fn ($d) => !$d->isWeekend(), Carbon::parse($validated['end_date'])) + 1);
+            $days = max(0.5, (float) $days);
+        }
+
+        $year = Carbon::parse($validated['start_date'])->year;
+
+        $timeOffRequest = TimeOffRequest::create([
+            'user_id' => $employee->id,
+            'policy_id' => $policy->id,
+            'requested_by' => $auth->id,
+            'start_date' => $validated['start_date'],
+            'end_date' => $validated['end_date'],
+            'days_requested' => $days,
+            'duration_type' => $durationType,
+            'hours_requested' => $durationType === 'hourly' ? $hours : null,
+            'start_time' => $durationType === 'hourly' ? $validated['start_time'] : null,
+            'end_time' => $durationType === 'hourly' ? $validated['end_time'] : null,
+            'is_half_day' => $durationType === 'half_day',
+            'half_day_period' => $durationType === 'half_day' ? ($validated['half_day_period'] ?? null) : null,
+            'reason' => $validated['reason'],
+            'status' => 'approved',
+            'approved_by' => $auth->id,
+            'approved_at' => now(),
+        ]);
+
+        $this->balanceService->deductBalance($employee, $policy, $days);
+        $this->applyLeaveToAttendance($timeOffRequest);
+        $this->notifyEmployeeOfDecision($timeOffRequest, 'approved');
+
+        return back()->with('success', 'Leave added for ' . $employee->full_name . ' and approved.');
+    }
+
     public function index(Request $request)
     {
         $user = auth()->user() ?? User::first();
@@ -230,6 +340,12 @@ class TimeOffController extends Controller
         ]);
 
         $policy = TimeOffPolicy::findOrFail($validated['policy_id']);
+
+        // Maternity / Paternity: married + at least 1 year of service.
+        if ($err = $this->maternityPaternityError($user, $policy)) {
+            return back()->withErrors([$err])->withInput();
+        }
+
         $year = Carbon::parse($validated['start_date'])->year;
         $balance = $this->balanceService->getOrCreateBalance($user, $policy, $year);
 

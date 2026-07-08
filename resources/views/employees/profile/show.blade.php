@@ -228,6 +228,67 @@
 
     {{-- TIME OFF TAB --}}
     <div x-show="section === 'timeoff'" x-cloak class="space-y-6">
+
+        @if($auth->isAdmin() && !$isSelf)
+            @php
+                $emPolicyIds = $employee->timeOffPolicies()->pluck('time_off_policies.id')
+                    ->merge(\App\Models\TimeOffBalance::where('user_id', $employee->id)->pluck('policy_id'))->unique();
+                $emPolicies = \App\Models\TimeOffPolicy::whereIn('id', $emPolicyIds)->get();
+                if ($emPolicies->isEmpty()) { $emPolicies = \App\Models\TimeOffPolicy::where('is_active', true)->get(); }
+            @endphp
+            <div class="bg-white border border-brand-200 rounded-2xl shadow-sm dark:bg-slate-800 dark:border-brand-500/30 overflow-hidden"
+                 x-data="{ dt: 'full_day', s: '', e: '' }" x-effect="if (dt !== 'full_day') e = s">
+                <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700">
+                    <h2 class="text-sm font-bold text-slate-800 dark:text-white">Add leave for {{ $employee->first_name }}</h2>
+                    <p class="text-xs text-slate-400 mt-0.5">Filed on their behalf and approved immediately.</p>
+                </div>
+                <form method="POST" action="{{ route('time-off.on-behalf') }}" class="p-6 space-y-4">
+                    @csrf
+                    <input type="hidden" name="employee_id" value="{{ $employee->id }}">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Policy</label>
+                            <select name="policy_id" required class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                                @foreach($emPolicies as $p)<option value="{{ $p->id }}">{{ $p->name }}</option>@endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Duration</label>
+                            <select name="duration_type" x-model="dt" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                                <option value="full_day">Full day(s)</option>
+                                <option value="half_day">Half day</option>
+                                <option value="hourly">Hourly</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Start date</label>
+                            <input type="date" name="start_date" x-model="s" required class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                        </div>
+                        <div x-show="dt === 'full_day'">
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">End date</label>
+                            <input type="date" name="end_date" x-model="e" required class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                        </div>
+                    </div>
+                    <div x-show="dt === 'half_day'" class="flex gap-4 text-sm text-slate-600 dark:text-slate-300">
+                        <label class="inline-flex items-center gap-1.5"><input type="radio" name="half_day_period" value="morning" checked> Morning</label>
+                        <label class="inline-flex items-center gap-1.5"><input type="radio" name="half_day_period" value="afternoon"> Afternoon</label>
+                    </div>
+                    <div x-show="dt === 'hourly'" class="grid grid-cols-2 gap-4 max-w-sm">
+                        <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Start time</label><input type="time" name="start_time" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white"></div>
+                        <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">End time</label><input type="time" name="end_time" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white"></div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Reason (optional)</label>
+                        <textarea name="reason" rows="2" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white"></textarea>
+                    </div>
+                    <p class="text-[11px] text-slate-400">Maternity / Paternity require the employee to be married with 1+ year of service.</p>
+                    <div class="flex justify-end">
+                        <button type="submit" class="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-bold text-slate-900 hover:bg-brand-700"><i data-lucide="calendar-plus" class="h-4 w-4"></i> Add &amp; approve</button>
+                    </div>
+                </form>
+            </div>
+        @endif
+
         <div class="bg-white border border-slate-200/80 rounded-2xl shadow-sm dark:bg-slate-800 dark:border-slate-700 overflow-hidden">
             <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
                 <h2 class="text-sm font-bold text-slate-800 dark:text-white">Time-Off Balances</h2>
@@ -277,6 +338,32 @@
 
     {{-- ATTENDANCE TAB --}}
     <div x-show="section === 'timetracking'" x-cloak class="space-y-6">
+
+        @if($auth->isAdmin())
+            <div class="bg-white border border-brand-200 rounded-2xl shadow-sm dark:bg-slate-800 dark:border-brand-500/30 overflow-hidden">
+                <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700">
+                    <h2 class="text-sm font-bold text-slate-800 dark:text-white">Add / edit attendance</h2>
+                    <p class="text-xs text-slate-400 mt-0.5">Set clock-in / clock-out for any date (in {{ $employee->first_name }}'s timezone). Late is auto-flagged.</p>
+                </div>
+                <form method="POST" action="{{ route('attendance.employee-entry', $employee->id) }}" class="p-6 grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
+                    @csrf
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Date</label>
+                        <input type="date" name="date" required class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Clock in</label>
+                        <input type="time" name="clock_in" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Clock out</label>
+                        <input type="time" name="clock_out" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                    </div>
+                    <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-bold text-slate-900 hover:bg-brand-700"><i data-lucide="check" class="h-4 w-4"></i> Save</button>
+                </form>
+            </div>
+        @endif
+
         <div class="bg-white border border-slate-200/80 rounded-2xl shadow-sm dark:bg-slate-800 dark:border-slate-700 overflow-hidden">
             <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700"><h2 class="text-sm font-bold text-slate-800 dark:text-white">Recent Attendance</h2></div>
             <div class="overflow-x-auto">

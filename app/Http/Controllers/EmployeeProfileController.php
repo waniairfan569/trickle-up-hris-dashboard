@@ -159,6 +159,12 @@ class EmployeeProfileController extends Controller
             }
         }
 
+        // Keep the Employee row's department in sync with the profile: the
+        // directory reads employees.department_id, but the profile writes
+        // users.department_id — mirror it so both always agree.
+        \App\Models\Employee::where('user_id', $employee->id)
+            ->update(['department_id' => $employee->department_id]);
+
         // Bug #3 Fix: Redirect to view mode after save (not back to ?edit=1)
         return redirect()->route('employees.profile', $employee->id)
             ->with('success', 'Profile updated successfully.');
