@@ -4,7 +4,8 @@
 @section('breadcrumb', 'Time-Off')
 
 @section('content')
-<div class="max-w-7xl mx-auto space-y-8" x-data="{ activeTab: 'my_requests' }">
+@php $isTimeOffAdmin = auth()->user()->hasRole('hr_admin') || auth()->user()->hasRole('super_admin'); @endphp
+<div class="max-w-7xl mx-auto space-y-8" x-data="{ activeTab: '{{ $isTimeOffAdmin ? 'all_requests' : 'my_requests' }}' }">
     <div class="sm:flex sm:items-center sm:justify-between border-b border-slate-200/80 pb-5 dark:border-slate-700/60">
         <div>
             <h2 class="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">Time-Off</h2>
@@ -132,10 +133,12 @@
     <!-- Tabs -->
     <div class="border-b border-slate-200 dark:border-slate-700">
         <nav class="-mb-px flex space-x-8">
-            <button @click="activeTab = 'my_requests'" :class="{'border-brand-500 text-brand-600 dark:text-brand-400': activeTab === 'my_requests', 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 dark:text-slate-400 dark:hover:text-slate-300': activeTab !== 'my_requests'}" class="whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm transition">
-                My Requests
-            </button>
-            @if($teamRequests->isNotEmpty() || auth()->user()->hasRole('hr_admin') || auth()->user()->hasRole('super_admin'))
+            @if($isTimeOffAdmin)
+                <button @click="activeTab = 'all_requests'" :class="{'border-brand-500 text-brand-600 dark:text-brand-400': activeTab === 'all_requests', 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 dark:text-slate-400 dark:hover:text-slate-300': activeTab !== 'all_requests'}" class="whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm transition">
+                    All Requests (HR)
+                </button>
+            @endif
+            @if($teamRequests->isNotEmpty() || $isTimeOffAdmin)
                 <button @click="activeTab = 'team_requests'" :class="{'border-brand-500 text-brand-600 dark:text-brand-400': activeTab === 'team_requests', 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 dark:text-slate-400 dark:hover:text-slate-300': activeTab !== 'team_requests'}" class="whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm transition flex items-center">
                     Approvals
                     @if($teamRequests->count() > 0)
@@ -143,11 +146,9 @@
                     @endif
                 </button>
             @endif
-            @if(auth()->user()->hasRole('hr_admin') || auth()->user()->hasRole('super_admin'))
-                <button @click="activeTab = 'all_requests'" :class="{'border-brand-500 text-brand-600 dark:text-brand-400': activeTab === 'all_requests', 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 dark:text-slate-400 dark:hover:text-slate-300': activeTab !== 'all_requests'}" class="whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm transition">
-                    All Requests (HR)
-                </button>
-            @endif
+            <button @click="activeTab = 'my_requests'" :class="{'border-brand-500 text-brand-600 dark:text-brand-400': activeTab === 'my_requests', 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 dark:text-slate-400 dark:hover:text-slate-300': activeTab !== 'my_requests'}" class="whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm transition">
+                My Requests
+            </button>
         </nav>
     </div>
 
@@ -184,6 +185,11 @@
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold {{ $request->status_color }}">
                                 {{ ucfirst($request->status) }}
                             </span>
+                            @if($request->status === 'approved' && $request->approver)
+                                <div class="text-xs text-slate-400 mt-1">by {{ trim($request->approver->first_name.' '.$request->approver->last_name) }}@if($request->approved_at) · {{ $request->approved_at->format('M d') }}@endif</div>
+                            @elseif($request->status === 'rejected' && $request->rejection_note)
+                                <div class="text-xs text-rose-500 italic mt-1 max-w-xs truncate" title="{{ $request->rejection_note }}">"{{ $request->rejection_note }}"</div>
+                            @endif
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                             @if($request->status === 'pending')
@@ -306,6 +312,7 @@
                     <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider dark:text-slate-400">Dates</th>
                     <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider dark:text-slate-400">Days</th>
                     <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider dark:text-slate-400">Status</th>
+                    <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider dark:text-slate-400">Decided By</th>
                     <th class="px-6 py-3 text-right text-xs font-bold text-slate-500 uppercase tracking-wider dark:text-slate-400">Actions</th>
                 </tr>
             </thead>
@@ -329,6 +336,20 @@
                                 {{ ucfirst($request->status) }}
                             </span>
                         </td>
+                        <td class="px-6 py-4 text-sm">
+                            @if($request->status === 'approved' && $request->approver)
+                                <div class="text-slate-800 font-semibold dark:text-slate-200">{{ trim($request->approver->first_name.' '.$request->approver->last_name) }}</div>
+                                <div class="text-xs text-emerald-600 dark:text-emerald-400">Approved{{ $request->approved_at ? ' · '.$request->approved_at->format('M d, Y g:i A') : '' }}</div>
+                            @elseif($request->status === 'rejected' && $request->rejecter)
+                                <div class="text-slate-800 font-semibold dark:text-slate-200">{{ trim($request->rejecter->first_name.' '.$request->rejecter->last_name) }}</div>
+                                <div class="text-xs text-rose-600 dark:text-rose-400">Rejected{{ $request->rejected_at ? ' · '.$request->rejected_at->format('M d, Y g:i A') : '' }}</div>
+                                @if($request->rejection_note)
+                                    <div class="text-xs text-slate-400 italic mt-0.5 max-w-xs truncate" title="{{ $request->rejection_note }}">"{{ $request->rejection_note }}"</div>
+                                @endif
+                            @else
+                                <span class="text-xs text-slate-400">— Awaiting decision</span>
+                            @endif
+                        </td>
                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                             @if(in_array($request->status, ['pending', 'approved']))
                                 <form action="{{ route('time-off.destroy', $request) }}" method="POST" class="inline">
@@ -341,7 +362,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="6" class="px-6 py-12 text-center text-sm text-slate-500 dark:text-slate-400">No requests found.</td>
+                        <td colspan="7" class="px-6 py-12 text-center text-sm text-slate-500 dark:text-slate-400">No requests found.</td>
                     </tr>
                 @endforelse
             </tbody>

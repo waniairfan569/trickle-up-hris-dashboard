@@ -279,7 +279,7 @@ class TimeOffController extends Controller
         // 3. Admin Data (All Requests)
         $allRequests = collect();
         if ($user->hasRole('hr_admin') || $user->hasRole('super_admin')) {
-            $query = TimeOffRequest::with('employee', 'policy', 'approver')->orderBy('created_at', 'desc');
+            $query = TimeOffRequest::with('employee', 'policy', 'approver', 'rejecter')->orderBy('created_at', 'desc');
             
             if ($request->has('status') && $request->status !== 'all') {
                 $query->where('status', $request->status);
