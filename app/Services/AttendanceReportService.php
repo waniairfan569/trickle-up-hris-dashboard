@@ -47,9 +47,9 @@ class AttendanceReportService
             $query->whereIn('user_id', $reportingIds->all());
         }
 
-        // Only real employees are expected to attend — the company/workspace
-        // account (no Employee record) is never counted absent.
-        $employeeUserIds = \App\Models\Employee::pluck('user_id')->filter();
+        // Only real employees are expected to attend — system/owner accounts
+        // are never counted absent.
+        $employeeUserIds = \App\Models\Employee::real()->pluck('user_id')->filter();
 
         $records = $query->get()->filter(fn ($r) => $employeeUserIds->contains($r->user_id))->values();
 

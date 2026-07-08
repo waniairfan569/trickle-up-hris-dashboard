@@ -5,9 +5,9 @@
 
 @section('content')
 @php
-    // Real employees only — the company/workspace account has no Employee record,
-    // so it is never expected to clock in and never counted absent.
-    $realEmployeeIds = \App\Models\Employee::pluck('user_id')->filter();
+    // Real employees only — system/owner accounts are never expected to clock in
+    // and never counted absent.
+    $realEmployeeIds = \App\Models\Employee::real()->pluck('user_id')->filter();
 
     $pendingApprovals = \App\Models\TimeOffRequest::where('status', 'pending')->count();
 

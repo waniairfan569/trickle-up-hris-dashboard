@@ -27,7 +27,9 @@ class ZktecoController extends Controller
         $devices = ZktecoDevice::all();
 
         // Mapped (synced) users with their device UID + punch count.
+        $systemUserIds = \App\Models\Employee::where('is_system', true)->pluck('user_id')->filter();
         $syncedUsers = User::whereNotNull('zkteco_uid')
+            ->whereNotIn('id', $systemUserIds->all())
             ->orderBy('first_name')->orderBy('last_name')
             ->get(['id', 'first_name', 'last_name', 'zkteco_uid', 'zkteco_employee_id']);
         foreach ($syncedUsers as $u) {
@@ -107,7 +109,8 @@ class ZktecoController extends Controller
     public function unmapped()
     {
         $unmapped = ZktecoUnmapped::unresolved()->with('device')->get();
-        $employees = User::whereNull('zkteco_uid')->get();
+        $systemUserIds = \App\Models\Employee::where('is_system', true)->pluck('user_id')->filter();
+        $employees = User::whereNull('zkteco_uid')->whereNotIn('id', $systemUserIds->all())->get();
 
         return view('zkteco.unmapped', compact('unmapped', 'employees'));
     }

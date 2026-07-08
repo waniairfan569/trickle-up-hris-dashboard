@@ -297,7 +297,11 @@ class AttendanceService
 
     public function generateDailyRecords(Carbon $date): void
     {
-        $users = User::where('status', 'active')->get();
+        // Real employees only — never generate attendance for system/owner accounts.
+        $realEmployeeIds = \App\Models\Employee::where('is_system', false)->pluck('user_id')->filter();
+        $users = User::where('status', 'active')
+            ->whereIn('id', $realEmployeeIds->all())
+            ->get();
 
         foreach ($users as $user) {
             $isWorkingDay = true;

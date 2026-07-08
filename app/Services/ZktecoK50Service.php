@@ -236,6 +236,12 @@ class ZktecoK50Service
 
     public function processPunch(ZktecoRawPunch $punch, User $user, string $sourceOverride = null): void
     {
+        // System/owner accounts are not employees — never build attendance for them.
+        if (\App\Models\Employee::where('user_id', $user->id)->where('is_system', true)->exists()) {
+            $punch->update(['is_processed' => true, 'processed_at' => now(), 'user_id' => $user->id]);
+            return;
+        }
+
         $rawType = $punch->punch_type_label;
 
         // Ignore Break / Overtime punches entirely (don't create a record).

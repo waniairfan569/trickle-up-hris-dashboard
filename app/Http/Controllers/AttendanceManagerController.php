@@ -24,8 +24,8 @@ class AttendanceManagerController extends Controller
     {
         $user = $request->user();
         
-        // Only real employees — exclude the company/workspace account (no Employee record).
-        $employeeUserIds = \App\Models\Employee::pluck('user_id')->filter();
+        // Only real employees — exclude system/owner accounts.
+        $employeeUserIds = \App\Models\Employee::real()->pluck('user_id')->filter();
 
         $query = AttendanceRecord::with('employee.department')
             ->whereDate('date', Carbon::today())

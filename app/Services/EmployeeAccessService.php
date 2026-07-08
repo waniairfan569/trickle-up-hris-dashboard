@@ -55,6 +55,7 @@ class EmployeeAccessService
     {
         $auth->loadMissing('roles');
 
-        return Employee::query();
+        // Never list system/owner accounts (e.g. the company super-admin) as employees.
+        return Employee::query()->where('is_system', false);
     }
 }

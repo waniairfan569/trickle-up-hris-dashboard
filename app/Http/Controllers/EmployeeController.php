@@ -404,6 +404,7 @@ class EmployeeController extends Controller
         }
 
         $employees = Employee::with(['user', 'department'])
+            ->where('is_system', false)
             ->whereHas('user', fn ($q) => $q->where('account_status', 'deactivated'))
             ->paginate(15);
 
@@ -527,7 +528,9 @@ class EmployeeController extends Controller
     {
         abort_unless($request->user() && $request->user()->isAdmin(), 403);
 
-        $query = User::where('account_status', '!=', 'deactivated');
+        $systemUserIds = \App\Models\Employee::where('is_system', true)->pluck('user_id')->filter();
+        $query = User::where('account_status', '!=', 'deactivated')
+            ->whereNotIn('id', $systemUserIds->all());
 
         if ($search = trim((string) $request->get('search'))) {
             $query->where(function ($q) use ($search) {

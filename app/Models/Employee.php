@@ -7,6 +7,22 @@ class Employee extends Model
 {
     protected $guarded = [];
 
+    protected $casts = [
+        'is_system' => 'boolean',
+    ];
+
+    /** Real employees only — excludes system/owner accounts (e.g. company super-admin). */
+    public function scopeReal($query)
+    {
+        return $query->where('is_system', false);
+    }
+
+    /** Alias of real(). */
+    public function scopeNotSystem($query)
+    {
+        return $query->where('is_system', false);
+    }
+
     public function company() { return $this->belongsTo(Company::class); }
     public function department() { return $this->belongsTo(Department::class); }
     public function location() { return $this->belongsTo(Location::class); }
