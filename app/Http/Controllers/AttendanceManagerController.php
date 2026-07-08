@@ -24,7 +24,12 @@ class AttendanceManagerController extends Controller
     {
         $user = $request->user();
         
-        $query = AttendanceRecord::with('employee.department')->whereDate('date', Carbon::today());
+        // Only real employees — exclude the company/workspace account (no Employee record).
+        $employeeUserIds = \App\Models\Employee::pluck('user_id')->filter();
+
+        $query = AttendanceRecord::with('employee.department')
+            ->whereDate('date', Carbon::today())
+            ->whereIn('user_id', $employeeUserIds->all());
 
         if (!$user->isAdmin()) {
             $query->forTeam($user);
@@ -57,7 +62,8 @@ class AttendanceManagerController extends Controller
         });
 
         // For stat cards we just query again on the same scope but no filters except date
-        $statQuery = AttendanceRecord::whereDate('date', Carbon::today());
+        $statQuery = AttendanceRecord::whereDate('date', Carbon::today())
+            ->whereIn('user_id', $employeeUserIds->all());
         if (!$user->isAdmin()) {
             $statQuery->forTeam($user);
         }

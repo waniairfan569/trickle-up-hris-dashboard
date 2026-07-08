@@ -53,9 +53,6 @@
     <!-- Announcements -->
     @include('partials.announcements')
 
-    <!-- Who's on leave today -->
-    @include('partials.on-leave-today', ['people' => $onLeavePeople])
-
     <!-- Calendar + Time-off balances (shared across dashboards) -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         @include('dashboard.partials.calendar-widget')

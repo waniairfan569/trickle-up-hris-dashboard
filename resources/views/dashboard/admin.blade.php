@@ -5,22 +5,44 @@
 
 @section('content')
 @php
-    // Robust, dynamic metrics directly from the DB
-    // "Total Directory" mirrors the /employees directory, which lists employee records.
-    $totalEmployees = \App\Models\Employee::count();
-    
-    $onLeaveToday = \App\Models\TimeOffRequest::where('status', 'approved')
+    // Real employees only — the company/workspace account has no Employee record,
+    // so it is never expected to clock in and never counted absent.
+    $realEmployeeIds = \App\Models\Employee::pluck('user_id')->filter();
+
+    $pendingApprovals = \App\Models\TimeOffRequest::where('status', 'pending')->count();
+
+    // Today's snapshot
+    $leaveToday = \App\Models\TimeOffRequest::where('status', 'approved')
         ->whereDate('start_date', '<=', today())
         ->whereDate('end_date', '>=', today())
+        ->with('policy')->get();
+    $isUnplanned = fn ($r) => \Illuminate\Support\Str::contains(\Illuminate\Support\Str::lower(optional($r->policy)->name ?? ''), ['casual', 'unplanned', 'sick', 'emergency']);
+    $unplannedLeave = $leaveToday->filter($isUnplanned)->pluck('user_id')->unique()->count();
+    $plannedLeave = $leaveToday->reject($isUnplanned)->pluck('user_id')->unique()->count();
+    $onLeaveIds = $leaveToday->pluck('user_id')->unique();
+
+    $todayRecs = \App\Models\AttendanceRecord::whereDate('date', today())->get();
+    $lateToday = $todayRecs->where('status', 'late')->count();
+    $presentIds = $todayRecs->whereIn('status', ['present', 'late', 'overtime', 'early_departure'])->pluck('user_id')->unique();
+
+    $workingRemotely = \App\Models\User::active()
+        ->whereIn('id', $realEmployeeIds->all())
+        ->where('attendance_mode', 'remote')->count();
+
+    $absentToday = \App\Models\User::active()
+        ->whereIn('id', $realEmployeeIds->all())
+        ->whereNotIn('id', $presentIds->all())
+        ->whereNotIn('id', $onLeaveIds->all())
         ->count();
-        
-    $pendingApprovals = \App\Models\TimeOffRequest::where('status', 'pending')->count();
-    
-    // Active onboarding: Count employees hired in last 90 days as mock onboarding
-    $activeOnboarding = \App\Models\User::whereNotNull('hire_date')
-        ->whereDate('hire_date', '>=', today()->subDays(90))
-        ->whereDate('hire_date', '<=', today())
-        ->count();
+
+    $statCards = [
+        ['label' => 'Planned Leaves', 'value' => $plannedLeave, 'sub' => 'On planned leave today', 'icon' => 'palmtree', 'bg' => 'bg-indigo-50 dark:bg-indigo-500/10', 'text' => 'text-indigo-600 dark:text-indigo-400'],
+        ['label' => 'Unplanned Leaves', 'value' => $unplannedLeave, 'sub' => 'On unplanned leave today', 'icon' => 'plane-takeoff', 'bg' => 'bg-sky-50 dark:bg-sky-500/10', 'text' => 'text-sky-600 dark:text-sky-400'],
+        ['label' => 'Working Remotely', 'value' => $workingRemotely, 'sub' => 'Remote employees', 'icon' => 'laptop', 'bg' => 'bg-emerald-50 dark:bg-emerald-500/10', 'text' => 'text-emerald-600 dark:text-emerald-400'],
+        ['label' => 'Lateness', 'value' => $lateToday, 'sub' => 'Late arrivals today', 'icon' => 'alarm-clock', 'bg' => 'bg-amber-50 dark:bg-amber-500/10', 'text' => 'text-amber-600 dark:text-amber-400'],
+        ['label' => 'Absences', 'value' => $absentToday, 'sub' => 'Absent today', 'icon' => 'user-x', 'bg' => 'bg-rose-50 dark:bg-rose-500/10', 'text' => 'text-rose-600 dark:text-rose-400'],
+        ['label' => 'Pending Approvals', 'value' => $pendingApprovals, 'sub' => 'Time off queue', 'icon' => 'clock', 'bg' => 'bg-rose-50 dark:bg-rose-500/10', 'text' => 'text-rose-600 dark:text-rose-400', 'action' => $pendingApprovals > 0],
+    ];
     
     // Live Pending requests
     $pendingRequests = \App\Models\TimeOffRequest::where('status', 'pending')
@@ -108,9 +130,6 @@
     <!-- Announcements -->
     @include('partials.announcements')
 
-    <!-- Who's on leave today -->
-    @include('partials.on-leave-today', ['people' => $onLeavePeople])
-
     <!-- Calendar + Time-off balances (shared across dashboards) -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         @include('dashboard.partials.calendar-widget')
@@ -118,85 +137,26 @@
     </div>
 
     <!-- Stats Cards Grid -->
-    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        
-        <!-- Total Employees -->
-        <div class="relative overflow-hidden rounded-2xl bg-white border border-slate-200/80 p-6 shadow-sm hover:-translate-y-1 hover:shadow-md transition duration-200 dark:bg-slate-800 dark:border-slate-800">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Total Directory</p>
-                    <h3 class="mt-2 text-3xl font-extrabold text-slate-900 tracking-tight dark:text-white">{{ $totalEmployees }}</h3>
+    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        @foreach($statCards as $c)
+            <div class="relative overflow-hidden rounded-2xl bg-white border border-slate-200/80 p-6 shadow-sm hover:-translate-y-1 hover:shadow-md transition duration-200 dark:bg-slate-800 dark:border-slate-800">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-bold uppercase tracking-wider text-slate-400">{{ $c['label'] }}</p>
+                        <h3 class="mt-2 text-3xl font-extrabold text-slate-900 tracking-tight dark:text-white">{{ $c['value'] }}</h3>
+                    </div>
+                    <div class="flex h-12 w-12 items-center justify-center rounded-xl {{ $c['bg'] }} {{ $c['text'] }} shadow-inner">
+                        <i data-lucide="{{ $c['icon'] }}" class="h-6 w-6"></i>
+                    </div>
                 </div>
-                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400 shadow-inner">
-                    <i data-lucide="users" class="h-6 w-6"></i>
-                </div>
-            </div>
-            <div class="mt-4 flex items-center gap-2">
-                <span class="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400">
-                    <i data-lucide="trending-up" class="mr-1 h-3.5 w-3.5"></i>
-                    <span>Stable</span>
-                </span>
-                <span class="text-xs text-slate-400">Active records</span>
-            </div>
-        </div>
-
-        <!-- On Leave Today -->
-        <div class="relative overflow-hidden rounded-2xl bg-white border border-slate-200/80 p-6 shadow-sm hover:-translate-y-1 hover:shadow-md transition duration-200 dark:bg-slate-800 dark:border-slate-800">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-xs font-bold uppercase tracking-wider text-slate-400">On Leave Today</p>
-                    <h3 class="mt-2 text-3xl font-extrabold text-slate-900 tracking-tight dark:text-white">{{ $onLeaveToday }}</h3>
-                </div>
-                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400 shadow-inner">
-                    <i data-lucide="plane-takeoff" class="h-6 w-6"></i>
+                <div class="mt-4 flex items-center gap-2">
+                    @if(!empty($c['action']))
+                        <span class="inline-flex items-center rounded-full bg-rose-50 px-2 py-0.5 text-xs font-medium text-rose-700 dark:bg-rose-500/10 dark:text-rose-400 animate-pulse">Action Required</span>
+                    @endif
+                    <span class="text-xs text-slate-400">{{ $c['sub'] }}</span>
                 </div>
             </div>
-            <div class="mt-4 flex items-center gap-2">
-                <span class="text-xs text-slate-500 dark:text-slate-400">Approved time off slots</span>
-            </div>
-        </div>
-
-        <!-- Pending Approvals -->
-        <div class="relative overflow-hidden rounded-2xl bg-white border border-slate-200/80 p-6 shadow-sm hover:-translate-y-1 hover:shadow-md transition duration-200 dark:bg-slate-800 dark:border-slate-800">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Pending Approvals</p>
-                    <h3 class="mt-2 text-3xl font-extrabold text-slate-900 tracking-tight dark:text-white">{{ $pendingApprovals }}</h3>
-                </div>
-                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400 shadow-inner">
-                    <i data-lucide="clock" class="h-6 w-6"></i>
-                </div>
-            </div>
-            <div class="mt-4 flex items-center gap-2">
-                @if($pendingApprovals > 0)
-                    <span class="inline-flex items-center rounded-full bg-rose-50 px-2 py-0.5 text-xs font-medium text-rose-700 dark:bg-rose-500/10 dark:text-rose-400 animate-pulse">
-                        <span>Action Required</span>
-                    </span>
-                @else
-                    <span class="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400">
-                        <span>Cleared</span>
-                    </span>
-                @endif
-                <span class="text-xs text-slate-400">Time off queue</span>
-            </div>
-        </div>
-
-        <!-- Active Onboardings -->
-        <div class="relative overflow-hidden rounded-2xl bg-white border border-slate-200/80 p-6 shadow-sm hover:-translate-y-1 hover:shadow-md transition duration-200 dark:bg-slate-800 dark:border-slate-800">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-xs font-bold uppercase tracking-wider text-slate-400">New Hires (90d)</p>
-                    <h3 class="mt-2 text-3xl font-extrabold text-slate-900 tracking-tight dark:text-white">{{ $activeOnboarding }}</h3>
-                </div>
-                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400 shadow-inner">
-                    <i data-lucide="rocket" class="h-6 w-6"></i>
-                </div>
-            </div>
-            <div class="mt-4 flex items-center gap-2">
-                <span class="text-xs text-slate-500 dark:text-slate-400">Active onboarding setups</span>
-            </div>
-        </div>
-
+        @endforeach
     </div>
 
     <!-- Main Grid Dashboard Content -->
