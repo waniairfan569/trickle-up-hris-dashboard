@@ -73,12 +73,17 @@ class TimeOffController extends Controller
             report($e);
         }
 
-        // Best-effort email (never block the approval if mail fails).
+        // Best-effort email (never block the decision if mail fails).
+        // Strict match on status — the email must reflect the ACTUAL decision,
+        // so a reject/cancel can never accidentally send an "approved" email.
         try {
-            $mailable = $status === 'approved'
-                ? new \App\Mail\TimeOffRequestApproved($request)
-                : new \App\Mail\TimeOffRequestRejected($request);
-            if ($employee->email) {
+            $mailable = match ($status) {
+                'approved'  => new \App\Mail\TimeOffRequestApproved($request),
+                'rejected'  => new \App\Mail\TimeOffRequestRejected($request),
+                'cancelled' => new \App\Mail\TimeOffRequestCancelled($request),
+                default     => null,
+            };
+            if ($mailable && $employee->email) {
                 Mail::to($employee->email)->send($mailable);
             }
         } catch (\Throwable $e) {
@@ -493,6 +498,12 @@ class TimeOffController extends Controller
             'status' => 'cancelled',
             'cancelled_at' => now()
         ]);
+
+        // If an admin/manager cancelled someone else's request, let the
+        // employee know — with the correct "cancelled" wording (not approved).
+        if ($timeOff->user_id !== $user->id) {
+            $this->notifyEmployeeOfDecision($timeOff, 'cancelled');
+        }
 
         return back()->with('success', 'Request cancelled.');
     }
