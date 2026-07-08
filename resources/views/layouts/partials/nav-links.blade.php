@@ -1,5 +1,35 @@
 @php
     $routeName = request()->route()?->getName() ?? '';
+
+    // Sidebar red badges — items needing attention on each tab.
+    $nav = ['invites' => 0, 'timeoff' => 0, 'forms' => 0, 'corrections' => 0];
+    if ($navUser = auth()->user()) {
+        $navIsAdmin = $navUser->hasRole('super_admin') || $navUser->hasRole('hr_admin');
+        $navReportIds = (!$navIsAdmin && method_exists($navUser, 'directReports'))
+            ? $navUser->directReports()->pluck('id') : collect();
+
+        // Forms assigned to me and not yet submitted
+        $nav['forms'] = \App\Models\FormSubmission::where('user_id', $navUser->id)
+            ->whereIn('status', ['pending', 'in_progress'])
+            ->whereHas('form', fn ($q) => $q->where('status', '!=', 'draft'))
+            ->count();
+
+        // Time-off awaiting a decision (approver's view; else my own pending)
+        if ($navIsAdmin) {
+            $nav['timeoff'] = \App\Models\TimeOffRequest::where('status', 'pending')->count();
+            $nav['invites'] = \App\Models\User::where('account_status', 'invited')->count();
+            $nav['corrections'] = \App\Models\AttendanceCorrection::where('status', 'pending')->count();
+        } elseif ($navReportIds->isNotEmpty()) {
+            $nav['timeoff'] = \App\Models\TimeOffRequest::where('status', 'pending')->whereIn('user_id', $navReportIds)->count();
+            $nav['corrections'] = \App\Models\AttendanceCorrection::where('status', 'pending')->whereIn('user_id', $navReportIds)->count();
+        } else {
+            $nav['timeoff'] = \App\Models\TimeOffRequest::where('user_id', $navUser->id)->where('status', 'pending')->count();
+        }
+    }
+
+    $navBadge = fn ($n) => $n > 0
+        ? '<span class="ml-auto inline-flex items-center justify-center rounded-full bg-rose-500 text-white text-[10px] font-bold h-5 min-w-5 px-1.5 leading-none">' . $n . '</span>'
+        : '';
 @endphp
 
 <!-- Navigation Group: Core -->
@@ -35,6 +65,7 @@
        class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ Str::startsWith($routeName, 'employees.pending-invitations') ? 'bg-brand-600 text-slate-900 shadow-md shadow-brand-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
         <i data-lucide="mail-warning" class="h-4 w-4 shrink-0 transition {{ Str::startsWith($routeName, 'employees.pending-invitations') ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>
         <span>Pending Invitations</span>
+        {!! $navBadge($nav['invites']) !!}
     </a>
     @endif
 
@@ -42,6 +73,7 @@
        class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ (Str::startsWith($routeName, 'time-off') && !Str::contains($routeName, 'policies')) ? 'bg-brand-600 text-slate-900 shadow-md shadow-brand-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
         <i data-lucide="calendar" class="h-4 w-4 shrink-0 transition {{ (Str::startsWith($routeName, 'time-off') && !Str::contains($routeName, 'policies')) ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>
         <span>Time Off Requests</span>
+        {!! $navBadge($nav['timeoff']) !!}
     </a>
 
     <a href="{{ route('attendance.my-history') }}" 
@@ -72,6 +104,7 @@
        class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ (Str::startsWith($routeName, 'my-forms') || Str::startsWith($routeName, 'forms.')) ? 'bg-brand-600 text-slate-900 shadow-md shadow-brand-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
         <i data-lucide="clipboard-list" class="h-4 w-4 shrink-0 transition {{ (Str::startsWith($routeName, 'my-forms') || Str::startsWith($routeName, 'forms.')) ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>
         <span>My Forms</span>
+        {!! $navBadge($nav['forms']) !!}
     </a>
 
     <a href="{{ route('my-policies.index') }}"
@@ -113,6 +146,7 @@
        class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ Str::startsWith($routeName, 'attendance.corrections') ? 'bg-brand-600 text-slate-900 shadow-md shadow-brand-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
         <i data-lucide="file-check-2" class="h-4 w-4 shrink-0 transition {{ Str::startsWith($routeName, 'attendance.corrections') ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>
         <span>Pending Corrections</span>
+        {!! $navBadge($nav['corrections']) !!}
     </a>
 </div>
 @endrole
