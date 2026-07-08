@@ -21,6 +21,9 @@ class FormSubmissionController extends Controller
             ->sortByDesc('id')
             ->values();
 
+        // Seeing the list clears the "new forms" sidebar badge.
+        $user->forceFill(['forms_last_seen_at' => now()])->saveQuietly();
+
         return view('employee.forms.index', compact('submissions'));
     }
 

@@ -8,10 +8,11 @@
         $navReportIds = (!$navIsAdmin && method_exists($navUser, 'directReports'))
             ? $navUser->directReports()->pluck('id') : collect();
 
-        // Forms assigned to me and not yet submitted
+        // NEW forms assigned to me since I last opened My Forms (badge clears on visit).
         $nav['forms'] = \App\Models\FormSubmission::where('user_id', $navUser->id)
             ->whereIn('status', ['pending', 'in_progress'])
             ->whereHas('form', fn ($q) => $q->where('status', '!=', 'draft'))
+            ->when($navUser->forms_last_seen_at, fn ($q) => $q->where('created_at', '>', $navUser->forms_last_seen_at))
             ->count();
 
         // Time-off awaiting a decision (approver's view; else my own pending)

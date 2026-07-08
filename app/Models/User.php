@@ -69,6 +69,7 @@ class User extends Authenticatable
         'invitation_accepted_at' => 'datetime',
         'must_change_password' => 'boolean',
         'use_custom_timezone' => 'boolean',
+        'forms_last_seen_at' => 'datetime',
     ];
 
     protected $hidden = ['password', 'remember_token', 'salary'];
