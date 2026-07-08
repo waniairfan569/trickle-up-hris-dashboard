@@ -1,7 +1,12 @@
 @php
     $myCodeRequests = \App\Models\CodeRequest::where('employee_id', auth()->id())->latest()->take(5)->get();
     $freshCode = $myCodeRequests->first(fn($r) => $r->status === 'code_sent' && $r->code_sent_at && $r->code_sent_at->gt(now()->subMinutes(60)));
-    $codeTools = ['Claude', 'Cursor AI', 'GitHub Copilot', 'Figma', 'Adobe CC', 'Zoom', 'Slack', 'Microsoft 365', 'Google Workspace', 'JetBrains', 'VS Code', 'Linear', 'Notion', 'Other'];
+    $codeTools = [
+        'Higgsfield', 'Envato', 'Freepik', 'Semrush', 'Canva', 'KIE.AI',
+        'Adobe Creative Cloud ( Big Byte Store)', 'Figma', 'OpenRouter', 'Capcut',
+        'Claude.Ai', 'Claude ( Project)', 'Claude Ember', 'Claude (SEO account)',
+        'Claude Dusk', 'Claude Cobalt', 'Claude Crimson', 'FireCrawl', 'Other',
+    ];
 @endphp
 
 <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 dark:bg-slate-800 dark:border-slate-700"
@@ -33,13 +38,14 @@
     <div x-show="!sent">
         <div class="flex flex-col sm:flex-row gap-2">
             <select x-model="tool" class="flex-1 rounded-xl border border-slate-300 px-3 py-2 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                <option value="" disabled>Select a tool…</option>
                 @foreach($codeTools as $t)<option value="{{ $t }}">{{ $t }}</option>@endforeach
             </select>
             <input x-show="tool === 'Other'" x-cloak type="text" x-model="otherTool" placeholder="Tool name" class="flex-1 rounded-xl border border-slate-300 px-3 py-2 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
         </div>
-        <input type="text" x-model="message" maxlength="255" placeholder="Optional note (e.g. urgent, meeting in 5 min)" class="w-full mt-2 rounded-xl border border-slate-300 px-3 py-2 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
-        <button type="button" @click="submit()" :disabled="sending"
-                class="w-full mt-3 inline-flex items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-bold text-slate-900 hover:bg-brand-700 disabled:opacity-50 transition">
+        <input type="text" x-model="message" maxlength="255" placeholder="Reason for this request (required)" class="w-full mt-2 rounded-xl border border-slate-300 px-3 py-2 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+        <button type="button" @click="submit()" :disabled="sending || !canSubmit"
+                class="w-full mt-3 inline-flex items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-bold text-slate-900 hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition">
             <i data-lucide="send" class="h-4 w-4"></i>
             <span x-text="sending ? 'Sending…' : 'Request Code from HR'"></span>
         </button>
@@ -75,10 +81,15 @@
 <script>
     function codeRequestWidget() {
         return {
-            tool: 'Claude', otherTool: '', message: '', sending: false, sent: false, error: '',
+            tool: '', otherTool: '', message: '', sending: false, sent: false, error: '',
+            get canSubmit() {
+                const name = this.tool === 'Other' ? this.otherTool.trim() : this.tool;
+                return !!name && this.message.trim().length > 0;
+            },
             submit() {
                 const name = this.tool === 'Other' ? this.otherTool.trim() : this.tool;
                 if (!name) { this.error = 'Please choose or type a tool name.'; return; }
+                if (!this.message.trim()) { this.error = 'Please add a reason for this request.'; return; }
                 this.sending = true; this.error = '';
                 fetch('{{ route('code-requests.store') }}', {
                     method: 'POST',

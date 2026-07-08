@@ -17,13 +17,13 @@ class CodeRequestController extends Controller
     {
         $validated = $request->validate([
             'tool_name' => 'required|string|max:100',
-            'message' => 'nullable|string|max:255',
+            'message' => 'required|string|max:255',
         ]);
 
         $codeRequest = CodeRequest::create([
             'employee_id' => $request->user()->id,
             'tool_name' => trim($validated['tool_name']),
-            'message' => $validated['message'] ?? null,
+            'message' => trim($validated['message']),
             'status' => 'pending',
         ]);
 
