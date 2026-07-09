@@ -50,13 +50,15 @@
     <!-- Employees waiting for a login code -->
     @include('partials.code-request-hr-banner')
 
-    <!-- Need a login code myself? (same as employees) -->
-    <div class="max-w-md">
-        @include('partials.code-request-widget')
+    <!-- Announcements (main) + personal login-code request (side), balanced -->
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-3 items-start">
+        <div class="lg:col-span-2">
+            @include('partials.announcements')
+        </div>
+        <div>
+            @include('partials.code-request-widget')
+        </div>
     </div>
-
-    <!-- Announcements -->
-    @include('partials.announcements')
 
     <!-- Calendar + Time-off balances (shared across dashboards) -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -93,7 +95,7 @@
                     <p class="mt-3 text-xs text-slate-500">You do not currently have any direct or indirect reports in your organizational line.</p>
                 </div>
             @else
-                <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+                <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 auto-rows-fr">
                     @foreach($reports as $report)
                         @php
                             $isOnLeave = in_array($report->id, $onLeaveTodayUserIds);
