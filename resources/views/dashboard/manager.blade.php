@@ -50,6 +50,11 @@
     <!-- Employees waiting for a login code -->
     @include('partials.code-request-hr-banner')
 
+    <!-- Need a login code myself? (same as employees) -->
+    <div class="max-w-md">
+        @include('partials.code-request-widget')
+    </div>
+
     <!-- Announcements -->
     @include('partials.announcements')
 
