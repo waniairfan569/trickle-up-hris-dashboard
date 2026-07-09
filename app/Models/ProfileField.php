@@ -66,11 +66,17 @@ class ProfileField extends Model
         }
 
         // On their OWN profile an employee may edit their own details — including
-        // full name, work email and personal email — except a few org-controlled
-        // fields (department, manager, employment status, employee ID) which only
-        // admins can change.
+        // full name, work email and personal email — except org/HR-controlled
+        // fields which only super admin / HR admin can change.
         if ($editor->id === $employee->id) {
-            $adminOnly = ['department_id', 'manager_id', 'employee_status', 'employee_id'];
+            $adminOnly = [
+                'department_id', 'manager_id', 'employee_id',
+                // Employment & compensation — HR-controlled, not self-editable.
+                'contract_type', 'employment_type', 'job_title',
+                'employee_status', 'employment_status',
+                'hire_date', 'start_date',
+                'pay_frequency', 'currency',
+            ];
             return !in_array($this->key, $adminOnly, true);
         }
 
