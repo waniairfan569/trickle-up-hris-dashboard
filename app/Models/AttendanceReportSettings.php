@@ -37,7 +37,7 @@ class AttendanceReportSettings extends Model
     {
         return static::firstOrCreate([], [
             'is_enabled' => true,
-            'send_time' => '22:00:00',
+            'send_time' => '10:00:00',
             'working_days' => ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
             'additional_emails' => [],
             'report_subject_template' => 'Daily Attendance Report — {{date}}',
