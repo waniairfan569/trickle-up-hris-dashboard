@@ -32,12 +32,19 @@
     ])->values();
 @endphp
 
+@php
+    // When this template backs a company document, its name/file/scope were
+    // already captured on the company-document form — so skip the redundant
+    // "Edit template details" step and open straight on "Select signers".
+    $backedByCompanyDoc = $template ? \App\Models\CompanyDocument::where('template_id', $template->id)->exists() : false;
+@endphp
 <script>
     window.__docTplExisting = @json($existing);
     window.__docTplFields = @json($fieldMeta);
     window.__docTplEntities = @json($entityOpts);
     window.__docTplDepartments = @json($deptOpts);
     window.__docTplSignerEmployees = @json($signerEmployeeOpts);
+    window.__docTplHideDetails = @json($backedByCompanyDoc);
 </script>
 
 <!-- PDF.js (legacy UMD build — most compatible) — powers the Step 4 placement editor -->
@@ -68,16 +75,16 @@
     <!-- Header bar -->
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
         <div class="flex items-center gap-3">
-            <a href="{{ route('document-templates.index') }}" class="inline-flex h-9 w-9 items-center justify-center rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-700" title="Cancel">
+            <a href="{{ $backedByCompanyDoc ? route('company-documents.admin') : route('document-templates.index') }}" class="inline-flex h-9 w-9 items-center justify-center rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-700" title="Cancel">
                 <i data-lucide="x" class="h-5 w-5"></i>
             </a>
             <div>
-                <h1 class="text-xl font-extrabold tracking-tight text-slate-900 dark:text-white">{{ $template ? 'Edit document template' : 'Create document template' }}</h1>
-                <p class="text-xs text-slate-500 dark:text-slate-400" x-text="`Step ${step} of 4 — ` + stepTitle()"></p>
+                <h1 class="text-xl font-extrabold tracking-tight text-slate-900 dark:text-white">{{ $backedByCompanyDoc ? 'Signature setup' : ($template ? 'Edit document template' : 'Create document template') }}</h1>
+                <p class="text-xs text-slate-500 dark:text-slate-400" x-text="stepLabel()"></p>
             </div>
         </div>
         <div class="flex items-center gap-2">
-            <button type="button" @click="prev()" x-show="step > 1"
+            <button type="button" @click="prev()" x-show="step > minStep"
                     class="inline-flex items-center gap-1.5 rounded-xl bg-white border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200">
                 <i data-lucide="arrow-left" class="h-4 w-4"></i> Previous
             </button>
@@ -106,13 +113,15 @@
         <!-- Step sidebar -->
         <aside class="space-y-1.5">
             @foreach($steps as $i => $meta)
+                @continue($backedByCompanyDoc && $i === 1)
+                @php $badge = $backedByCompanyDoc ? $i - 1 : $i; @endphp
                 <button type="button" @click="go({{ $i }})"
                         class="w-full text-left flex items-start gap-3 rounded-xl px-3.5 py-3 transition"
                         :class="step === {{ $i }} ? 'bg-brand-50 dark:bg-brand-500/10' : 'hover:bg-slate-50 dark:hover:bg-slate-800'">
                     <span class="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-[11px] font-bold"
                           :class="step === {{ $i }} ? 'bg-brand-600 text-slate-900' : (step > {{ $i }} ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-500 dark:bg-slate-700')">
                         <template x-if="step > {{ $i }}"><i data-lucide="check" class="h-3.5 w-3.5"></i></template>
-                        <template x-if="step <= {{ $i }}"><span>{{ $i }}</span></template>
+                        <template x-if="step <= {{ $i }}"><span>{{ $badge }}</span></template>
                     </span>
                     <span class="min-w-0">
                         <span class="block text-sm font-bold leading-tight" :class="step === {{ $i }} ? 'text-brand-700 dark:text-brand-400' : 'text-slate-700 dark:text-slate-200'">{{ $meta[0] }}</span>
@@ -491,11 +500,14 @@
 <script>
     function documentWizard() {
         const ex = window.__docTplExisting || null;
+        const hideDetails = !!window.__docTplHideDetails;
         // PDF.js objects kept OUTSIDE Alpine reactive state — proxying them breaks
         // their private (#) class fields, which makes render() throw.
         let __pdfPages = [];
         return {
-            step: 1,
+            step: hideDetails ? 2 : 1,
+            hideDetails,
+            minStep: hideDetails ? 2 : 1,
             isEdit: !!ex,
             name: ex?.name || '',
             description: ex?.description || '',
@@ -542,6 +554,11 @@
             stepTitle() {
                 return ['', 'Edit template details', 'Select signers', 'Select profile fields', 'Place profile fields'][this.step];
             },
+            stepLabel() {
+                const total = this.hideDetails ? 3 : 4;
+                const shown = this.hideDetails ? this.step - 1 : this.step;
+                return `Step ${shown} of ${total} — ` + this.stepTitle();
+            },
 
             addTag() { const t = this.newTag.trim(); if (t && !this.tags.includes(t)) this.tags.push(t); this.newTag = ''; },
             removeTag(i) { this.tags.splice(i, 1); },
@@ -563,6 +580,7 @@
             selectionCount() { return Object.keys(this.selections).length; },
 
             go(s) {
+                if (s < this.minStep) return;
                 this.step = s;
                 this.$nextTick(() => {
                     if (window.lucide) lucide.createIcons();
@@ -570,7 +588,7 @@
                 });
             },
             next() { if (this.step < 4 && this.canAdvance()) this.go(this.step + 1); },
-            prev() { if (this.step > 1) this.go(this.step - 1); },
+            prev() { if (this.step > this.minStep) this.go(this.step - 1); },
             canAdvance() {
                 if (this.step === 1) return this.name.trim() !== '' && (this.isEdit || this.fileName !== '');
                 return true;
