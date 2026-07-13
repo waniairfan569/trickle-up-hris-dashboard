@@ -46,17 +46,22 @@
                 <i data-lucide="pen-tool" class="h-4 w-4"></i> Sign now
             </a>
         @endif
-        <a href="{{ route('documents.file', $documentRequest) }}" target="_blank" class="inline-flex items-center gap-2 rounded-xl bg-white border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200">
-            <i data-lucide="eye" class="h-4 w-4"></i> View original
-        </a>
         @if($documentRequest->status === 'completed')
-            <button type="button" @click="download()" :disabled="busy" :class="busy && 'opacity-50'"
-                    class="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white shadow-md shadow-emerald-500/20 hover:bg-emerald-700">
-                <template x-if="!busy"><i data-lucide="file-down" class="h-4 w-4"></i></template>
+            <button type="button" @click="viewSigned()" :disabled="busy" :class="busy && 'opacity-50'"
+                    class="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-bold text-white shadow-md shadow-emerald-500/20 hover:bg-emerald-700">
+                <template x-if="!busy"><i data-lucide="eye" class="h-4 w-4"></i></template>
                 <template x-if="busy"><i data-lucide="loader" class="h-4 w-4 animate-spin"></i></template>
-                <span x-text="busy ? 'Preparing…' : 'Download signed PDF'"></span>
+                <span x-text="busy ? 'Preparing…' : 'View signed document'"></span>
+            </button>
+            <button type="button" @click="download()" :disabled="busy" :class="busy && 'opacity-50'"
+                    class="inline-flex items-center gap-2 rounded-xl bg-white border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200">
+                <i data-lucide="file-down" class="h-4 w-4"></i>
+                <span>Download signed PDF</span>
             </button>
         @endif
+        <a href="{{ route('documents.file', $documentRequest) }}" target="_blank" class="inline-flex items-center gap-2 rounded-xl bg-white border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-500 hover:bg-slate-50 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-300">
+            <i data-lucide="file-text" class="h-4 w-4"></i> View original (blank)
+        </a>
     </div>
     <p x-show="err" x-cloak class="text-sm text-rose-600" x-text="err"></p>
 
@@ -115,44 +120,65 @@
         return {
             busy: false,
             err: '',
+            // Build the signed PDF (original + placed field values + signatures) and
+            // return a blob URL. Shared by both View and Download.
+            async buildSignedPdfUrl() {
+                if (!window.PDFLib) throw new Error('PDF engine failed to load.');
+                const data = await fetch(window.__signedDataUrl, { headers: { 'Accept': 'application/json' } }).then(r => r.json());
+                const bytes = await fetch(data.fileUrl).then(r => r.arrayBuffer());
+                const { PDFDocument, StandardFonts, rgb } = window.PDFLib;
+                const pdf = await PDFDocument.load(bytes);
+                const font = await pdf.embedFont(StandardFonts.Helvetica);
+                const pages = pdf.getPages();
+                for (const f of data.fields) {
+                    const page = pages[f.page - 1];
+                    if (!page) continue;
+                    const pw = page.getWidth(), ph = page.getHeight();
+                    if ((f.type === 'signature' || f.type === 'initials')) {
+                        if (!f.image) continue;
+                        const png = await pdf.embedPng(f.image);
+                        const boxW = f.w * pw, boxH = (f.h || 0.05) * ph;
+                        const scale = Math.min(boxW / png.width, boxH / png.height);
+                        const w = png.width * scale, h = png.height * scale;
+                        const topY = ph - f.y * ph;
+                        page.drawImage(png, { x: f.x * pw, y: topY - h, width: w, height: h });
+                        if (f.name) {
+                            const ns = Math.max(6, Math.min(9, boxH * 0.32));
+                            page.drawText(String(f.name), { x: f.x * pw, y: topY - h - ns - 1, size: ns, font, color: rgb(0.45, 0.45, 0.5) });
+                        }
+                        continue;
+                    }
+                    if (!f.value) continue;
+                    const size = Math.max(8, Math.min(13, (f.h || 0.03) * ph * 0.7));
+                    page.drawText(String(f.value), { x: f.x * pw + 2, y: ph - f.y * ph - size, size, font, color: rgb(0.1, 0.1, 0.12) });
+                }
+                const out = await pdf.save();
+                return URL.createObjectURL(new Blob([out], { type: 'application/pdf' }));
+            },
+            async viewSigned() {
+                if (this.busy) return;
+                this.busy = true; this.err = '';
+                // Open the tab synchronously so the browser doesn't block the popup,
+                // then point it at the generated PDF once ready.
+                const tab = window.open('', '_blank');
+                try {
+                    const url = await this.buildSignedPdfUrl();
+                    if (tab) { tab.location = url; } else { window.location = url; }
+                    setTimeout(() => URL.revokeObjectURL(url), 60000);
+                } catch (e) {
+                    if (tab) tab.close();
+                    this.err = (e && e.message) ? e.message : 'Could not build the signed PDF.';
+                } finally { this.busy = false; }
+            },
             async download() {
                 if (this.busy) return;
                 this.busy = true; this.err = '';
                 try {
-                    if (!window.PDFLib) throw new Error('PDF engine failed to load.');
-                    const data = await fetch(window.__signedDataUrl, { headers: { 'Accept': 'application/json' } }).then(r => r.json());
-                    const bytes = await fetch(data.fileUrl).then(r => r.arrayBuffer());
-                    const { PDFDocument, StandardFonts, rgb } = window.PDFLib;
-                    const pdf = await PDFDocument.load(bytes);
-                    const font = await pdf.embedFont(StandardFonts.Helvetica);
-                    const pages = pdf.getPages();
-                    for (const f of data.fields) {
-                        const page = pages[f.page - 1];
-                        if (!page) continue;
-                        const pw = page.getWidth(), ph = page.getHeight();
-                        if ((f.type === 'signature' || f.type === 'initials')) {
-                            if (!f.image) continue;
-                            const png = await pdf.embedPng(f.image);
-                            const boxW = f.w * pw, boxH = (f.h || 0.05) * ph;
-                            const scale = Math.min(boxW / png.width, boxH / png.height);
-                            const w = png.width * scale, h = png.height * scale;
-                            const topY = ph - f.y * ph;
-                            page.drawImage(png, { x: f.x * pw, y: topY - h, width: w, height: h });
-                            if (f.name) {
-                                const ns = Math.max(6, Math.min(9, boxH * 0.32));
-                                page.drawText(String(f.name), { x: f.x * pw, y: topY - h - ns - 1, size: ns, font, color: rgb(0.45, 0.45, 0.5) });
-                            }
-                            continue;
-                        }
-                        if (!f.value) continue;
-                        const size = Math.max(8, Math.min(13, (f.h || 0.03) * ph * 0.7));
-                        page.drawText(String(f.value), { x: f.x * pw + 2, y: ph - f.y * ph - size, size, font, color: rgb(0.1, 0.1, 0.12) });
-                    }
-                    const out = await pdf.save();
-                    const url = URL.createObjectURL(new Blob([out], { type: 'application/pdf' }));
+                    const url = await this.buildSignedPdfUrl();
                     const a = document.createElement('a');
                     a.href = url; a.download = (window.__signedName || 'document').replace(/[^\w.\- ]+/g, '') + ' — signed.pdf';
-                    document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+                    document.body.appendChild(a); a.click(); a.remove();
+                    setTimeout(() => URL.revokeObjectURL(url), 10000);
                 } catch (e) {
                     this.err = (e && e.message) ? e.message : 'Could not build the signed PDF.';
                 } finally { this.busy = false; }
