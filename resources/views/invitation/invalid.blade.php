@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Invalid Invitation - {{ config('app.name', 'Laravel') }}</title>
+    <title>Invalid Invitation - Trickle Hub</title>
     
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -44,7 +44,7 @@
 <body class="bg-slate-50 text-slate-900 antialiased font-sans flex items-center justify-center min-h-screen">
     <div class="max-w-md w-full p-6 text-center">
         <div class="mb-8">
-            <h1 class="text-3xl font-bold text-brand-600">{{ config('app.name', 'Workable') }}</h1>
+            <h1 class="text-3xl font-bold text-brand-600">Trickle Hub</h1>
         </div>
 
         <div class="bg-white p-8 rounded-xl shadow-sm border border-slate-200">

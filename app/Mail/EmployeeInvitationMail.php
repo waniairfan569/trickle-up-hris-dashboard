@@ -37,7 +37,7 @@ class EmployeeInvitationMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'You have been invited to join ' . config('app.name'),
+            subject: 'You have been invited to join Trickle Hub',
         );
     }
 
@@ -49,7 +49,7 @@ class EmployeeInvitationMail extends Mailable
         return new Content(
             view: 'emails.employee-invitation',
             with: [
-                'companyName' => config('app.name'),
+                'companyName' => 'Trickle Hub',
                 'expiresAt' => now()->addHours($this->expiresInHours)->format('F j, Y, g:i a'),
             ]
         );
