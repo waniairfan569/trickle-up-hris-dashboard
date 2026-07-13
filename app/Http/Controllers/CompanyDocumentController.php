@@ -74,6 +74,12 @@ class CompanyDocumentController extends Controller
         $this->syncAccess($document, $request);
         $this->syncSignatureTemplate($document);
 
+        // Signable document → continue straight into the signer/field steps.
+        if ($document->isSignable() && $document->template_id) {
+            return redirect()->route('document-templates.edit', $document->template_id)
+                ->with('success', 'Document saved — now add signers and place the fields.');
+        }
+
         return redirect()->route('company-documents.admin')->with('success', 'Document uploaded.');
     }
 
@@ -109,6 +115,12 @@ class CompanyDocumentController extends Controller
 
         $this->syncAccess($document, $request);
         $this->syncSignatureTemplate($document);
+
+        // Just turned on signatures but no signers set up yet → go finish the steps.
+        if ($document->isSignable() && $document->template && $document->template->signers()->count() === 0) {
+            return redirect()->route('document-templates.edit', $document->template_id)
+                ->with('success', 'Document saved — now add signers and place the fields.');
+        }
 
         return redirect()->route('company-documents.admin')->with('success', 'Document updated.');
     }
