@@ -102,6 +102,13 @@ class DocumentTemplateController extends Controller
 
         $this->syncRelations($documentTemplate, $request);
 
+        // If this template backs a company document, keep the admin in that flow.
+        $companyDoc = \App\Models\CompanyDocument::where('template_id', $documentTemplate->id)->first();
+        if ($companyDoc) {
+            return redirect()->route('company-documents.edit', $companyDoc)
+                ->with('success', 'Signature setup saved.');
+        }
+
         return redirect()->route('document-templates.index')
             ->with('success', "Document template “{$documentTemplate->name}” updated.");
     }

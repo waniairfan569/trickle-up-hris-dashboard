@@ -6,6 +6,7 @@ use App\Models\CompanyDocument;
 use App\Models\Department;
 use App\Models\DocumentAccess;
 use App\Models\DocumentCategory;
+use App\Models\DocumentTemplate;
 use App\Models\DocumentView;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -63,9 +64,15 @@ class CompanyDocumentController extends Controller
         $document = new CompanyDocument($this->payload($request, $data));
         $document->uploaded_by = auth()->id();
         $this->storeFile($document, $request, $category);
+
+        if ($document->requires_signature && $document->file_extension !== 'pdf') {
+            return back()->withInput()->withErrors(['file' => 'Documents sent for signature must be a PDF.']);
+        }
+
         $document->save();
 
         $this->syncAccess($document, $request);
+        $this->syncSignatureTemplate($document);
 
         return redirect()->route('company-documents.admin')->with('success', 'Document uploaded.');
     }
@@ -73,7 +80,7 @@ class CompanyDocumentController extends Controller
     public function edit(CompanyDocument $document)
     {
         return view('company-documents.create', [
-            'document' => $document->load('accessRecords'),
+            'document' => $document->load('accessRecords', 'template.signers'),
             'categories' => DocumentCategory::orderBy('sort_order')->get(),
             'departments' => Department::orderBy('name')->get(['id', 'name']),
             'users' => User::where('account_status', '!=', 'deactivated')->orderBy('first_name')->get(['id', 'first_name', 'last_name']),
@@ -93,9 +100,15 @@ class CompanyDocumentController extends Controller
             }
             $this->storeFile($document, $request, $category);
         }
+
+        if ($document->requires_signature && $document->file_extension !== 'pdf') {
+            return back()->withInput()->withErrors(['file' => 'Documents sent for signature must be a PDF.']);
+        }
+
         $document->save();
 
         $this->syncAccess($document, $request);
+        $this->syncSignatureTemplate($document);
 
         return redirect()->route('company-documents.admin')->with('success', 'Document updated.');
     }
@@ -182,6 +195,7 @@ class CompanyDocumentController extends Controller
             'file' => [$fileRequired ? 'required' : 'nullable', 'file', 'mimes:' . self::MIMES, 'max:51200'],
             'version' => 'nullable|string|max:20',
             'version_notes' => 'nullable|string|max:1000',
+            'requires_signature' => 'nullable|boolean',
             'access_level' => ['required', Rule::in(['company_wide', 'department', 'specific_users'])],
             'departments' => 'nullable|array',
             'departments.*' => 'integer|exists:departments,id',
@@ -202,8 +216,48 @@ class CompanyDocumentController extends Controller
             'access_level' => $data['access_level'],
             'is_active' => $request->boolean('is_active', true),
             'requires_acknowledgment' => $request->boolean('requires_acknowledgment'),
+            'requires_signature' => $request->boolean('requires_signature'),
             'expires_at' => $data['expires_at'] ?? null,
         ];
+    }
+
+    /**
+     * Keep a signing template in sync with a signable company document. The
+     * template shares the document's stored file and drives the existing
+     * signers / place-fields / preview / send-for-signature flow. Turning the
+     * toggle off simply stops surfacing the actions — the template is kept so
+     * re-enabling reuses its signer/field setup.
+     */
+    private function syncSignatureTemplate(CompanyDocument $document): void
+    {
+        if (!$document->requires_signature) {
+            return;
+        }
+
+        $attrs = [
+            'name' => $document->title,
+            'description' => $document->description,
+            'file_path' => $document->file_path,
+            'file_name' => $document->file_name,
+            'file_mime' => $document->file_type,
+            'file_size' => $document->file_size,
+        ];
+
+        if ($document->template) {
+            $document->template->update($attrs);
+
+            return;
+        }
+
+        $template = DocumentTemplate::create(array_merge($attrs, [
+            'company_id' => auth()->user()->company_id,
+            'created_by' => auth()->id(),
+            'tags' => [],
+            'version' => 1,
+            'status' => 'active',
+        ]));
+
+        $document->forceFill(['template_id' => $template->id])->saveQuietly();
     }
 
     private function storeFile(CompanyDocument $document, Request $request, DocumentCategory $category): void

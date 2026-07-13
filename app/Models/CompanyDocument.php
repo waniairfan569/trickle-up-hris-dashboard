@@ -14,12 +14,14 @@ class CompanyDocument extends Model
     protected $fillable = [
         'company_entity_id', 'category_id', 'title', 'description', 'file_path', 'file_name',
         'file_size', 'file_type', 'file_extension', 'version', 'version_notes', 'access_level',
-        'is_active', 'requires_acknowledgment', 'download_count', 'view_count', 'uploaded_by', 'expires_at',
+        'is_active', 'requires_acknowledgment', 'requires_signature', 'template_id',
+        'download_count', 'view_count', 'uploaded_by', 'expires_at',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
         'requires_acknowledgment' => 'boolean',
+        'requires_signature' => 'boolean',
         'expires_at' => 'date',
         'file_size' => 'integer',
         'download_count' => 'integer',
@@ -29,6 +31,18 @@ class CompanyDocument extends Model
     public function category()
     {
         return $this->belongsTo(DocumentCategory::class, 'category_id');
+    }
+
+    /** The signing template driving send-for-signature (when requires_signature). */
+    public function template()
+    {
+        return $this->belongsTo(DocumentTemplate::class, 'template_id');
+    }
+
+    /** This document can be sent for e-signature once a template is set up. */
+    public function isSignable(): bool
+    {
+        return $this->requires_signature && $this->file_extension === 'pdf';
     }
 
     public function uploader()

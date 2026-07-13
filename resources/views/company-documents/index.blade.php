@@ -71,7 +71,12 @@
                                 <div class="flex items-center gap-3 min-w-0">
                                     <div class="flex h-9 w-9 items-center justify-center rounded-lg {{ $fi['color'] }} shrink-0"><i data-lucide="{{ $fi['icon'] }}" class="h-4.5 w-4.5"></i></div>
                                     <div class="min-w-0">
-                                        <p class="font-bold text-slate-800 dark:text-white truncate">{{ $doc->title }}</p>
+                                        <p class="font-bold text-slate-800 dark:text-white truncate flex items-center gap-1.5">
+                                            {{ $doc->title }}
+                                            @if($doc->requires_signature)
+                                                <span class="inline-flex items-center gap-1 rounded-full bg-brand-50 px-2 py-0.5 text-[10px] font-bold text-brand-700 dark:bg-brand-500/10 dark:text-brand-300 shrink-0"><i data-lucide="file-signature" class="h-3 w-3"></i> Signature</span>
+                                            @endif
+                                        </p>
                                         <p class="text-xs text-slate-400 truncate">{{ $doc->file_name }} · by {{ optional($doc->uploader)->full_name ?? '—' }}</p>
                                     </div>
                                 </div>
@@ -88,6 +93,9 @@
                             </td>
                             <td class="px-5 py-3">
                                 <div class="flex items-center justify-end gap-1">
+                                    @if($doc->requires_signature && $doc->template_id)
+                                        <a href="{{ route('document-templates.send-form', $doc->template_id) }}" title="Send for signature" class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-500/10"><i data-lucide="send" class="h-4 w-4"></i></a>
+                                    @endif
                                     <a href="{{ route('document-library.view', $doc) }}" target="_blank" title="View" class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700"><i data-lucide="eye" class="h-4 w-4"></i></a>
                                     <a href="{{ route('document-library.download', $doc) }}" title="Download" class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700"><i data-lucide="download" class="h-4 w-4"></i></a>
                                     <button @click="openVersion({{ $doc->id }}, $el.dataset.title)" data-title="{{ $doc->title }}" title="New version" class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700"><i data-lucide="git-branch" class="h-4 w-4"></i></button>

@@ -16,6 +16,7 @@
      x-data="{
         access: '{{ old('access_level', $document->access_level ?? 'company_wide') }}',
         ack: {{ old('requires_acknowledgment', $document->requires_acknowledgment) ? 'true' : 'false' }},
+        sign: {{ old('requires_signature', $document->requires_signature ?? false) ? 'true' : 'false' }},
         fileName: '', fileSize: '',
         userSearch: '',
         selectedUsers: @js(old('users', $selectedUsers)),
@@ -24,6 +25,32 @@
     <a href="{{ route('company-documents.admin') }}" class="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-slate-800 dark:text-slate-400"><i data-lucide="arrow-left" class="h-4 w-4"></i> All documents</a>
 
     @if($errors->any())<div class="rounded-xl bg-rose-50 p-4 border border-rose-200 text-sm text-rose-700 dark:bg-rose-500/10 dark:border-rose-500/20"><ul class="list-disc pl-5">@foreach($errors->all() as $e)<li>{{ $e }}</li>@endforeach</ul></div>@endif
+
+    @if($editing && $document->requires_signature && $document->template)
+        @php $tplSignerCount = $document->template->signers->count(); @endphp
+        <div class="rounded-2xl border border-brand-200 bg-brand-50/50 shadow-sm p-6 dark:border-brand-500/30 dark:bg-brand-500/10">
+            <div class="flex items-start gap-3">
+                <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-100 text-brand-700 dark:bg-brand-500/20 shrink-0"><i data-lucide="file-signature" class="h-5 w-5"></i></span>
+                <div class="min-w-0 flex-1">
+                    <h2 class="text-sm font-bold text-slate-900 dark:text-white">Signature setup</h2>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                        @if($tplSignerCount === 0)
+                            No signers yet — set up signers &amp; fields before you can send this for signature.
+                        @else
+                            {{ $tplSignerCount }} {{ \Illuminate\Support\Str::plural('signer', $tplSignerCount) }} configured. You can preview or send it out.
+                        @endif
+                    </p>
+                    <div class="flex flex-wrap gap-2 mt-4">
+                        <a href="{{ route('document-templates.edit', $document->template) }}" class="inline-flex items-center gap-1.5 rounded-xl bg-white border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200"><i data-lucide="users" class="h-4 w-4"></i> Set up signers &amp; fields</a>
+                        <a href="{{ route('document-templates.preview', $document->template) }}" class="inline-flex items-center gap-1.5 rounded-xl bg-white border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200"><i data-lucide="eye" class="h-4 w-4"></i> Preview</a>
+                        @if($tplSignerCount > 0)
+                            <a href="{{ route('document-templates.send-form', $document->template) }}" class="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-4 py-2 text-sm font-bold text-slate-900 hover:bg-brand-700"><i data-lucide="send" class="h-4 w-4"></i> Send for signature</a>
+                        @endif
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
 
     <form method="POST" action="{{ $editing ? route('company-documents.update', $document) : route('company-documents.store') }}" enctype="multipart/form-data" class="space-y-6">
         @csrf
@@ -121,6 +148,15 @@
                 <span class="text-sm font-semibold text-slate-800 dark:text-white">Requires acknowledgment</span>
                 <input type="checkbox" name="requires_acknowledgment" value="1" x-model="ack" class="rounded border-slate-300 text-brand-600 h-5 w-5">
             </label>
+            <div class="border-t border-slate-100 dark:border-slate-700/60 pt-4">
+                <label class="flex items-center justify-between cursor-pointer">
+                    <span>
+                        <span class="text-sm font-semibold text-slate-800 dark:text-white block">Requires signature (send to employees to e-sign)</span>
+                        <span class="text-xs text-slate-400">Turn on to add signers, place fields and send this document for signature. PDF only.</span>
+                    </span>
+                    <input type="checkbox" name="requires_signature" value="1" x-model="sign" class="rounded border-slate-300 text-brand-600 h-5 w-5 shrink-0">
+                </label>
+            </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div><label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Expires at <span class="text-slate-400 font-normal normal-case">(optional)</span></label><input type="date" name="expires_at" value="{{ old('expires_at', optional($document->expires_at)->format('Y-m-d')) }}" class="w-full rounded-xl border-slate-300 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white"></div>
                 <label class="flex items-center gap-2 cursor-pointer pt-6">
