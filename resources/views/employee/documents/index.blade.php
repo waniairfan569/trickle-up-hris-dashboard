@@ -1,15 +1,36 @@
 @extends('layouts.hr-app')
 
-@section('title', 'Company Documents')
-@section('breadcrumb', 'Company Documents')
+@section('title', 'Document Library')
+@section('breadcrumb', 'Document Library')
 
 @section('content')
 <div class="max-w-6xl mx-auto space-y-6"
      x-data="{ search: '', cat: 'all' }">
     <div>
-        <h1 class="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">Company Documents</h1>
-        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Browse and download documents shared with you.</p>
+        <h1 class="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">Document Library</h1>
+        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Sign documents sent to you and browse company documents.</p>
     </div>
+
+    {{-- Awaiting your signature --}}
+    @if(!empty($toSign) && $toSign->count())
+        <div class="rounded-2xl border border-brand-200 bg-brand-50/50 shadow-sm p-5 dark:border-brand-500/30 dark:bg-brand-500/10">
+            <div class="flex items-center gap-2 mb-3">
+                <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-100 text-brand-700 dark:bg-brand-500/20"><i data-lucide="file-signature" class="h-4.5 w-4.5"></i></span>
+                <h2 class="text-sm font-bold text-slate-900 dark:text-white">Awaiting your signature ({{ $toSign->count() }})</h2>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                @foreach($toSign as $req)
+                    <a href="{{ route('documents.sign', $req) }}" class="flex items-center justify-between gap-3 bg-white rounded-xl border border-slate-200/80 shadow-sm p-4 hover:border-brand-300 transition dark:bg-slate-800 dark:border-slate-700">
+                        <div class="min-w-0">
+                            <p class="text-sm font-bold text-slate-800 dark:text-white truncate">{{ optional($req->template)->name ?? 'Document' }}</p>
+                            <p class="text-xs text-slate-400 mt-0.5">Please review &amp; sign</p>
+                        </div>
+                        <span class="inline-flex items-center gap-1 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-bold text-slate-900 shrink-0">Sign <i data-lucide="arrow-right" class="h-3.5 w-3.5"></i></span>
+                    </a>
+                @endforeach
+            </div>
+        </div>
+    @endif
 
     <!-- Search + category filter -->
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

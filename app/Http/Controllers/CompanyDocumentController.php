@@ -183,8 +183,10 @@ class CompanyDocumentController extends Controller
 
     public function employeeIndex()
     {
+        $user = auth()->user();
+
         $documents = CompanyDocument::active()
-            ->accessibleBy(auth()->user())
+            ->accessibleBy($user)
             ->with('category')
             ->latest()
             ->get();
@@ -193,7 +195,15 @@ class CompanyDocumentController extends Controller
             ->filter(fn ($c) => $documents->where('category_id', $c->id)->isNotEmpty())
             ->values();
 
-        return view('employee.documents.index', compact('documents', 'categories'));
+        // Documents sent to this person that are awaiting their signature.
+        $toSign = \App\Models\DocumentRequest::with(['template', 'subject'])
+            ->where('status', 'in_progress')
+            ->whereHas('signers', fn ($s) => $s->where('user_id', $user->id)->where('status', 'pending'))
+            ->get()
+            ->filter(fn ($r) => $r->isAwaiting($user))
+            ->values();
+
+        return view('employee.documents.index', compact('documents', 'categories', 'toSign'));
     }
 
     // ----- Helpers ---------------------------------------------------------

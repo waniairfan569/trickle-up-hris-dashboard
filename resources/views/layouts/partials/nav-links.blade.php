@@ -2,8 +2,15 @@
     $routeName = request()->route()?->getName() ?? '';
 
     // Sidebar red badges — items needing attention on each tab.
-    $nav = ['invites' => 0, 'timeoff' => 0, 'forms' => 0, 'corrections' => 0];
+    $nav = ['invites' => 0, 'timeoff' => 0, 'forms' => 0, 'corrections' => 0, 'sign' => 0];
     if ($navUser = auth()->user()) {
+        // Documents awaiting THIS user's signature (shown on Document Library).
+        $nav['sign'] = \App\Models\DocumentRequest::where('status', 'in_progress')
+            ->whereHas('signers', fn ($s) => $s->where('user_id', $navUser->id)->where('status', 'pending'))
+            ->with('signers')
+            ->get()
+            ->filter(fn ($r) => $r->isAwaiting($navUser))
+            ->count();
         $navIsAdmin = $navUser->hasRole('super_admin') || $navUser->hasRole('hr_admin');
         $navReportIds = (!$navIsAdmin && method_exists($navUser, 'directReports'))
             ? $navUser->directReports()->pluck('id') : collect();
@@ -95,11 +102,7 @@
         <span>Performance Reviews</span>
     </a>
 
-    <a href="{{ route('documents.index') }}"
-       class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ Str::startsWith($routeName, 'documents') ? 'bg-brand-600 text-slate-900 shadow-md shadow-brand-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
-        <i data-lucide="file-signature" class="h-4 w-4 shrink-0 transition {{ Str::startsWith($routeName, 'documents') ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>
-        <span>Documents</span>
-    </a>
+    {{-- "Documents" (sign inbox) merged into Document Library below. --}}
 
     <a href="{{ route('my-forms.index') }}"
        class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ (Str::startsWith($routeName, 'my-forms') || Str::startsWith($routeName, 'forms.')) ? 'bg-brand-600 text-slate-900 shadow-md shadow-brand-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
@@ -122,10 +125,12 @@
         <span>My Policies</span>
     </a>
 
+    @php $docLibActive = Str::startsWith($routeName, 'document-library') || Str::startsWith($routeName, 'documents.'); @endphp
     <a href="{{ route('document-library.index') }}"
-       class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ Str::startsWith($routeName, 'document-library') ? 'bg-brand-600 text-slate-900 shadow-md shadow-brand-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
-        <i data-lucide="library" class="h-4 w-4 shrink-0 transition {{ Str::startsWith($routeName, 'document-library') ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>
+       class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ $docLibActive ? 'bg-brand-600 text-slate-900 shadow-md shadow-brand-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
+        <i data-lucide="library" class="h-4 w-4 shrink-0 transition {{ $docLibActive ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>
         <span>Document Library</span>
+        {!! $navBadge($nav['sign'] ?? 0) !!}
     </a>
 </div>
 
