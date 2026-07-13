@@ -174,6 +174,7 @@ class DocumentRequestController extends Controller
         }
 
         $tokens = $this->resolveTokens($documentRequest->subject);
+        $tokens = array_merge($tokens, $this->signatureBlockTokens($documentRequest));
 
         return view('documents.sign', compact('documentRequest', 'signer', 'myBoxes', 'tokens'));
     }
@@ -354,6 +355,40 @@ class DocumentRequestController extends Controller
         }
 
         return $tokens;
+    }
+
+    /**
+     * Resolve the signature-block placeholders (sender name, employee name,
+     * and each side's sign date) so the block shows real values instead of
+     * raw [sender_name] / [candidate_signature] / [company_sign_date] tokens.
+     * Empty strings are returned for not-yet-known values so the raw token is
+     * still hidden rather than left showing on the page.
+     */
+    private function signatureBlockTokens(DocumentRequest $documentRequest): array
+    {
+        $documentRequest->loadMissing('signers.user', 'creator', 'subject');
+
+        $senderSigner = $documentRequest->signers
+            ->first(fn ($s) => $this->partyOf($s->source_role) === 'sender_party');
+        $employeeSigner = $documentRequest->signers
+            ->first(fn ($s) => $this->partyOf($s->source_role) === 'employee');
+
+        $senderName = optional($senderSigner?->user)->full_name
+            ?? optional($documentRequest->creator)->full_name
+            ?? '';
+        $employeeName = optional($documentRequest->subject)->full_name
+            ?? optional($employeeSigner?->user)->full_name
+            ?? '';
+
+        $fmt = fn ($d) => $d ? \Carbon\Carbon::parse($d)->format('d M Y') : '';
+
+        return [
+            '[sender_name]'         => $senderName,
+            '[company_signature]'   => $senderName,
+            '[company_sign_date]'   => $fmt($senderSigner?->signed_at),
+            '[candidate_signature]' => $employeeName,
+            '[candidate_sign_date]' => $fmt($employeeSigner?->signed_at) ?: now()->format('d M Y'),
+        ];
     }
 
     /**
