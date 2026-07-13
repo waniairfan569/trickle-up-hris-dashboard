@@ -73,9 +73,9 @@
                     <i data-lucide="pen-tool" class="h-4 w-4"></i> <span x-text="signature ? 'Change signature' : 'Add your signature'"></span>
                 </button>
 
-                <form method="POST" action="{{ route('documents.sign.store', $documentRequest) }}" @submit="return prepare($event)">
+                <form method="POST" action="{{ route('documents.sign.store', $documentRequest) }}" @submit="if (!signature) { submitErr = 'Please add your signature first.'; $event.preventDefault(); }">
                     @csrf
-                    <input type="hidden" name="signature" x-ref="sigInput">
+                    <input type="hidden" name="signature" :value="signature">
                     <p x-show="submitErr" x-cloak class="text-xs text-rose-600 mb-2" x-text="submitErr"></p>
                     <button type="submit" :disabled="!signature" :class="!signature && 'opacity-50 cursor-not-allowed'"
                             class="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-bold text-slate-900 shadow-md shadow-brand-500/20 hover:bg-brand-700">
@@ -254,12 +254,6 @@
                 this.signature = this.modalMode === 'draw' ? this.$refs.pad.toDataURL('image/png') : this.typedToImage();
                 this.submitErr = '';
                 this.closeModal();
-            },
-
-            prepare(e) {
-                if (!this.signature) { this.submitErr = 'Please add your signature first.'; e.preventDefault(); return false; }
-                this.$refs.sigInput.value = this.signature;
-                return true;
             },
         };
     }
