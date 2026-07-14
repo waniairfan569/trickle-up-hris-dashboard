@@ -235,7 +235,10 @@ class TimeOffController extends Controller
             $days = max(0.5, (float) $days);
         }
 
-        $year = Carbon::parse($validated['start_date'])->year;
+        // Filed on behalf, but still goes through the approval flow (unless the
+        // policy doesn't require approval) — the admin/manager approves it in the
+        // Approvals tab, rather than it being auto-approved in one click.
+        $requiresApproval = $policy->requires_approval;
 
         $timeOffRequest = TimeOffRequest::create([
             'user_id' => $employee->id,
@@ -251,10 +254,17 @@ class TimeOffController extends Controller
             'is_half_day' => $durationType === 'half_day',
             'half_day_period' => $durationType === 'half_day' ? ($validated['half_day_period'] ?? null) : null,
             'reason' => $validated['reason'],
-            'status' => 'approved',
-            'approved_by' => $auth->id,
-            'approved_at' => now(),
+            'status' => $requiresApproval ? 'pending' : 'approved',
+            'approved_by' => $requiresApproval ? null : $auth->id,
+            'approved_at' => $requiresApproval ? null : now(),
         ]);
+
+        if ($requiresApproval) {
+            $this->balanceService->addPending($employee, $policy, $days);
+            $this->notifyApprovers($timeOffRequest);
+
+            return back()->with('success', 'Leave request submitted for ' . $employee->full_name . ' — now pending approval.');
+        }
 
         $this->balanceService->deductBalance($employee, $policy, $days);
         $this->applyLeaveToAttendance($timeOffRequest);

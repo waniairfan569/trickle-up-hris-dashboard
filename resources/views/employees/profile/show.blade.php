@@ -240,7 +240,7 @@
                  x-data="{ dt: 'full_day', s: '', e: '' }" x-effect="if (dt !== 'full_day') e = s">
                 <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700">
                     <h2 class="text-sm font-bold text-slate-800 dark:text-white">Add leave for {{ $employee->first_name }}</h2>
-                    <p class="text-xs text-slate-400 mt-0.5">Filed on their behalf and approved immediately.</p>
+                    <p class="text-xs text-slate-400 mt-0.5">Filed on their behalf and sent to the approvals queue.</p>
                 </div>
                 <form method="POST" action="{{ route('time-off.on-behalf') }}" class="p-6 space-y-4">
                     @csrf
@@ -281,9 +281,9 @@
                         <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Reason (optional)</label>
                         <textarea name="reason" rows="2" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white"></textarea>
                     </div>
-                    <p class="text-[11px] text-slate-400">Maternity / Paternity require the employee to be married with 1+ year of service.</p>
+                    <p class="text-[11px] text-slate-400">Maternity / Paternity require the employee to be married with 1+ year of service. The request is filed on their behalf and sent for approval.</p>
                     <div class="flex justify-end">
-                        <button type="submit" class="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-bold text-slate-900 hover:bg-brand-700"><i data-lucide="calendar-plus" class="h-4 w-4"></i> Add &amp; approve</button>
+                        <button type="submit" class="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-bold text-slate-900 hover:bg-brand-700"><i data-lucide="calendar-plus" class="h-4 w-4"></i> Submit for approval</button>
                     </div>
                 </form>
             </div>
