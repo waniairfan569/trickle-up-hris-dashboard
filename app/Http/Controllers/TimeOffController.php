@@ -154,8 +154,26 @@ class TimeOffController extends Controller
             return "{$label} leave is only available to married employees.";
         }
 
-        $start = $employee->joined_at ?? $employee->hire_date;
-        if (!$start || Carbon::parse($start)->diffInMonths(Carbon::today()) < 12) {
+        // Start of service can live on a column OR a profile field (the profile
+        // page shows the profile-field value even when the column is empty), so
+        // check every source before deciding they're under a year.
+        $gf = fn ($k) => method_exists($employee, 'getFieldValue') ? $employee->getFieldValue($k) : null;
+        $start = $employee->joined_at
+            ?? $employee->hire_date
+            ?? $gf('start_date')
+            ?? $gf('hire_date')
+            ?? $gf('date_of_commencement');
+
+        if (!$start) {
+            return "{$label} leave requires at least 1 year of service.";
+        }
+
+        try {
+            $months = abs(Carbon::parse($start)->diffInMonths(Carbon::today()));
+        } catch (\Throwable $e) {
+            $months = 0;
+        }
+        if ($months < 12) {
             return "{$label} leave requires at least 1 year of service.";
         }
 
