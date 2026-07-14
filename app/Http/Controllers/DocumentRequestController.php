@@ -157,26 +157,15 @@ class DocumentRequestController extends Controller
                 && ($signerCount <= 1 || $this->partyOf($f->assignee) === $myParty))
             ->values();
 
-        // No signature box was placed for this signer — give them a clear
-        // "Sign here" box at the bottom of the last page so it's never ambiguous.
-        if ($myBoxes->isEmpty()) {
-            $lastPage = (int) ($documentRequest->template->fields->max('page') ?: 1);
-            $myBoxes = collect([(object) [
-                'page' => $lastPage,
-                'pos_x' => 0.08,
-                'pos_y' => 0.86,
-                'width' => 0.34,
-                'height' => 0.06,
-                'label' => 'Signature',
-                'field_type' => 'signature',
-                'assignee' => $signer->source_role,
-            ]]);
-        }
+        // No signature box was placed for this signer — the client will drop a
+        // "Sign here" box at the bottom of the ACTUAL last page once the PDF is
+        // rendered (the server can't know the PDF's page count).
+        $autoSignLastPage = $myBoxes->isEmpty();
 
         $tokens = $this->resolveTokens($documentRequest->subject);
         $tokens = array_merge($tokens, $this->signatureBlockTokens($documentRequest));
 
-        return view('documents.sign', compact('documentRequest', 'signer', 'myBoxes', 'tokens'));
+        return view('documents.sign', compact('documentRequest', 'signer', 'myBoxes', 'tokens', 'autoSignLastPage'));
     }
 
     /** POST documents/{request}/sign — store this signer's signature, advance the flow. */
@@ -303,7 +292,6 @@ class DocumentRequestController extends Controller
         $hasPlacedSig = $documentRequest->template->fields
             ->contains(fn ($f) => in_array($f->field_type, ['signature', 'initials'], true));
         if (!$hasPlacedSig) {
-            $lastPage = (int) ($documentRequest->template->fields->max('page') ?: 1);
             $stack = 0;
             foreach ($documentRequest->signers as $s) {
                 if (!$s->signature_image) {
@@ -312,7 +300,8 @@ class DocumentRequestController extends Controller
                 $fields[] = [
                     'label' => 'Signature', 'type' => 'signature', 'value' => '',
                     'image' => $s->signature_image, 'name' => optional($s->user)->full_name,
-                    'page' => $lastPage, 'x' => 0.08, 'y' => max(0.04, 0.86 - ($stack * 0.09)),
+                    // lastPage marker: the client stamps these on the ACTUAL last page.
+                    'page' => 1, 'lastPage' => true, 'x' => 0.08, 'y' => max(0.04, 0.86 - ($stack * 0.09)),
                     'w' => 0.34, 'h' => 0.06,
                 ];
                 $stack++;

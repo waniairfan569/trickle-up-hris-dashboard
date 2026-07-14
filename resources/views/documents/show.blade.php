@@ -131,7 +131,9 @@
                 const font = await pdf.embedFont(StandardFonts.Helvetica);
                 const pages = pdf.getPages();
                 for (const f of data.fields) {
-                    const page = pages[f.page - 1];
+                    // Fallback signatures are flagged lastPage; otherwise clamp to a valid page.
+                    const pageNum = f.lastPage ? pages.length : Math.min(f.page || 1, pages.length);
+                    const page = pages[pageNum - 1];
                     if (!page) continue;
                     const pw = page.getWidth(), ph = page.getHeight();
                     if ((f.type === 'signature' || f.type === 'initials')) {

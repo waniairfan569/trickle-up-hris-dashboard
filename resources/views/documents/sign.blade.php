@@ -16,6 +16,7 @@
     window.__signFileUrl = "{{ route('documents.file', $documentRequest) }}";
     window.__signBoxes = @json($boxOpts);
     window.__docTokens = @json($tokens ?? []);
+    window.__autoSignLastPage = @json($autoSignLastPage ?? false);
 </script>
 <script src="https://unpkg.com/pdfjs-dist@3.11.174/legacy/build/pdf.min.js"></script>
 <script>if (window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@3.11.174/legacy/build/pdf.worker.min.js';</script>
@@ -138,6 +139,7 @@
             pdfLoading: false,
             pdfError: '',
             boxes: window.__signBoxes || [],
+            autoSignLastPage: window.__autoSignLastPage || false,
             signature: '',
             submitErr: '',
             // modal
@@ -170,6 +172,12 @@
                         meta.push({ num: n, width: Math.round(vp.width), height: Math.round(vp.height) });
                     }
                     this.pages = meta; this.pdfReady = true; this.pdfLoading = false;
+
+                    // No box was placed → drop a "Sign here" box on the REAL last page.
+                    if (this.autoSignLastPage && this.boxes.length === 0 && meta.length) {
+                        this.boxes.push({ idx: 0, page: meta[meta.length - 1].num, x: 0.08, y: 0.86, w: 0.34, h: 0.06, label: 'Signature', type: 'signature' });
+                    }
+
                     await this.$nextTick();
                     for (let i = 0; i < meta.length; i++) {
                         const c = document.getElementById('signcanvas-' + meta[i].num);
@@ -195,25 +203,43 @@
                 let tc;
                 try { tc = await page.getTextContent(); } catch (e) { return; }
                 const lib = window.pdfjsLib;
-                tc.items.forEach((item) => {
-                    const str = item.str || '';
-                    let replaced = str, hit = false;
+
+                // Position every text run in screen coords.
+                const runs = tc.items.map((it) => {
+                    const m = lib.Util.transform(vp.transform, it.transform);
+                    const h = Math.hypot(m[2], m[3]) || 11;
+                    return { str: it.str || '', x: m[4], y: m[5], h, w: (it.width || 0) * (vp.scale || 1) };
+                }).filter((r) => r.str.length);
+
+                // Group runs into visual lines by baseline, so a placeholder split
+                // across several runs (e.g. "[Full" + " Name]") can still be matched.
+                const lines = {};
+                runs.forEach((r) => { const key = Math.round(r.y); (lines[key] = lines[key] || []).push(r); });
+
+                Object.values(lines).forEach((lineRuns) => {
+                    lineRuns.sort((a, b) => a.x - b.x);
+                    // Build the line string with a char→run index map.
+                    let full = ''; const owner = [];
+                    lineRuns.forEach((r, ri) => { for (const ch of r.str) { full += ch; owner.push(ri); } });
+
                     for (const [tok, val] of Object.entries(tokens)) {
-                        if (replaced.indexOf(tok) !== -1) { replaced = replaced.split(tok).join(val); hit = true; }
+                        let pos = full.indexOf(tok);
+                        while (pos !== -1) {
+                            const a = lineRuns[owner[pos]];
+                            const b = lineRuns[owner[pos + tok.length - 1]];
+                            const left = a.x, top = a.y - a.h;
+                            const width = Math.max(a.w, (b.x + b.w) - a.x) + 2;
+                            const el = document.createElement('div');
+                            el.textContent = val;
+                            el.style.cssText = 'position:absolute;background:#fff;color:#0f172a;white-space:nowrap;overflow:hidden;'
+                                + `left:${left}px;top:${top}px;height:${a.h * 1.25}px;line-height:${a.h * 1.25}px;min-width:${width}px;`
+                                + `font-size:${a.h}px;font-family:Helvetica,Arial,sans-serif;padding:0 1px;`;
+                            container.appendChild(el);
+                            // Blank out this match so we don't loop forever / re-match.
+                            full = full.slice(0, pos) + ' '.repeat(tok.length) + full.slice(pos + tok.length);
+                            pos = full.indexOf(tok);
+                        }
                     }
-                    if (!hit) return;
-                    const m = lib.Util.transform(vp.transform, item.transform);
-                    const fontH = Math.hypot(m[2], m[3]) || 11;
-                    const x = m[4], y = m[5] - fontH;
-                    // Cover at least the original run's width so leftover chars
-                    // (e.g. a trailing "]") don't peek out from under the value.
-                    const coverW = Math.ceil((item.width || 0) * (vp.scale || 1)) + 2;
-                    const el = document.createElement('div');
-                    el.textContent = replaced;
-                    el.style.cssText = 'position:absolute;background:#fff;color:#0f172a;white-space:nowrap;overflow:hidden;'
-                        + `left:${x}px;top:${y}px;height:${fontH * 1.25}px;line-height:${fontH * 1.25}px;min-width:${coverW}px;`
-                        + `font-size:${fontH}px;font-family:Helvetica,Arial,sans-serif;padding:0 1px;`;
-                    container.appendChild(el);
                 });
             },
 
