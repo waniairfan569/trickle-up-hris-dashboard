@@ -411,13 +411,17 @@
                 <aside class="lg:w-60 shrink-0 space-y-3">
                     <div>
                         <h2 class="text-sm font-bold text-slate-800 dark:text-white">Place fields</h2>
-                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Click a field to drop it on the document, then drag it into position.</p>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Pick a field, then <b>click on the document</b> where it should go. Drag to move, drag the corner to resize.</p>
                     </div>
+                    <p x-show="placingKey" x-cloak class="flex items-center gap-1.5 rounded-lg bg-brand-50 border border-brand-200 px-2.5 py-1.5 text-[11px] font-bold text-brand-700 dark:bg-brand-500/10 dark:border-brand-500/30 dark:text-brand-300">
+                        <i data-lucide="mouse-pointer-click" class="h-3.5 w-3.5"></i> Click on the document to drop it
+                    </p>
                     <div class="space-y-1.5">
                         <template x-for="f in unplacedFields()" :key="'pal' + f.key">
-                            <button type="button" @click="placeField(f.key)" :disabled="!pdfReady"
-                                    class="w-full flex items-center justify-between gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700/50"
-                                    :class="!pdfReady && 'opacity-50 cursor-not-allowed'">
+                            <button type="button" @click="startPlacing(f.key)" :disabled="!pdfReady"
+                                    class="w-full flex items-center justify-between gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition"
+                                    :class="placingKey === f.key ? 'border-brand-500 bg-brand-50 text-brand-700 dark:bg-brand-500/10 dark:text-brand-300' : 'border-slate-200 text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700/50'"
+                                    :style="!pdfReady && 'opacity:0.5;cursor:not-allowed'">
                                 <span class="flex items-center gap-1.5 min-w-0">
                                     <span class="h-2 w-2 rounded-full flex-shrink-0" :class="tokenDot(f.assignee)"></span>
                                     <span class="truncate" x-text="f.label"></span>
@@ -450,13 +454,19 @@
                     <div x-show="pdfReady" class="space-y-4 overflow-x-auto">
                         <template x-for="pg in pages" :key="'pg' + pg.num">
                             <div class="relative mx-auto rounded-lg border border-slate-200 shadow-sm bg-white dark:border-slate-700"
-                                 :style="`width:${pg.width}px; height:${pg.height}px`" :data-page="pg.num">
-                                <canvas :id="'pdfcanvas-' + pg.num" class="block rounded-lg"></canvas>
+                                 :style="`width:${pg.width}px; height:${pg.height}px` + (placingKey ? ';cursor:crosshair' : '')" :data-page="pg.num"
+                                 @click="onPageClick($event, pg)">
+                                <canvas :id="'pdfcanvas-' + pg.num" class="block rounded-lg pointer-events-none"></canvas>
                                 <template x-for="f in placedOnPage(pg.num)" :key="'tok' + f.key">
-                                    <div class="absolute flex items-center justify-between gap-1 rounded px-1.5 py-0.5 text-[10px] font-bold text-white shadow cursor-move select-none ring-1 ring-white/40"
-                                         :class="tokenColor(f.assignee)" :style="tokenStyle(f, pg)" @pointerdown="startDrag($event, f, pg)">
+                                    <div class="absolute flex items-center justify-between gap-1 rounded px-1.5 text-[10px] font-bold text-white shadow cursor-move select-none ring-1 ring-white/40"
+                                         :class="tokenColor(f.assignee)" :style="tokenStyle(f, pg)"
+                                         @click.stop @pointerdown="startDrag($event, f, pg)">
                                         <span class="truncate pointer-events-none" x-text="f.label"></span>
-                                        <button type="button" @click.stop="unplace(f.key)" class="leading-none hover:text-rose-200">&times;</button>
+                                        <button type="button" @click.stop="unplace(f.key)" @pointerdown.stop class="leading-none hover:text-rose-200 shrink-0">&times;</button>
+                                        <!-- resize handle -->
+                                        <span @pointerdown.stop="startResize($event, f, pg)" @click.stop
+                                              class="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-sm bg-white/80 ring-1 ring-slate-400 cursor-nwse-resize"
+                                              style="transform:translate(35%,35%)"></span>
                                     </div>
                                 </template>
                             </div>
@@ -508,6 +518,7 @@
             step: hideDetails ? 2 : 1,
             hideDetails,
             minStep: hideDetails ? 2 : 1,
+            placingKey: null,
             isEdit: !!ex,
             name: ex?.name || '',
             description: ex?.description || '',
@@ -655,17 +666,37 @@
             placedOnPage(num) { return this.selectionList().filter(f => f.placement && f.placement.page === num); },
             unplacedFields() { return this.selectionList().filter(f => !f.placement); },
 
-            placeField(key) {
-                const f = this.selections[key];
-                if (!f || !this.pdfReady) return;
-                const page = (this.pages[0] && this.pages[0].num) || 1;
-                f.placement = { page, x: 0.38, y: 0.45, w: 0.24, h: 0.035 };
+            // Pick a field, then click on the document to drop it exactly there.
+            startPlacing(key) {
+                if (!this.pdfReady) return;
+                this.placingKey = (this.placingKey === key) ? null : key;
+                this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
+            },
+            onPageClick(e, pg) {
+                if (!this.placingKey) return;
+                const f = this.selections[this.placingKey];
+                if (!f) { this.placingKey = null; return; }
+                const rect = e.currentTarget.getBoundingClientRect();
+                const isSig = (f.type === 'signature' || f.type === 'initials');
+                const w = isSig ? 0.22 : 0.24;
+                const h = isSig ? 0.05 : 0.03;
+                const x = (e.clientX - rect.left) / rect.width - w / 2;
+                const y = (e.clientY - rect.top) / rect.height - h / 2;
+                f.placement = {
+                    page: pg.num,
+                    x: Math.max(0, Math.min(1 - w, x)),
+                    y: Math.max(0, Math.min(1 - h, y)),
+                    w, h,
+                };
+                this.placingKey = null;
+                this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
             },
             unplace(key) { if (this.selections[key]) this.selections[key].placement = null; },
 
             tokenStyle(f, pg) {
-                const x = f.placement.x * pg.width, y = f.placement.y * pg.height, w = f.placement.w * pg.width;
-                return `left:${x}px; top:${y}px; width:${w}px;`;
+                const x = f.placement.x * pg.width, y = f.placement.y * pg.height;
+                const w = f.placement.w * pg.width, h = (f.placement.h || 0.03) * pg.height;
+                return `left:${x}px; top:${y}px; width:${w}px; height:${h}px; min-height:16px;`;
             },
             tokenColor(a) {
                 return { employee: 'bg-teal-500/90', sender: 'bg-pink-500/90', hr_admin: 'bg-orange-500/90', me_now: 'bg-slate-500/90' }[a] || 'bg-slate-500/90';
@@ -686,6 +717,23 @@
                     let ny = (ev.clientY - rect.top - offY) / rect.height;
                     f.placement.x = Math.max(0, Math.min(1 - f.placement.w, nx));
                     f.placement.y = Math.max(0, Math.min(0.99, ny));
+                };
+                const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); };
+                window.addEventListener('pointermove', move);
+                window.addEventListener('pointerup', up);
+            },
+
+            // Drag the bottom-right corner to resize the field box.
+            startResize(e, f, pg) {
+                e.preventDefault();
+                const container = e.currentTarget.closest('[data-page]');
+                if (!container) return;
+                const rect = container.getBoundingClientRect();
+                const move = (ev) => {
+                    const nw = ((ev.clientX - rect.left) / rect.width) - f.placement.x;
+                    const nh = ((ev.clientY - rect.top) / rect.height) - f.placement.y;
+                    f.placement.w = Math.max(0.05, Math.min(1 - f.placement.x, nw));
+                    f.placement.h = Math.max(0.015, Math.min(1 - f.placement.y, nh));
                 };
                 const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); };
                 window.addEventListener('pointermove', move);
