@@ -154,26 +154,40 @@ class TimeOffController extends Controller
             return "{$label} leave is only available to married employees.";
         }
 
-        // Start of service can live on a column OR a profile field (the profile
-        // page shows the profile-field value even when the column is empty), so
-        // check every source before deciding they're under a year.
+        // Start of service can live on a column OR a profile field. Different
+        // fields can disagree (e.g. joined_at may hold an unrelated recent date
+        // while hire_date is the real start), so we take the EARLIEST valid date
+        // across every source — service length is measured from when they first
+        // started, and a stray recent date can never shorten tenure.
         $gf = fn ($k) => method_exists($employee, 'getFieldValue') ? $employee->getFieldValue($k) : null;
-        $start = $employee->joined_at
-            ?? $employee->hire_date
-            ?? $gf('start_date')
-            ?? $gf('hire_date')
-            ?? $gf('date_of_commencement');
+        $candidates = [
+            $employee->hire_date,
+            $gf('hire_date'),
+            $gf('start_date'),
+            $gf('date_of_commencement'),
+            $employee->joined_at,
+        ];
+
+        $start = null;
+        foreach ($candidates as $c) {
+            if ($c === null || $c === '') {
+                continue;
+            }
+            try {
+                $d = Carbon::parse($c);
+            } catch (\Throwable $e) {
+                continue;
+            }
+            if ($start === null || $d->lt($start)) {
+                $start = $d;
+            }
+        }
 
         if (!$start) {
             return "{$label} leave requires at least 1 year of service.";
         }
 
-        try {
-            $months = abs(Carbon::parse($start)->diffInMonths(Carbon::today()));
-        } catch (\Throwable $e) {
-            $months = 0;
-        }
-        if ($months < 12) {
+        if (abs($start->diffInMonths(Carbon::today())) < 12) {
             return "{$label} leave requires at least 1 year of service.";
         }
 
