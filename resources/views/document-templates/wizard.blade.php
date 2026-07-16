@@ -428,6 +428,17 @@
                         <span>This document uses <b x-text="docTokenCount"></b> <code>[token]</code> placeholder(s). Tokens show on screen but are <b>not</b> saved into the signed PDF — place fields on those spots so they appear in the final file.</span>
                     </p>
 
+                    <!-- No fields placed at all -->
+                    <p x-show="pdfReady && placedCount() === 0" x-cloak class="flex items-start gap-1.5 rounded-lg bg-rose-50 border border-rose-200 px-2.5 py-1.5 text-[11px] font-semibold text-rose-700 dark:bg-rose-500/10 dark:border-rose-500/30 dark:text-rose-300">
+                        <i data-lucide="alert-triangle" class="h-3.5 w-3.5 mt-0.5 shrink-0"></i>
+                        <span>No fields placed yet. Add a <b>Signature</b> field (and any Name/Date fields) — or the signer only gets a default signature box at the bottom of the last page and nothing else fills. Use <b>Auto-detect</b> or place them manually.</span>
+                    </p>
+                    <!-- Placed but no signature field -->
+                    <p x-show="pdfReady && placedCount() > 0 && !hasPlacedSignature()" x-cloak class="flex items-start gap-1.5 rounded-lg bg-amber-50 border border-amber-200 px-2.5 py-1.5 text-[11px] font-semibold text-amber-800 dark:bg-amber-500/10 dark:border-amber-500/30 dark:text-amber-300">
+                        <i data-lucide="alert-triangle" class="h-3.5 w-3.5 mt-0.5 shrink-0"></i>
+                        <span>No <b>Signature</b> field placed — add one so the signature lands where you want (otherwise it defaults to the bottom of the last page).</span>
+                    </p>
+
                     <p x-show="placingKey" x-cloak class="flex items-center gap-1.5 rounded-lg bg-brand-50 border border-brand-200 px-2.5 py-1.5 text-[11px] font-bold text-brand-700 dark:bg-brand-500/10 dark:border-brand-500/30 dark:text-brand-300">
                         <i data-lucide="mouse-pointer-click" class="h-3.5 w-3.5"></i> Click on the document to drop it
                     </p>
@@ -745,6 +756,7 @@
                 this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
             },
             placedCount() { return this.selectionList().filter(f => f.placement).length; },
+            hasPlacedSignature() { return this.selectionList().some(f => f.placement && (f.type === 'signature' || f.type === 'initials')); },
 
             placedOnPage(num) { return this.selectionList().filter(f => f.placement && f.placement.page === num); },
             unplacedFields() { return this.selectionList().filter(f => !f.placement); },
