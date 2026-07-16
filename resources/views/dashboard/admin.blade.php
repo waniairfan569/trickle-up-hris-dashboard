@@ -190,11 +190,16 @@
                                         <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-slate-100 to-slate-200 text-sm font-bold text-slate-700 dark:from-slate-700 dark:to-slate-600 dark:text-slate-200">
                                             {{ $req->employee->initials ?? 'EM' }}
                                         </div>
-                                        <div>
+                                        <div class="min-w-0">
                                             <h4 class="text-sm font-bold text-slate-950 dark:text-white">{{ $req->employee->full_name ?? 'Unknown' }}</h4>
                                             <p class="text-[11px] text-slate-400">
                                                 {{ $req->employee->department->name ?? 'Core' }} &bull; {{ $req->policy->name ?? 'Time Off' }}
                                             </p>
+                                            @if($req->reason)
+                                                <p class="text-[11px] text-slate-600 dark:text-slate-300 mt-0.5 italic max-w-xs truncate" title="{{ $req->reason }}">
+                                                    <i data-lucide="message-square-text" class="h-3 w-3 inline -mt-0.5 text-slate-400"></i> {{ $req->reason }}
+                                                </p>
+                                            @endif
                                         </div>
                                     </div>
                                     
