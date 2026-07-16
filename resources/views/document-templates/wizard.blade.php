@@ -554,6 +554,7 @@
                 { key: 'salary',      label: 'Salary',     type: 'text',      w: 0.22, h: 0.03 },
                 { key: 'department',  label: 'Department', type: 'text',      w: 0.26, h: 0.03 },
                 { key: 'email',       label: 'Email',      type: 'text',      w: 0.32, h: 0.03 },
+                { key: 'cnic_number', label: 'CNIC',       type: 'text',      w: 0.26, h: 0.03 },
                 { key: '__signature', label: 'Signature',  type: 'signature', w: 0.22, h: 0.055 },
                 { key: '__initials',  label: 'Initials',   type: 'initials',  w: 0.10, h: 0.05 },
             ],
