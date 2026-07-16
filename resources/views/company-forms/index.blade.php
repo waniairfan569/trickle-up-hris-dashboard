@@ -40,6 +40,7 @@
                         <div class="mt-2 h-1.5 w-48 rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden"><div class="h-full bg-brand-500" style="width: {{ $rate }}%"></div></div>
                     </div>
                     <div class="flex items-center gap-2 flex-wrap">
+                        <a href="{{ route('company-forms.preview', $form) }}" target="_blank" class="inline-flex items-center gap-1 rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-200"><i data-lucide="eye" class="h-3.5 w-3.5"></i> View</a>
                         <a href="{{ route('company-forms.builder', $form) }}" class="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-200">Builder</a>
                         <a href="{{ route('company-forms.show', $form) }}" class="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-200">Assign</a>
                         <a href="{{ route('company-forms.responses', $form) }}" class="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-200">Responses</a>
