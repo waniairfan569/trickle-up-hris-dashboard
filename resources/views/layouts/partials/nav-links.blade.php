@@ -150,6 +150,14 @@
         <span>On Leave</span>
     </a>
 
+    @if(auth()->user()->isAdmin())
+    <a href="{{ route('probation.index') }}"
+       class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ Str::startsWith($routeName, 'probation') ? 'bg-brand-600 text-slate-900 shadow-md shadow-brand-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
+        <i data-lucide="clipboard-check" class="h-4 w-4 shrink-0 transition {{ Str::startsWith($routeName, 'probation') ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>
+        <span>Probation</span>
+    </a>
+    @endif
+
     <a href="{{ route('attendance.team') }}"
        class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ Str::startsWith($routeName, 'attendance.team') ? 'bg-brand-600 text-slate-900 shadow-md shadow-brand-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
         <i data-lucide="clipboard-list" class="h-4 w-4 shrink-0 transition {{ Str::startsWith($routeName, 'attendance.team') ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>

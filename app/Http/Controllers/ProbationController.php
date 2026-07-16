@@ -9,6 +9,24 @@ use Illuminate\Http\Request;
 
 class ProbationController extends Controller
 {
+    /** List every employee currently on probation. */
+    public function index()
+    {
+        $this->authorizeManage();
+
+        $probations = Probation::with('employee.department')
+            ->where('status', 'active')
+            ->whereHas('employee', fn ($q) => $q->where('account_status', '!=', 'deactivated'))
+            ->orderBy('end_date')
+            ->get()
+            ->filter(fn ($p) => $p->employee)
+            ->values();
+
+        $overdue = $probations->filter(fn ($p) => $p->end_date->lt(now()->startOfDay()))->count();
+
+        return view('probation.index', compact('probations', 'overdue'));
+    }
+
     /** Start a 3-month probation (defaults from hire date). */
     public function store(Request $request, User $employee)
     {

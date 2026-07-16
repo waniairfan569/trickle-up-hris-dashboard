@@ -201,6 +201,7 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
     Route::delete('employees/{employee}/pay-reviews/{payReview}', [\App\Http\Controllers\PayReviewController::class, 'destroy'])->name('employees.pay-reviews.destroy');
 
     // Probation lifecycle (Job tab) — admin manages, self/admin view
+    Route::get('probation', [\App\Http\Controllers\ProbationController::class, 'index'])->name('probation.index');
     Route::post('employees/{employee}/probation', [\App\Http\Controllers\ProbationController::class, 'store'])->name('employees.probation.store');
     Route::post('employees/{employee}/probation/{probation}/extend', [\App\Http\Controllers\ProbationController::class, 'extend'])->name('employees.probation.extend');
     Route::post('employees/{employee}/probation/{probation}/confirm', [\App\Http\Controllers\ProbationController::class, 'confirm'])->name('employees.probation.confirm');
