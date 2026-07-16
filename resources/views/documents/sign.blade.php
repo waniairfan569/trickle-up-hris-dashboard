@@ -17,6 +17,7 @@
     window.__signBoxes = @json($boxOpts);
     window.__docTokens = @json($tokens ?? []);
     window.__autoSignLastPage = @json($autoSignLastPage ?? false);
+    window.__filledFields = @json($filledFields ?? []);
 </script>
 <script src="https://unpkg.com/pdfjs-dist@3.11.174/legacy/build/pdf.min.js"></script>
 <script>if (window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@3.11.174/legacy/build/pdf.worker.min.js';</script>
@@ -45,6 +46,10 @@
                 <template x-for="pg in pages" :key="'pg' + pg.num">
                     <div class="relative mx-auto rounded-lg border border-slate-200 shadow-sm bg-white dark:border-slate-700" :style="`width:${pg.width}px;height:${pg.height}px`" :data-page="pg.num">
                         <canvas :id="'signcanvas-' + pg.num" class="block rounded-lg"></canvas>
+                        <!-- Placed text fields, pre-filled from the signer's profile -->
+                        <template x-for="ff in filledOnPage(pg.num)" :key="'ff' + ff.i">
+                            <div class="absolute bg-white text-slate-900 font-medium pointer-events-none" :style="filledStyle(ff, pg)" x-text="ff.value"></div>
+                        </template>
                         <template x-for="b in boxesOnPage(pg.num)" :key="'b' + b.idx">
                             <button type="button" @click="openSign()" class="absolute rounded border-2 flex items-center justify-center text-[10px] font-bold uppercase tracking-wide bg-white/70 hover:bg-brand-50"
                                     :class="signature ? 'border-emerald-400' : 'border-brand-500 border-dashed text-brand-700'" :style="boxStyle(b, pg)">
@@ -140,6 +145,7 @@
             pdfError: '',
             boxes: window.__signBoxes || [],
             autoSignLastPage: window.__autoSignLastPage || false,
+            filledFields: window.__filledFields || [],
             signature: '',
             submitErr: '',
             // modal
@@ -155,6 +161,13 @@
             boxesOnPage(n) { return this.boxes.filter(b => b.page === n); },
             boxStyle(b, pg) {
                 return `left:${b.x * pg.width}px; top:${b.y * pg.height}px; width:${b.w * pg.width}px; height:${(b.h || 0.04) * pg.height}px;`;
+            },
+            filledOnPage(n) { return this.filledFields.map((f, i) => ({ ...f, i })).filter(f => f.page === n); },
+            filledStyle(ff, pg) {
+                const h = (ff.h || 0.03) * pg.height;
+                const size = Math.max(9, Math.min(14, h * 0.7));
+                return `left:${ff.x * pg.width}px; top:${ff.y * pg.height}px; width:${ff.w * pg.width}px; height:${h}px;`
+                    + `font-size:${size}px; line-height:${h}px; overflow:hidden; white-space:nowrap;`;
             },
 
             async loadPdf() {

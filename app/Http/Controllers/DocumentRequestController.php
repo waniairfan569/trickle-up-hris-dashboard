@@ -162,10 +162,23 @@ class DocumentRequestController extends Controller
         // rendered (the server can't know the PDF's page count).
         $autoSignLastPage = $myBoxes->isEmpty();
 
+        // Placed text fields, pre-filled from the signer's profile, so the
+        // signing screen matches what will be flattened into the final PDF.
+        $subject = $documentRequest->subject;
+        $filledFields = $documentRequest->template->fields
+            ->filter(fn ($f) => $f->page && $f->field_type === 'text' && $f->field_key)
+            ->map(fn ($f) => [
+                'page' => (int) $f->page, 'x' => (float) $f->pos_x, 'y' => (float) $f->pos_y,
+                'w' => (float) $f->width, 'h' => (float) $f->height,
+                'value' => (string) (optional($subject)->getFieldValue($f->field_key) ?? ''),
+            ])
+            ->filter(fn ($f) => $f['value'] !== '')
+            ->values();
+
         $tokens = $this->resolveTokens($documentRequest->subject);
         $tokens = array_merge($tokens, $this->signatureBlockTokens($documentRequest));
 
-        return view('documents.sign', compact('documentRequest', 'signer', 'myBoxes', 'tokens', 'autoSignLastPage'));
+        return view('documents.sign', compact('documentRequest', 'signer', 'myBoxes', 'tokens', 'autoSignLastPage', 'filledFields'));
     }
 
     /** POST documents/{request}/sign — store this signer's signature, advance the flow. */
