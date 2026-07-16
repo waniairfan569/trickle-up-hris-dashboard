@@ -22,6 +22,8 @@
     window.__signedName = @json(($documentRequest->template->name ?? 'document'));
 </script>
 <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+<script src="https://unpkg.com/pdfjs-dist@3.11.174/legacy/build/pdf.min.js"></script>
+<script>if (window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@3.11.174/legacy/build/pdf.worker.min.js';</script>
 
 <div class="max-w-3xl mx-auto space-y-6" x-data="signedDownloader()">
     <div class="flex items-center gap-3">
@@ -125,11 +127,51 @@
             async buildSignedPdfUrl() {
                 if (!window.PDFLib) throw new Error('PDF engine failed to load.');
                 const data = await fetch(window.__signedDataUrl, { headers: { 'Accept': 'application/json' } }).then(r => r.json());
-                const bytes = await fetch(data.fileUrl).then(r => r.arrayBuffer());
+                const buf = await fetch(data.fileUrl).then(r => r.arrayBuffer());
                 const { PDFDocument, StandardFonts, rgb } = window.PDFLib;
-                const pdf = await PDFDocument.load(bytes);
+                const pdf = await PDFDocument.load(buf.slice(0));
                 const font = await pdf.embedFont(StandardFonts.Helvetica);
                 const pages = pdf.getPages();
+
+                // Bake [token] values (e.g. [Full Name], [Amount]) into the PDF —
+                // covering the literal placeholder text — so token-based documents
+                // produce a correctly filled signed PDF, not just an on-screen preview.
+                if (data.tokens && Object.keys(data.tokens).length && window.pdfjsLib) {
+                    try {
+                        const jsDoc = await pdfjsLib.getDocument({ data: buf.slice(0) }).promise;
+                        for (let n = 1; n <= jsDoc.numPages; n++) {
+                            const plPage = pages[n - 1];
+                            if (!plPage) continue;
+                            const ph = plPage.getHeight();
+                            const jpage = await jsDoc.getPage(n);
+                            const vp = jpage.getViewport({ scale: 1 });
+                            const tc = await jpage.getTextContent();
+                            const runs = tc.items.map((it) => {
+                                const m = pdfjsLib.Util.transform(vp.transform, it.transform);
+                                return { str: it.str || '', x: m[4], y: m[5], h: Math.hypot(m[2], m[3]) || 11, w: (it.width || 0) * (vp.scale || 1) };
+                            }).filter((r) => r.str.length);
+                            const lines = {};
+                            runs.forEach((r) => { const k = Math.round(r.y); (lines[k] = lines[k] || []).push(r); });
+                            Object.values(lines).forEach((lineRuns) => {
+                                lineRuns.sort((a, b) => a.x - b.x);
+                                let full = ''; const owner = [];
+                                lineRuns.forEach((r, ri) => { for (const ch of r.str) { full += ch; owner.push(ri); } });
+                                for (const [tok, val] of Object.entries(data.tokens)) {
+                                    let pos = full.indexOf(tok);
+                                    while (pos !== -1) {
+                                        const a = lineRuns[owner[pos]], b = lineRuns[owner[pos + tok.length - 1]];
+                                        const width = Math.max(a.w, (b.x + b.w) - a.x) + 2;
+                                        plPage.drawRectangle({ x: a.x, y: ph - a.y - a.h * 0.22, width, height: a.h * 1.15, color: rgb(1, 1, 1) });
+                                        plPage.drawText(String(val), { x: a.x, y: ph - a.y, size: a.h * 0.92, font, color: rgb(0.06, 0.06, 0.09) });
+                                        full = full.slice(0, pos) + ' '.repeat(tok.length) + full.slice(pos + tok.length);
+                                        pos = full.indexOf(tok);
+                                    }
+                                }
+                            });
+                        }
+                    } catch (e) { /* token baking is best-effort */ }
+                }
+
                 for (const f of data.fields) {
                     // Fallback signatures are flagged lastPage; otherwise clamp to a valid page.
                     const pageNum = f.lastPage ? pages.length : Math.min(f.page || 1, pages.length);

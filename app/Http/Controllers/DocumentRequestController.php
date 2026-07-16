@@ -312,7 +312,7 @@ class DocumentRequestController extends Controller
             'fileUrl' => route('documents.file', $documentRequest),
             'fileName' => pathinfo($documentRequest->template->file_name, PATHINFO_FILENAME) . ' — signed',
             'fields' => $fields,
-            'tokens' => $this->resolveTokens($subject),
+            'tokens' => array_merge($this->resolveTokens($subject), $this->signatureBlockTokens($documentRequest)),
         ]);
     }
 
