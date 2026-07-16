@@ -156,6 +156,44 @@
                     </span>
                     <input type="checkbox" name="requires_signature" value="1" x-model="sign" class="rounded border-slate-300 text-brand-600 h-5 w-5 shrink-0">
                 </label>
+
+                <!-- Available tokens reference -->
+                <div x-show="sign" x-cloak class="mt-4 rounded-xl border border-slate-200 bg-slate-50/60 p-4 dark:border-slate-700 dark:bg-slate-900/30"
+                     x-data="{ copied: '', copy(t){ try{ navigator.clipboard.writeText(t); }catch(e){} this.copied = t; setTimeout(() => { if (this.copied === t) this.copied = ''; }, 1200); } }">
+                    <div class="flex items-center gap-2 mb-1">
+                        <i data-lucide="braces" class="h-4 w-4 text-brand-600"></i>
+                        <h3 class="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider">Available tokens</h3>
+                    </div>
+                    <p class="text-[11px] text-slate-500 dark:text-slate-400 mb-3">Type any of these into your document (in Word/PDF) — they auto-fill from the employee's profile everywhere they appear. <b>Click a token to copy it.</b></p>
+                    @php
+                        $tokenGroups = [
+                            'Name' => ['[Full Name]', '[Employee Name]'],
+                            'Job title' => ['[Job Title]', '[Designation]'],
+                            'Department' => ['[Department]'],
+                            'Email' => ['[Email]'],
+                            "Today's date" => ['[Date]'],
+                            'Start date' => ['[Start Date]'],
+                            'Salary' => ['[Amount]'],
+                        ];
+                    @endphp
+                    <div class="space-y-2">
+                        @foreach($tokenGroups as $label => $toks)
+                            <div class="flex items-start gap-2">
+                                <span class="w-24 shrink-0 text-[11px] font-semibold text-slate-400 pt-1.5">{{ $label }}</span>
+                                <div class="flex flex-wrap gap-1.5">
+                                    @foreach($toks as $t)
+                                        <button type="button" @click="copy(@js($t))"
+                                                class="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-mono font-semibold text-slate-700 hover:border-brand-300 hover:bg-brand-50 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-200 transition">
+                                            <span x-show="copied !== @js($t)">{{ $t }}</span>
+                                            <span x-show="copied === @js($t)" x-cloak class="text-emerald-600 font-bold inline-flex items-center gap-1"><i data-lucide="check" class="h-3 w-3"></i> Copied</span>
+                                        </button>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                    <p class="text-[11px] text-slate-400 mt-3">A drawn <b>signature</b> can't be a token — drag a <b>Signature</b> field onto the signature line in the setup wizard.</p>
+                </div>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div><label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Expires at <span class="text-slate-400 font-normal normal-case">(optional)</span></label><input type="date" name="expires_at" value="{{ old('expires_at', optional($document->expires_at)->format('Y-m-d')) }}" class="w-full rounded-xl border-slate-300 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white"></div>
