@@ -29,19 +29,37 @@
         ->whereIn('id', $realEmployeeIds->all())
         ->where('attendance_mode', 'remote')->count();
 
-    $absentToday = \App\Models\User::active()
+    $absentUserIds = \App\Models\User::active()
         ->whereIn('id', $realEmployeeIds->all())
         ->whereNotIn('id', $presentIds->all())
         ->whereNotIn('id', $onLeaveIds->all())
-        ->count();
+        ->pluck('id');
+    $absentToday = $absentUserIds->count();
+
+    // Who's in each category (names shown on the cards).
+    $plannedUserIds = $leaveToday->reject($isUnplanned)->pluck('user_id')->unique();
+    $unplannedUserIds = $leaveToday->filter($isUnplanned)->pluck('user_id')->unique();
+    $lateUserIds = $todayRecs->where('status', 'late')->pluck('user_id')->unique();
+    $remoteNames = \App\Models\User::active()
+        ->whereIn('id', $realEmployeeIds->all())
+        ->where('attendance_mode', 'remote')
+        ->get(['id', 'first_name', 'last_name'])
+        ->map(fn ($u) => trim($u->first_name . ' ' . $u->last_name))->filter()->values()->all();
+    $pendingNames = \App\Models\TimeOffRequest::where('status', 'pending')->with('employee')->get()
+        ->map(fn ($r) => optional($r->employee)->full_name)->filter()->unique()->values()->all();
+
+    $namedIds = collect()->merge($plannedUserIds)->merge($unplannedUserIds)->merge($lateUserIds)->merge($absentUserIds)->unique();
+    $nameMap = \App\Models\User::whereIn('id', $namedIds->all())->get(['id', 'first_name', 'last_name'])
+        ->mapWithKeys(fn ($u) => [$u->id => trim($u->first_name . ' ' . $u->last_name)]);
+    $namesFor = fn ($ids) => collect($ids)->map(fn ($id) => $nameMap[$id] ?? null)->filter()->values()->all();
 
     $statCards = [
-        ['label' => 'Planned Leaves', 'value' => $plannedLeave, 'sub' => 'On planned leave today', 'icon' => 'palmtree', 'bg' => 'bg-indigo-50 dark:bg-indigo-500/10', 'text' => 'text-indigo-600 dark:text-indigo-400'],
-        ['label' => 'Unplanned Leaves', 'value' => $unplannedLeave, 'sub' => 'On unplanned leave today', 'icon' => 'plane-takeoff', 'bg' => 'bg-sky-50 dark:bg-sky-500/10', 'text' => 'text-sky-600 dark:text-sky-400'],
-        ['label' => 'Working Remotely', 'value' => $workingRemotely, 'sub' => 'Remote employees', 'icon' => 'laptop', 'bg' => 'bg-emerald-50 dark:bg-emerald-500/10', 'text' => 'text-emerald-600 dark:text-emerald-400'],
-        ['label' => 'Lateness', 'value' => $lateToday, 'sub' => 'Late arrivals today', 'icon' => 'alarm-clock', 'bg' => 'bg-amber-50 dark:bg-amber-500/10', 'text' => 'text-amber-600 dark:text-amber-400'],
-        ['label' => 'Absences', 'value' => $absentToday, 'sub' => 'Absent today', 'icon' => 'user-x', 'bg' => 'bg-rose-50 dark:bg-rose-500/10', 'text' => 'text-rose-600 dark:text-rose-400'],
-        ['label' => 'Pending Approvals', 'value' => $pendingApprovals, 'sub' => 'Time off queue', 'icon' => 'clock', 'bg' => 'bg-rose-50 dark:bg-rose-500/10', 'text' => 'text-rose-600 dark:text-rose-400', 'action' => $pendingApprovals > 0],
+        ['label' => 'Planned Leaves', 'value' => $plannedLeave, 'sub' => 'On planned leave today', 'icon' => 'palmtree', 'bg' => 'bg-indigo-50 dark:bg-indigo-500/10', 'text' => 'text-indigo-600 dark:text-indigo-400', 'people' => $namesFor($plannedUserIds)],
+        ['label' => 'Unplanned Leaves', 'value' => $unplannedLeave, 'sub' => 'On unplanned leave today', 'icon' => 'plane-takeoff', 'bg' => 'bg-sky-50 dark:bg-sky-500/10', 'text' => 'text-sky-600 dark:text-sky-400', 'people' => $namesFor($unplannedUserIds)],
+        ['label' => 'Working Remotely', 'value' => $workingRemotely, 'sub' => 'Remote employees', 'icon' => 'laptop', 'bg' => 'bg-emerald-50 dark:bg-emerald-500/10', 'text' => 'text-emerald-600 dark:text-emerald-400', 'people' => $remoteNames],
+        ['label' => 'Lateness', 'value' => $lateToday, 'sub' => 'Late arrivals today', 'icon' => 'alarm-clock', 'bg' => 'bg-amber-50 dark:bg-amber-500/10', 'text' => 'text-amber-600 dark:text-amber-400', 'people' => $namesFor($lateUserIds)],
+        ['label' => 'Absences', 'value' => $absentToday, 'sub' => 'Absent today', 'icon' => 'user-x', 'bg' => 'bg-rose-50 dark:bg-rose-500/10', 'text' => 'text-rose-600 dark:text-rose-400', 'people' => $namesFor($absentUserIds)],
+        ['label' => 'Pending Approvals', 'value' => $pendingApprovals, 'sub' => 'Time off queue', 'icon' => 'clock', 'bg' => 'bg-rose-50 dark:bg-rose-500/10', 'text' => 'text-rose-600 dark:text-rose-400', 'action' => $pendingApprovals > 0, 'people' => $pendingNames],
     ];
     
     // Live Pending requests
@@ -155,6 +173,24 @@
                     @endif
                     <span class="text-xs text-slate-400">{{ $c['sub'] }}</span>
                 </div>
+
+                @if(!empty($c['people']))
+                    <div class="mt-3 flex flex-wrap gap-1" x-data="{ open: false }">
+                        @foreach(array_slice($c['people'], 0, 3) as $nm)
+                            <span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600 dark:bg-slate-700 dark:text-slate-300">{{ $nm }}</span>
+                        @endforeach
+                        @if(count($c['people']) > 3)
+                            <div class="relative">
+                                <button type="button" @click="open = !open" @click.outside="open = false" class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-500 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300">+{{ count($c['people']) - 3 }} more</button>
+                                <div x-show="open" x-cloak x-transition class="absolute z-20 mt-1 left-0 w-44 rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg dark:bg-slate-800 dark:border-slate-700 max-h-48 overflow-y-auto">
+                                    @foreach($c['people'] as $nm)
+                                        <p class="px-2 py-1 text-[11px] text-slate-600 dark:text-slate-300 truncate">{{ $nm }}</p>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endif
+                    </div>
+                @endif
             </div>
         @endforeach
     </div>
