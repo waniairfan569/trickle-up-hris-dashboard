@@ -411,7 +411,7 @@
                 <aside class="lg:w-60 shrink-0 space-y-3">
                     <div>
                         <h2 class="text-sm font-bold text-slate-800 dark:text-white">Place fields</h2>
-                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Pick a field, then <b>click on the document</b> where it should go. Drag to move, drag the corner to resize.</p>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1"><b>Drag a field onto the document</b> (or click it, then click a spot). Drag to move, drag the corner to resize.</p>
                     </div>
 
                     <!-- Auto-detect -->
@@ -443,20 +443,23 @@
                         <i data-lucide="mouse-pointer-click" class="h-3.5 w-3.5"></i> Click on the document to drop it
                     </p>
                     <div class="space-y-1.5">
-                        <template x-for="f in unplacedFields()" :key="'pal' + f.key">
-                            <button type="button" @click="startPlacing(f.key)" :disabled="!pdfReady"
-                                    class="w-full flex items-center justify-between gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition"
+                        <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Fields</p>
+                        <template x-for="f in palette()" :key="'pal' + f.key">
+                            <button type="button" draggable="true"
+                                    @dragstart="onDragStart(f)" @dragend="dragField = null"
+                                    @click="pick(f)" :disabled="!pdfReady"
+                                    class="w-full flex items-center justify-between gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition cursor-grab active:cursor-grabbing"
                                     :class="placingKey === f.key ? 'border-brand-500 bg-brand-50 text-brand-700 dark:bg-brand-500/10 dark:text-brand-300' : 'border-slate-200 text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700/50'"
                                     :style="!pdfReady && 'opacity:0.5;cursor:not-allowed'">
                                 <span class="flex items-center gap-1.5 min-w-0">
+                                    <i data-lucide="grip-vertical" class="h-3 w-3 text-slate-300 flex-shrink-0"></i>
                                     <span class="h-2 w-2 rounded-full flex-shrink-0" :class="tokenDot(f.assignee)"></span>
                                     <span class="truncate" x-text="f.label"></span>
                                 </span>
                                 <i data-lucide="plus" class="h-3.5 w-3.5 text-slate-400 flex-shrink-0"></i>
                             </button>
                         </template>
-                        <p x-show="selectionCount() === 0" class="text-xs text-slate-400">No fields selected — go back to Step 3.</p>
-                        <p x-show="selectionCount() > 0 && unplacedFields().length === 0" class="flex items-center gap-1.5 text-xs font-semibold text-emerald-600">
+                        <p x-show="palette().length === 0" class="flex items-center gap-1.5 text-xs font-semibold text-emerald-600">
                             <i data-lucide="check-circle" class="h-3.5 w-3.5"></i> All fields placed
                         </p>
                     </div>
@@ -479,9 +482,11 @@
                     </div>
                     <div x-show="pdfReady" class="space-y-4 overflow-x-auto">
                         <template x-for="pg in pages" :key="'pg' + pg.num">
-                            <div class="relative mx-auto rounded-lg border border-slate-200 shadow-sm bg-white dark:border-slate-700"
+                            <div class="relative mx-auto rounded-lg border shadow-sm bg-white dark:border-slate-700"
                                  :style="`width:${pg.width}px; height:${pg.height}px` + (placingKey ? ';cursor:crosshair' : '')" :data-page="pg.num"
-                                 @click="onPageClick($event, pg)">
+                                 :class="dragField ? 'border-brand-400 ring-2 ring-brand-200' : 'border-slate-200'"
+                                 @click="onPageClick($event, pg)"
+                                 @dragover.prevent @drop.prevent="onDrop($event, pg)">
                                 <canvas :id="'pdfcanvas-' + pg.num" class="block rounded-lg pointer-events-none"></canvas>
                                 <template x-for="f in placedOnPage(pg.num)" :key="'tok' + f.key">
                                     <div class="absolute flex items-center justify-between gap-1 rounded px-1.5 text-[10px] font-bold text-white shadow cursor-move select-none ring-1 ring-white/40"
@@ -545,9 +550,23 @@
             hideDetails,
             minStep: hideDetails ? 2 : 1,
             placingKey: null,
+            placingItem: null,
+            dragField: null,
             detecting: false,
             detectMsg: '',
             docTokenCount: 0,
+            // Always-available field palette (Adobe-style) — drop any of these on
+            // the document; values resolve from the signer's profile on signing.
+            fieldCatalog: [
+                { key: 'full_name',   label: 'Full name',  type: 'text',      w: 0.30, h: 0.03 },
+                { key: 'job',         label: 'Job title',  type: 'text',      w: 0.26, h: 0.03 },
+                { key: 'date',        label: 'Date',       type: 'text',      w: 0.20, h: 0.03 },
+                { key: 'salary',      label: 'Salary',     type: 'text',      w: 0.22, h: 0.03 },
+                { key: 'department',  label: 'Department', type: 'text',      w: 0.26, h: 0.03 },
+                { key: 'email',       label: 'Email',      type: 'text',      w: 0.32, h: 0.03 },
+                { key: '__signature', label: 'Signature',  type: 'signature', w: 0.22, h: 0.055 },
+                { key: '__initials',  label: 'Initials',   type: 'initials',  w: 0.10, h: 0.05 },
+            ],
             isEdit: !!ex,
             name: ex?.name || '',
             description: ex?.description || '',
@@ -761,30 +780,61 @@
             placedOnPage(num) { return this.selectionList().filter(f => f.placement && f.placement.page === num); },
             unplacedFields() { return this.selectionList().filter(f => !f.placement); },
 
-            // Pick a field, then click on the document to drop it exactly there.
-            startPlacing(key) {
-                if (!this.pdfReady) return;
-                this.placingKey = (this.placingKey === key) ? null : key;
+            // Merged, always-available palette: catalog fields not yet placed,
+            // plus any step-2 selections not in the catalog and not yet placed.
+            palette() {
+                const placed = new Set(this.selectionList().filter(f => f.placement).map(f => f.key));
+                const out = [];
+                this.fieldCatalog.forEach(c => {
+                    if (placed.has(c.key)) return;
+                    const sel = this.selections[c.key];
+                    out.push({ ...c, assignee: (sel && sel.assignee) || 'employee' });
+                });
+                this.selectionList().forEach(f => {
+                    if (f.placement) return;
+                    if (this.fieldCatalog.some(c => c.key === f.key)) return;
+                    if (out.some(o => o.key === f.key)) return;
+                    out.push({ key: f.key, label: f.label, type: f.type, assignee: f.assignee || 'employee', w: 0.24, h: 0.03 });
+                });
+                return out;
+            },
+            ensureSelection(item) {
+                if (!this.selections[item.key]) {
+                    this.selections[item.key] = { key: item.key, label: item.label, section: 'Placed', id: '', type: item.type, assignee: item.assignee || 'employee' };
+                }
+                return this.selections[item.key];
+            },
+            dropAt(item, e, pg) {
+                const f = this.ensureSelection(item);
+                const rect = e.currentTarget.getBoundingClientRect();
+                const isSig = (item.type === 'signature' || item.type === 'initials');
+                const w = item.w || (isSig ? 0.22 : 0.24);
+                const h = item.h || (isSig ? 0.05 : 0.03);
+                const x = (e.clientX - rect.left) / rect.width - w / 2;
+                const y = (e.clientY - rect.top) / rect.height - h / 2;
+                f.placement = { page: pg.num, x: Math.max(0, Math.min(1 - w, x)), y: Math.max(0, Math.min(1 - h, y)), w, h };
                 this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
+            },
+            // Click a field, then click on the document to drop it there.
+            pick(item) {
+                if (!this.pdfReady) return;
+                if (this.placingKey === item.key) { this.placingKey = null; this.placingItem = null; return; }
+                this.placingKey = item.key; this.placingItem = item;
             },
             onPageClick(e, pg) {
                 if (!this.placingKey) return;
-                const f = this.selections[this.placingKey];
-                if (!f) { this.placingKey = null; return; }
-                const rect = e.currentTarget.getBoundingClientRect();
-                const isSig = (f.type === 'signature' || f.type === 'initials');
-                const w = isSig ? 0.22 : 0.24;
-                const h = isSig ? 0.05 : 0.03;
-                const x = (e.clientX - rect.left) / rect.width - w / 2;
-                const y = (e.clientY - rect.top) / rect.height - h / 2;
-                f.placement = {
-                    page: pg.num,
-                    x: Math.max(0, Math.min(1 - w, x)),
-                    y: Math.max(0, Math.min(1 - h, y)),
-                    w, h,
-                };
-                this.placingKey = null;
-                this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
+                const item = this.placingItem || this.selections[this.placingKey];
+                if (!item) { this.placingKey = null; return; }
+                this.dropAt(item, e, pg);
+                this.placingKey = null; this.placingItem = null;
+            },
+            // Drag a field from the palette onto the document.
+            onDragStart(item) { this.dragField = item; },
+            onDrop(e, pg) {
+                const item = this.dragField; this.dragField = null;
+                if (!item || !this.pdfReady) return;
+                this.dropAt(item, e, pg);
+                this.placingKey = null; this.placingItem = null;
             },
             unplace(key) { if (this.selections[key]) this.selections[key].placement = null; },
 
