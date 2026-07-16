@@ -413,6 +413,21 @@
                         <h2 class="text-sm font-bold text-slate-800 dark:text-white">Place fields</h2>
                         <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Pick a field, then <b>click on the document</b> where it should go. Drag to move, drag the corner to resize.</p>
                     </div>
+
+                    <!-- Auto-detect -->
+                    <button type="button" @click="autoDetect()" :disabled="!pdfReady || detecting"
+                            class="w-full inline-flex items-center justify-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-bold text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <i data-lucide="wand-2" class="h-3.5 w-3.5"></i>
+                        <span x-text="detecting ? 'Scanning…' : 'Auto-detect fields'"></span>
+                    </button>
+                    <p x-show="detectMsg" x-cloak class="rounded-lg bg-slate-50 border border-slate-200 px-2.5 py-1.5 text-[11px] text-slate-600 dark:bg-slate-900/40 dark:border-slate-700 dark:text-slate-300" x-text="detectMsg"></p>
+
+                    <!-- Token-without-fields warning (§ display-only tokens) -->
+                    <p x-show="docTokenCount > 0 && placedCount() === 0" x-cloak class="flex items-start gap-1.5 rounded-lg bg-amber-50 border border-amber-200 px-2.5 py-1.5 text-[11px] font-semibold text-amber-800 dark:bg-amber-500/10 dark:border-amber-500/30 dark:text-amber-300">
+                        <i data-lucide="alert-triangle" class="h-3.5 w-3.5 mt-0.5 shrink-0"></i>
+                        <span>This document uses <b x-text="docTokenCount"></b> <code>[token]</code> placeholder(s). Tokens show on screen but are <b>not</b> saved into the signed PDF — place fields on those spots so they appear in the final file.</span>
+                    </p>
+
                     <p x-show="placingKey" x-cloak class="flex items-center gap-1.5 rounded-lg bg-brand-50 border border-brand-200 px-2.5 py-1.5 text-[11px] font-bold text-brand-700 dark:bg-brand-500/10 dark:border-brand-500/30 dark:text-brand-300">
                         <i data-lucide="mouse-pointer-click" class="h-3.5 w-3.5"></i> Click on the document to drop it
                     </p>
@@ -519,6 +534,9 @@
             hideDetails,
             minStep: hideDetails ? 2 : 1,
             placingKey: null,
+            detecting: false,
+            detectMsg: '',
+            docTokenCount: 0,
             isEdit: !!ex,
             name: ex?.name || '',
             description: ex?.description || '',
@@ -657,11 +675,76 @@
                         canvas.width = meta[i].width; canvas.height = meta[i].height;
                         await __pdfPages[i].page.render({ canvasContext: canvas.getContext('2d'), viewport: __pdfPages[i].vp }).promise;
                     }
+                    // Count [tokens] in the text so we can warn if they're used
+                    // without placed fields (tokens are display-only, not flattened).
+                    this.docTokenCount = 0;
+                    for (let i = 0; i < __pdfPages.length; i++) {
+                        try {
+                            const tc = await __pdfPages[i].page.getTextContent();
+                            tc.items.forEach((it) => { const m = (it.str || '').match(/\[[^\]\r\n]{1,40}\]/g); if (m) this.docTokenCount += m.length; });
+                        } catch (e) { /* ignore */ }
+                    }
                 } catch (err) {
                     this.pdfReady = false; this.pdfLoading = false;
                     this.pdfError = 'Could not render this PDF (' + (err && err.message ? err.message : err) + '). The file is still saved.';
                 }
             },
+
+            // ---------- Auto-detect: pre-place fields from document labels ----------
+            async autoDetect() {
+                if (!this.pdfReady) { this.detectMsg = 'Load the document first.'; return; }
+                this.detecting = true; this.detectMsg = '';
+                const lib = window.pdfjsLib;
+                const RULES = [
+                    { re: /\b(signature|sign here)\s*[:_\-]/i, key: '__signature', label: 'Signature', type: 'signature', w: 0.22, h: 0.055 },
+                    { re: /\binitials?\s*[:_\-]/i,           key: '__initials',  label: 'Initials',  type: 'initials',  w: 0.10, h: 0.05 },
+                    { re: /\b((full|employee|print)\s+)?name\s*[:_\-]/i, key: 'full_name', label: 'Full name', type: 'text', w: 0.30, h: 0.03 },
+                    { re: /\bdate\s*[:_\-]/i,                key: 'date',        label: 'Date',      type: 'text',      w: 0.20, h: 0.03 },
+                    { re: /\b(designation|job\s*title|position)\s*[:_\-]/i, key: 'job', label: 'Job title', type: 'text', w: 0.26, h: 0.03 },
+                    { re: /\b((cnic|nic)(\s*(number|no\.?|#))?|id\s*number)\s*[:_\-]/i, key: 'cnic', label: 'CNIC', type: 'text', w: 0.26, h: 0.03 },
+                ];
+                let detected = 0;
+                try {
+                    for (let i = 0; i < this.pages.length; i++) {
+                        const meta = this.pages[i];
+                        const rec = __pdfPages[i];
+                        if (!rec || !rec.page) continue;
+                        let tc;
+                        try { tc = await rec.page.getTextContent(); } catch (e) { continue; }
+                        for (const it of tc.items) {
+                            const str = (it.str || '').trim();
+                            if (!str) continue;
+                            for (const rule of RULES) {
+                                if (!rule.re.test(str)) continue;
+                                // One field per key (selections are keyed by field key) — keep the first match.
+                                if (this.selections[rule.key] && this.selections[rule.key].placement) break;
+                                const m = lib.Util.transform(rec.vp.transform, it.transform);
+                                const fontH = Math.hypot(m[2], m[3]) || 11;
+                                const labelLeft = m[4], labelTop = m[5] - fontH;
+                                const labelW = (it.width || 0) * (rec.vp.scale || 1);
+                                let x = (labelLeft + labelW + 6) / meta.width;   // just after the label
+                                let y = labelTop / meta.height;
+                                x = Math.max(0, Math.min(1 - rule.w, x));
+                                y = Math.max(0, Math.min(1 - rule.h, y));
+                                if (!this.selections[rule.key]) {
+                                    this.selections[rule.key] = { key: rule.key, label: rule.label, section: 'Auto-detected', id: '', type: rule.type, assignee: 'employee' };
+                                }
+                                this.selections[rule.key].placement = { page: meta.num, x, y, w: rule.w, h: rule.h };
+                                detected++;
+                                break;
+                            }
+                        }
+                    }
+                } catch (e) { /* ignore */ }
+                this.detecting = false;
+                this.detectMsg = detected > 0
+                    ? `Detected ${detected} field${detected > 1 ? 's' : ''} — review, move or delete them before saving.`
+                    : (this.docTokenCount > 0
+                        ? 'No labels found. This document uses [tokens], which are display-only — place fields manually so they appear in the signed PDF.'
+                        : 'No labels detected — place fields manually.');
+                this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
+            },
+            placedCount() { return this.selectionList().filter(f => f.placement).length; },
 
             placedOnPage(num) { return this.selectionList().filter(f => f.placement && f.placement.page === num); },
             unplacedFields() { return this.selectionList().filter(f => !f.placement); },
