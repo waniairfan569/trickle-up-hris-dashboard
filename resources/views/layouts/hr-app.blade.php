@@ -311,6 +311,17 @@
             <!-- Main Content Grid -->
             <main class="flex-1 py-8 px-4 sm:px-6 lg:px-8">
 
+                {{-- Impersonation banner --}}
+                @if(session()->has('operator_impersonator_id'))
+                    <div class="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-indigo-600 p-4 text-white shadow">
+                        <p class="text-sm font-bold flex items-center gap-2"><i data-lucide="eye" class="h-5 w-5"></i> Operator view — you're impersonating <b>{{ $brandName }}</b>.</p>
+                        <form action="{{ route('operator.stop-impersonating') }}" method="POST">
+                            @csrf
+                            <button type="submit" class="rounded-xl bg-white/15 hover:bg-white/25 px-4 py-2 text-xs font-bold">Return to operator console</button>
+                        </form>
+                    </div>
+                @endif
+
                 {{-- Trial / subscription banner (admins) --}}
                 @php $bannerTenant = app(\App\Tenancy\TenantManager::class)->get(); @endphp
                 @if($bannerTenant && optional(auth()->user())->isAdmin() && ($bannerTenant->onTrial() || $bannerTenant->trialExpired()))

@@ -52,7 +52,7 @@ class User extends Authenticatable
         // Invitation system fields:
         'account_status', 'invitation_token', 'invitation_token_hash',
         'invitation_sent_at', 'invitation_expires_at', 'invitation_accepted_at',
-        'must_change_password', 'invited_by', 'attendance_mode',
+        'must_change_password', 'invited_by', 'attendance_mode', 'is_operator',
     ];
 
     protected $casts = [
@@ -73,7 +73,14 @@ class User extends Authenticatable
         'must_change_password' => 'boolean',
         'use_custom_timezone' => 'boolean',
         'forms_last_seen_at' => 'datetime',
+        'is_operator' => 'boolean',
     ];
+
+    /** SaaS platform operator (can manage all tenants). */
+    public function isOperator(): bool
+    {
+        return (bool) $this->is_operator;
+    }
 
     protected $hidden = ['password', 'remember_token', 'salary'];
 

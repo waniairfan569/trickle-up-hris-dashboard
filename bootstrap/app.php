@@ -21,6 +21,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'employee.access'  => \App\Http\Middleware\EnsureEmployeeAccess::class,
             'force.password.change' => \App\Http\Middleware\ForcePasswordChange::class,
             'user.timezone'    => \App\Http\Middleware\SetUserTimezone::class,
+            'operator'         => \App\Http\Middleware\EnsureOperator::class,
         ]);
         // Trust Plesk's reverse proxy so $request->secure() reflects the real
         // scheme (X-Forwarded-Proto) — required for ForceHttps to work without looping.

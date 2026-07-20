@@ -216,6 +216,17 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
         Route::post('billing/subscribe', [\App\Http\Controllers\BillingController::class, 'subscribe'])->name('billing.subscribe');
     });
 
+    // SaaS operator console — platform owner manages all agencies.
+    Route::middleware('operator')->prefix('operator')->name('operator.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\OperatorController::class, 'index'])->name('index');
+        Route::post('tenants/{tenant}/suspend', [\App\Http\Controllers\OperatorController::class, 'suspend'])->name('suspend');
+        Route::post('tenants/{tenant}/activate', [\App\Http\Controllers\OperatorController::class, 'activate'])->name('activate');
+        Route::post('tenants/{tenant}/plan', [\App\Http\Controllers\OperatorController::class, 'updatePlan'])->name('plan');
+        Route::post('tenants/{tenant}/impersonate', [\App\Http\Controllers\OperatorController::class, 'impersonate'])->name('impersonate');
+    });
+    // Return from impersonation — allowed while acting as a tenant admin (session-guarded).
+    Route::post('operator/stop-impersonating', [\App\Http\Controllers\OperatorController::class, 'stopImpersonating'])->name('operator.stop-impersonating');
+
     // Probation lifecycle (Job tab) — admin manages, self/admin view
     Route::get('probation', [\App\Http\Controllers\ProbationController::class, 'index'])->name('probation.index');
     Route::post('employees/{employee}/probation', [\App\Http\Controllers\ProbationController::class, 'store'])->name('employees.probation.store');
