@@ -29,10 +29,16 @@
         ->whereIn('id', $realEmployeeIds->all())
         ->where('attendance_mode', 'remote')->count();
 
+    // Absent = active, not present, not on leave — but ONLY on a working day for
+    // that employee (weekends / non-working days per their schedule are off, not
+    // absent). Default schedule is Mon–Fri when none is assigned.
     $absentUserIds = \App\Models\User::active()
         ->whereIn('id', $realEmployeeIds->all())
         ->whereNotIn('id', $presentIds->all())
         ->whereNotIn('id', $onLeaveIds->all())
+        ->with('workSchedule')
+        ->get()
+        ->filter(fn ($u) => $u->workSchedule ? $u->workSchedule->isWorkingDay(today()) : !today()->isWeekend())
         ->pluck('id');
     $absentToday = $absentUserIds->count();
 
