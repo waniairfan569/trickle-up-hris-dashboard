@@ -179,7 +179,7 @@
     <div class="px-3 mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">Administration</div>
     
     @php
-        $companyChildRoutes = ['company-entities', 'company-forms', 'company-policies', 'company-documents', 'document-categories'];
+        $companyChildRoutes = ['company-entities', 'company-forms', 'company-policies', 'company-documents', 'document-categories', 'workspace.branding'];
         $companyOpen = collect($companyChildRoutes)->contains(fn ($r) => Str::startsWith($routeName, $r));
     @endphp
     <div x-data="{ open: {{ $companyOpen ? 'true' : 'false' }} }">
@@ -193,6 +193,7 @@
             <a href="{{ route('company-forms.index') }}" class="block rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'company-forms') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">Company Forms</a>
             <a href="{{ route('company-policies.index') }}" class="block rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'company-policies') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">Company Policies</a>
             <a href="{{ route('company-documents.admin') }}" class="block rounded-lg px-3 py-2 text-sm font-semibold transition {{ (Str::startsWith($routeName, 'company-documents') || Str::startsWith($routeName, 'document-categories')) ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">Company Documents</a>
+            <a href="{{ route('workspace.branding') }}" class="block rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'workspace.branding') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">Workspace Branding</a>
         </div>
     </div>
 

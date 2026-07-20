@@ -4,8 +4,9 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', 'Trickle Up') - Trickle Hub</title>
-    <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}">
+    @php $brandName = \App\Tenancy\Brand::name(); $brandLogo = \App\Tenancy\Brand::logo(); $brandColor = \App\Tenancy\Brand::color(); @endphp
+    <title>@yield('title', 'Dashboard') · {{ $brandName }}</title>
+    <link rel="icon" type="image/png" href="{{ $brandLogo }}">
     
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -28,10 +29,10 @@
                             100: '#fef9c3',
                             200: '#fef08a',
                             300: '#fde047',
-                            400: '#fce368',
-                            500: '#fcd82f', // exact yellow from career.trickleup.co.uk
-                            600: '#eab308',
-                            700: '#ca8a04',
+                            400: '{{ $brandColor ?: '#fce368' }}',
+                            500: '{{ $brandColor ?: '#fcd82f' }}', // tenant accent, else career yellow
+                            600: '{{ $brandColor ?: '#eab308' }}',
+                            700: '{{ $brandColor ?: '#ca8a04' }}',
                             800: '#a16207',
                             900: '#713f12',
                             950: '#422006',
@@ -134,9 +135,9 @@
             <div class="flex h-16 shrink-0 items-center justify-between px-6 border-b border-slate-800">
                 <a href="{{ route('dashboard') }}" class="flex items-center space-x-3">
                     <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-transparent">
-                        <img src="{{ asset('images/logo.png') }}" alt="Trickle Up Logo" class="h-8 w-8 object-contain">
+                        <img src="{{ $brandLogo }}" alt="{{ $brandName }} Logo" class="h-8 w-8 object-contain">
                     </div>
-                    <span class="text-xl font-bold tracking-tight text-white">Trickle Up</span>
+                    <span class="text-xl font-bold tracking-tight text-white">{{ $brandName }}</span>
                 </a>
                 <button type="button" @click="sidebarOpen = false" class="rounded-lg p-1 text-slate-400 hover:text-white hover:bg-slate-800 focus:outline-none">
                     <i data-lucide="x" class="h-6 w-6"></i>
@@ -158,9 +159,9 @@
             <div class="flex h-16 shrink-0 items-center px-6 border-b border-slate-800">
                 <a href="{{ route('dashboard') }}" class="flex items-center space-x-3">
                     <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-transparent">
-                        <img src="{{ asset('images/logo.png') }}" alt="Trickle Up Logo" class="h-8 w-8 object-contain">
+                        <img src="{{ $brandLogo }}" alt="{{ $brandName }} Logo" class="h-8 w-8 object-contain">
                     </div>
-                    <span class="text-lg font-bold tracking-tight text-white">Trickle Up</span>
+                    <span class="text-lg font-bold tracking-tight text-white">{{ $brandName }}</span>
                 </a>
             </div>
 

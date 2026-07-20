@@ -206,6 +206,12 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
     Route::post('employees/{employee}/pay-reviews', [\App\Http\Controllers\PayReviewController::class, 'store'])->name('employees.pay-reviews.store');
     Route::delete('employees/{employee}/pay-reviews/{payReview}', [\App\Http\Controllers\PayReviewController::class, 'destroy'])->name('employees.pay-reviews.destroy');
 
+    // Workspace branding (white-label) — admin
+    Route::middleware('role:super_admin,hr_admin')->group(function () {
+        Route::get('workspace/branding', [\App\Http\Controllers\WorkspaceBrandingController::class, 'edit'])->name('workspace.branding');
+        Route::put('workspace/branding', [\App\Http\Controllers\WorkspaceBrandingController::class, 'update'])->name('workspace.branding.update');
+    });
+
     // Probation lifecycle (Job tab) — admin manages, self/admin view
     Route::get('probation', [\App\Http\Controllers\ProbationController::class, 'index'])->name('probation.index');
     Route::post('employees/{employee}/probation', [\App\Http\Controllers\ProbationController::class, 'store'])->name('employees.probation.store');
