@@ -30,8 +30,8 @@ class TestMail extends Command
         }
 
         try {
-            Mail::raw('Test email from TrickleUp Hub sent at ' . now()->toDateTimeString(), function ($m) use ($to) {
-                $m->to($to)->subject('TrickleUp Hub — mail test');
+            Mail::raw('Test email from Trickle Hub sent at ' . now()->toDateTimeString(), function ($m) use ($to) {
+                $m->to($to)->subject('Trickle Hub — mail test');
             });
             $this->info("OK: test email dispatched to {$to}.");
             $this->line('If you do not receive it, check the spam folder and confirm the SMTP credentials below are correct.');

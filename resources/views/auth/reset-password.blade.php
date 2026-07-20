@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Set a new password · TrickleUp Hub</title>
+    <title>Set a new password · Trickle Hub</title>
     <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -36,7 +36,7 @@
                 </div>
                 <div class="text-left">
                     <span class="block text-base font-extrabold tracking-tight text-white">Trickle Up</span>
-                    <span class="block text-[10px] text-slate-400 font-bold uppercase tracking-wider">HRIS Platform Gateway</span>
+                    <span class="block text-[10px] text-slate-400 font-bold uppercase tracking-wider">Workspace Portal</span>
                 </div>
             </a>
             <h2 class="text-2xl font-extrabold text-white tracking-tight">Set a new password</h2>

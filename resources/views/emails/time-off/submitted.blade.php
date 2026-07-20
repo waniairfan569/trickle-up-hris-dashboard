@@ -7,5 +7,5 @@
     @if($timeOffRequest->reason)
         <p><strong>Reason:</strong> {{ $timeOffRequest->reason }}</p>
     @endif
-    <p><a href="{{ url('/time-off') }}">View Request in HRIS</a></p>
+    <p><a href="{{ url('/time-off') }}">View Request in Trickle Hub</a></p>
 </div>

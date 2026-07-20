@@ -1,5 +1,5 @@
 @php
-    $company = config('app.name', 'TrickleUp Hub');
+    $company = config('app.name', 'Trickle Hub');
     $s = $data['summary'];
     $isTeam = $recipient && method_exists($recipient, 'isManager') && $recipient->isManager() && !$recipient->isAdmin();
     // Brand palette

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TrickleUp Hub Gateway</title>
+    <title>Trickle Hub Gateway</title>
     <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}">
     
     <!-- Fonts -->
@@ -77,7 +77,7 @@
             </div>
             <div>
                 <span class="block text-sm font-extrabold tracking-tight text-white">Trickle Up</span>
-                <span class="block text-[10px] text-slate-400 font-medium uppercase tracking-wider">HRIS Platform Gateway</span>
+                <span class="block text-[10px] text-slate-400 font-medium uppercase tracking-wider">Workspace Portal</span>
             </div>
         </div>
         <div class="flex items-center gap-x-3">
@@ -98,10 +98,10 @@
             </span>
             <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white tracking-tight leading-none">
                 State-of-the-Art <br>
-                <span class="text-transparent bg-clip-text bg-gradient-to-r from-brand-400 via-indigo-400 to-purple-400">Enterprise HRIS Engine</span>
+                <span class="text-transparent bg-clip-text bg-gradient-to-r from-brand-400 via-indigo-400 to-purple-400">Trickle Hub</span>
             </h1>
             <p class="text-sm sm:text-base text-slate-400 max-w-xl mx-auto leading-relaxed">
-                Welcome to the TrickleUp Hub gateway portal. Choose a node below to access the employee space or administrative controls.
+                Welcome to the Trickle Hub gateway portal. Choose a node below to access the employee space or administrative controls.
             </p>
         </div>
 
@@ -158,7 +158,7 @@
 
     <!-- Footer -->
     <footer class="w-full py-6 text-center text-[10px] text-slate-500 border-t border-slate-900 z-10">
-        &copy; 2026 TrickleUp Hub. Built by Trickle Up. All rights reserved.
+        &copy; 2026 Trickle Hub. Built by Trickle Up. All rights reserved.
     </footer>
 
     <!-- Initialize Lucide Icons -->

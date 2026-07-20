@@ -294,7 +294,7 @@
             <div class="rounded-2xl bg-white border border-slate-200/80 shadow-sm p-6 dark:bg-slate-800 dark:border-slate-800">
                 <h3 class="text-sm font-bold text-slate-900 dark:text-white">Security & Audit Notice</h3>
                 <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-                    This admin console is tracked by the Workable HRIS audit compliance logs. All creations, permission modifications, salary accesses, and manual adjustments of leave balances require a valid justification which is saved recursive-wide on SQLite structures. Refer to the <span class="font-semibold text-brand-600 dark:text-brand-400">IT Compliance Handbook</span> for details.
+                    This admin console is tracked by the Trickle Hub audit compliance logs. All creations, permission modifications, salary accesses, and manual adjustments of leave balances require a valid justification which is saved recursive-wide on SQLite structures. Refer to the <span class="font-semibold text-brand-600 dark:text-brand-400">IT Compliance Handbook</span> for details.
                 </p>
             </div>
         </div>

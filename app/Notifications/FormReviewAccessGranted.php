@@ -37,6 +37,6 @@ class FormReviewAccessGranted extends Notification
             ->line('You have been given access to review responses for "' . $this->form->title . '".')
             ->line('You can view submissions and approve, reject, or leave a suggestion.')
             ->action('Open responses', route('company-forms.responses', $this->form->id))
-            ->line('This is an automated message from TrickleUp Hub.');
+            ->line('This is an automated message from Trickle Hub.');
     }
 }

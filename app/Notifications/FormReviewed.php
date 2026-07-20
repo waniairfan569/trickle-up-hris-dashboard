@@ -59,6 +59,6 @@ class FormReviewed extends Notification
         }
 
         return $mail->action('View your submission', route('forms.fill', $this->submission->form_id))
-            ->line('This is an automated message from TrickleUp Hub.');
+            ->line('This is an automated message from Trickle Hub.');
     }
 }

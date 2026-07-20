@@ -4,7 +4,7 @@
 <body style="margin:0;padding:0;background:#f1f5f9;font-family:Arial,Helvetica,sans-serif;color:#0f172a;">
     <div style="max-width:520px;margin:0 auto;padding:24px;">
         <div style="background:#1a1a24;border-radius:16px 16px 0 0;padding:20px 24px;">
-            <span style="color:#fcd82f;font-size:18px;font-weight:800;">TrickleUp Hub</span>
+            <span style="color:#fcd82f;font-size:18px;font-weight:800;">Trickle Hub</span>
             <span style="color:#94a3b8;font-size:13px;"> · Login code</span>
         </div>
         <div style="background:#ffffff;border-radius:0 0 16px 16px;padding:28px 24px;text-align:center;">
@@ -31,7 +31,7 @@
                 </tr>
             </table>
 
-            <p style="margin:22px 0 0;color:#94a3b8;font-size:11px;">Use this code quickly — it may expire soon. Automated message from TrickleUp Hub.</p>
+            <p style="margin:22px 0 0;color:#94a3b8;font-size:11px;">Use this code quickly — it may expire soon. Automated message from Trickle Hub.</p>
         </div>
     </div>
 </body>
