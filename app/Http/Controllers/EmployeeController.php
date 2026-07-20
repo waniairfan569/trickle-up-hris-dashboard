@@ -221,6 +221,13 @@ class EmployeeController extends Controller
             abort(403, 'Forbidden: You do not have permission to create employees.');
         }
 
+        // Enforce the plan's seat limit.
+        $tenant = app(\App\Tenancy\TenantManager::class)->get();
+        if ($tenant && !$tenant->withinSeatLimit()) {
+            return back()->withInput()->with('error',
+                "You've reached your plan's limit of {$tenant->seatLimit()} employees. Upgrade your plan to add more.");
+        }
+
         // Required to create the account: name + work email (login) + personal email.
         // Everything else on the default profile template is optional and can be
         // completed later by the employee, so the template stays the single source of truth.

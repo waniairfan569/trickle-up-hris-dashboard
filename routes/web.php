@@ -210,6 +210,10 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
     Route::middleware('role:super_admin,hr_admin')->group(function () {
         Route::get('workspace/branding', [\App\Http\Controllers\WorkspaceBrandingController::class, 'edit'])->name('workspace.branding');
         Route::put('workspace/branding', [\App\Http\Controllers\WorkspaceBrandingController::class, 'update'])->name('workspace.branding.update');
+
+        // Billing & plans
+        Route::get('billing', [\App\Http\Controllers\BillingController::class, 'index'])->name('billing.index');
+        Route::post('billing/subscribe', [\App\Http\Controllers\BillingController::class, 'subscribe'])->name('billing.subscribe');
     });
 
     // Probation lifecycle (Job tab) — admin manages, self/admin view

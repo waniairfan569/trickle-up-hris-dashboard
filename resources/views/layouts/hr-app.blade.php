@@ -310,7 +310,23 @@
 
             <!-- Main Content Grid -->
             <main class="flex-1 py-8 px-4 sm:px-6 lg:px-8">
-                
+
+                {{-- Trial / subscription banner (admins) --}}
+                @php $bannerTenant = app(\App\Tenancy\TenantManager::class)->get(); @endphp
+                @if($bannerTenant && optional(auth()->user())->isAdmin() && ($bannerTenant->onTrial() || $bannerTenant->trialExpired()))
+                    @if($bannerTenant->trialExpired())
+                        <div class="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-rose-50 border border-rose-200 p-4 dark:bg-rose-500/10 dark:border-rose-500/20">
+                            <p class="text-sm font-semibold text-rose-800 dark:text-rose-300 flex items-center gap-2"><i data-lucide="alert-triangle" class="h-5 w-5"></i> Your free trial has ended. Choose a plan to keep your workspace active.</p>
+                            <a href="{{ route('billing.index') }}" class="rounded-xl bg-rose-600 px-4 py-2 text-xs font-bold text-white hover:bg-rose-700">View plans</a>
+                        </div>
+                    @else
+                        <div class="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-brand-50 border border-brand-200 p-4 dark:bg-brand-500/10 dark:border-brand-500/20">
+                            <p class="text-sm font-semibold text-brand-800 dark:text-brand-300 flex items-center gap-2"><i data-lucide="clock" class="h-5 w-5"></i> {{ $bannerTenant->trialDaysLeft() }} day(s) left in your free trial.</p>
+                            <a href="{{ route('billing.index') }}" class="rounded-xl bg-brand-600 px-4 py-2 text-xs font-bold text-slate-900 hover:bg-brand-700">Choose a plan</a>
+                        </div>
+                    @endif
+                @endif
+
                 <!-- Feedback Toast Notifications -->
                 @if(session('success'))
                     <div x-data="{ show: true }" 
