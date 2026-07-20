@@ -33,6 +33,12 @@ Route::match(['get', 'post'], '/iclock/ping', [\App\Http\Controllers\ZktecoPushC
 // Web Session Authentication Routes
 Route::get('/login', [\App\Http\Controllers\PageController::class, 'showLogin'])->name('login');
 Route::post('/login', [\App\Http\Controllers\PageController::class, 'login'])->name('login.post');
+
+// SaaS: public agency signup ("Create your workspace")
+Route::middleware('guest')->group(function () {
+    Route::get('/register', [\App\Http\Controllers\Auth\RegisterTenantController::class, 'show'])->name('register');
+    Route::post('/register', [\App\Http\Controllers\Auth\RegisterTenantController::class, 'store'])->name('register.post');
+});
 Route::post('/logout', [\App\Http\Controllers\PageController::class, 'logout'])->name('logout');
 
 // Forgot / reset password (self-service — works for any account, employee or admin)

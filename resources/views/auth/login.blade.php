@@ -137,10 +137,12 @@
                     <i data-lucide="arrow-right" class="h-4 w-4"></i>
                 </button>
             </form>
-
-
-
         </div>
+
+        <p class="text-center text-xs text-slate-500">
+            New agency?
+            <a href="{{ route('register') }}" class="font-bold text-brand-400 hover:text-brand-300">Create your workspace</a>
+        </p>
 
     </div>
 
