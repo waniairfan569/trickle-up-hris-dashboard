@@ -92,29 +92,47 @@ class TimeOffRequest extends Model
 
     /**
      * Day-equivalent for an hourly leave.
-     * Company rule: 2 hours or more of hourly leave counts as a half day (0.5).
-     * Below 2 hours it's pro-rated against the working day.
+     * Company rule (workday = 8.5h, so half a day = 4.25h):
+     *   - 2 hours up to half a day (4.25h) -> counts as a half day (0.5).
+     *   - above half a day -> deduct the actual time taken (pro-rata, capped at
+     *     one full day), NOT rounded up to a full day.
+     *   - below 2 hours -> pro-rated against the working day.
      */
     public static function daysForHours(float $hours, $userId): float
     {
         if ($hours <= 0) {
             return 0.0;
         }
-        if ($hours >= 2) {
+
+        $hpd = self::hoursPerDayFor($userId);   // e.g. 8.5
+        $half = $hpd / 2;                        // e.g. 4.25
+
+        if ($hours >= 2 && $hours <= $half) {
             return 0.5;
         }
 
-        return round($hours / self::hoursPerDayFor($userId), 2);
+        return min(1.0, round($hours / $hpd, 2));
     }
 
-    /** Standard working hours in a day for this user (schedule → default → 8). */
+    /** Standard working hours in a day (schedule hours → derived from times → 8.5). */
     public static function hoursPerDayFor($userId): float
     {
         $user = $userId ? User::find($userId) : null;
         $schedule = ($user ? $user->workSchedule : null) ?? WorkSchedule::default()->first();
-        $hours = $schedule && $schedule->hours_per_day ? (float) $schedule->hours_per_day : 8.0;
 
-        return $hours > 0 ? $hours : 8.0;
+        if ($schedule) {
+            if ($schedule->hours_per_day && (float) $schedule->hours_per_day > 0) {
+                return (float) $schedule->hours_per_day;
+            }
+            if ($schedule->start_time && $schedule->end_time) {
+                $derived = self::hoursBetween($schedule->start_time, $schedule->end_time);
+                if ($derived > 0) {
+                    return $derived;
+                }
+            }
+        }
+
+        return 8.5; // company standard workday (42.5h/week over 5 days)
     }
 
     /** Whole hours between two "H:i(:s)" times on the same day. */
