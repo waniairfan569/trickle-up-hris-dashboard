@@ -331,6 +331,15 @@ class ZktecoK50Service
             }
         }
 
+        // Apply the monthly lateness penalty (4 lates -> 0.5 day, 6 -> 1 day).
+        if ($record->status === 'late') {
+            try {
+                app(LatenessDeductionService::class)->sync($user, Carbon::parse($date));
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
+
         $punch->update([
             'is_processed' => true,
             'processed_at' => now(),

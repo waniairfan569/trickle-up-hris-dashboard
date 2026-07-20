@@ -101,6 +101,16 @@ class AttendanceService
         }
 
         $record->save();
+
+        // Apply the monthly lateness penalty (4 lates -> 0.5 day, 6 -> 1 day).
+        if ($record->status === 'late') {
+            try {
+                app(LatenessDeductionService::class)->sync($user, \Carbon\Carbon::parse($record->date));
+            } catch (\Throwable $e) {
+                report($e); // never let the penalty calc break clock-in
+            }
+        }
+
         return $record;
     }
 

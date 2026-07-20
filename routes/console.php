@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\Schedule;
 
 Schedule::command('zkteco:sync-k50')->everyMinute()->withoutOverlapping();
 Schedule::command('attendance:generate-daily')->dailyAt('00:05');
+// Recompute lateness leave deductions each morning (catch-all for corrections).
+Schedule::command('attendance:sync-lateness')->dailyAt('00:20');
 // Time-tracking reminders fire when the current minute matches a configured time.
 // Employees are emailed (+ in-app) at their shift clock-in / clock-out times.
 Schedule::command('time-tracking:send-reminders')->everyMinute()->withoutOverlapping();
