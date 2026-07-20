@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use App\Tenancy\BelongsToTenant;
+
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 class AttendanceReportLog extends Model
 {
+    use BelongsToTenant;
     protected $fillable = [
         'report_date', 'sent_at', 'sent_to', 'total_employees', 'present_count',
         'late_count', 'absent_count', 'on_leave_count', 'status', 'error_message',

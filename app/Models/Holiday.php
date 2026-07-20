@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Tenancy\BelongsToTenant;
+
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -9,6 +11,7 @@ use Illuminate\Support\Facades\DB;
 
 class Holiday extends Model
 {
+    use BelongsToTenant;
     use HasFactory;
 
     protected $fillable = [

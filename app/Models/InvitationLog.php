@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use App\Tenancy\BelongsToTenant;
+
 use Illuminate\Database\Eloquent\Model;
 
 class InvitationLog extends Model
 {
+    use BelongsToTenant;
     public const UPDATED_AT = null;
 
     protected $fillable = [

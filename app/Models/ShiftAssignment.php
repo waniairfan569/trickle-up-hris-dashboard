@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use App\Tenancy\BelongsToTenant;
+
 use Illuminate\Database\Eloquent\Model;
 
 class ShiftAssignment extends Model
 {
+    use BelongsToTenant;
     protected $fillable = [
         'user_id',
         'shift_id',

@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Tenancy\BelongsToTenant;
+
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class TimeOffAuditLog extends Model
 {
+    use BelongsToTenant;
     public $timestamps = false;
     const CREATED_AT = 'created_at';
     const UPDATED_AT = null;

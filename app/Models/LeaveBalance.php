@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use App\Tenancy\BelongsToTenant;
+
 use Illuminate\Database\Eloquent\Model;
 
 class LeaveBalance extends Model
 {
+    use BelongsToTenant;
     protected $fillable = [
         'employee_id','company_id','leave_year',
         'annual_total','annual_used','annual_pending',

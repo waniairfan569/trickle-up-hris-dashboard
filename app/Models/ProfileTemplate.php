@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use App\Tenancy\BelongsToTenant;
+
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class ProfileTemplate extends Model
 {
+    use BelongsToTenant;
     use HasFactory, SoftDeletes;
 
     protected $fillable = [

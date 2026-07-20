@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use App\Tenancy\BelongsToTenant;
+
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
 class DocumentCategory extends Model
 {
+    use BelongsToTenant;
     use HasFactory;
 
     protected $fillable = ['name', 'slug', 'icon', 'color', 'description', 'sort_order'];
