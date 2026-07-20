@@ -34,7 +34,7 @@ class WorkspaceBrandingController extends Controller
         if ($request->boolean('remove_logo')) {
             $tenant->logo_url = null;
         } elseif ($request->hasFile('logo')) {
-            $path = $request->file('logo')->store('tenant-logos', 'public');
+            $path = $request->file('logo')->store(\App\Tenancy\TenantStorage::path('tenant-logos'), 'public');
             $tenant->logo_url = Storage::url($path);
         }
 

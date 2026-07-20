@@ -22,7 +22,7 @@ class EmployeeDocumentController extends Controller
         ]);
 
         $file = $request->file('file');
-        $path = $file->store('employee-documents'); // private 'local' disk
+        $path = $file->store(\App\Tenancy\TenantStorage::path('employee-documents')); // private 'local' disk
 
         EmployeeDocument::create([
             'user_id' => $employee->id,

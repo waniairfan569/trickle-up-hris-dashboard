@@ -33,7 +33,7 @@ class CompanyFileController extends Controller
         ]);
 
         $file = $request->file('file');
-        $path = $file->store('company-files'); // private 'local' disk
+        $path = $file->store(\App\Tenancy\TenantStorage::path('company-files')); // private 'local' disk
 
         CompanyFile::create([
             'title' => $validated['title'],

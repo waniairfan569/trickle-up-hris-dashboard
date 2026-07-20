@@ -151,7 +151,7 @@ class FormSubmissionController extends Controller
             if ($field->type === 'file_upload') {
                 if ($request->hasFile("fields.{$field->field_key}")) {
                     $value = $request->file("fields.{$field->field_key}")
-                        ->store("form-uploads/{$form->id}/{$submission->user_id}");
+                        ->store(\App\Tenancy\TenantStorage::path("form-uploads/{$form->id}/{$submission->user_id}"));
                 } else {
                     // keep existing file value if present
                     $value = optional($submission->responses()->where('field_key', $field->field_key)->first())->value;

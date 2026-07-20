@@ -48,7 +48,7 @@ class CompanyEntityController extends Controller
         $validated['created_by'] = auth()->id();
 
         if ($request->hasFile('logo')) {
-            $path = $request->file('logo')->store('logos', 'public');
+            $path = $request->file('logo')->store(\App\Tenancy\TenantStorage::path('logos'), 'public');
             $validated['logo'] = $path;
         }
 
@@ -99,7 +99,7 @@ class CompanyEntityController extends Controller
             if ($companyEntity->logo) {
                 Storage::disk('public')->delete($companyEntity->logo);
             }
-            $path = $request->file('logo')->store('logos', 'public');
+            $path = $request->file('logo')->store(\App\Tenancy\TenantStorage::path('logos'), 'public');
             $validated['logo'] = $path;
         }
 

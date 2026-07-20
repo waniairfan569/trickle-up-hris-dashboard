@@ -54,7 +54,7 @@ class DocumentTemplateController extends Controller
         $validated = $this->validateTemplate($request, true);
 
         $file = $request->file('file');
-        $path = $file->store('document-templates');
+        $path = $file->store(\App\Tenancy\TenantStorage::path('document-templates'));
 
         $template = DocumentTemplate::create([
             'company_id' => auth()->user()->company_id,
@@ -91,7 +91,7 @@ class DocumentTemplateController extends Controller
                 Storage::delete($documentTemplate->file_path);
             }
             $file = $request->file('file');
-            $documentTemplate->file_path = $file->store('document-templates');
+            $documentTemplate->file_path = $file->store(\App\Tenancy\TenantStorage::path('document-templates'));
             $documentTemplate->file_name = $file->getClientOriginalName();
             $documentTemplate->file_mime = $file->getClientMimeType();
             $documentTemplate->file_size = $file->getSize();

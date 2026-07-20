@@ -285,7 +285,7 @@ class CompanyDocumentController extends Controller
     private function storeFile(CompanyDocument $document, Request $request, DocumentCategory $category): void
     {
         $file = $request->file('file');
-        $path = $file->store('company-documents/' . $category->slug);
+        $path = $file->store(\App\Tenancy\TenantStorage::path('company-documents/' . $category->slug));
         $document->file_path = $path;
         $document->file_name = $file->getClientOriginalName();
         $document->file_size = $file->getSize();

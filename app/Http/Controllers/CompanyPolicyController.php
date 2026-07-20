@@ -199,7 +199,7 @@ class CompanyPolicyController extends Controller
     private function storeDocument(CompanyPolicy $policy, Request $request): void
     {
         $file = $request->file('document');
-        $path = $file->store('policies/' . $policy->id);
+        $path = $file->store(\App\Tenancy\TenantStorage::path('policies/' . $policy->id));
         $policy->update([
             'document_file' => $path,
             'document_filename' => $file->getClientOriginalName(),

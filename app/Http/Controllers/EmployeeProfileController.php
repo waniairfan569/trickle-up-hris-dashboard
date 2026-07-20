@@ -101,7 +101,7 @@ class EmployeeProfileController extends Controller
         if ($request->hasFile('avatar')) {
             $file = $request->file('avatar');
             $filename = 'avatar_' . $employee->id . '_' . time() . '.' . $file->getClientOriginalExtension();
-            $path = $file->storeAs('avatars', $filename, 'public');
+            $path = $file->storeAs(\App\Tenancy\TenantStorage::path('avatars'), $filename, 'public');
             $employee->update(['avatar_url' => Storage::url($path)]);
         }
 
@@ -136,7 +136,7 @@ class EmployeeProfileController extends Controller
             // Handle specific field types
             if ($field->type === 'file' && $request->hasFile("fields.{$key}")) {
                 $file = $request->file("fields.{$key}");
-                $path = $file->store("employee-files/{$employee->id}/{$key}", 'public');
+                $path = $file->store(\App\Tenancy\TenantStorage::path("employee-files/{$employee->id}/{$key}"), 'public');
                 $value = Storage::url($path);
             } elseif (in_array($field->type, ['multi_select', 'date_range']) && is_array($value)) {
                 $value = json_encode($value);

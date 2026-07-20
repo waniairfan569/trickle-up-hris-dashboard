@@ -289,7 +289,7 @@ class EmployeeController extends Controller
                 continue;
             }
             if ($field->type === 'file' && $hasFile) {
-                $path = $request->file("fields.{$key}")->store("employee-files/{$user->id}/{$key}", 'public');
+                $path = $request->file("fields.{$key}")->store(\App\Tenancy\TenantStorage::path("employee-files/{$user->id}/{$key}"), 'public');
                 $value = \Illuminate\Support\Facades\Storage::url($path);
             } elseif (in_array($field->type, ['multi_select', 'date_range']) && is_array($value)) {
                 $value = json_encode($value);

@@ -17,7 +17,9 @@ class SessionManagementController extends Controller
 
         $users = User::all(['id', 'first_name', 'last_name', 'email'])->keyBy('id');
 
+        // Only this tenant's users' sessions (User is tenant-scoped).
         $sessions = DB::table('sessions')
+            ->whereIn('user_id', $users->keys()->all())
             ->orderByDesc('last_activity')
             ->get()
             ->map(function ($s) use ($users, $request) {
@@ -40,7 +42,10 @@ class SessionManagementController extends Controller
     {
         abort_unless($request->user() && $request->user()->isAdmin(), 403);
 
-        DB::table('sessions')->where('id', $session)->delete();
+        // Only sessions belonging to this tenant's users can be revoked.
+        DB::table('sessions')->where('id', $session)
+            ->whereIn('user_id', User::pluck('id')->all())
+            ->delete();
 
         return back()->with('success', 'Session revoked — that device will be signed out.');
     }
@@ -65,10 +70,15 @@ class SessionManagementController extends Controller
         $me = $request->user()->id;
         $current = $request->session()->getId();
 
-        DB::table('sessions')->where('id', '!=', $current)->delete();
+        // Scope the wipe to THIS tenant's users only (never platform-wide).
+        $tenantUserIds = User::pluck('id')->all();
+        DB::table('sessions')
+            ->whereIn('user_id', $tenantUserIds)
+            ->where('id', '!=', $current)
+            ->delete();
         User::where('id', '!=', $me)->update(['remember_token' => null]);
 
-        return back()->with('success', 'All other users have been signed out from every device.');
+        return back()->with('success', 'All other users in your workspace have been signed out from every device.');
     }
 
     // ---- User self-service -------------------------------------------------
