@@ -65,7 +65,7 @@ class TimeOffRequest extends Model
                     $hours = $request->hours_requested
                         ?: self::hoursBetween($request->start_time, $request->end_time);
                     $request->hours_requested = $hours;
-                    $request->days_requested = round($hours / self::hoursPerDayFor($request->user_id), 2);
+                    $request->days_requested = self::daysForHours($hours, $request->user_id);
                 } elseif ($request->is_half_day || $request->duration_type === 'half_day') {
                     $request->days_requested = 0.5;
                 } else {
@@ -88,6 +88,23 @@ class TimeOffRequest extends Model
                 }
             }
         });
+    }
+
+    /**
+     * Day-equivalent for an hourly leave.
+     * Company rule: 2 hours or more of hourly leave counts as a half day (0.5).
+     * Below 2 hours it's pro-rated against the working day.
+     */
+    public static function daysForHours(float $hours, $userId): float
+    {
+        if ($hours <= 0) {
+            return 0.0;
+        }
+        if ($hours >= 2) {
+            return 0.5;
+        }
+
+        return round($hours / self::hoursPerDayFor($userId), 2);
     }
 
     /** Standard working hours in a day for this user (schedule → default → 8). */
