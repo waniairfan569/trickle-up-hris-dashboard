@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use App\Tenancy\BelongsToTenant;
+
 use Illuminate\Database\Eloquent\Model;
 
 class LatenessDeduction extends Model
 {
+    use BelongsToTenant;
     protected $fillable = [
         'user_id', 'year', 'month', 'late_count', 'days_deducted', 'policy_id',
     ];

@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Tenancy\BelongsToTenant;
+
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -9,6 +11,7 @@ use Illuminate\Support\HtmlString;
 
 class Announcement extends Model
 {
+    use BelongsToTenant;
     use HasFactory;
 
     protected $fillable = ['title', 'body', 'is_pinned', 'is_active', 'created_by'];

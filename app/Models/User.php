@@ -1,6 +1,8 @@
 <?php
 namespace App\Models;
 
+use App\Tenancy\BelongsToTenant;
+
 use App\Traits\RoleChecker;
 use App\Traits\HasHRAccess;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -10,6 +12,7 @@ use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
+    use BelongsToTenant;
     use HasApiTokens, HasFactory, Notifiable, RoleChecker, HasHRAccess;
 
     protected static function booted()

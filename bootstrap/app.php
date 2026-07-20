@@ -34,6 +34,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // Resolve the authenticated user's display timezone on every web request
         // (the middleware no-ops for guests).
         $middleware->web(append: [
+            \App\Http\Middleware\SetCurrentTenant::class,
             \App\Http\Middleware\SetUserTimezone::class,
         ]);
         $middleware->api(prepend: [

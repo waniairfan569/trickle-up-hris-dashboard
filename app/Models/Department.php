@@ -1,12 +1,15 @@
 <?php
 namespace App\Models;
 
+use App\Tenancy\BelongsToTenant;
+
 use App\Traits\RoleChecker;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Department extends Model
 {
+    use BelongsToTenant;
     use RoleChecker, SoftDeletes;
 
     protected $fillable = [

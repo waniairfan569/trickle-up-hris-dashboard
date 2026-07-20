@@ -15,6 +15,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        // Current-tenant holder (SaaS multi-tenancy). No-op until a tenant is set.
+        $this->app->singleton(\App\Tenancy\TenantManager::class, function ($app) {
+            return new \App\Tenancy\TenantManager();
+        });
+
         $this->app->singleton(\App\Services\HRPermissionService::class, function ($app) {
             return new \App\Services\HRPermissionService();
         });
