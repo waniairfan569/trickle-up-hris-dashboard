@@ -109,8 +109,9 @@
 
             <!-- Reason -->
             <div class="pt-4 border-t border-slate-100 dark:border-slate-700/60">
-                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 dark:text-slate-300">Reason / Note (Optional)</label>
-                <textarea name="reason" rows="3" placeholder="Add a note for your manager..." class="w-full rounded-xl border-slate-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white"></textarea>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 dark:text-slate-300">Reason / Note <span class="text-rose-500">*</span></label>
+                <textarea name="reason" rows="3" required placeholder="Add a note for your manager..." class="w-full rounded-xl border-slate-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">{{ old('reason') }}</textarea>
+                @error('reason')<p class="mt-1 text-xs font-semibold text-rose-600">{{ $message }}</p>@enderror
             </div>
             
             <input type="hidden" name="duration_type" x-model="durationType">

@@ -382,8 +382,10 @@ class TimeOffController extends Controller
             'half_day_period' => 'nullable|in:morning,afternoon',
             'start_time' => 'nullable|date_format:H:i',
             'end_time' => 'nullable|date_format:H:i',
-            'reason' => 'nullable|string',
+            'reason' => 'required|string|max:1000',
             'days_requested' => 'nullable|numeric|min:0' // full-day: from JS; half/hourly: server computes
+        ], [
+            'reason.required' => 'Please provide a reason for your time-off request.',
         ]);
 
         $policy = TimeOffPolicy::findOrFail($validated['policy_id']);
