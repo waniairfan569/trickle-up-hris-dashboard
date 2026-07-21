@@ -130,6 +130,44 @@ class User extends Authenticatable
         return $this->hasMany(User::class, 'manager_id');
     }
 
+    /** Additional managers of this employee (beyond the primary manager_id). */
+    public function additionalManagers() {
+        return $this->belongsToMany(User::class, 'employee_manager', 'user_id', 'manager_id')->withTimestamps();
+    }
+
+    /** Employees this user manages via the additional-managers pivot. */
+    public function additionalTeam() {
+        return $this->belongsToMany(User::class, 'employee_manager', 'manager_id', 'user_id')->withTimestamps();
+    }
+
+    /** Every manager of this employee: the primary + any additional (unique ids). */
+    public function allManagerIds(): \Illuminate\Support\Collection
+    {
+        return collect([$this->manager_id])->filter()
+            ->merge($this->additionalManagers()->pluck('users.id'))
+            ->map(fn ($id) => (int) $id)->unique()->values();
+    }
+
+    /** All employees this user manages: direct reports (primary) + pivot-managed (unique ids). */
+    public function teamMemberIds(): \Illuminate\Support\Collection
+    {
+        return $this->directReports()->pluck('id')
+            ->merge($this->additionalTeam()->pluck('users.id'))
+            ->map(fn ($id) => (int) $id)->unique()->values();
+    }
+
+    /** Does this user manage the given employee — as primary OR an additional manager? */
+    public function managesUser($employeeId): bool
+    {
+        return $this->teamMemberIds()->contains((int) $employeeId);
+    }
+
+    /** All employees this user manages (User models): direct reports + additional-managed. */
+    public function teamMembers()
+    {
+        return User::whereIn('id', $this->teamMemberIds()->all())->get();
+    }
+
     /**
      * Relationship with roles (many-to-many).
      */
@@ -217,7 +255,9 @@ class User extends Authenticatable
      */
     public function isManager(): bool
     {
-        return $this->directReports()->exists() || $this->hasRole(Role::MANAGER);
+        return $this->directReports()->exists()
+            || $this->additionalTeam()->exists()
+            || $this->hasRole(Role::MANAGER);
     }
 
     /**
@@ -227,6 +267,14 @@ class User extends Authenticatable
     {
         if ($target->id === $this->id) {
             return false;
+        }
+
+        // Direct primary or additional manager.
+        if ((int) $target->manager_id === (int) $this->id) {
+            return true;
+        }
+        if ($this->additionalTeam()->whereKey($target->id)->exists()) {
+            return true;
         }
 
         $current = $target;
@@ -259,7 +307,7 @@ class User extends Authenticatable
             return 'department';
         }
 
-        if ($this->directReports()->exists()) {
+        if ($this->directReports()->exists() || $this->additionalTeam()->exists()) {
             return 'team';
         }
 

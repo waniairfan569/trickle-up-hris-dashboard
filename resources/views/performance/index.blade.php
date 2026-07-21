@@ -179,7 +179,7 @@
                     <div>
                         <label class="block text-xs font-bold text-slate-500 mb-1">Select Employee</label>
                         <select name="employee_id" id="managerReviewEmployeeId" class="rounded-xl border-slate-300 text-sm shadow-sm focus:border-brand-500 focus:ring-brand-500">
-                            @foreach(auth()->user()->directReports as $report)
+                            @foreach(auth()->user()->teamMembers() as $report)
                                 <option value="{{ $report->id }}">{{ $report->full_name }}</option>
                             @endforeach
                         </select>

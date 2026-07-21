@@ -311,8 +311,7 @@ class AttendanceRecord extends Model
 
     public function scopeForTeam(Builder $query, User $manager)
     {
-        // Manager's direct reports
-        $directReportIds = $manager->directReports()->pluck('id');
-        return $query->whereIn('user_id', $directReportIds);
+        // Manager's team: direct reports (primary) + additional-managed.
+        return $query->whereIn('user_id', $manager->teamMemberIds()->all());
     }
 }

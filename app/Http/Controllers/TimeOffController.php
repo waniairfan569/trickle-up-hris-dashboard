@@ -35,9 +35,11 @@ class TimeOffController extends Controller
 
         $approvers = collect();
 
-        if ($request->employee && $request->employee->manager_id) {
-            if ($mgr = User::find($request->employee->manager_id)) {
-                $approvers->push($mgr);
+        // Notify every manager of this employee — primary + any additional.
+        if ($request->employee) {
+            $managerIds = $request->employee->allManagerIds()->all();
+            if (!empty($managerIds)) {
+                $approvers = $approvers->concat(User::whereIn('id', $managerIds)->get());
             }
         }
 
@@ -310,7 +312,7 @@ class TimeOffController extends Controller
 
         // 2. Manager Data (Team Requests)
         $teamRequests = collect();
-        if (User::where('manager_id', $user->id)->exists()) {
+        if ($user->teamMemberIds()->isNotEmpty()) {
             $teamRequests = TimeOffRequest::with('employee', 'policy')
                 ->forTeam($user)
                 ->where('status', 'pending')
@@ -473,7 +475,7 @@ class TimeOffController extends Controller
         $user = auth()->user() ?? User::first();
         
         // Ensure user can approve
-        if ($timeOffRequest->policy->approval_type === 'manager' && $timeOffRequest->employee->manager_id !== $user->id) {
+        if ($timeOffRequest->policy->approval_type === 'manager' && !$user->managesUser($timeOffRequest->employee->id)) {
             if (!$user->hasRole('hr_admin') && !$user->hasRole('super_admin')) {
                 abort(403, 'Unauthorized to approve this request.');
             }

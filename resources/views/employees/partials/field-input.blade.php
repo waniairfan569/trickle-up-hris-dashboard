@@ -107,7 +107,7 @@
                     ? $allUsers
                     : \App\Models\User::orderBy('first_name')->where('id', '!=', optional($employee)->id ?? 0)->with('department')->get();
             @endphp
-            <select name="fields[{{ $field->key }}]" 
+            <select name="fields[{{ $field->key }}]"
                     class="{{ $inputClasses }}">
                 <option value="">Select Employee...</option>
                 @foreach($allUsersForLookup as $u)
@@ -116,6 +116,32 @@
                     </option>
                 @endforeach
             </select>
+
+            {{-- Manager only: assign additional managers (beyond the primary above). --}}
+            @if($field->key === 'manager_id' && optional($employee)->id)
+                @php
+                    $additionalSel = collect(old('additional_manager_ids', $employee->additionalManagers->pluck('id')->all()))
+                        ->map(fn ($id) => (int) $id)->all();
+                @endphp
+                <div x-data="{ open: false }" class="mt-2">
+                    <button type="button" @click="open = !open" class="flex items-center gap-1.5 text-xs font-bold text-brand-600 hover:text-brand-700 dark:text-brand-400">
+                        <i data-lucide="users" class="h-3.5 w-3.5"></i>
+                        Additional managers
+                        @if(count($additionalSel))<span class="rounded-full bg-brand-50 px-1.5 py-0.5 text-[10px] font-bold text-brand-700 dark:bg-brand-500/10 dark:text-brand-400">{{ count($additionalSel) }}</span>@endif
+                        <i data-lucide="chevron-down" class="h-3.5 w-3.5" x-bind:class="open ? 'rotate-180' : ''"></i>
+                    </button>
+                    <p class="text-[11px] text-slate-400 mt-0.5">People here also manage this employee — they can see them and approve their leave (in addition to the primary manager above).</p>
+                    <div x-show="open" x-cloak class="mt-2 max-h-56 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-1.5 p-3 rounded-lg bg-slate-50 border border-slate-100 dark:bg-slate-900 dark:border-slate-800">
+                        @foreach($allUsersForLookup as $u)
+                            <label class="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">
+                                <input type="checkbox" name="additional_manager_ids[]" value="{{ $u->id }}"
+                                       class="{{ $checkboxClasses }}" {{ in_array((int) $u->id, $additionalSel, true) ? 'checked' : '' }}>
+                                <span class="truncate">{{ $u->full_name }}</span>
+                            </label>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
             @break
 
         @case('department_lookup')

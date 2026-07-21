@@ -57,7 +57,7 @@ class ProfileField extends Model
             'public' => true,
             'internal' => $viewer->isAdmin(),
             'private' => $viewer->isAdmin(),
-            'manager' => $viewer->id === $employee->manager_id || $viewer->isAdmin(),
+            'manager' => $viewer->isAdmin() || $viewer->managesUser($employee->id),
             default => false,
         };
     }

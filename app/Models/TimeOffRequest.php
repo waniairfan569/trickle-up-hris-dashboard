@@ -258,9 +258,8 @@ class TimeOffRequest extends Model
 
     public function scopeForTeam($query, User $manager)
     {
-        // Manager's direct reports
-        $reportIds = User::where('manager_id', $manager->id)->pluck('id');
-        return $query->whereIn('user_id', $reportIds);
+        // Manager's team: direct reports (primary) + additional-managed.
+        return $query->whereIn('user_id', $manager->teamMemberIds()->all());
     }
 
     // --- Accessors ---

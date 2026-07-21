@@ -175,7 +175,7 @@ class AttendanceReportService
         if ($settings->send_to_managers) {
             $managers = User::active()
                 ->whereHas('roles', fn ($q) => $q->where('slug', 'manager'))
-                ->has('directReports')
+                ->where(fn ($q) => $q->has('directReports')->orHas('additionalTeam'))
                 ->get();
             foreach ($managers as $manager) {
                 $data = $this->getReportData($date, $manager);

@@ -27,10 +27,10 @@ class EmployeeOnboardingController extends Controller
             ->first();
 
         $teamOnboardings = collect();
-        if (User::where('manager_id', $user->id)->exists()) {
-            $teamIds = User::where('manager_id', $user->id)->pluck('id');
+        $teamIds = $user->teamMemberIds();
+        if ($teamIds->isNotEmpty()) {
             $teamOnboardings = EmployeeOnboarding::with(['employee', 'workflow'])
-                ->whereIn('user_id', $teamIds)
+                ->whereIn('user_id', $teamIds->all())
                 ->orderBy('started_at', 'desc')
                 ->get();
         }
@@ -74,9 +74,9 @@ class EmployeeOnboardingController extends Controller
         $user = auth()->user() ?? User::first();
         
         // Auth check: Must be the employee, their manager, or HR
-        if ($onboarding->user_id !== $user->id && 
-            $onboarding->employee->manager_id !== $user->id && 
-            !$user->hasRole('hr_admin') && 
+        if ($onboarding->user_id !== $user->id &&
+            !$user->managesUser($onboarding->employee->id) &&
+            !$user->hasRole('hr_admin') &&
             !$user->hasRole('super_admin')) {
             abort(403);
         }

@@ -98,14 +98,14 @@ class AttendanceManagerController extends Controller
     /** Approved-leave people covering today, scoped to a manager's team. */
     private function onLeavePeople(User $user)
     {
-        $ids = $user->isAdmin() ? null : $user->directReports()->pluck('id')->all();
+        $ids = $user->isAdmin() ? null : $user->teamMemberIds()->all();
         return TimeOffRequest::onLeaveToday($ids);
     }
 
     /** User IDs on approved leave today (scoped to a manager's team). */
     private function onLeaveUserIds(User $user)
     {
-        $scope = $user->isAdmin() ? null : $user->directReports()->pluck('id')->all();
+        $scope = $user->isAdmin() ? null : $user->teamMemberIds()->all();
 
         return TimeOffRequest::where('status', 'approved')
             ->whereDate('start_date', '<=', Carbon::today())
@@ -233,7 +233,7 @@ class AttendanceManagerController extends Controller
     {
         $user = $request->user();
         $onLeavePeople = $this->onLeavePeople($user);
-        $ids = $user->isAdmin() ? null : $user->directReports()->pluck('id')->all();
+        $ids = $user->isAdmin() ? null : $user->teamMemberIds()->all();
 
         $upcoming = TimeOffRequest::where('status', 'approved')
             ->whereDate('start_date', '>', today())
@@ -279,7 +279,7 @@ class AttendanceManagerController extends Controller
         $departments = Department::all();
 
         // For employee dropdown filter (hidden-from-attendance people excluded)
-        $teamMembers = ($user->isAdmin() ? User::query() : User::where('manager_id', $user->id))
+        $teamMembers = ($user->isAdmin() ? User::query() : User::whereIn('id', $user->teamMemberIds()->all()))
             ->where('exclude_from_attendance', false)->get();
         $onLeavePeople = $this->onLeavePeople($user);
 
@@ -453,7 +453,7 @@ class AttendanceManagerController extends Controller
         $query = AttendanceCorrection::with(['employee', 'record'])->pending();
 
         if (!$user->isAdmin()) {
-            $directReportIds = $user->directReports()->pluck('id');
+            $directReportIds = $user->teamMemberIds();
             $query->whereIn('user_id', $directReportIds);
         }
 

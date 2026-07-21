@@ -33,7 +33,7 @@ class PerformanceController extends Controller
 
         $teamReviews = collect();
         if ($user->isManager()) {
-            $directReportIds = $user->directReports()->pluck('id');
+            $directReportIds = $user->teamMemberIds();
             $teamReviews = PerformanceReview::whereIn('reviewee_id', $directReportIds)
                 ->with(['cycle', 'reviewee'])
                 ->get();

@@ -78,7 +78,7 @@ class EmployeeProfileController extends Controller
         $auth = auth()->user();
 
         // Authorize: admin, self, or manager
-        if (!$auth->isAdmin() && $auth->id !== $employee->id && $auth->id !== $employee->manager_id) {
+        if (!$auth->isAdmin() && $auth->id !== $employee->id && !$auth->managesUser($employee->id)) {
             if (!$this->hrPermissionService->canEditEmployee($auth, $employee)) {
                 abort(403, 'Unauthorized access to edit employee profile.');
             }
@@ -91,7 +91,7 @@ class EmployeeProfileController extends Controller
     {
         $auth = auth()->user();
 
-        if (!$auth->isAdmin() && $auth->id !== $employee->id && $auth->id !== $employee->manager_id) {
+        if (!$auth->isAdmin() && $auth->id !== $employee->id && !$auth->managesUser($employee->id)) {
             if (!$this->hrPermissionService->canEditEmployee($auth, $employee)) {
                 abort(403, 'Unauthorized access to edit employee profile.');
             }
@@ -157,6 +157,17 @@ class EmployeeProfileController extends Controller
                 $parts = preg_split('/\s+/', trim($value), 2);
                 $employee->update(['first_name' => $parts[0], 'last_name' => $parts[1] ?? '']);
             }
+        }
+
+        // Additional managers (admin only — the manager field is admin-editable).
+        // Sync the pivot, excluding self and the primary manager to avoid dupes.
+        if ($auth->isAdmin()) {
+            $additionalManagerIds = collect($request->input('additional_manager_ids', []))
+                ->map(fn ($id) => (int) $id)->filter()
+                ->reject(fn ($id) => $id === (int) $employee->id)
+                ->reject(fn ($id) => $id === (int) $employee->manager_id)
+                ->unique()->values()->all();
+            $employee->additionalManagers()->sync($additionalManagerIds);
         }
 
         // Keep the Employee row's department in sync with the profile: the

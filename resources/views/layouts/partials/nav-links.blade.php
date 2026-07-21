@@ -12,8 +12,8 @@
             ->filter(fn ($r) => $r->isAwaiting($navUser))
             ->count();
         $navIsAdmin = $navUser->hasRole('super_admin') || $navUser->hasRole('hr_admin');
-        $navReportIds = (!$navIsAdmin && method_exists($navUser, 'directReports'))
-            ? $navUser->directReports()->pluck('id') : collect();
+        $navReportIds = (!$navIsAdmin && method_exists($navUser, 'teamMemberIds'))
+            ? $navUser->teamMemberIds() : collect();
 
         // NEW forms assigned to me since I last opened My Forms (badge clears on visit).
         $nav['forms'] = \App\Models\FormSubmission::where('user_id', $navUser->id)

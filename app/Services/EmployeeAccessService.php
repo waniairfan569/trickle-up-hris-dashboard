@@ -30,9 +30,10 @@ class EmployeeAccessService
         }
         $visited[] = $user->id;
 
-        $user->loadMissing('directReports');
+        $user->loadMissing('directReports', 'additionalTeam');
 
-        foreach ($user->directReports as $report) {
+        // Direct reports (primary manager_id) + additional-managed employees.
+        foreach ($user->directReports->concat($user->additionalTeam) as $report) {
             if (!$reports->contains('id', $report->id)) {
                 $reports->push($report);
                 $this->collectReports($report, $reports, $visited);
