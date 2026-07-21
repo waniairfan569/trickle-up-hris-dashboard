@@ -27,18 +27,18 @@
             <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Equipment <span class="text-rose-500">*</span></label>
             <input type="text" name="equipment_name" value="{{ old('equipment_name') }}" required maxlength="150"
                    placeholder="e.g. Dell Latitude laptop, 27&quot; monitor, headset"
-                   class="w-full rounded-xl border-slate-300 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                   class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm shadow-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:bg-slate-900 dark:border-slate-600 dark:text-white">
         </div>
         <div>
             <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Reason for taking it home <span class="text-rose-500">*</span></label>
             <textarea name="reason" rows="3" required maxlength="1000"
                       placeholder="Why do you need this equipment at home?"
-                      class="w-full rounded-xl border-slate-300 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">{{ old('reason') }}</textarea>
+                      class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm shadow-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:bg-slate-900 dark:border-slate-600 dark:text-white">{{ old('reason') }}</textarea>
         </div>
         <div>
             <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Expected return date <span class="text-slate-400 normal-case font-medium">(optional)</span></label>
             <input type="date" name="expected_return_date" value="{{ old('expected_return_date') }}" min="{{ now()->toDateString() }}"
-                   class="w-full sm:w-56 rounded-xl border-slate-300 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                   class="w-full sm:w-56 rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm shadow-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:bg-slate-900 dark:border-slate-600 dark:text-white">
         </div>
         <div class="flex justify-end">
             <button type="submit" class="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-bold text-slate-900 shadow-md shadow-brand-500/20 hover:bg-brand-700">
