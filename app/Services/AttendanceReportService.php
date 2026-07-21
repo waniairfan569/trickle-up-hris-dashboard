@@ -71,13 +71,15 @@ class AttendanceReportService
 
         $presentIds = $records->pluck('user_id')->all();
         // People on leave are NOT absent, even if they have no record / an absent row.
-        // Weekends / non-working days per the employee's schedule are off, not absent.
+        // Non-working days (per the employee's schedule, else the company-wide
+        // working-days setting) are off, not absent.
+        $reportSettings = AttendanceReportSettings::getSettings();
         $noRecordUsers = $activeUsers
             ->whereNotIn('id', $presentIds)
             ->whereNotIn('id', $onLeaveUserIds->all())
             ->filter(fn ($u) => (method_exists($u, 'workSchedule') && $u->workSchedule)
                 ? $u->workSchedule->isWorkingDay($date)
-                : !$date->isWeekend());
+                : $reportSettings->isWorkingDay($date));
 
         $absentRecords = $records->where('status', 'absent')
             ->filter(fn ($r) => !$onLeaveUserIds->contains($r->user_id));

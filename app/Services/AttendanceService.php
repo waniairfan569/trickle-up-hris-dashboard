@@ -92,7 +92,7 @@ class AttendanceService
         if (!$isReclocking) {
             $tz = app(TimezoneService::class);
             $localIn = $tz->toUserTime($record->clock_in, $user);
-            $cutoff = Carbon::parse($localIn->toDateString() . ' ' . AttendanceRecord::lateCutoff(), $localIn->getTimezone());
+            $cutoff = AttendanceRecord::lateCutoffFor($user, $localIn);
 
             if ($localIn->greaterThanOrEqualTo($cutoff)) {
                 $record->late_minutes = (int) max(1, round($cutoff->diffInMinutes($localIn)));
@@ -315,10 +315,16 @@ class AttendanceService
             ->where('exclude_from_attendance', false)
             ->get();
 
+        // Company-wide working days (from the Attendance Report Settings page) —
+        // the source of truth when an employee has no personal work schedule, so
+        // days the company doesn't work (e.g. Sat/Sun) are never marked absent.
+        $reportSettings = \App\Models\AttendanceReportSettings::getSettings();
+
         foreach ($users as $user) {
-            $isWorkingDay = true;
             if (method_exists($user, 'workSchedule') && $user->workSchedule) {
                 $isWorkingDay = $user->workSchedule->isWorkingDay($date);
+            } else {
+                $isWorkingDay = $reportSettings->isWorkingDay($date);
             }
 
             if (!$isWorkingDay) {

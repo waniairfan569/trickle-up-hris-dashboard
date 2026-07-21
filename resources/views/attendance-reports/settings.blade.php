@@ -91,7 +91,7 @@
             <div class="pt-2">
                 <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Grace period (minutes)</label>
                 <input type="number" name="late_threshold_minutes" value="{{ $settings->late_threshold_minutes }}" min="0" max="60" class="w-32 rounded-xl border-slate-300 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
-                <span class="text-[11px] text-slate-400 ml-2">Employees this many minutes or more late are highlighted.</span>
+                <span class="text-[11px] text-slate-400 ml-2">Minutes after shift start before a clock-in is late. 0 = late at shift start (e.g. 09:30); 5 = late after 09:35.</span>
             </div>
             <div class="pt-2">
                 <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Subject line</label>

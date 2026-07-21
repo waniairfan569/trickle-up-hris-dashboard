@@ -49,10 +49,52 @@ class AttendanceRecord extends Model
         'clock_out_lng' => 'decimal:7',
     ];
 
-    /** Time of day (local) after which a clock-in counts as late, e.g. "09:30". */
+    /** Base shift-start time (local) used for lateness when an employee has no work schedule, e.g. "09:30". */
     public static function lateCutoff(): string
     {
         return config('attendance.late_after') ?: '09:30';
+    }
+
+    /**
+     * Grace-period minutes after shift start before a clock-in is counted late.
+     * Configured on the Attendance Report Settings page (0 = late the moment the
+     * shift starts; 5 = late only 5 min after). Memoised per request.
+     */
+    public static function lateGraceMinutes(): int
+    {
+        static $memo = null;
+        if ($memo !== null) {
+            return $memo;
+        }
+        try {
+            return $memo = max(0, (int) (\App\Models\AttendanceReportSettings::getSettings()->late_threshold_minutes ?? 0));
+        } catch (\Throwable $e) {
+            return $memo = 0;
+        }
+    }
+
+    /**
+     * The local-time cutoff after which a clock-in on this local day is "late"
+     * for a given employee: their shift start (work-schedule start_time, else
+     * the configured base) PLUS the grace-period minutes. A clock-in at or after
+     * this instant is late.
+     */
+    public static function lateCutoffFor(?User $employee, Carbon $localIn): Carbon
+    {
+        $base = self::lateCutoff();
+        $sched = ($employee && method_exists($employee, 'workSchedule')) ? $employee->workSchedule : null;
+        if ($sched && $sched->start_time) {
+            $base = Carbon::parse($sched->start_time)->format('H:i');
+        }
+
+        return Carbon::parse($localIn->toDateString() . ' ' . $base, $localIn->getTimezone())
+            ->addMinutes(self::lateGraceMinutes());
+    }
+
+    /** Effective on-time cutoff (base shift start + grace) as a label, e.g. "9:35 AM". */
+    public static function lateCutoffLabel(): string
+    {
+        return Carbon::parse(self::lateCutoff())->addMinutes(self::lateGraceMinutes())->format('g:i A');
     }
 
     /**
@@ -108,10 +150,11 @@ class AttendanceRecord extends Model
             $this->total_minutes_worked = max(0, (int) round($this->clock_in->diffInMinutes($this->clock_out)) - $breakMinutes);
         }
 
-        // Late? Compare the clock-in (in the employee's timezone) to the cutoff.
+        // Late? Compare the clock-in (in the employee's timezone) to the cutoff
+        // (shift start + grace period).
         $tz = app(\App\Services\TimezoneService::class);
         $localIn = $tz->toUserTime($this->clock_in, $this->employee);
-        $cutoff = Carbon::parse($localIn->toDateString() . ' ' . self::lateCutoff(), $localIn->getTimezone());
+        $cutoff = self::lateCutoffFor($this->employee, $localIn);
 
         if ($localIn->greaterThanOrEqualTo($cutoff)) {
             $this->late_minutes = (int) max(1, round($cutoff->diffInMinutes($localIn)));

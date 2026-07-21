@@ -292,10 +292,9 @@ class ZktecoK50Service
                 $record->source = $source;
                 $record->zkteco_punch_id = $punch->id;
 
-                // Late rule: a clock-in strictly after the cutoff (default 09:30,
-                // in the employee's timezone) is late. 09:30:00 sharp = on time,
-                // 09:30:01 / 09:31 onward = late.
-                $cutoff = Carbon::parse($date . ' ' . AttendanceRecord::lateCutoff(), $userTz);
+                // Late rule: a clock-in at or after the cutoff (shift start +
+                // grace period, in the employee's timezone) is late.
+                $cutoff = AttendanceRecord::lateCutoffFor($user, $localPunch);
                 if ($localPunch->greaterThanOrEqualTo($cutoff)) {
                     $record->late_minutes = (int) max(1, round($cutoff->diffInMinutes($localPunch)));
                     $record->status = 'late';

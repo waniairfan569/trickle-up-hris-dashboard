@@ -3,12 +3,14 @@
 return [
     /*
     |--------------------------------------------------------------------------
-    | Late arrival cutoff
+    | Shift start (lateness base)
     |--------------------------------------------------------------------------
-    | An employee whose clock-in (in their own local timezone) is AT OR AFTER
-    | this time of day is marked "late". Default 09:36 — i.e. clocking in up to
-    | 09:35 is on time, 09:36 onward is late (a 6-minute grace after 09:30).
-    | Change here or via the ATTENDANCE_LATE_AFTER env value (e.g. "10:00").
+    | The on-time shift start, in the employee's local timezone, used as the
+    | base for lateness. The grace-period minutes from the Attendance Report
+    | Settings page are added on top: cutoff = shift start + grace. So with a
+    | 09:30 shift and 0 grace, 09:30 onward is late; with 5 min grace, 09:35
+    | onward is late. An employee's own work-schedule start_time (if set)
+    | overrides this base. Change here or via ATTENDANCE_LATE_AFTER (e.g. "10:00").
     */
-    'late_after' => env('ATTENDANCE_LATE_AFTER', '09:36'),
+    'late_after' => env('ATTENDANCE_LATE_AFTER', '09:30'),
 ];
