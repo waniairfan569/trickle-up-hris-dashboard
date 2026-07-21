@@ -396,25 +396,59 @@
         <div class="bg-white border border-slate-200/80 rounded-2xl shadow-sm dark:bg-slate-800 dark:border-slate-700 overflow-hidden">
             <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700"><h2 class="text-sm font-bold text-slate-800 dark:text-white">Recent Attendance</h2></div>
             <div class="overflow-x-auto">
+                @php $atts=\App\Models\AttendanceRecord::where('user_id',$employee->id)->orderByDesc('date')->limit(14)->get(); $tzSvc=app(\App\Services\TimezoneService::class); $canEditAtt=$auth->isAdmin(); $cols=$canEditAtt?6:5; @endphp
                 <table class="w-full text-left">
                     <thead class="bg-slate-50 dark:bg-slate-900/40 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100 dark:border-slate-700">
-                        <tr><th class="px-6 py-3">Date</th><th class="px-6 py-3">Clock In</th><th class="px-6 py-3">Clock Out</th><th class="px-6 py-3">Hours Worked</th><th class="px-6 py-3">Status</th></tr>
+                        <tr><th class="px-6 py-3">Date</th><th class="px-6 py-3">Clock In</th><th class="px-6 py-3">Clock Out</th><th class="px-6 py-3">Hours Worked</th><th class="px-6 py-3">Status</th>@if($canEditAtt)<th class="px-6 py-3 text-right">Edit</th>@endif</tr>
                     </thead>
-                    <tbody class="divide-y divide-slate-100 dark:divide-slate-700 text-xs">
-                        @php $atts=\App\Models\AttendanceRecord::where('user_id',$employee->id)->orderByDesc('date')->limit(14)->get(); $tzSvc=app(\App\Services\TimezoneService::class); @endphp
-                        @forelse($atts as $att)
-                            @php $as=$att->status??'present'; $asc=match($as){'present'=>'bg-emerald-50 text-emerald-700','absent'=>'bg-red-50 text-red-700','late'=>'bg-amber-50 text-amber-700',default=>'bg-slate-50 text-slate-600'}; @endphp
+                    @forelse($atts as $att)
+                        @php
+                            $as=$att->status??'present';
+                            $asc=match($as){'present'=>'bg-emerald-50 text-emerald-700','absent'=>'bg-red-50 text-red-700','late'=>'bg-amber-50 text-amber-700',default=>'bg-slate-50 text-slate-600'};
+                            $ciVal=$att->clock_in?$tzSvc->formatForUser($att->clock_in,$employee,'H:i'):'';
+                            $coVal=$att->clock_out?$tzSvc->formatForUser($att->clock_out,$employee,'H:i'):'';
+                        @endphp
+                        <tbody class="divide-y divide-slate-100 dark:divide-slate-700 text-xs" @if($canEditAtt)x-data="{ edit: false }"@endif>
                             <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-700/30">
                                 <td class="px-6 py-3 font-semibold text-slate-700 dark:text-slate-200">{{ \Carbon\Carbon::parse($att->date)->format('D, d M Y') }}</td>
                                 <td class="px-6 py-3 text-slate-600">{{ $att->clock_in?$tzSvc->formatForUser($att->clock_in,$employee,'h:i A'):'-' }}</td>
                                 <td class="px-6 py-3 text-slate-600">{{ $att->clock_out?$tzSvc->formatForUser($att->clock_out,$employee,'h:i A'):'-' }}</td>
                                 <td class="px-6 py-3 font-semibold text-slate-700 dark:text-slate-200">@if($att->clock_in&&$att->clock_out){{ floor($att->total_minutes_worked/60) }}h {{ $att->total_minutes_worked%60 }}m@else-@endif</td>
-                                <td class="px-6 py-3"><span class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold capitalize {{ $asc }}">{{ $as }}</span></td>
+                                <td class="px-6 py-3"><span class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold capitalize {{ $asc }}">{{ str_replace('_',' ',$as) }}</span></td>
+                                @if($canEditAtt)
+                                    <td class="px-6 py-3 text-right">
+                                        <button type="button" @click="edit=!edit" class="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-bold text-brand-600 hover:bg-brand-50 dark:text-brand-400 dark:hover:bg-slate-700">
+                                            <i data-lucide="pencil" class="h-3.5 w-3.5"></i> <span x-text="edit ? 'Close' : 'Edit'">Edit</span>
+                                        </button>
+                                    </td>
+                                @endif
                             </tr>
-                        @empty
-                            <tr><td colspan="5" class="px-6 py-8 text-center text-slate-400 italic">No attendance records found.</td></tr>
-                        @endforelse
-                    </tbody>
+                            @if($canEditAtt)
+                                <tr x-show="edit" x-cloak class="bg-slate-50/60 dark:bg-slate-900/30">
+                                    <td colspan="{{ $cols }}" class="px-6 py-4">
+                                        <form method="POST" action="{{ route('attendance.records.update-times', $att->id) }}" class="flex flex-wrap items-end gap-3">
+                                            @csrf @method('PUT')
+                                            <div>
+                                                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Clock in</label>
+                                                <input type="time" name="clock_in" value="{{ $ciVal }}" class="rounded-xl border border-slate-300 px-3 py-2 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                                            </div>
+                                            <div>
+                                                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Clock out</label>
+                                                <input type="time" name="clock_out" value="{{ $coVal }}" class="rounded-xl border border-slate-300 px-3 py-2 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                                            </div>
+                                            <button type="submit" class="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-4 py-2 text-sm font-bold text-slate-900 hover:bg-brand-700"><i data-lucide="check" class="h-4 w-4"></i> Save</button>
+                                            <button type="button" @click="edit=false" class="inline-flex items-center gap-1.5 rounded-xl bg-slate-100 px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-200">Cancel</button>
+                                            <span class="text-[11px] text-slate-400">{{ \Carbon\Carbon::parse($att->date)->format('D, d M Y') }} · times in {{ $employee->first_name }}'s timezone · leave Clock in blank to mark Absent</span>
+                                        </form>
+                                    </td>
+                                </tr>
+                            @endif
+                        </tbody>
+                    @empty
+                        <tbody>
+                            <tr><td colspan="{{ $cols }}" class="px-6 py-8 text-center text-slate-400 italic">No attendance records found.</td></tr>
+                        </tbody>
+                    @endforelse
                 </table>
             </div>
         </div>
