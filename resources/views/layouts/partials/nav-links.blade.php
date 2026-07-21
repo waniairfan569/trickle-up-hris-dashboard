@@ -133,6 +133,12 @@
         <span>My Policies</span>
     </a>
 
+    <a href="{{ route('equipment.index') }}"
+       class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ request()->routeIs('equipment.index') ? 'bg-brand-600 text-slate-900 shadow-md shadow-brand-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
+        <i data-lucide="package" class="h-4 w-4 shrink-0 transition {{ request()->routeIs('equipment.index') ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>
+        <span>Equipment</span>
+    </a>
+
     @php $docLibActive = Str::startsWith($routeName, 'document-library') || Str::startsWith($routeName, 'documents.'); @endphp
     <a href="{{ route('document-library.index') }}"
        class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ $docLibActive ? 'bg-brand-600 text-slate-900 shadow-md shadow-brand-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
@@ -299,6 +305,14 @@
         <i data-lucide="key-round" class="h-4 w-4 shrink-0 transition {{ Str::startsWith($routeName, 'code-requests.pending') ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>
         <span class="flex-1">Code Requests</span>
         @if($pendingCodes > 0)<span class="inline-flex items-center justify-center rounded-full bg-rose-500 text-white text-[10px] font-bold h-5 min-w-5 px-1">{{ $pendingCodes }}</span>@endif
+    </a>
+
+    @php $pendingEquipment = \App\Models\EquipmentRequest::where('status', 'pending')->count(); @endphp
+    <a href="{{ route('equipment.admin') }}"
+       class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ request()->routeIs('equipment.admin') ? 'bg-brand-600 text-slate-900 shadow-md shadow-brand-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
+        <i data-lucide="package" class="h-4 w-4 shrink-0 transition {{ request()->routeIs('equipment.admin') ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>
+        <span class="flex-1">Equipment Requests</span>
+        @if($pendingEquipment > 0)<span class="inline-flex items-center justify-center rounded-full bg-rose-500 text-white text-[10px] font-bold h-5 min-w-5 px-1">{{ $pendingEquipment }}</span>@endif
     </a>
 </div>
 @endrole

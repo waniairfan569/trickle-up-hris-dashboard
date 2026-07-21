@@ -100,6 +100,15 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
         Route::post('admin/code-requests/{codeRequest}/reject', [\App\Http\Controllers\CodeRequestController::class, 'rejectCode'])->name('code-requests.reject');
     });
 
+    // Equipment Requests — employee asks to take company equipment home.
+    Route::get('equipment', [\App\Http\Controllers\EquipmentRequestController::class, 'index'])->name('equipment.index');
+    Route::post('equipment', [\App\Http\Controllers\EquipmentRequestController::class, 'store'])->name('equipment.store');
+    Route::middleware('role:super_admin,hr_admin')->group(function () {
+        Route::get('admin/equipment', [\App\Http\Controllers\EquipmentRequestController::class, 'adminIndex'])->name('equipment.admin');
+        Route::post('admin/equipment/{equipmentRequest}/approve', [\App\Http\Controllers\EquipmentRequestController::class, 'approve'])->name('equipment.approve');
+        Route::post('admin/equipment/{equipmentRequest}/reject', [\App\Http\Controllers\EquipmentRequestController::class, 'reject'])->name('equipment.reject');
+    });
+
     // Org Chart — visual reporting hierarchy (all authenticated users)
     Route::get('org-chart', [EmployeeController::class, 'orgChart'])->name('org-chart');
 
