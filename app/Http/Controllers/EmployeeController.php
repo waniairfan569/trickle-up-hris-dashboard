@@ -159,9 +159,31 @@ class EmployeeController extends Controller
 
         $ids = $users->pluck('id')->all();
         $byManager = $users->groupBy('manager_id');
+        $userMap = $users->keyBy('id');
+
+        // Dotted-line ("also reports to") managers per employee — the additional
+        // managers beyond the primary manager_id. Names only, active set only.
+        $alsoReportsTo = [];
+        \Illuminate\Support\Facades\DB::table('employee_manager')
+            ->whereIn('user_id', $ids)
+            ->get(['user_id', 'manager_id'])
+            ->groupBy('user_id')
+            ->each(function ($rows, $uid) use (&$alsoReportsTo, $userMap) {
+                $primary = (int) optional($userMap->get($uid))->manager_id;
+                $names = $rows->pluck('manager_id')
+                    ->map(fn ($mid) => (int) $mid)
+                    ->reject(fn ($mid) => $mid === $primary)          // primary is the solid-line parent
+                    ->map(fn ($mid) => $userMap->get($mid))
+                    ->filter()                                        // active managers only
+                    ->map(fn ($m) => trim($m->first_name . ' ' . $m->last_name))
+                    ->filter()->unique()->values()->all();
+                if (!empty($names)) {
+                    $alsoReportsTo[$uid] = $names;
+                }
+            });
 
         // Build a nested tree (id, name, title, dept, location, avatar, initials, children).
-        $build = function ($u) use (&$build, $byManager) {
+        $build = function ($u) use (&$build, $byManager, $alsoReportsTo) {
             $children = $byManager->get($u->id, collect());
 
             return [
@@ -172,6 +194,7 @@ class EmployeeController extends Controller
                 'location' => trim(implode(', ', array_filter([$u->city, $u->country]))) ?: null,
                 'avatar' => $u->avatar_url,
                 'initials' => $u->initials,
+                'also_reports_to' => $alsoReportsTo[$u->id] ?? [],
                 'count' => $children->count(),
                 'children' => $children->sortBy('last_name')->map($build)->values()->all(),
             ];

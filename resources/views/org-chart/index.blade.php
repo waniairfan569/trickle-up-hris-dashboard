@@ -35,6 +35,10 @@
     .org-count { position:absolute; bottom:-13px; left:50%; transform:translateX(-50%); min-width:26px; height:26px; padding:0 8px; display:inline-flex; align-items:center; justify-content:center; border-radius:9999px; font-size:12px; font-weight:700; cursor:pointer; border:none; z-index:1; }
     .org-count.open { background:#0f172a; color:#fff; }
     .org-count.closed { background:#e2e8f0; color:#475569; }
+    .org-also { margin-top:8px; padding-top:7px; border-top:1px dashed #cbd5e1; font-size:11px; color:#64748b; line-height:1.45; }
+    .dark .org-also { border-color:#475569; color:#94a3b8; }
+    .org-also-label { display:inline-flex; align-items:center; gap:3px; font-weight:700; color:#6366f1; text-transform:uppercase; letter-spacing:.03em; font-size:9.5px; margin-right:4px; }
+    .dark .org-also-label { color:#a5b4fc; }
 </style>
 
 <div x-data="{ zoom: 0.85 }" class="space-y-4">

@@ -15,6 +15,13 @@
         @if(!empty($node['dept']))<div class="org-line">{{ $node['dept'] }}</div>@endif
         @if(!empty($node['location']))<div class="org-line">{{ $node['location'] }}</div>@endif
 
+        @if(!empty($node['also_reports_to']))
+            <div class="org-also" title="Additional (dotted-line) managers">
+                <span class="org-also-label"><i data-lucide="git-branch" class="h-3 w-3"></i> Also reports to</span>
+                {{ implode(', ', $node['also_reports_to']) }}
+            </div>
+        @endif
+
         @if($node['count'] > 0)
             <button type="button" @click="open = !open" class="org-count" :class="open ? 'open' : 'closed'" title="Collapse / expand team">
                 {{ $node['count'] }}
