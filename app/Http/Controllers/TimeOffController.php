@@ -92,16 +92,15 @@ class TimeOffController extends Controller
     }
 
     /**
-     * Mark each full-day-leave day as "on leave" in attendance (so a day the
-     * employee didn't clock in reads as On Leave, not Absent). Days they
-     * actually clocked in are left untouched; half-day / hourly leave is skipped.
+     * Mark each leave day as "on leave" in attendance (so a day the employee
+     * didn't clock in reads as On Leave, not Absent). Applies to every leave
+     * type — full-day, half-day and hourly — because approved leave should
+     * never show as an absence. Days they actually clocked in are left
+     * untouched (half-day / hourly people who worked their other hours stay
+     * Present).
      */
     private function applyLeaveToAttendance(TimeOffRequest $request): void
     {
-        if ($request->duration_type === 'hourly' || $request->is_half_day) {
-            return;
-        }
-
         $end = Carbon::parse($request->end_date)->startOfDay();
         for ($d = Carbon::parse($request->start_date)->startOfDay(); $d->lte($end); $d->addDay()) {
             try {
@@ -120,10 +119,6 @@ class TimeOffController extends Controller
     /** Undo the on-leave marking when an approved leave is cancelled. */
     private function revertLeaveFromAttendance(TimeOffRequest $request): void
     {
-        if ($request->duration_type === 'hourly' || $request->is_half_day) {
-            return;
-        }
-
         $end = Carbon::parse($request->end_date)->startOfDay();
         for ($d = Carbon::parse($request->start_date)->startOfDay(); $d->lte($end); $d->addDay()) {
             $record = \App\Models\AttendanceRecord::where('user_id', $request->user_id)
