@@ -307,10 +307,12 @@ class AttendanceService
 
     public function generateDailyRecords(Carbon $date): void
     {
-        // Real employees only — never generate attendance for system/owner accounts.
+        // Real employees only — never generate attendance for system/owner
+        // accounts, nor for anyone an admin has hidden from attendance.
         $realEmployeeIds = \App\Models\Employee::where('is_system', false)->pluck('user_id')->filter();
         $users = User::where('status', 'active')
             ->whereIn('id', $realEmployeeIds->all())
+            ->where('exclude_from_attendance', false)
             ->get();
 
         foreach ($users as $user) {

@@ -48,8 +48,9 @@ class AttendanceReportService
         }
 
         // Only real employees are expected to attend — system/owner accounts
-        // are never counted absent.
-        $employeeUserIds = \App\Models\Employee::real()->pluck('user_id')->filter();
+        // are never counted absent, and anyone hidden from attendance is skipped.
+        $employeeUserIds = \App\Models\Employee::real()->pluck('user_id')->filter()
+            ->diff(User::attendanceHiddenIds());
 
         $records = $query->get()->filter(fn ($r) => $employeeUserIds->contains($r->user_id))->values();
 

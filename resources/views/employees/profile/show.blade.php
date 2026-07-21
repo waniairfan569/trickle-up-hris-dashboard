@@ -362,6 +362,35 @@
                     <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-bold text-slate-900 hover:bg-brand-700"><i data-lucide="check" class="h-4 w-4"></i> Save</button>
                 </form>
             </div>
+
+            {{-- Hide from attendance sheets & reports --}}
+            @php $isHidden = (bool) ($employee->exclude_from_attendance ?? false); @endphp
+            <form method="POST" action="{{ route('employees.update-attendance-visibility', $employee->id) }}"
+                  class="bg-white border {{ $isHidden ? 'border-amber-300 dark:border-amber-500/40' : 'border-slate-200/80 dark:border-slate-700' }} rounded-2xl shadow-sm dark:bg-slate-800 overflow-hidden">
+                @csrf
+                @method('PUT')
+                <input type="hidden" name="exclude_from_attendance" value="{{ $isHidden ? '0' : '1' }}">
+                <div class="flex items-start gap-4 px-6 py-5">
+                    <span class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl {{ $isHidden ? 'bg-amber-50 text-amber-600 dark:bg-amber-500/10' : 'bg-slate-100 text-slate-500 dark:bg-slate-700' }}">
+                        <i data-lucide="{{ $isHidden ? 'eye-off' : 'eye' }}" class="h-5 w-5"></i>
+                    </span>
+                    <div class="flex-1 min-w-0">
+                        <h2 class="text-sm font-bold text-slate-800 dark:text-white">Hide from attendance sheets</h2>
+                        <p class="text-xs text-slate-400 mt-0.5 max-w-xl">
+                            When hidden, {{ $employee->first_name }} won't appear on the live board, team history, reports or the daily email — not as present, not as absent, nothing. No daily attendance records are generated for them.
+                        </p>
+                        @if($isHidden)
+                            <span class="inline-flex items-center gap-1 mt-2 rounded-full bg-amber-50 px-2.5 py-0.5 text-[11px] font-bold text-amber-700 dark:bg-amber-500/10 dark:text-amber-400">
+                                <i data-lucide="eye-off" class="h-3 w-3"></i> Currently hidden from attendance
+                            </span>
+                        @endif
+                    </div>
+                    <button type="submit" class="inline-flex flex-shrink-0 items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-bold {{ $isHidden ? 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-200' : 'bg-amber-500 text-slate-900 hover:bg-amber-600' }}">
+                        <i data-lucide="{{ $isHidden ? 'eye' : 'eye-off' }}" class="h-4 w-4"></i>
+                        {{ $isHidden ? 'Show on sheets' : 'Hide from sheets' }}
+                    </button>
+                </div>
+            </form>
         @endif
 
         <div class="bg-white border border-slate-200/80 rounded-2xl shadow-sm dark:bg-slate-800 dark:border-slate-700 overflow-hidden">

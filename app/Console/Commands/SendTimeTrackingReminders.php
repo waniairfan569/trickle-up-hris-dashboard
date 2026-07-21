@@ -27,7 +27,9 @@ class SendTimeTrackingReminders extends Command
         $policies = TimeTrackingPolicy::with(['entities', 'departments'])->get();
 
         foreach ($policies as $policy) {
-            $employees = $policy->scopedEmployeesQuery()->with('workSchedule')->get();
+            $employees = $policy->scopedEmployeesQuery()
+                ->where('exclude_from_attendance', false)
+                ->with('workSchedule')->get();
 
             if ($policy->reminders_frequency === 'custom') {
                 foreach (($policy->custom_reminder_times ?? []) as $r) {

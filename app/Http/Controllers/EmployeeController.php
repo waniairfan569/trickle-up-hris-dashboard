@@ -530,6 +530,27 @@ class EmployeeController extends Controller
         return back()->with('success', $employee->full_name . "'s attendance mode set to {$label}.");
     }
 
+    /**
+     * Hide (or unhide) an employee from every attendance sheet & report. When
+     * hidden, no daily absent/present record is generated for them and they
+     * don't appear on the live board, team history, reports, or daily email.
+     */
+    public function updateAttendanceVisibility(Request $request, User $employee)
+    {
+        $auth = $request->user();
+        abort_unless($auth && $auth->isAdmin(), 403, 'Only an admin can change attendance visibility.');
+
+        $hidden = $request->boolean('exclude_from_attendance');
+        $employee->update(['exclude_from_attendance' => $hidden]);
+
+        return back()->with(
+            'success',
+            $hidden
+                ? $employee->full_name . ' is now hidden from attendance sheets and reports.'
+                : $employee->full_name . ' will now appear on attendance sheets again.'
+        );
+    }
+
     /** Bulk "Attendance Mode" page: pick many employees and set them at once. */
     public function attendanceMode(Request $request)
     {

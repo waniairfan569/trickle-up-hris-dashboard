@@ -26,6 +26,7 @@ class ReportsController extends Controller
         }
 
         $users = User::where('account_status', 'active')
+            ->where('exclude_from_attendance', false)
             ->with(['department:id,name', 'workSchedule'])
             ->when($request->filled('department'), fn ($q) => $q->where('department_id', $request->integer('department')))
             ->when($request->filled('employee'), fn ($q) => $q->where('id', $request->integer('employee')))

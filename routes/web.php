@@ -147,6 +147,10 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
     Route::put('employees/{employee}/attendance-mode', [EmployeeController::class, 'updateAttendanceMode'])
         ->middleware(['role:super_admin,hr_admin'])
         ->name('employees.update-attendance-mode');
+    // Hide / show an employee on all attendance sheets & reports — admins.
+    Route::put('employees/{employee}/attendance-visibility', [EmployeeController::class, 'updateAttendanceVisibility'])
+        ->middleware(['role:super_admin,hr_admin'])
+        ->name('employees.update-attendance-visibility');
     // Bulk attendance-mode page — pick many employees, set them together.
     Route::get('attendance-mode', [EmployeeController::class, 'attendanceMode'])
         ->middleware(['role:super_admin,hr_admin'])

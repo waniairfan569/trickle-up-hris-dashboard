@@ -20,7 +20,9 @@ class SendDailyClockSummary extends Command
         $date = $this->option('date') ? Carbon::parse($this->option('date')) : now()->startOfDay();
         $dry = (bool) $this->option('dry');
 
-        $employees = User::where('account_status', 'active')->with('workSchedule')->get();
+        $employees = User::where('account_status', 'active')
+            ->where('exclude_from_attendance', false)
+            ->with('workSchedule')->get();
         $records = AttendanceRecord::forDate($date->copy())->get()->keyBy('user_id');
 
         $rows = [];

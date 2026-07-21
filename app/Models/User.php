@@ -53,6 +53,7 @@ class User extends Authenticatable
         'account_status', 'invitation_token', 'invitation_token_hash',
         'invitation_sent_at', 'invitation_expires_at', 'invitation_accepted_at',
         'must_change_password', 'invited_by', 'attendance_mode', 'is_operator',
+        'exclude_from_attendance',
     ];
 
     protected $casts = [
@@ -74,12 +75,23 @@ class User extends Authenticatable
         'use_custom_timezone' => 'boolean',
         'forms_last_seen_at' => 'datetime',
         'is_operator' => 'boolean',
+        'exclude_from_attendance' => 'boolean',
     ];
 
     /** SaaS platform operator (can manage all tenants). */
     public function isOperator(): bool
     {
         return (bool) $this->is_operator;
+    }
+
+    /**
+     * user_ids hidden from every attendance sheet / report. Attendance code is
+     * keyed by user_id, so this is the single source of truth for "don't show
+     * this person on any attendance surface". Tenant-scoped automatically.
+     */
+    public static function attendanceHiddenIds(): \Illuminate\Support\Collection
+    {
+        return static::where('exclude_from_attendance', true)->pluck('id');
     }
 
     protected $hidden = ['password', 'remember_token', 'salary'];

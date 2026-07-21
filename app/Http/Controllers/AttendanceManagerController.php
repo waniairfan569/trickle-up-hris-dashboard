@@ -24,8 +24,10 @@ class AttendanceManagerController extends Controller
     {
         $user = $request->user();
         
-        // Only real employees — exclude system/owner accounts.
-        $employeeUserIds = \App\Models\Employee::real()->pluck('user_id')->filter();
+        // Only real employees — exclude system/owner accounts and anyone an
+        // admin has hidden from attendance.
+        $employeeUserIds = \App\Models\Employee::real()->pluck('user_id')->filter()
+            ->diff(User::attendanceHiddenIds());
 
         $query = AttendanceRecord::with('employee.department')
             ->whereDate('date', Carbon::today())
@@ -179,7 +181,9 @@ class AttendanceManagerController extends Controller
         $date = $validated['date'];
         $overwrite = $request->boolean('overwrite');
 
-        $users = User::where('account_status', '!=', 'deactivated')->get();
+        $users = User::where('account_status', '!=', 'deactivated')
+            ->where('exclude_from_attendance', false)
+            ->get();
         $created = 0; $updated = 0; $skipped = 0; $onLeave = 0;
 
         foreach ($users as $user) {
@@ -245,8 +249,9 @@ class AttendanceManagerController extends Controller
     public function teamHistory(Request $request)
     {
         $user = $request->user();
-        
-        $query = AttendanceRecord::with('employee.department');
+
+        $query = AttendanceRecord::with('employee.department')
+            ->whereNotIn('user_id', User::attendanceHiddenIds());
 
         if (!$user->isAdmin()) {
             $query->forTeam($user);
@@ -273,8 +278,9 @@ class AttendanceManagerController extends Controller
         $records = $query->orderBy('date', 'desc')->paginate(30);
         $departments = Department::all();
 
-        // For employee dropdown filter
-        $teamMembers = $user->isAdmin() ? User::all() : User::where('manager_id', $user->id)->get();
+        // For employee dropdown filter (hidden-from-attendance people excluded)
+        $teamMembers = ($user->isAdmin() ? User::query() : User::where('manager_id', $user->id))
+            ->where('exclude_from_attendance', false)->get();
         $onLeavePeople = $this->onLeavePeople($user);
 
         return view('attendance.team-history', compact('records', 'departments', 'teamMembers', 'onLeavePeople'));
@@ -286,7 +292,8 @@ class AttendanceManagerController extends Controller
         $user = $request->user();
         abort_unless($user && ($user->isAdmin() || $user->isManager()), 403);
 
-        $query = AttendanceRecord::with('employee.department');
+        $query = AttendanceRecord::with('employee.department')
+            ->whereNotIn('user_id', User::attendanceHiddenIds());
         if (!$user->isAdmin()) {
             $query->forTeam($user);
         }

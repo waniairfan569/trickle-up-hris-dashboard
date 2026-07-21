@@ -21,7 +21,10 @@ class SyncLatenessDeductions extends Command
             : Carbon::today();
 
         $userIds = Employee::real()->pluck('user_id')->filter();
-        $users = User::whereIn('id', $userIds->all())->where('account_status', '!=', 'deactivated')->get();
+        $users = User::whereIn('id', $userIds->all())
+            ->where('account_status', '!=', 'deactivated')
+            ->where('exclude_from_attendance', false)
+            ->get();
 
         $this->info("Syncing lateness deductions for {$date->format('F Y')} ({$users->count()} employees)...");
         foreach ($users as $user) {
