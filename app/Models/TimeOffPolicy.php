@@ -30,6 +30,7 @@ class TimeOffPolicy extends Model
         'allow_negative_balance',
         'is_paid',
         'is_active',
+        'auto_assign_to_new_employees',
     ];
 
     protected $casts = [
@@ -43,6 +44,7 @@ class TimeOffPolicy extends Model
         'allow_negative_balance' => 'boolean',
         'is_paid' => 'boolean',
         'is_active' => 'boolean',
+        'auto_assign_to_new_employees' => 'boolean',
     ];
 
     public function entity()
@@ -68,6 +70,12 @@ class TimeOffPolicy extends Model
     public function scopeActive($query)
     {
         return $query->where('is_active', true);
+    }
+
+    /** Active policies flagged to auto-assign to every new employee. */
+    public function scopeAutoAssignable($query)
+    {
+        return $query->where('is_active', true)->where('auto_assign_to_new_employees', true);
     }
 
     public function scopeByType($query, $type)

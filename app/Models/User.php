@@ -31,6 +31,15 @@ class User extends Authenticatable
                     'notes' => 'Auto-assigned default shift on employee creation'
                 ]);
             }
+
+            // Auto-assign the default time-off policies (leaves) + seed balances
+            // so a new employee has their leave allowances from day one.
+            try {
+                app(\App\Services\TimeOffBalanceService::class)
+                    ->assignDefaultPolicies($user, auth()->id());
+            } catch (\Throwable $e) {
+                report($e); // never let policy assignment block user creation
+            }
         });
     }
 

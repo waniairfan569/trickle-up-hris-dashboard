@@ -159,6 +159,10 @@
                         <input type="checkbox" name="is_active" value="1" {{ old('is_active', $timeOffPolicy->is_active) ? 'checked' : '' }} class="rounded border-slate-300 text-emerald-600 shadow-sm focus:ring-emerald-500 dark:border-slate-600 dark:bg-slate-900 dark:checked:bg-emerald-500">
                         <span class="ml-2 text-sm font-bold text-slate-700 dark:text-slate-300">Policy is Active</span>
                     </label>
+                    <label class="flex items-center">
+                        <input type="checkbox" name="auto_assign_to_new_employees" value="1" {{ old('auto_assign_to_new_employees', $timeOffPolicy->auto_assign_to_new_employees) ? 'checked' : '' }} class="rounded border-slate-300 text-emerald-600 shadow-sm focus:ring-emerald-500 dark:border-slate-600 dark:bg-slate-900 dark:checked:bg-emerald-500">
+                        <span class="ml-2 text-sm font-bold text-slate-700 dark:text-slate-300">Auto-assign to new employees</span>
+                    </label>
                 </div>
             </div>
         </div>

@@ -11,6 +11,40 @@ use Illuminate\Support\Facades\DB;
 class TimeOffBalanceService
 {
     /**
+     * Assign every auto-assignable time-off policy to a (new) employee and seed
+     * their balance for the current year. Idempotent — safe to call more than
+     * once. Scoped to the employee's own tenant so nothing leaks across
+     * agencies when run outside a web request (e.g. console/seed).
+     */
+    public function assignDefaultPolicies(User $user, ?int $assignedBy = null): void
+    {
+        // autoAssignable() keeps soft-deletes excluded; the explicit tenant
+        // filter scopes correctly even in console context (TenantScope is a
+        // no-op when no current tenant is set).
+        $policies = TimeOffPolicy::autoAssignable()
+            ->when($user->tenant_id, fn ($q) => $q->where('tenant_id', $user->tenant_id))
+            ->get();
+
+        if ($policies->isEmpty()) {
+            return;
+        }
+
+        $year = Carbon::now()->year;
+
+        foreach ($policies as $policy) {
+            $policy->employees()->syncWithoutDetaching([
+                $user->id => [
+                    'assigned_by' => $assignedBy,
+                    'assigned_at' => now(),
+                    'effective_from' => now(),
+                ],
+            ]);
+
+            $this->getOrCreateBalance($user, $policy, $year);
+        }
+    }
+
+    /**
      * Get or create a balance record for a user, policy, and year.
      * If the policy has no accrual, it grants the full balance upfront.
      */

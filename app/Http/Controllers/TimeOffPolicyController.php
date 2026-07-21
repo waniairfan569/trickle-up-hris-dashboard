@@ -46,6 +46,7 @@ class TimeOffPolicyController extends Controller
             'allow_negative_balance' => 'boolean',
             'is_paid' => 'boolean',
             'is_active' => 'boolean',
+            'auto_assign_to_new_employees' => 'boolean',
         ]);
 
         // Fix boolean casts from checkboxes
@@ -55,6 +56,7 @@ class TimeOffPolicyController extends Controller
         $validated['allow_negative_balance'] = $request->has('allow_negative_balance');
         $validated['is_paid'] = $request->has('is_paid');
         $validated['is_active'] = $request->has('is_active');
+        $validated['auto_assign_to_new_employees'] = $request->has('auto_assign_to_new_employees');
 
         if (!$validated['carry_over']) {
             $validated['carry_over_max'] = null;
@@ -88,6 +90,7 @@ class TimeOffPolicyController extends Controller
             'allow_negative_balance' => 'boolean',
             'is_paid' => 'boolean',
             'is_active' => 'boolean',
+            'auto_assign_to_new_employees' => 'boolean',
         ]);
 
         $validated['carry_over'] = $request->has('carry_over');
@@ -96,6 +99,7 @@ class TimeOffPolicyController extends Controller
         $validated['allow_negative_balance'] = $request->has('allow_negative_balance');
         $validated['is_paid'] = $request->has('is_paid');
         $validated['is_active'] = $request->has('is_active');
+        $validated['auto_assign_to_new_employees'] = $request->has('auto_assign_to_new_employees');
 
         if (!$validated['carry_over']) {
             $validated['carry_over_max'] = null;
