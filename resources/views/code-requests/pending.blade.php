@@ -32,13 +32,28 @@
                 <div class="mt-4 flex flex-col sm:flex-row gap-2">
                     <input type="text" x-model="code" placeholder="Paste the code here" class="flex-1 rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm font-mono font-bold dark:bg-slate-900 dark:border-slate-600 dark:text-white">
                     <input type="text" x-model="note" placeholder="Note (e.g. Valid 10 min)" class="sm:w-44 rounded-xl border border-slate-300 px-3 py-2.5 text-xs dark:bg-slate-900 dark:border-slate-600 dark:text-white">
-                    <button type="button" @click="send()" :disabled="sending"
+                    <button type="button" @click="send()" :disabled="sending || rejecting"
                             class="inline-flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-emerald-700 disabled:opacity-50">
                         <i data-lucide="send" class="h-4 w-4"></i><span x-text="sending ? 'Sending…' : 'Send'"></span>
                     </button>
+                    <button type="button" @click="showReject = !showReject" :disabled="sending || rejecting"
+                            class="inline-flex items-center justify-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-bold text-rose-700 hover:bg-rose-100 disabled:opacity-50 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-400">
+                        <i data-lucide="x" class="h-4 w-4"></i> Decline
+                    </button>
                 </div>
+
+                {{-- Decline reason (revealed) --}}
+                <div x-show="showReject" x-cloak x-transition class="mt-2 flex flex-col sm:flex-row gap-2">
+                    <input type="text" x-model="reason" placeholder="Reason (optional — shown to the employee)"
+                           class="flex-1 rounded-xl border border-rose-200 px-3.5 py-2.5 text-xs dark:bg-slate-900 dark:border-rose-500/30 dark:text-white">
+                    <button type="button" @click="reject()" :disabled="rejecting"
+                            class="inline-flex items-center justify-center gap-1.5 rounded-xl bg-rose-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-rose-700 disabled:opacity-50">
+                        <i data-lucide="ban" class="h-4 w-4"></i><span x-text="rejecting ? 'Declining…' : 'Confirm decline'"></span>
+                    </button>
+                </div>
+
                 <p x-show="error" x-cloak class="text-xs text-rose-600 mt-2" x-text="error"></p>
-                <div x-show="done" x-cloak class="text-sm font-bold text-emerald-700 mt-2" x-text="'✅ ' + doneMsg"></div>
+                <div x-show="done" x-cloak class="text-sm font-bold mt-2" :class="rejected ? 'text-rose-700' : 'text-emerald-700'" x-text="(rejected ? '🚫 ' : '✅ ') + doneMsg"></div>
             </div>
         @empty
             <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm py-14 text-center dark:bg-slate-800 dark:border-slate-700">
@@ -67,12 +82,34 @@
             </div>
         </div>
     @endif
+
+    {{-- Declined (collapsible) --}}
+    @if(($rejected ?? collect())->count())
+        <div x-data="{ open: false }" class="bg-white rounded-2xl border border-slate-200/80 shadow-sm dark:bg-slate-800 dark:border-slate-700">
+            <button type="button" @click="open = !open" class="w-full flex items-center justify-between px-5 py-3 text-sm font-bold text-slate-700 dark:text-slate-200">
+                <span class="inline-flex items-center gap-1.5"><i data-lucide="ban" class="h-4 w-4 text-rose-500"></i> Recently declined ({{ $rejected->count() }})</span>
+                <i data-lucide="chevron-down" class="h-4 w-4 transition-transform" :class="open ? 'rotate-180' : ''"></i>
+            </button>
+            <div x-show="open" x-cloak class="divide-y divide-slate-100 dark:divide-slate-700/60 border-t border-slate-100 dark:border-slate-700/60">
+                @foreach($rejected as $req)
+                    <div class="px-5 py-2.5 text-xs">
+                        <div class="flex items-center justify-between gap-3">
+                            <span class="font-bold text-slate-700 dark:text-slate-200">{{ optional($req->employee)->full_name ?? 'Employee' }} · {{ $req->tool_name }}</span>
+                            <span class="text-slate-400">{{ $req->updated_at->diffForHumans() }} · by {{ optional($req->responder)->full_name ?? 'HR' }}</span>
+                        </div>
+                        @if($req->rejection_reason)<p class="text-slate-500 dark:text-slate-400 mt-0.5 italic">Reason: {{ $req->rejection_reason }}</p>@endif
+                    </div>
+                @endforeach
+            </div>
+        </div>
+    @endif
 </div>
 
 <script>
     function codeCard(id) {
         return {
-            code: '', note: '', sending: false, done: false, doneMsg: '', error: '',
+            code: '', note: '', reason: '', sending: false, rejecting: false,
+            showReject: false, done: false, rejected: false, doneMsg: '', error: '',
             send() {
                 if (!this.code.trim()) { this.error = 'Enter the code first.'; return; }
                 this.sending = true; this.error = '';
@@ -84,6 +121,17 @@
                 .then(r => r.json())
                 .then(d => { this.sending = false; if (d.success) { this.doneMsg = d.message || 'Sent.'; this.done = true; } else { this.error = d.message || 'Could not send.'; } })
                 .catch(() => { this.sending = false; this.error = 'Network error. Try again.'; });
+            },
+            reject() {
+                this.rejecting = true; this.error = '';
+                fetch('{{ url('admin/code-requests') }}/' + id + '/reject', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
+                    body: JSON.stringify({ rejection_reason: this.reason })
+                })
+                .then(r => r.json())
+                .then(d => { this.rejecting = false; if (d.success) { this.rejected = true; this.doneMsg = d.message || 'Declined.'; this.done = true; } else { this.error = d.message || 'Could not decline.'; } })
+                .catch(() => { this.rejecting = false; this.error = 'Network error. Try again.'; });
             }
         }
     }

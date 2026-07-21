@@ -97,6 +97,7 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
     Route::middleware('role:super_admin,hr_admin')->group(function () {
         Route::get('admin/code-requests', [\App\Http\Controllers\CodeRequestController::class, 'pendingCodes'])->name('code-requests.pending');
         Route::post('admin/code-requests/{codeRequest}/send', [\App\Http\Controllers\CodeRequestController::class, 'sendCode'])->name('code-requests.send');
+        Route::post('admin/code-requests/{codeRequest}/reject', [\App\Http\Controllers\CodeRequestController::class, 'rejectCode'])->name('code-requests.reject');
     });
 
     // Org Chart — visual reporting hierarchy (all authenticated users)

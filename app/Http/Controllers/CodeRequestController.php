@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\CodeRequest;
 use App\Models\User;
 use App\Notifications\CodeProvidedNotification;
+use App\Notifications\CodeRejectedNotification;
 use App\Notifications\CodeRequestedNotification;
 use Illuminate\Http\Request;
 
@@ -73,8 +74,13 @@ class CodeRequestController extends Controller
             ->latest('code_sent_at')
             ->take(30)
             ->get();
+        $rejected = CodeRequest::where('status', 'rejected')
+            ->with(['employee', 'responder'])
+            ->latest('updated_at')
+            ->take(30)
+            ->get();
 
-        return view('code-requests.pending', compact('pending', 'resolved'));
+        return view('code-requests.pending', compact('pending', 'resolved', 'rejected'));
     }
 
     /** AJAX: HR sends the code back to the employee. */
@@ -106,6 +112,35 @@ class CodeRequestController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Sent to ' . (optional($codeRequest->employee)->full_name ?? 'employee') . '.',
+        ]);
+    }
+
+    /** AJAX: HR declines the request (optionally with a reason). */
+    public function rejectCode(Request $request, CodeRequest $codeRequest)
+    {
+        abort_unless($request->user() && $request->user()->isAdmin(), 403);
+
+        $validated = $request->validate([
+            'rejection_reason' => 'nullable|string|max:255',
+        ]);
+
+        $codeRequest->update([
+            'status' => 'rejected',
+            'rejection_reason' => trim((string) ($validated['rejection_reason'] ?? '')) ?: null,
+            'responded_by' => $request->user()->id,
+        ]);
+
+        if ($codeRequest->employee) {
+            try {
+                $codeRequest->employee->notify(new CodeRejectedNotification($codeRequest));
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Declined ' . (optional($codeRequest->employee)->full_name ?? 'the request') . '.',
         ]);
     }
 }

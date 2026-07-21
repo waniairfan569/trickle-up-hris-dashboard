@@ -22,6 +22,7 @@ class CodeRequest extends Model
         'code_provided',
         'code_sent_at',
         'code_expires_note',
+        'rejection_reason',
         'responded_by',
     ];
 

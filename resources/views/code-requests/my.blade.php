@@ -24,10 +24,19 @@
                     </div>
                     @if($req->status === 'code_sent')
                         <span class="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-bold text-emerald-700 dark:bg-emerald-500/10 shrink-0">✅ Received</span>
+                    @elseif($req->status === 'rejected')
+                        <span class="inline-flex items-center rounded-full bg-rose-50 px-2.5 py-0.5 text-xs font-bold text-rose-700 dark:bg-rose-500/10 shrink-0">🚫 Declined</span>
                     @else
                         <span class="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-bold text-amber-700 dark:bg-amber-500/10 shrink-0">⏳ Pending</span>
                     @endif
                 </div>
+
+                @if($req->status === 'rejected')
+                    <div class="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-3 dark:border-rose-500/30 dark:bg-rose-500/10">
+                        <p class="text-xs font-bold text-rose-700 dark:text-rose-400">This request was declined by HR.</p>
+                        @if($req->rejection_reason)<p class="text-xs text-rose-600 dark:text-rose-300 mt-1">Reason: {{ $req->rejection_reason }}</p>@endif
+                    </div>
+                @endif
 
                 @if($req->status === 'code_sent')
                     <div class="mt-4 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 p-4 text-center dark:border-slate-600 dark:bg-slate-900/40">
