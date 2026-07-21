@@ -167,10 +167,13 @@
             <tbody class="bg-white divide-y divide-slate-200 dark:bg-slate-800 dark:divide-slate-700">
                 @forelse($myRequests as $request)
                     <tr>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900 dark:text-white">
-                            {{ $request->policy->name }}
+                        <td class="px-6 py-4 text-sm font-medium text-slate-900 dark:text-white align-top">
+                            <div>{{ $request->policy->name }}</div>
+                            @if($request->reason)
+                                <div class="text-xs font-normal text-slate-500 italic mt-1 max-w-[240px] line-clamp-2 dark:text-slate-400" title="{{ $request->reason }}">“{{ $request->reason }}”</div>
+                            @endif
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400 align-top">
                             {{ $request->start_date->format('M d, Y') }}@if($request->start_date != $request->end_date) - {{ $request->end_date->format('M d, Y') }}@endif
                             @if($request->duration_type === 'hourly')
                                 <span class="text-xs bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-md ml-2 dark:bg-indigo-500/10 dark:text-indigo-300">{{ $request->time_range }}</span>
@@ -319,11 +322,14 @@
             <tbody class="bg-white divide-y divide-slate-200 dark:bg-slate-800 dark:divide-slate-700">
                 @forelse($allRequests as $request)
                     <tr>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900 dark:text-white">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900 dark:text-white align-top">
                             {{ $request->employee->first_name }} {{ $request->employee->last_name }}
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">
-                            {{ $request->policy->name }}
+                        <td class="px-6 py-4 text-sm text-slate-500 dark:text-slate-400 align-top">
+                            <div class="font-medium text-slate-700 dark:text-slate-300">{{ $request->policy->name }}</div>
+                            @if($request->reason)
+                                <div class="text-xs text-slate-500 italic mt-1 max-w-[240px] line-clamp-2 dark:text-slate-400" title="{{ $request->reason }}">“{{ $request->reason }}”</div>
+                            @endif
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">
                             {{ $request->start_date->format('M d, Y') }} - {{ $request->end_date->format('M d, Y') }}
