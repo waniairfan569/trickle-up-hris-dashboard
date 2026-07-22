@@ -63,17 +63,17 @@
         <!-- Details -->
         <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 dark:bg-slate-800 dark:border-slate-700 space-y-4">
             <h2 class="text-sm font-bold text-slate-800 dark:text-white">Details</h2>
-            <div><label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Title <span class="text-rose-500">*</span></label><input type="text" name="title" value="{{ old('title', $document->title) }}" required class="w-full rounded-xl border-slate-300 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white"></div>
+            <div><label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Title <span class="text-rose-500">*</span></label><input type="text" name="title" value="{{ old('title', $document->title) }}" required class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm shadow-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:bg-slate-900 dark:border-slate-600 dark:text-white"></div>
             <div x-data="{ adding: false, newName: '' }">
                 <div class="flex items-center justify-between mb-1.5">
                     <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Category <span class="text-rose-500">*</span></label>
                     <button type="button" @click="adding = !adding" class="text-xs font-bold text-brand-600 hover:underline">+ New category</button>
                 </div>
-                <select name="category_id" x-ref="catSelect" required class="w-full rounded-xl border-slate-300 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                <select name="category_id" x-ref="catSelect" required class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm shadow-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:bg-slate-900 dark:border-slate-600 dark:text-white">
                     @foreach($categories as $cat)<option value="{{ $cat->id }}" @selected(old('category_id', $document->category_id)==$cat->id)>{{ $cat->name }}</option>@endforeach
                 </select>
                 <div x-show="adding" x-cloak class="mt-2 flex items-center gap-2">
-                    <input type="text" x-model="newName" placeholder="Category name" class="flex-1 rounded-xl border-slate-300 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                    <input type="text" x-model="newName" placeholder="Category name" class="flex-1 rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm shadow-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:bg-slate-900 dark:border-slate-600 dark:text-white">
                     <button type="button" @click="
                         if (!newName.trim()) return;
                         fetch('{{ route('document-categories.store') }}', { method:'POST', headers:{ 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content, 'Accept':'application/json', 'Content-Type':'application/json' }, body: JSON.stringify({ name: newName }) })
@@ -81,7 +81,7 @@
                     " class="rounded-xl bg-brand-600 px-4 py-2 text-sm font-bold text-slate-900 hover:bg-brand-700">Add</button>
                 </div>
             </div>
-            <div><label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Description</label><textarea name="description" rows="3" class="w-full rounded-xl border-slate-300 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white resize-none">{{ old('description', $document->description) }}</textarea></div>
+            <div><label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Description</label><textarea name="description" rows="3" class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm shadow-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:bg-slate-900 dark:border-slate-600 dark:text-white resize-none">{{ old('description', $document->description) }}</textarea></div>
         </div>
 
         <!-- File -->
@@ -97,11 +97,14 @@
                 <input type="file" name="file" class="hidden" @change="onFile" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.png,.jpg,.jpeg,.gif,.zip" {{ $editing ? '' : 'required' }}>
             </label>
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div><label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Version</label><input type="text" name="version" value="{{ old('version', $document->version ?: '1.0') }}" class="w-full rounded-xl border-slate-300 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white"></div>
-                <div class="sm:col-span-2"><label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Version notes</label><input type="text" name="version_notes" value="{{ old('version_notes', $document->version_notes) }}" class="w-full rounded-xl border-slate-300 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white"></div>
+                <div><label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Version</label><input type="text" name="version" value="{{ old('version', $document->version ?: '1.0') }}" class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm shadow-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:bg-slate-900 dark:border-slate-600 dark:text-white"></div>
+                <div class="sm:col-span-2"><label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Version notes</label><input type="text" name="version_notes" value="{{ old('version_notes', $document->version_notes) }}" class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm shadow-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:bg-slate-900 dark:border-slate-600 dark:text-white"></div>
             </div>
         </div>
 
+        {{-- Access + Settings show only when EDITING. On a new upload, step 1 is
+             just Details + File; access, signers and fields come in later steps. --}}
+        @if($editing)
         <!-- Access -->
         <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 dark:bg-slate-800 dark:border-slate-700 space-y-4">
             <h2 class="text-sm font-bold text-slate-800 dark:text-white">Who can access this?</h2>
@@ -200,17 +203,22 @@
                 </div>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div><label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Expires at <span class="text-slate-400 font-normal normal-case">(optional)</span></label><input type="date" name="expires_at" value="{{ old('expires_at', optional($document->expires_at)->format('Y-m-d')) }}" class="w-full rounded-xl border-slate-300 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white"></div>
+                <div><label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Expires at <span class="text-slate-400 font-normal normal-case">(optional)</span></label><input type="date" name="expires_at" value="{{ old('expires_at', optional($document->expires_at)->format('Y-m-d')) }}" class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm shadow-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:bg-slate-900 dark:border-slate-600 dark:text-white"></div>
                 <label class="flex items-center gap-2 cursor-pointer pt-6">
                     <input type="checkbox" name="is_active" value="1" @checked(old('is_active', $document->is_active ?? true)) class="rounded border-slate-300 text-brand-600 h-5 w-5">
                     <span class="text-sm font-semibold text-slate-800 dark:text-white">Active (visible to employees)</span>
                 </label>
             </div>
         </div>
+        @else
+            {{-- New upload defaults — access & signers are chosen in the next steps. --}}
+            <input type="hidden" name="access_level" value="company_wide">
+            <input type="hidden" name="is_active" value="1">
+        @endif
 
         <div class="flex justify-end gap-2">
             <a href="{{ route('company-documents.admin') }}" class="rounded-xl bg-white border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200">Cancel</a>
-            <button type="submit" class="rounded-xl bg-brand-600 px-6 py-2.5 text-sm font-bold text-slate-900 hover:bg-brand-700">{{ $editing ? 'Save changes' : 'Upload document' }}</button>
+            <button type="submit" class="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-6 py-2.5 text-sm font-bold text-slate-900 hover:bg-brand-700">{{ $editing ? 'Save changes' : 'Upload & place fields' }} <i data-lucide="arrow-right" class="h-4 w-4"></i></button>
         </div>
     </form>
 </div>

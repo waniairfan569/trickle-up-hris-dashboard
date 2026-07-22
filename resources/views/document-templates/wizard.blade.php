@@ -45,6 +45,7 @@
     window.__docTplDepartments = @json($deptOpts);
     window.__docTplSignerEmployees = @json($signerEmployeeOpts);
     window.__docTplHideDetails = @json($backedByCompanyDoc);
+    window.__docTplOpenPlace = @json(request()->boolean('place'));
 </script>
 
 <!-- PDF.js (legacy UMD build — most compatible) — powers the Step 4 placement editor -->
@@ -68,6 +69,7 @@
       action="{{ $template ? route('document-templates.update', $template) : route('document-templates.store') }}"
       enctype="multipart/form-data"
       x-data="documentWizard()"
+      x-init="$nextTick(() => { if (window.lucide) lucide.createIcons(); if (step === 4) initPlacement(); })"
       class="max-w-6xl mx-auto pb-10">
     @csrf
     @if($template) @method('PUT') @endif
@@ -536,11 +538,13 @@
     function documentWizard() {
         const ex = window.__docTplExisting || null;
         const hideDetails = !!window.__docTplHideDetails;
+        // Arriving from a company-document upload → open straight on "place fields".
+        const openPlace = !!window.__docTplOpenPlace && !!ex;
         // PDF.js objects kept OUTSIDE Alpine reactive state — proxying them breaks
         // their private (#) class fields, which makes render() throw.
         let __pdfPages = [];
         return {
-            step: hideDetails ? 2 : 1,
+            step: openPlace ? 4 : (hideDetails ? 2 : 1),
             hideDetails,
             minStep: hideDetails ? 2 : 1,
             placingKey: null,

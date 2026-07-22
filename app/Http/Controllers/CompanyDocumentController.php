@@ -65,8 +65,11 @@ class CompanyDocumentController extends Controller
         $document->uploaded_by = auth()->id();
         $this->storeFile($document, $request, $category);
 
-        if ($document->requires_signature && $document->file_extension !== 'pdf') {
-            return back()->withInput()->withErrors(['file' => 'Documents sent for signature must be a PDF.']);
+        // Guided builder flow (step 1 → step 2): a PDF goes straight into the
+        // field-placement builder; other file types are saved to the library.
+        $isPdf = $document->file_extension === 'pdf';
+        if ($isPdf) {
+            $document->requires_signature = true;
         }
 
         $document->save();
@@ -74,13 +77,14 @@ class CompanyDocumentController extends Controller
         $this->syncAccess($document, $request);
         $this->syncSignatureTemplate($document);
 
-        // Signable document → continue straight into the signer/field steps.
-        if ($document->isSignable() && $document->template_id) {
-            return redirect()->route('document-templates.edit', $document->template_id)
-                ->with('success', 'Document saved — now add signers and place the fields.');
+        // PDF → open the placement builder directly on the "place fields" step.
+        if ($isPdf && $document->template_id) {
+            return redirect()->route('document-templates.edit', ['documentTemplate' => $document->template_id, 'place' => 1])
+                ->with('success', 'Document uploaded — now drag your variables onto the document.');
         }
 
-        return redirect()->route('company-documents.admin')->with('success', 'Document uploaded.');
+        return redirect()->route('company-documents.admin')
+            ->with('success', 'Document uploaded.' . ($isPdf ? '' : ' Upload a PDF to place variables and send for signature.'));
     }
 
     public function edit(CompanyDocument $document)
