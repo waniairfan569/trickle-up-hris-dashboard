@@ -16,8 +16,10 @@
 
 <div class="max-w-2xl mx-auto space-y-6" x-data="{ employees: window.__sendEmployees || [], employeeId: '', open: false, q: '',
         label() { const e = this.employees.find(o => o.id === this.employeeId); return e ? e.label : 'Select an employee…'; } }">
+    @include('company-documents.partials.builder-steps', ['template' => $documentTemplate, 'current' => 4])
+
     <div class="flex items-center gap-3">
-        <a href="{{ route('document-templates.index') }}" class="inline-flex h-9 w-9 items-center justify-center rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-700"><i data-lucide="arrow-left" class="h-5 w-5"></i></a>
+        <a href="{{ route('document-templates.preview-view', $documentTemplate) }}" class="inline-flex h-9 w-9 items-center justify-center rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-700" title="Back to preview"><i data-lucide="arrow-left" class="h-5 w-5"></i></a>
         <div>
             <h1 class="text-xl font-extrabold tracking-tight text-slate-900 dark:text-white">Send for signature</h1>
             <p class="text-xs text-slate-500 dark:text-slate-400">{{ $documentTemplate->name }}</p>

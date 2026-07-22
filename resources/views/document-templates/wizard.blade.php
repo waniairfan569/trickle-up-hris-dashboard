@@ -103,6 +103,8 @@
         </div>
     </div>
 
+    @include('company-documents.partials.builder-steps', ['template' => $template, 'current' => 2])
+
     @if($errors->any())
         <div class="rounded-xl bg-rose-50 border border-rose-200 p-4 text-sm text-rose-700 mb-6 dark:bg-rose-500/10 dark:border-rose-500/20">
             <ul class="list-disc pl-5 space-y-0.5">@foreach($errors->all() as $e)<li>{{ $e }}</li>@endforeach</ul>

@@ -27,6 +27,10 @@
     @if($errors->any())<div class="rounded-xl bg-rose-50 p-4 border border-rose-200 text-sm text-rose-700 dark:bg-rose-500/10 dark:border-rose-500/20"><ul class="list-disc pl-5">@foreach($errors->all() as $e)<li>{{ $e }}</li>@endforeach</ul></div>@endif
 
     @if($editing && $document->requires_signature && $document->template)
+        @include('company-documents.partials.builder-steps', ['template' => $document->template, 'current' => 1])
+    @endif
+
+    @if($editing && $document->requires_signature && $document->template)
         @php $tplSignerCount = $document->template->signers->count(); @endphp
         <div class="rounded-2xl border border-brand-200 bg-brand-50/50 shadow-sm p-6 dark:border-brand-500/30 dark:bg-brand-500/10">
             <div class="flex items-start gap-3">

@@ -102,11 +102,12 @@ class DocumentTemplateController extends Controller
 
         $this->syncRelations($documentTemplate, $request);
 
-        // If this template backs a company document, keep the admin in that flow.
+        // If this template backs a company document, move the admin FORWARD in the
+        // guided flow: fields & signers saved → Preview (step 3) → Send (step 4).
         $companyDoc = \App\Models\CompanyDocument::where('template_id', $documentTemplate->id)->first();
         if ($companyDoc) {
-            return redirect()->route('company-documents.edit', $companyDoc)
-                ->with('success', 'Signature setup saved.');
+            return redirect()->route('document-templates.preview-view', $documentTemplate)
+                ->with('success', 'Fields & signers saved — preview your document, then send it for signature.');
         }
 
         return redirect()->route('document-templates.index')
