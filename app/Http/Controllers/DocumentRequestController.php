@@ -420,6 +420,8 @@ class DocumentRequestController extends Controller
             ?: $subject->joined_at);
         $salaryRaw  = $subject->getFieldValue('salary') ?: $subject->salary;
         $salary     = ($salaryRaw !== null && $salaryRaw !== '') ? number_format((float) $salaryRaw) : null;
+        $probRaw    = $subject->getFieldValue('probation_salary');
+        $probSalary = ($probRaw !== null && $probRaw !== '') ? number_format((float) $probRaw) : null;
         $cnic       = $subject->getFieldValue('cnic_number') ?: $subject->getFieldValue('cnic');
         $today      = now()->format('d M Y');
 
@@ -438,6 +440,8 @@ class DocumentRequestController extends Controller
             [$startDate,  ['Start Date', 'Date of Commencement', 'Commencement Date', 'Joining Date',
                            'start_date', 'commencement_date', 'date_of_commencement', 'joining_date']],
             [$salary,     ['Amount', 'Salary', 'amount', 'salary']],
+            [$probSalary, ['Probation Salary', 'Probation Amount', 'Salary During Probation',
+                           'probation_salary', 'probation_amount']],
             [$cnic,       ['CNIC', 'CNIC Number', 'CNIC No', 'National ID', 'ID Number', 'NIC',
                            'cnic', 'cnic_number', 'cnic_no', 'national_id']],
         ];
@@ -481,11 +485,22 @@ class DocumentRequestController extends Controller
         $fmt = fn ($d) => $d ? \Carbon\Carbon::parse($d)->format('d M Y') : '';
 
         return [
-            '[sender_name]'         => $senderName,
-            '[company_signature]'   => $senderName,
-            '[company_sign_date]'   => $fmt($senderSigner?->signed_at),
-            '[candidate_signature]' => $employeeName,
-            '[candidate_sign_date]' => $fmt($employeeSigner?->signed_at) ?: now()->format('d M Y'),
+            // Sender / company signature line (typed-name style).
+            '[sender_name]'          => $senderName,
+            '[company_signature]'    => $senderName,
+            '[Company Signature]'    => $senderName,
+            '[Sender Signature]'     => $senderName,
+            "[Sender's Signature]"   => $senderName,
+            "[Sender's signature]"   => $senderName,
+            '[Authorised Signature]' => $senderName,
+            '[Authorized Signature]' => $senderName,
+            '[company_sign_date]'    => $fmt($senderSigner?->signed_at),
+            // Employee signature line (typed-name style).
+            '[candidate_signature]'  => $employeeName,
+            '[Employee Signature]'   => $employeeName,
+            "[Employee's Signature]" => $employeeName,
+            '[Candidate Signature]'  => $employeeName,
+            '[candidate_sign_date]'  => $fmt($employeeSigner?->signed_at) ?: now()->format('d M Y'),
         ];
     }
 
