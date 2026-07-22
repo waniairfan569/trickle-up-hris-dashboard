@@ -113,8 +113,9 @@
         </div>
     @endif
 
-    <div class="grid grid-cols-1 lg:grid-cols-[230px_1fr] gap-6">
-        <!-- Step sidebar -->
+    <div class="grid grid-cols-1 {{ $backedByCompanyDoc ? '' : 'lg:grid-cols-[230px_1fr]' }} gap-6">
+        <!-- Step sidebar (hidden for company-document mode — single placement step) -->
+        @unless($backedByCompanyDoc)
         <aside class="space-y-1.5">
             @foreach($steps as $i => $meta)
                 @continue($backedByCompanyDoc && $i === 1)
@@ -134,6 +135,7 @@
                 </button>
             @endforeach
         </aside>
+        @endunless
 
         <!-- Step panels -->
         <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 dark:bg-slate-800 dark:border-slate-700 min-h-[420px]">
@@ -438,8 +440,9 @@
                     <p x-show="placingKey" x-cloak class="flex items-center gap-1.5 rounded-lg bg-brand-50 border border-brand-200 px-2.5 py-1.5 text-[11px] font-bold text-brand-700 dark:bg-brand-500/10 dark:border-brand-500/30 dark:text-brand-300">
                         <i data-lucide="mouse-pointer-click" class="h-3.5 w-3.5"></i> Click on the document to drop it
                     </p>
-                    <div class="space-y-1.5">
-                        <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Fields</p>
+                    <div class="space-y-1.5 max-h-[62vh] overflow-y-auto pr-1">
+                        {{-- Top group: the important, reusable variables + signature --}}
+                        <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Important fields</p>
                         <template x-for="f in palette()" :key="'pal' + f.key">
                             <button type="button" draggable="true"
                                     @dragstart="onDragStart(f)" @dragend="dragField = null"
@@ -455,7 +458,26 @@
                                 <i data-lucide="plus" class="h-3.5 w-3.5 text-slate-400 flex-shrink-0"></i>
                             </button>
                         </template>
-                        <p x-show="palette().length === 0" class="flex items-center gap-1.5 text-xs font-semibold text-emerald-600">
+
+                        {{-- Bottom group: every profile field, drag any onto the doc --}}
+                        <p x-show="profilePalette().length > 0" class="text-[10px] font-bold uppercase tracking-wider text-slate-400 pt-2">Profile fields</p>
+                        <template x-for="f in profilePalette()" :key="'pf' + f.key">
+                            <button type="button" draggable="true"
+                                    @dragstart="onDragStart(f)" @dragend="dragField = null"
+                                    @click="pick(f)" :disabled="!pdfReady"
+                                    class="w-full flex items-center justify-between gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition cursor-grab active:cursor-grabbing"
+                                    :class="placingKey === f.key ? 'border-brand-500 bg-brand-50 text-brand-700 dark:bg-brand-500/10 dark:text-brand-300' : 'border-slate-200 text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700/50'"
+                                    :style="!pdfReady && 'opacity:0.5;cursor:not-allowed'">
+                                <span class="flex items-center gap-1.5 min-w-0">
+                                    <i data-lucide="grip-vertical" class="h-3 w-3 text-slate-300 flex-shrink-0"></i>
+                                    <span class="h-2 w-2 rounded-full flex-shrink-0" :class="tokenDot(f.assignee)"></span>
+                                    <span class="truncate" x-text="f.label"></span>
+                                </span>
+                                <i data-lucide="plus" class="h-3.5 w-3.5 text-slate-400 flex-shrink-0"></i>
+                            </button>
+                        </template>
+
+                        <p x-show="palette().length === 0 && profilePalette().length === 0" class="flex items-center gap-1.5 text-xs font-semibold text-emerald-600">
                             <i data-lucide="check-circle" class="h-3.5 w-3.5"></i> All fields placed
                         </p>
                     </div>
@@ -538,15 +560,17 @@
     function documentWizard() {
         const ex = window.__docTplExisting || null;
         const hideDetails = !!window.__docTplHideDetails;
-        // Arriving from a company-document upload → open straight on "place fields".
-        const openPlace = !!window.__docTplOpenPlace && !!ex;
+        // Backed by a company document → the flow is a SINGLE placement step
+        // (upload happened in step 1; signers/access/send are separate pages).
+        const companyMode = hideDetails;
         // PDF.js objects kept OUTSIDE Alpine reactive state — proxying them breaks
         // their private (#) class fields, which makes render() throw.
         let __pdfPages = [];
         return {
-            step: openPlace ? 4 : (hideDetails ? 2 : 1),
+            step: companyMode ? 4 : 1,
             hideDetails,
-            minStep: hideDetails ? 2 : 1,
+            companyMode,
+            minStep: companyMode ? 4 : 1,
             placingKey: null,
             placingItem: null,
             dragField: null,
@@ -564,6 +588,10 @@
                 { key: '__signature', label: 'Signature',  type: 'signature', w: 0.22, h: 0.055 },
                 { key: '__initials',  label: 'Initials',   type: 'initials',  w: 0.10, h: 0.05 },
             ],
+            // Every profile field — shown as the second palette group so the admin
+            // can drag any of them straight onto the document (no separate step).
+            allProfileFields: Object.values(window.__docTplFields || {})
+                .filter(f => f.key !== '__signature' && f.key !== '__initials'),
             isEdit: !!ex,
             name: ex?.name || '',
             description: ex?.description || '',
@@ -741,9 +769,19 @@
                 });
                 return out;
             },
+            // Second palette group: all profile fields not already in the top
+            // catalog and not yet placed. Drag any onto the document.
+            profilePalette() {
+                const placed = new Set(this.selectionList().filter(f => f.placement).map(f => f.key));
+                const catalogKeys = new Set(this.fieldCatalog.map(c => c.key));
+                const paletteKeys = new Set(this.palette().map(p => p.key));
+                return this.allProfileFields
+                    .filter(f => !placed.has(f.key) && !catalogKeys.has(f.key) && !paletteKeys.has(f.key))
+                    .map(f => ({ key: f.key, label: f.label, type: 'text', assignee: 'employee', id: f.id || '', w: 0.24, h: 0.03 }));
+            },
             ensureSelection(item) {
                 if (!this.selections[item.key]) {
-                    this.selections[item.key] = { key: item.key, label: item.label, section: 'Placed', id: '', type: item.type, assignee: item.assignee || 'employee' };
+                    this.selections[item.key] = { key: item.key, label: item.label, section: 'Placed', id: item.id || '', type: item.type, assignee: item.assignee || 'employee' };
                 }
                 return this.selections[item.key];
             },

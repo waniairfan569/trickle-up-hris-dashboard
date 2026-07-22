@@ -65,6 +65,22 @@ class CompanyDocumentController extends Controller
         $document->uploaded_by = auth()->id();
         $this->storeFile($document, $request, $category);
 
+        // Word (.doc/.docx) → convert to PDF so it can be used in the builder.
+        if (in_array($document->file_extension, ['doc', 'docx'], true)) {
+            $pdfPath = app(\App\Services\DocumentConversionService::class)->toPdf($document->file_path);
+            if (!$pdfPath) {
+                Storage::delete($document->file_path);
+                return back()->withInput()->withErrors([
+                    'file' => 'Word-to-PDF conversion isn’t available on this server yet. Please upload a PDF, or ask your admin to install LibreOffice.',
+                ]);
+            }
+            Storage::delete($document->file_path); // keep only the PDF
+            $document->file_path = $pdfPath;
+            $document->file_name = preg_replace('/\.[^.]+$/', '.pdf', $document->file_name);
+            $document->file_type = 'application/pdf';
+            $document->file_extension = 'pdf';
+        }
+
         // Guided builder flow (step 1 → step 2): a PDF goes straight into the
         // field-placement builder; other file types are saved to the library.
         $isPdf = $document->file_extension === 'pdf';
