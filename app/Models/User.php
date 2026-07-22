@@ -410,6 +410,7 @@ class User extends Authenticatable
             'today_date', 'today', 'date', 'agreement_date', 'date_of_agreement', 'signing_date' => now()->format('d M Y'),
             'start_date', 'commencement_date', 'date_of_commencement', 'joining_date', 'join_date' => $this->documentStartDate(),
             'email', 'work_email' => $this->email,
+            'cnic', 'cnic_number', 'cnic_no', 'national_id', 'nic' => $this->getFieldValue('cnic_number'),
             default => null,
         };
     }

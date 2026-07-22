@@ -420,6 +420,7 @@ class DocumentRequestController extends Controller
             ?: $subject->joined_at);
         $salaryRaw  = $subject->getFieldValue('salary') ?: $subject->salary;
         $salary     = ($salaryRaw !== null && $salaryRaw !== '') ? number_format((float) $salaryRaw) : null;
+        $cnic       = $subject->getFieldValue('cnic_number') ?: $subject->getFieldValue('cnic');
         $today      = now()->format('d M Y');
 
         // Each real value → every placeholder spelling a document might use, so
@@ -437,6 +438,8 @@ class DocumentRequestController extends Controller
             [$startDate,  ['Start Date', 'Date of Commencement', 'Commencement Date', 'Joining Date',
                            'start_date', 'commencement_date', 'date_of_commencement', 'joining_date']],
             [$salary,     ['Amount', 'Salary', 'amount', 'salary']],
+            [$cnic,       ['CNIC', 'CNIC Number', 'CNIC No', 'National ID', 'ID Number', 'NIC',
+                           'cnic', 'cnic_number', 'cnic_no', 'national_id']],
         ];
 
         $tokens = [];
