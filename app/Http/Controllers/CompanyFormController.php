@@ -271,9 +271,16 @@ class CompanyFormController extends Controller
     public function viewSubmission(Request $request, FormSubmission $submission)
     {
         $submission->load(['form.fields', 'employee', 'responses', 'reviewer']);
-        abort_unless(optional($submission->form)->canBeReviewedBy($request->user()), 403);
 
-        return view('company-forms.view-submission', ['submission' => $submission]);
+        // A reviewer/admin gets the review panel; the owner may view their own
+        // past submission read-only (form history).
+        $canReview = optional($submission->form)->canBeReviewedBy($request->user());
+        abort_unless($canReview || $submission->user_id === $request->user()->id, 403);
+
+        return view('company-forms.view-submission', [
+            'submission' => $submission,
+            'employeeView' => !$canReview,
+        ]);
     }
 
     /** Admin or an assigned reviewer: approve/reject with an optional suggestion; notify the employee. */

@@ -42,6 +42,7 @@
                         @endif
                     </div>
                     @if($s->form->description)<p class="text-xs text-slate-400 mt-1 truncate">{{ Str::limit($s->form->description, 90) }}</p>@endif
+                    @if($isSubmitted && $s->submitted_at)<p class="text-xs text-slate-400 mt-1"><i data-lucide="check" class="h-3 w-3 inline -mt-0.5"></i> Submitted {{ $s->submitted_at->format('d M Y, H:i') }}</p>@endif
 
                     {{-- Admin's review outcome + suggestion --}}
                     @if(in_array($s->review_status, ['approved', 'rejected'], true))
@@ -60,11 +61,16 @@
                         </p>
                     @endif
                 </div>
-                @if($isSubmitted && !$s->form->allow_multiple_submissions)
-                    <a href="{{ route('forms.fill', $s->form) }}" class="rounded-xl bg-slate-100 px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-200 shrink-0">View submission</a>
-                @else
-                    <a href="{{ route('forms.fill', $s->form) }}" class="rounded-xl bg-brand-600 px-4 py-2 text-xs font-bold text-slate-900 hover:bg-brand-700 shrink-0">{{ $isSubmitted ? 'Submit again' : 'Fill form' }}</a>
-                @endif
+                <div class="flex items-center gap-2 shrink-0">
+                    @if($isSubmitted)
+                        <a href="{{ route('company-forms.submission', $s) }}" class="rounded-xl bg-slate-100 px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-200">View submission</a>
+                        @if($s->form->allow_multiple_submissions)
+                            <a href="{{ route('forms.fill', $s->form) }}" class="rounded-xl bg-brand-600 px-4 py-2 text-xs font-bold text-slate-900 hover:bg-brand-700">Submit again</a>
+                        @endif
+                    @else
+                        <a href="{{ route('forms.fill', $s->form) }}" class="rounded-xl bg-brand-600 px-4 py-2 text-xs font-bold text-slate-900 hover:bg-brand-700">Fill form</a>
+                    @endif
+                </div>
             </div>
         @empty
             <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm py-16 text-center dark:bg-slate-800 dark:border-slate-700">

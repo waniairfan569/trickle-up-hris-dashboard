@@ -36,18 +36,16 @@ class FormSubmissionController extends Controller
 
         $submission = $companyForm->getSubmissionFor($user);
 
+        // A single-submission form that's already done → read-only view.
         if ($submission && $submission->status === 'submitted' && !$companyForm->allow_multiple_submissions) {
             $submission->load('responses');
             return view('company-forms.view-submission', ['submission' => $submission, 'employeeView' => true]);
         }
 
-        $submission = FormSubmission::firstOrCreate(
-            ['form_id' => $companyForm->id, 'user_id' => $user->id],
-            ['status' => 'in_progress', 'started_at' => now()]
-        );
-        if ($submission->status === 'pending') {
-            $submission->update(['status' => 'in_progress', 'started_at' => $submission->started_at ?? now()]);
-        }
+        // Continue an open draft, or start a fresh blank one. "Submit again" on a
+        // multi-submission form lands here with the last one already submitted,
+        // so a NEW blank submission is created (previous ones stay as history).
+        $submission = $this->draftFor($companyForm, $user);
 
         $companyForm->load('fields');
         $existing = $submission->responses()->pluck('value', 'field_key')->all();
@@ -61,16 +59,9 @@ class FormSubmissionController extends Controller
         $user = $request->user();
         $this->authorizeAssigned($companyForm, $user);
 
-        $submission = FormSubmission::firstOrCreate(
-            ['form_id' => $companyForm->id, 'user_id' => $user->id],
-            ['status' => 'in_progress', 'started_at' => now()]
-        );
+        $submission = $this->draftFor($companyForm, $user);
 
         $this->persistResponses($companyForm, $submission, $request, false);
-
-        if ($submission->status === 'pending') {
-            $submission->update(['status' => 'in_progress']);
-        }
 
         return response()->json(['saved' => true, 'progress' => $submission->fresh()->progressPercent()]);
     }
@@ -100,10 +91,7 @@ class FormSubmissionController extends Controller
         }
         $request->validate($rules, [], $attributes);
 
-        $submission = FormSubmission::firstOrCreate(
-            ['form_id' => $companyForm->id, 'user_id' => $user->id],
-            ['status' => 'in_progress', 'started_at' => now()]
-        );
+        $submission = $this->draftFor($companyForm, $user);
 
         $this->persistResponses($companyForm, $submission, $request, true);
 
@@ -135,6 +123,31 @@ class FormSubmissionController extends Controller
     }
 
     // ---------------------------------------------------------------------
+
+    /**
+     * The employee's active (not-yet-submitted) draft for a form. Continues an
+     * open draft if one exists; otherwise starts a fresh blank submission —
+     * never reuses an already-submitted one. This keeps every past submission
+     * as history and makes "Submit again" open a clean, empty form.
+     */
+    private function draftFor(CompanyForm $form, User $user): FormSubmission
+    {
+        $latest = $form->getSubmissionFor($user);
+
+        if ($latest && $latest->status !== 'submitted') {
+            if ($latest->status === 'pending') {
+                $latest->update(['status' => 'in_progress', 'started_at' => $latest->started_at ?? now()]);
+            }
+            return $latest;
+        }
+
+        return FormSubmission::create([
+            'form_id' => $form->id,
+            'user_id' => $user->id,
+            'status' => 'in_progress',
+            'started_at' => now(),
+        ]);
+    }
 
     private function persistResponses(CompanyForm $form, FormSubmission $submission, Request $request, bool $isSubmit): void
     {
