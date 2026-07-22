@@ -135,9 +135,17 @@
 
                 // Bake [token] values (e.g. [Full Name], [Amount]) into the PDF —
                 // covering the literal placeholder text — so token-based documents
-                // produce a correctly filled signed PDF, not just an on-screen preview.
-                if (data.tokens && Object.keys(data.tokens).length && window.pdfjsLib) {
+                // produce a correctly filled signed PDF. Signature tokens
+                // ([Employee Signature] / [Sender's signature]) stamp the actual
+                // signature IMAGE at their position instead of text.
+                const sigTokens = data.signatureTokens || {};
+                if ((Object.keys(data.tokens || {}).length || Object.keys(sigTokens).length) && window.pdfjsLib) {
                     try {
+                        // Embed each unique signature image once.
+                        const embeddedSig = {};
+                        for (const url of new Set(Object.values(sigTokens))) {
+                            try { embeddedSig[url] = await pdf.embedPng(url); } catch (e) { /* skip bad image */ }
+                        }
                         const jsDoc = await pdfjsLib.getDocument({ data: buf.slice(0) }).promise;
                         for (let n = 1; n <= jsDoc.numPages; n++) {
                             const plPage = pages[n - 1];
@@ -156,13 +164,31 @@
                                 lineRuns.sort((a, b) => a.x - b.x);
                                 let full = ''; const owner = [];
                                 lineRuns.forEach((r, ri) => { for (const ch of r.str) { full += ch; owner.push(ri); } });
-                                for (const [tok, val] of Object.entries(data.tokens)) {
+                                // Text tokens.
+                                for (const [tok, val] of Object.entries(data.tokens || {})) {
                                     let pos = full.indexOf(tok);
                                     while (pos !== -1) {
                                         const a = lineRuns[owner[pos]], b = lineRuns[owner[pos + tok.length - 1]];
                                         const width = Math.max(a.w, (b.x + b.w) - a.x) + 2;
                                         plPage.drawRectangle({ x: a.x, y: ph - a.y - a.h * 0.22, width, height: a.h * 1.15, color: rgb(1, 1, 1) });
                                         plPage.drawText(String(val), { x: a.x, y: ph - a.y, size: a.h * 0.92, font, color: rgb(0.06, 0.06, 0.09) });
+                                        full = full.slice(0, pos) + ' '.repeat(tok.length) + full.slice(pos + tok.length);
+                                        pos = full.indexOf(tok);
+                                    }
+                                }
+                                // Signature image tokens → stamp the signature image.
+                                for (const [tok, url] of Object.entries(sigTokens)) {
+                                    const png = embeddedSig[url];
+                                    let pos = full.indexOf(tok);
+                                    while (pos !== -1) {
+                                        const a = lineRuns[owner[pos]], b = lineRuns[owner[pos + tok.length - 1]];
+                                        const twidth = Math.max(a.w, (b.x + b.w) - a.x) + 2;
+                                        plPage.drawRectangle({ x: a.x, y: ph - a.y - a.h * 0.22, width: twidth, height: a.h * 1.3, color: rgb(1, 1, 1) });
+                                        if (png) {
+                                            const h = a.h * 2.8;                 // signature ~2.8× the line text
+                                            const w = png.width * (h / png.height);
+                                            plPage.drawImage(png, { x: a.x, y: ph - a.y - h * 0.18, width: w, height: h });
+                                        }
                                         full = full.slice(0, pos) + ' '.repeat(tok.length) + full.slice(pos + tok.length);
                                         pos = full.indexOf(tok);
                                     }

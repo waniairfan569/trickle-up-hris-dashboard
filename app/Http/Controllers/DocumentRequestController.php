@@ -377,11 +377,21 @@ class DocumentRequestController extends Controller
             }
         }
 
+        // Signature tokens that stamp the actual signature IMAGE, and the text
+        // tokens (names/values). Remove any spelling we can stamp as an image
+        // from the text set so it isn't drawn twice (image + name).
+        $signatureTokens = $this->signatureImageTokens($documentRequest);
+        $textTokens = array_merge($this->resolveTokens($subject), $this->signatureBlockTokens($documentRequest));
+        foreach (array_keys($signatureTokens) as $k) {
+            unset($textTokens[$k]);
+        }
+
         return response()->json([
             'fileUrl' => route('documents.file', $documentRequest),
             'fileName' => pathinfo($documentRequest->template->file_name, PATHINFO_FILENAME) . ' — signed',
             'fields' => $fields,
-            'tokens' => array_merge($this->resolveTokens($subject), $this->signatureBlockTokens($documentRequest)),
+            'tokens' => $textTokens,
+            'signatureTokens' => $signatureTokens,
         ]);
     }
 
@@ -502,6 +512,43 @@ class DocumentRequestController extends Controller
             '[Candidate Signature]'  => $employeeName,
             '[candidate_sign_date]'  => $fmt($employeeSigner?->signed_at) ?: now()->format('d M Y'),
         ];
+    }
+
+    /**
+     * Map signature TOKENS (typed literally into the document, e.g.
+     * [Employee Signature] / [Sender's signature]) to the matching party's actual
+     * signature image, so the token position is stamped with the drawn/saved
+     * signature — no placed field needed. Only tokens whose party has already
+     * signed are returned; the rest fall back to the name (text) tokens.
+     */
+    private function signatureImageTokens(DocumentRequest $documentRequest): array
+    {
+        $documentRequest->loadMissing('signers');
+
+        $imgFor = fn ($party) => optional($documentRequest->signers
+            ->first(fn ($s) => $s->signature_image && $this->partyOf($s->source_role) === $party))
+            ->signature_image;
+
+        // Single-signer document: that one signature fills every signature token.
+        $signed = $documentRequest->signers->filter(fn ($s) => $s->signature_image)->values();
+        $fallback = $signed->count() === 1 ? $signed[0]->signature_image : null;
+
+        $employeeImg = $imgFor('employee') ?: $fallback;
+        $senderImg   = $imgFor('sender_party') ?: $fallback;
+
+        $map = [];
+        if ($employeeImg) {
+            foreach (['[candidate_signature]', '[Employee Signature]', "[Employee's Signature]", '[Candidate Signature]'] as $t) {
+                $map[$t] = $employeeImg;
+            }
+        }
+        if ($senderImg) {
+            foreach (['[company_signature]', '[Company Signature]', '[Sender Signature]', "[Sender's Signature]", "[Sender's signature]", '[Authorised Signature]', '[Authorized Signature]'] as $t) {
+                $map[$t] = $senderImg;
+            }
+        }
+
+        return $map;
     }
 
     /**
