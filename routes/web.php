@@ -328,7 +328,12 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
         Route::resource('document-templates', \App\Http\Controllers\DocumentTemplateController::class)
             ->parameters(['document-templates' => 'documentTemplate'])
             ->except(['show']);
-        
+
+        // Reusable saved signatures (email signatures) — stamped onto documents.
+        Route::get('signature-templates', [\App\Http\Controllers\SignatureTemplateController::class, 'index'])->name('signature-templates.index');
+        Route::post('signature-templates', [\App\Http\Controllers\SignatureTemplateController::class, 'store'])->name('signature-templates.store');
+        Route::delete('signature-templates/{signatureTemplate}', [\App\Http\Controllers\SignatureTemplateController::class, 'destroy'])->name('signature-templates.destroy');
+
         Route::resource('company-entities', CompanyEntityController::class);
         Route::post('company-entities/{entity}/set-primary', [CompanyEntityController::class, 'setPrimary'])->name('company-entities.set-primary');
         

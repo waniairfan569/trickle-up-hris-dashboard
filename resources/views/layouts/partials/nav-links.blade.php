@@ -230,6 +230,12 @@
         <span>Profile Templates</span>
     </a>
 
+    <a href="{{ route('signature-templates.index') }}"
+       class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ Str::startsWith($routeName, 'signature-templates') ? 'bg-brand-600 text-slate-900 shadow-md shadow-brand-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
+        <i data-lucide="signature" class="h-4 w-4 shrink-0 transition {{ Str::startsWith($routeName, 'signature-templates') ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>
+        <span>Signature Templates</span>
+    </a>
+
     {{-- Document Templates merged into Company Documents (toggle "Requires signature" on a company document). --}}
 
     @php
