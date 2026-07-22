@@ -217,6 +217,18 @@
     @if($teamRequests->isNotEmpty() || auth()->user()->hasRole('hr_admin') || auth()->user()->hasRole('super_admin'))
     <div x-show="activeTab === 'team_requests'" style="display: none;" class="space-y-4">
         @forelse($teamRequests as $request)
+            @php
+                $me = auth()->user();
+                $pol = $request->policy;
+                $isBoth = $pol && $pol->approval_type === 'both';
+                $stage = $request->approval_stage;
+                $canDecide = $me->hasRole('super_admin')
+                    || ($pol && $pol->approval_type === 'manager' && $me->managesUser($request->user_id))
+                    || ($pol && $pol->approval_type === 'hr_admin' && $me->hasRole('hr_admin'))
+                    || ($isBoth && $stage === 'manager' && $me->managesUser($request->user_id))
+                    || ($isBoth && $stage === 'hr_admin' && $me->hasRole('hr_admin'));
+                $stageLabel = $isBoth ? ($stage === 'hr_admin' ? 'Awaiting HR Admin' : 'Awaiting Manager') : null;
+            @endphp
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-6 flex flex-col md:flex-row gap-6 dark:bg-slate-800 dark:border-slate-700/80" x-data="{ showReject: false }">
                 <div class="flex-1">
                     <div class="flex items-center justify-between mb-2">
@@ -227,6 +239,9 @@
                             <div>
                                 <h4 class="text-sm font-bold text-slate-900 dark:text-white">{{ $request->employee->first_name }} {{ $request->employee->last_name }}</h4>
                                 <p class="text-xs text-slate-500 dark:text-slate-400">{{ $request->policy->name }}</p>
+                                @if($stageLabel)
+                                    <span class="inline-flex items-center gap-1 mt-1 rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300"><i data-lucide="git-merge" class="h-3 w-3"></i> {{ $stageLabel }}</span>
+                                @endif
                             </div>
                         </div>
                         <div class="text-right">
@@ -253,15 +268,22 @@
                 </div>
                 
                 <div class="flex flex-col gap-2 md:w-48 justify-center border-t md:border-t-0 md:border-l border-slate-100 pt-4 md:pt-0 md:pl-6 dark:border-slate-700/60">
-                    <form action="{{ route('time-off.approve', $request) }}" method="POST">
-                        @csrf
-                        <button type="submit" class="w-full justify-center inline-flex items-center rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white shadow-sm hover:bg-emerald-700 transition">
-                            <i data-lucide="check" class="h-4 w-4 mr-1"></i> Approve
+                    @if($canDecide)
+                        <form action="{{ route('time-off.approve', $request) }}" method="POST">
+                            @csrf
+                            <button type="submit" class="w-full justify-center inline-flex items-center rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white shadow-sm hover:bg-emerald-700 transition">
+                                <i data-lucide="check" class="h-4 w-4 mr-1"></i> Approve
+                            </button>
+                        </form>
+                        <button @click="showReject = !showReject" class="w-full justify-center inline-flex items-center rounded-xl bg-white px-4 py-2 text-sm font-bold text-slate-700 shadow-sm border border-slate-300 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-600 dark:hover:bg-slate-700 transition">
+                            <i data-lucide="x" class="h-4 w-4 mr-1"></i> Reject
                         </button>
-                    </form>
-                    <button @click="showReject = !showReject" class="w-full justify-center inline-flex items-center rounded-xl bg-white px-4 py-2 text-sm font-bold text-slate-700 shadow-sm border border-slate-300 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-600 dark:hover:bg-slate-700 transition">
-                        <i data-lucide="x" class="h-4 w-4 mr-1"></i> Reject
-                    </button>
+                    @else
+                        <div class="text-center text-xs text-slate-400 px-2">
+                            <i data-lucide="clock" class="h-4 w-4 mx-auto mb-1"></i>
+                            {{ $isBoth && $stage === 'hr_admin' ? 'Approved by manager — waiting on HR Admin.' : 'Awaiting the assigned approver.' }}
+                        </div>
+                    @endif
                 </div>
                 
                 <div x-show="showReject" style="display: none;" class="w-full mt-4 bg-rose-50 p-4 rounded-xl border border-rose-100 dark:bg-rose-500/10 dark:border-rose-500/20">

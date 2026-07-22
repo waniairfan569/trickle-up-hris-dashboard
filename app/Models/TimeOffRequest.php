@@ -28,6 +28,7 @@ class TimeOffRequest extends Model
         'half_day_period',
         'reason',
         'status',
+        'approval_stage',
         'approved_by',
         'approved_at',
         'rejected_by',

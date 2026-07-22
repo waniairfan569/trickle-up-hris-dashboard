@@ -266,6 +266,7 @@ class TimeOffController extends Controller
             'half_day_period' => $durationType === 'half_day' ? ($validated['half_day_period'] ?? null) : null,
             'reason' => $validated['reason'],
             'status' => $requiresApproval ? 'pending' : 'approved',
+            'approval_stage' => ($requiresApproval && $policy->approval_type === 'both') ? 'manager' : null,
             'approved_by' => $requiresApproval ? null : $auth->id,
             'approved_at' => $requiresApproval ? null : now(),
         ]);
@@ -310,14 +311,17 @@ class TimeOffController extends Controller
             ->orderBy('start_date', 'desc')
             ->get();
 
-        // 2. Manager Data (Team Requests)
+        // 2. Approvals — every pending request THIS user may decide at its current
+        // stage (managers see their team's manager-stage items; HR admins see the
+        // HR-stage / HR-only items company-wide; super admins see all).
         $teamRequests = collect();
-        if ($user->teamMemberIds()->isNotEmpty()) {
+        if ($user->teamMemberIds()->isNotEmpty() || $user->hasRole('hr_admin') || $user->hasRole('super_admin')) {
             $teamRequests = TimeOffRequest::with('employee', 'policy')
-                ->forTeam($user)
                 ->where('status', 'pending')
                 ->orderBy('start_date', 'asc')
-                ->get();
+                ->get()
+                ->filter(fn ($r) => $r->policy && $this->canApproveStage($user, $r))
+                ->values();
         }
 
         // 3. Admin Data (All Requests)
@@ -456,6 +460,7 @@ class TimeOffController extends Controller
             'half_day_period' => $durationType === 'half_day' ? ($validated['half_day_period'] ?? null) : null,
             'reason' => $validated['reason'],
             'status' => $policy->requires_approval ? 'pending' : 'approved',
+            'approval_stage' => ($policy->requires_approval && $policy->approval_type === 'both') ? 'manager' : null,
             'approved_at' => $policy->requires_approval ? null : now(),
         ]);
 
@@ -473,16 +478,22 @@ class TimeOffController extends Controller
     public function approve(TimeOffRequest $timeOffRequest)
     {
         $user = auth()->user() ?? User::first();
-        
-        // Ensure user can approve
-        if ($timeOffRequest->policy->approval_type === 'manager' && !$user->managesUser($timeOffRequest->employee->id)) {
-            if (!$user->hasRole('hr_admin') && !$user->hasRole('super_admin')) {
-                abort(403, 'Unauthorized to approve this request.');
-            }
+
+        // Enforce WHO can approve for this policy (and, for two-stage, this stage).
+        abort_unless($this->canApproveStage($user, $timeOffRequest), 403, 'You are not authorised to approve this request at this stage.');
+
+        // "Manager then HR Admin" — first (manager) approval just advances the
+        // request to the HR Admin stage; it stays pending until HR approves.
+        if ($timeOffRequest->policy->approval_type === 'both' && $timeOffRequest->approval_stage === 'manager') {
+            $timeOffRequest->update(['approval_stage' => 'hr_admin']);
+            $this->notifyApprovers($timeOffRequest); // ping HR admins that it now needs them
+            return back()->with('success', 'Approved by manager — now awaiting HR Admin approval.');
         }
 
+        // Final approval (manager-only, HR-admin-only, or the HR stage of both).
         $timeOffRequest->update([
             'status' => 'approved',
+            'approval_stage' => null,
             'approved_by' => $user->id,
             'approved_at' => now(),
         ]);
@@ -496,10 +507,37 @@ class TimeOffController extends Controller
         return back()->with('success', 'Request approved.');
     }
 
+    /**
+     * Who may approve a request, honouring the policy's approval_type — and, for
+     * the two-stage "both" flow, the current stage. Super admins can always act.
+     */
+    private function canApproveStage(User $user, TimeOffRequest $request): bool
+    {
+        if ($user->hasRole('super_admin')) {
+            return true; // system owner — universal override
+        }
+
+        $type = $request->policy->approval_type;
+
+        if ($type === 'manager') {
+            return $user->managesUser($request->user_id);
+        }
+        if ($type === 'hr_admin') {
+            return $user->hasRole('hr_admin');
+        }
+        // both: manager stage → the employee's manager; hr_admin stage → HR admin.
+        return $request->approval_stage === 'manager'
+            ? $user->managesUser($request->user_id)
+            : $user->hasRole('hr_admin');
+    }
+
     public function reject(Request $request, TimeOffRequest $timeOffRequest)
     {
         $user = auth()->user() ?? User::first();
-        
+
+        // Only someone allowed to approve this stage may reject it.
+        abort_unless($this->canApproveStage($user, $timeOffRequest), 403, 'You are not authorised to decide on this request.');
+
         $request->validate(['rejection_note' => 'required|string']);
 
         $timeOffRequest->update([
