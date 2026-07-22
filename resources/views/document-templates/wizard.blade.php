@@ -442,11 +442,29 @@
                         <i data-lucide="mouse-pointer-click" class="h-3.5 w-3.5"></i> Click on the document to drop it
                     </p>
                     <div class="space-y-1.5 max-h-[62vh] overflow-y-auto pr-1">
-                        {{-- Top group: the important, reusable variables + signature --}}
-                        <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Important fields</p>
+                        {{-- Signature group — always visible, its own prominent section --}}
+                        <p class="text-[10px] font-bold uppercase tracking-wider text-brand-500">Signature</p>
+                        <template x-for="f in signatureFields()" :key="'sgfld' + f.key">
+                            <button type="button" draggable="true"
+                                    @dragstart="onDragStart(f, $event)" @dragend="dragField = null"
+                                    @click="pick(f)" :disabled="!pdfReady"
+                                    class="w-full flex items-center justify-between gap-2 rounded-lg border-2 px-3 py-2.5 text-xs font-bold transition cursor-grab active:cursor-grabbing"
+                                    :class="placingKey === f.key ? 'border-brand-500 bg-brand-50 text-brand-700 dark:bg-brand-500/10 dark:text-brand-300' : 'border-brand-200 bg-brand-50/40 text-brand-700 hover:bg-brand-50 dark:border-brand-500/30 dark:bg-brand-500/5 dark:text-brand-300'"
+                                    :style="!pdfReady && 'opacity:0.5;cursor:not-allowed'">
+                                <span class="flex items-center gap-1.5 min-w-0">
+                                    <i data-lucide="pen-tool" class="h-3.5 w-3.5 flex-shrink-0"></i>
+                                    <span class="truncate" x-text="f.label"></span>
+                                    <span x-show="f.placed" x-cloak class="text-[9px] font-bold text-emerald-600">· placed</span>
+                                </span>
+                                <i data-lucide="plus" class="h-3.5 w-3.5 flex-shrink-0"></i>
+                            </button>
+                        </template>
+
+                        {{-- Text variables --}}
+                        <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400 pt-2">Important fields</p>
                         <template x-for="f in palette()" :key="'pal' + f.key">
                             <button type="button" draggable="true"
-                                    @dragstart="onDragStart(f)" @dragend="dragField = null"
+                                    @dragstart="onDragStart(f, $event)" @dragend="dragField = null"
                                     @click="pick(f)" :disabled="!pdfReady"
                                     class="w-full flex items-center justify-between gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition cursor-grab active:cursor-grabbing"
                                     :class="placingKey === f.key ? 'border-brand-500 bg-brand-50 text-brand-700 dark:bg-brand-500/10 dark:text-brand-300' : 'border-slate-200 text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700/50'"
@@ -464,7 +482,7 @@
                         <p x-show="profilePalette().length > 0" class="text-[10px] font-bold uppercase tracking-wider text-slate-400 pt-2">Profile fields</p>
                         <template x-for="f in profilePalette()" :key="'pf' + f.key">
                             <button type="button" draggable="true"
-                                    @dragstart="onDragStart(f)" @dragend="dragField = null"
+                                    @dragstart="onDragStart(f, $event)" @dragend="dragField = null"
                                     @click="pick(f)" :disabled="!pdfReady"
                                     class="w-full flex items-center justify-between gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition cursor-grab active:cursor-grabbing"
                                     :class="placingKey === f.key ? 'border-brand-500 bg-brand-50 text-brand-700 dark:bg-brand-500/10 dark:text-brand-300' : 'border-slate-200 text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700/50'"
@@ -482,7 +500,7 @@
                         <p x-show="signaturePalette().length > 0" class="text-[10px] font-bold uppercase tracking-wider text-slate-400 pt-2">Saved signatures</p>
                         <template x-for="f in signaturePalette()" :key="'sig' + f.key">
                             <button type="button" draggable="true"
-                                    @dragstart="onDragStart(f)" @dragend="dragField = null"
+                                    @dragstart="onDragStart(f, $event)" @dragend="dragField = null"
                                     @click="pick(f)" :disabled="!pdfReady"
                                     class="w-full flex items-center justify-between gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition cursor-grab active:cursor-grabbing"
                                     :class="placingKey === f.key ? 'border-brand-500 bg-brand-50 text-brand-700 dark:bg-brand-500/10 dark:text-brand-300' : 'border-slate-200 text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700/50'"
@@ -780,6 +798,7 @@
                 const placed = new Set(this.selectionList().filter(f => f.placement).map(f => f.key));
                 const out = [];
                 this.fieldCatalog.forEach(c => {
+                    if (c.key === '__signature' || c.key === '__initials') return; // shown in their own group
                     if (placed.has(c.key)) return;
                     const sel = this.selections[c.key];
                     out.push({ ...c, assignee: (sel && sel.assignee) || 'employee' });
@@ -791,6 +810,13 @@
                     out.push({ key: f.key, label: f.label, type: f.type, assignee: f.assignee || 'employee', w: 0.24, h: 0.03 });
                 });
                 return out;
+            },
+            // Signature & Initials — their OWN always-visible group so they can
+            // never scroll off or get filtered out of the text-field list.
+            signatureFields() {
+                return this.fieldCatalog
+                    .filter(c => c.key === '__signature' || c.key === '__initials')
+                    .map(c => ({ ...c, assignee: 'employee', placed: !!(this.selections[c.key] && this.selections[c.key].placement) }));
             },
             // Second palette group: all profile fields not already in the top
             // catalog and not yet placed. Drag any onto the document.
@@ -846,8 +872,14 @@
                 this.dropAt(item, e, pg);
                 this.placingKey = null; this.placingItem = null;
             },
-            // Drag a field from the palette onto the document.
-            onDragStart(item) { this.dragField = item; },
+            // Drag a field from the palette onto the document. Setting drag data
+            // is REQUIRED for the drop to fire in some browsers (e.g. Firefox).
+            onDragStart(item, e) {
+                this.dragField = item;
+                if (e && e.dataTransfer) {
+                    try { e.dataTransfer.setData('text/plain', item.key || ''); e.dataTransfer.effectAllowed = 'copy'; } catch (_) {}
+                }
+            },
             onDrop(e, pg) {
                 const item = this.dragField; this.dragField = null;
                 if (!item || !this.pdfReady) return;
