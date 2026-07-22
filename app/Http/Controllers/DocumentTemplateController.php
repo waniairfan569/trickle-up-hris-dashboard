@@ -157,7 +157,7 @@ class DocumentTemplateController extends Controller
     /** Rich preview — render the document with placed fields + a test-sign experience. */
     public function previewView(DocumentTemplate $documentTemplate)
     {
-        $documentTemplate->load(['fields', 'signers.employee']);
+        $documentTemplate->load(['fields.signatureTemplate', 'signers.employee']);
 
         // Non-PDF templates can't render in-browser — show a download panel instead.
         if (!$documentTemplate->isPdf()) {
@@ -175,6 +175,7 @@ class DocumentTemplateController extends Controller
                 'label' => $f->label,
                 'type' => $f->field_type,
                 'assignee' => $f->assignee,
+                'image' => $f->field_type === 'saved_signature' ? optional($f->signatureTemplate)->image_data : null,
                 'page' => (int) $f->page,
                 'x' => (float) $f->pos_x,
                 'y' => (float) $f->pos_y,
@@ -315,6 +316,7 @@ class DocumentTemplateController extends Controller
                     'section' => $field['section'] ?? null,
                     'field_type' => $field['field_type'] ?? 'text',
                     'assignee' => $field['assignee'] ?? 'employee',
+                    'signature_template_id' => ($field['signature_template_id'] ?? null) ?: null,
                     'page' => ($field['page'] ?? null) ?: null,
                     'pos_x' => isset($field['pos_x']) && $field['pos_x'] !== '' ? $field['pos_x'] : null,
                     'pos_y' => isset($field['pos_y']) && $field['pos_y'] !== '' ? $field['pos_y'] : null,
@@ -350,6 +352,9 @@ class DocumentTemplateController extends Controller
             ->orderBy('first_name')
             ->get(['id', 'first_name', 'last_name', 'job_title']);
 
+        // Saved signatures (email signatures) — draggable palette group; stamped automatically.
+        $signatureTemplates = \App\Models\SignatureTemplate::latest()->get(['id', 'name', 'image_data']);
+
         // Pre-fill state for edit mode (JSON-friendly).
         $existing = null;
         if ($template) {
@@ -375,6 +380,7 @@ class DocumentTemplateController extends Controller
                         'type' => $f->field_type,
                         'assignee' => $f->assignee,
                         'id' => $f->profile_field_id,
+                        'sigId' => $f->signature_template_id,
                         'placement' => $f->page ? [
                             'page' => (int) $f->page,
                             'x' => (float) $f->pos_x,
@@ -393,6 +399,7 @@ class DocumentTemplateController extends Controller
             'entities' => $entities,
             'departments' => $departments,
             'employees' => $employees,
+            'signatureTemplates' => $signatureTemplates,
             'existing' => $existing,
         ];
     }

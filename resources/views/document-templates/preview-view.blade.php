@@ -112,6 +112,12 @@
                                     <template x-if="f.type === 'text'">
                                         <div class="w-full h-full rounded border border-dashed border-slate-300 bg-slate-50/70 flex items-center px-1 text-[10px] font-semibold text-slate-500 truncate" x-text="f.label"></div>
                                     </template>
+                                    <!-- saved signature (stamped automatically) -->
+                                    <template x-if="f.type === 'saved_signature'">
+                                        <div class="w-full h-full rounded border-2 border-emerald-300 bg-white/80 flex items-center justify-center p-0.5">
+                                            <img :src="f.image" class="max-h-full max-w-full object-contain" alt="">
+                                        </div>
+                                    </template>
                                 </div>
                             </template>
                         </div>

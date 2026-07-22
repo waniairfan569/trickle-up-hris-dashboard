@@ -20,6 +20,7 @@ class DocumentTemplateField extends Model
         'section',
         'field_type',
         'assignee',
+        'signature_template_id',
         'page',
         'pos_x',
         'pos_y',
@@ -43,5 +44,10 @@ class DocumentTemplateField extends Model
     public function profileField()
     {
         return $this->belongsTo(ProfileField::class, 'profile_field_id');
+    }
+
+    public function signatureTemplate()
+    {
+        return $this->belongsTo(SignatureTemplate::class, 'signature_template_id');
     }
 }

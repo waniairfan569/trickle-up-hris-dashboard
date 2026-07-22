@@ -46,6 +46,7 @@
     window.__docTplSignerEmployees = @json($signerEmployeeOpts);
     window.__docTplHideDetails = @json($backedByCompanyDoc);
     window.__docTplOpenPlace = @json(request()->boolean('place'));
+    window.__sigTemplates = @json(($signatureTemplates ?? collect())->map(fn ($s) => ['id' => $s->id, 'name' => $s->name, 'image' => $s->image_data]));
 </script>
 
 <!-- PDF.js (legacy UMD build — most compatible) — powers the Step 4 placement editor -->
@@ -477,7 +478,25 @@
                             </button>
                         </template>
 
-                        <p x-show="palette().length === 0 && profilePalette().length === 0" class="flex items-center gap-1.5 text-xs font-semibold text-emerald-600">
+                        {{-- Third group: saved signatures (email signatures) — stamped automatically --}}
+                        <p x-show="signaturePalette().length > 0" class="text-[10px] font-bold uppercase tracking-wider text-slate-400 pt-2">Saved signatures</p>
+                        <template x-for="f in signaturePalette()" :key="'sig' + f.key">
+                            <button type="button" draggable="true"
+                                    @dragstart="onDragStart(f)" @dragend="dragField = null"
+                                    @click="pick(f)" :disabled="!pdfReady"
+                                    class="w-full flex items-center justify-between gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition cursor-grab active:cursor-grabbing"
+                                    :class="placingKey === f.key ? 'border-brand-500 bg-brand-50 text-brand-700 dark:bg-brand-500/10 dark:text-brand-300' : 'border-slate-200 text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700/50'"
+                                    :style="!pdfReady && 'opacity:0.5;cursor:not-allowed'">
+                                <span class="flex items-center gap-1.5 min-w-0">
+                                    <i data-lucide="grip-vertical" class="h-3 w-3 text-slate-300 flex-shrink-0"></i>
+                                    <img :src="f.sigImage" class="h-4 w-8 object-contain flex-shrink-0" alt="">
+                                    <span class="truncate" x-text="f.label"></span>
+                                </span>
+                                <i data-lucide="plus" class="h-3.5 w-3.5 text-slate-400 flex-shrink-0"></i>
+                            </button>
+                        </template>
+
+                        <p x-show="palette().length === 0 && profilePalette().length === 0 && signaturePalette().length === 0" class="flex items-center gap-1.5 text-xs font-semibold text-emerald-600">
                             <i data-lucide="check-circle" class="h-3.5 w-3.5"></i> All fields placed
                         </p>
                     </div>
@@ -510,7 +529,8 @@
                                     <div class="absolute flex items-center justify-between gap-1 rounded px-1.5 text-[10px] font-bold text-white shadow cursor-move select-none ring-1 ring-white/40"
                                          :class="tokenColor(f.assignee)" :style="tokenStyle(f, pg)"
                                          @click.stop @pointerdown="startDrag($event, f, pg)">
-                                        <span class="truncate pointer-events-none" x-text="f.label"></span>
+                                        <template x-if="sigImgFor(f)"><img :src="sigImgFor(f)" class="absolute inset-0 h-full w-full object-contain p-0.5 pointer-events-none bg-white/70 rounded" alt=""></template>
+                                        <span class="truncate pointer-events-none relative" x-text="f.label" :class="sigImgFor(f) && 'opacity-0'"></span>
                                         <button type="button" @click.stop="unplace(f.key)" @pointerdown.stop class="leading-none hover:text-rose-200 shrink-0">&times;</button>
                                         <!-- resize handle -->
                                         <span @pointerdown.stop="startResize($event, f, pg)" @click.stop
@@ -546,6 +566,7 @@
                 <input type="hidden" :name="`fields[${i}][field_type]`" :value="f.type">
                 <input type="hidden" :name="`fields[${i}][assignee]`" :value="f.assignee">
                 <input type="hidden" :name="`fields[${i}][profile_field_id]`" :value="f.id">
+                <input type="hidden" :name="`fields[${i}][signature_template_id]`" :value="f.sigId || ''">
                 <input type="hidden" :name="`fields[${i}][page]`" :value="f.placement ? f.placement.page : ''">
                 <input type="hidden" :name="`fields[${i}][pos_x]`" :value="f.placement ? f.placement.x : ''">
                 <input type="hidden" :name="`fields[${i}][pos_y]`" :value="f.placement ? f.placement.y : ''">
@@ -592,6 +613,8 @@
             // can drag any of them straight onto the document (no separate step).
             allProfileFields: Object.values(window.__docTplFields || {})
                 .filter(f => f.key !== '__signature' && f.key !== '__initials'),
+            // Saved signatures (email signatures) — third palette group; stamped automatically.
+            savedSignatures: window.__sigTemplates || [],
             isEdit: !!ex,
             name: ex?.name || '',
             description: ex?.description || '',
@@ -779,9 +802,23 @@
                     .filter(f => !placed.has(f.key) && !catalogKeys.has(f.key) && !paletteKeys.has(f.key))
                     .map(f => ({ key: f.key, label: f.label, type: 'text', assignee: 'employee', id: f.id || '', w: 0.24, h: 0.03 }));
             },
+            // Resolve a placed saved-signature's image (from the drop, or by id in edit mode).
+            sigImgFor(f) {
+                if (f.type !== 'saved_signature') return null;
+                if (f.sigImage) return f.sigImage;
+                const s = this.savedSignatures.find(s => String(s.id) === String(f.sigId));
+                return s ? s.image : null;
+            },
+            // Third palette group: saved signatures (stamped automatically).
+            signaturePalette() {
+                const placed = new Set(this.selectionList().filter(f => f.placement).map(f => f.key));
+                return this.savedSignatures
+                    .map(s => ({ key: 'sig:' + s.id, label: s.name, type: 'saved_signature', assignee: 'sender', sigId: s.id, sigImage: s.image, w: 0.22, h: 0.06 }))
+                    .filter(s => !placed.has(s.key));
+            },
             ensureSelection(item) {
                 if (!this.selections[item.key]) {
-                    this.selections[item.key] = { key: item.key, label: item.label, section: 'Placed', id: item.id || '', type: item.type, assignee: item.assignee || 'employee' };
+                    this.selections[item.key] = { key: item.key, label: item.label, section: 'Placed', id: item.id || '', type: item.type, assignee: item.assignee || 'employee', sigId: item.sigId || '', sigImage: item.sigImage || '' };
                 }
                 return this.selections[item.key];
             },

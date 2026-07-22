@@ -302,7 +302,7 @@ class DocumentRequestController extends Controller
     public function signedData(DocumentRequest $documentRequest)
     {
         $this->authorizeView($documentRequest);
-        $documentRequest->load(['template.fields', 'subject', 'signers.user']);
+        $documentRequest->load(['template.fields.signatureTemplate', 'subject', 'signers.user']);
         $subject = $documentRequest->subject;
 
         // Latest signature image + signer name per party (employee / sender_party / line_manager).
@@ -328,8 +328,13 @@ class DocumentRequestController extends Controller
                 $value = '';
                 $image = null;
                 $name = null;
+                $type = $f->field_type;
                 if ($f->field_type === 'text' && $f->field_key) {
                     $value = (string) ($subject->getFieldValue($f->field_key) ?? '');
+                } elseif ($f->field_type === 'saved_signature') {
+                    // Auto-stamped saved signature — rendered like a signature image.
+                    $type = 'signature';
+                    $image = optional($f->signatureTemplate)->image_data;
                 } elseif (in_array($f->field_type, ['signature', 'initials'], true)) {
                     $party = $this->partyOf($f->assignee);
                     $image = $sigByParty[$party] ?? $fallbackSig;
@@ -338,7 +343,7 @@ class DocumentRequestController extends Controller
 
                 return [
                     'label' => $f->label,
-                    'type' => $f->field_type,
+                    'type' => $type,
                     'value' => $value,
                     'image' => $image,
                     'name' => $name,
@@ -354,7 +359,7 @@ class DocumentRequestController extends Controller
         // signature at the bottom of the last page (stacked), matching the
         // "Sign here" fallback shown on the signing page.
         $hasPlacedSig = $documentRequest->template->fields
-            ->contains(fn ($f) => in_array($f->field_type, ['signature', 'initials'], true));
+            ->contains(fn ($f) => in_array($f->field_type, ['signature', 'initials', 'saved_signature'], true));
         if (!$hasPlacedSig) {
             $stack = 0;
             foreach ($documentRequest->signers as $s) {
