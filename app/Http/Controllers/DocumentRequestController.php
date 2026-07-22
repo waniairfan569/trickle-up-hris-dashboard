@@ -36,7 +36,21 @@ class DocumentRequestController extends Controller
             $employees = $employees->sortBy(fn ($u) => $u->last_name . ' ' . $u->first_name)->values();
         }
 
-        return view('documents.send', compact('documentTemplate', 'employees'));
+        // Existing signer choices (pre-fill the picker), and the backing company
+        // document so Access & Settings live on this "Send for signature" page.
+        $signerChoices = $documentTemplate->signers->map(fn ($s) => $s->signer_type === 'employee'
+            ? 'emp:' . $s->employee_id
+            : 'role:' . ($s->role ?: 'employee'))->values();
+
+        $companyDoc = \App\Models\CompanyDocument::where('template_id', $documentTemplate->id)
+            ->with('accessRecords')->first();
+        $departments = \App\Models\Department::orderBy('name')->get(['id', 'name']);
+        $accessUsers = User::where('account_status', '!=', 'deactivated')
+            ->orderBy('first_name')->get(['id', 'first_name', 'last_name']);
+
+        return view('documents.send', compact(
+            'documentTemplate', 'employees', 'signerChoices', 'companyDoc', 'departments', 'accessUsers'
+        ));
     }
 
     /** POST document-templates/{tpl}/send — create a request + resolve signers (admin). */
@@ -45,11 +59,48 @@ class DocumentRequestController extends Controller
         abort_unless($documentTemplate->isPdf(), 422, 'Signing is available for PDF templates only.');
         $request->validate(['employee' => 'required|integer|exists:users,id']);
 
+        // Signers are chosen on this page (after preview) — rebuild them in order.
+        if ($request->has('signers')) {
+            DB::transaction(function () use ($documentTemplate, $request) {
+                $documentTemplate->signers()->delete();
+                foreach (array_values($request->input('signers', [])) as $i => $signer) {
+                    $type = ($signer['signer_type'] ?? 'role') === 'employee' ? 'employee' : 'role';
+                    $documentTemplate->signers()->create([
+                        'position' => $i,
+                        'signer_type' => $type,
+                        'role' => $type === 'role' ? ($signer['role'] ?? 'employee') : null,
+                        'employee_id' => $type === 'employee' ? (($signer['employee_id'] ?? null) ?: null) : null,
+                    ]);
+                }
+            });
+        }
+
+        // Access & settings for the backing company document live here too.
+        $companyDoc = \App\Models\CompanyDocument::where('template_id', $documentTemplate->id)->first();
+        if ($companyDoc && $request->has('access_level')) {
+            $companyDoc->access_level = $request->input('access_level') ?: 'company_wide';
+            $companyDoc->requires_acknowledgment = $request->boolean('requires_acknowledgment');
+            $companyDoc->is_active = $request->boolean('is_active', true);
+            $companyDoc->expires_at = $request->input('expires_at') ?: null;
+            $companyDoc->save();
+
+            $companyDoc->accessRecords()->delete();
+            if ($companyDoc->access_level === 'department') {
+                foreach ((array) $request->input('departments', []) as $id) {
+                    $companyDoc->accessRecords()->create(['access_type' => 'department', 'access_id' => $id]);
+                }
+            } elseif ($companyDoc->access_level === 'specific_users') {
+                foreach ((array) $request->input('users', []) as $id) {
+                    $companyDoc->accessRecords()->create(['access_type' => 'user', 'access_id' => $id]);
+                }
+            }
+        }
+
         $subject = User::findOrFail($request->integer('employee'));
         $documentTemplate->load('signers.employee');
 
         if ($documentTemplate->signers->isEmpty()) {
-            return back()->withErrors(['employee' => 'This template has no signers configured. Edit the template and add at least one signer.']);
+            return back()->withInput()->withErrors(['signers' => 'Please add at least one signer before sending.']);
         }
 
         // Resolve each template signer into an actual user.
