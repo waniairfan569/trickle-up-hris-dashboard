@@ -133,7 +133,9 @@
                         <select name="approval_type" class="w-full md:w-1/2 rounded-xl border-slate-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
                             <option value="manager" {{ old('approval_type') == 'manager' ? 'selected' : '' }}>Direct Manager Only</option>
                             <option value="hr_admin" {{ old('approval_type') == 'hr_admin' ? 'selected' : '' }}>HR Admin Only</option>
+                            <option value="super_admin" {{ old('approval_type') == 'super_admin' ? 'selected' : '' }}>Super Admin Only</option>
                             <option value="both" {{ old('approval_type') == 'both' ? 'selected' : '' }}>Manager then HR Admin</option>
+                            <option value="manager_super" {{ old('approval_type') == 'manager_super' ? 'selected' : '' }}>Manager then Super Admin</option>
                         </select>
                     </div>
                 </div>

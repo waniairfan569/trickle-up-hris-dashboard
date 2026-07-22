@@ -266,7 +266,7 @@ class TimeOffController extends Controller
             'half_day_period' => $durationType === 'half_day' ? ($validated['half_day_period'] ?? null) : null,
             'reason' => $validated['reason'],
             'status' => $requiresApproval ? 'pending' : 'approved',
-            'approval_stage' => ($requiresApproval && $policy->approval_type === 'both') ? 'manager' : null,
+            'approval_stage' => ($requiresApproval && in_array($policy->approval_type, ['both', 'manager_super'], true)) ? 'manager' : null,
             'approved_by' => $requiresApproval ? null : $auth->id,
             'approved_at' => $requiresApproval ? null : now(),
         ]);
@@ -460,7 +460,7 @@ class TimeOffController extends Controller
             'half_day_period' => $durationType === 'half_day' ? ($validated['half_day_period'] ?? null) : null,
             'reason' => $validated['reason'],
             'status' => $policy->requires_approval ? 'pending' : 'approved',
-            'approval_stage' => ($policy->requires_approval && $policy->approval_type === 'both') ? 'manager' : null,
+            'approval_stage' => ($policy->requires_approval && in_array($policy->approval_type, ['both', 'manager_super'], true)) ? 'manager' : null,
             'approved_at' => $policy->requires_approval ? null : now(),
         ]);
 
@@ -482,12 +482,16 @@ class TimeOffController extends Controller
         // Enforce WHO can approve for this policy (and, for two-stage, this stage).
         abort_unless($this->canApproveStage($user, $timeOffRequest), 403, 'You are not authorised to approve this request at this stage.');
 
-        // "Manager then HR Admin" — first (manager) approval just advances the
-        // request to the HR Admin stage; it stays pending until HR approves.
-        if ($timeOffRequest->policy->approval_type === 'both' && $timeOffRequest->approval_stage === 'manager') {
-            $timeOffRequest->update(['approval_stage' => 'hr_admin']);
-            $this->notifyApprovers($timeOffRequest); // ping HR admins that it now needs them
-            return back()->with('success', 'Approved by manager — now awaiting HR Admin approval.');
+        // Two-stage policies ("Manager then HR Admin" / "Manager then Super Admin")
+        // — the manager's approval just advances the request to the second stage;
+        // it stays pending until that approver signs off.
+        $type = $timeOffRequest->policy->approval_type;
+        if (in_array($type, ['both', 'manager_super'], true) && $timeOffRequest->approval_stage === 'manager') {
+            $nextStage = $type === 'both' ? 'hr_admin' : 'super_admin';
+            $who = $type === 'both' ? 'HR Admin' : 'Super Admin';
+            $timeOffRequest->update(['approval_stage' => $nextStage]);
+            $this->notifyApprovers($timeOffRequest); // ping the next approver
+            return back()->with('success', "Approved by manager — now awaiting {$who} approval.");
         }
 
         // Final approval (manager-only, HR-admin-only, or the HR stage of both).
@@ -514,21 +518,31 @@ class TimeOffController extends Controller
     private function canApproveStage(User $user, TimeOffRequest $request): bool
     {
         if ($user->hasRole('super_admin')) {
-            return true; // system owner — universal override
+            return true; // system owner — universal override (and the Super Admin stage)
         }
 
+        // Employees / restricted roles can never approve.
         $type = $request->policy->approval_type;
+        $stage = $request->approval_stage;
 
-        if ($type === 'manager') {
-            return $user->managesUser($request->user_id);
+        switch ($type) {
+            case 'manager':
+                return $user->managesUser($request->user_id);
+            case 'hr_admin':
+                return $user->hasRole('hr_admin');
+            case 'super_admin':
+                return false; // only a super admin (handled above)
+            case 'both': // Manager → HR Admin
+                return $stage === 'manager'
+                    ? $user->managesUser($request->user_id)
+                    : $user->hasRole('hr_admin');
+            case 'manager_super': // Manager → Super Admin
+                return $stage === 'manager'
+                    ? $user->managesUser($request->user_id)
+                    : false; // super-admin stage (handled above)
         }
-        if ($type === 'hr_admin') {
-            return $user->hasRole('hr_admin');
-        }
-        // both: manager stage → the employee's manager; hr_admin stage → HR admin.
-        return $request->approval_stage === 'manager'
-            ? $user->managesUser($request->user_id)
-            : $user->hasRole('hr_admin');
+
+        return false;
     }
 
     public function reject(Request $request, TimeOffRequest $timeOffRequest)

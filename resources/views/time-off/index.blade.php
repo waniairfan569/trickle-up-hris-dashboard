@@ -220,14 +220,16 @@
             @php
                 $me = auth()->user();
                 $pol = $request->policy;
-                $isBoth = $pol && $pol->approval_type === 'both';
                 $stage = $request->approval_stage;
+                $twoStage = $pol && in_array($pol->approval_type, ['both', 'manager_super']);
                 $canDecide = $me->hasRole('super_admin')
                     || ($pol && $pol->approval_type === 'manager' && $me->managesUser($request->user_id))
                     || ($pol && $pol->approval_type === 'hr_admin' && $me->hasRole('hr_admin'))
-                    || ($isBoth && $stage === 'manager' && $me->managesUser($request->user_id))
-                    || ($isBoth && $stage === 'hr_admin' && $me->hasRole('hr_admin'));
-                $stageLabel = $isBoth ? ($stage === 'hr_admin' ? 'Awaiting HR Admin' : 'Awaiting Manager') : null;
+                    || ($pol && in_array($pol->approval_type, ['both', 'manager_super']) && $stage === 'manager' && $me->managesUser($request->user_id))
+                    || ($pol && $pol->approval_type === 'both' && $stage === 'hr_admin' && $me->hasRole('hr_admin'));
+                $stageLabel = $twoStage
+                    ? ($stage === 'manager' ? 'Awaiting Manager' : ($stage === 'hr_admin' ? 'Awaiting HR Admin' : 'Awaiting Super Admin'))
+                    : null;
             @endphp
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-6 flex flex-col md:flex-row gap-6 dark:bg-slate-800 dark:border-slate-700/80" x-data="{ showReject: false }">
                 <div class="flex-1">
@@ -281,7 +283,7 @@
                     @else
                         <div class="text-center text-xs text-slate-400 px-2">
                             <i data-lucide="clock" class="h-4 w-4 mx-auto mb-1"></i>
-                            {{ $isBoth && $stage === 'hr_admin' ? 'Approved by manager — waiting on HR Admin.' : 'Awaiting the assigned approver.' }}
+                            {{ $twoStage && $stage !== 'manager' ? 'Approved by manager — ' . strtolower($stageLabel) . '.' : 'Awaiting the assigned approver.' }}
                         </div>
                     @endif
                 </div>
