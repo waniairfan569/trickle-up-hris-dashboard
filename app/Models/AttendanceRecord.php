@@ -185,8 +185,9 @@ class AttendanceRecord extends Model
             $this->status = 'late';
         } else {
             $this->late_minutes = 0;
-            // On time: clear a previous "late"/"absent" but keep overtime/early-departure.
-            if (in_array($this->status, ['absent', 'late', 'missing_clock_out', 'half_day'], true)) {
+            // On time: clear a previous "late"/"absent" (or a brand-new record's
+            // empty status) but keep overtime/early-departure.
+            if (!$this->status || in_array($this->status, ['absent', 'late', 'missing_clock_out', 'half_day'], true)) {
                 $this->status = 'present';
             }
         }

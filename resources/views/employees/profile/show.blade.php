@@ -24,7 +24,8 @@
 
 <style>[x-cloak]{display:none!important}</style>
 
-<div class="space-y-8" id="profile-page-root" x-data="{ tab: 'personal', section: 'information', showSensitive: false, fileTab: 'upload', uploadOpen: false, fileSearch: '', payReviewOpen: false }">
+@php $initialSection = in_array(request('section'), ['information', 'files', 'timeoff', 'timetracking'], true) ? request('section') : 'information'; @endphp
+<div class="space-y-8" id="profile-page-root" x-data="{ tab: 'personal', section: '{{ $initialSection }}', showSensitive: false, fileTab: 'upload', uploadOpen: false, fileSearch: '', payReviewOpen: false }">
     <!-- Back Button -->
     <div>
         <a href="{{ route('employees.index') }}" class="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-slate-800 transition dark:text-slate-400 dark:hover:text-white">
@@ -394,9 +395,35 @@
         @endif
 
         <div class="bg-white border border-slate-200/80 rounded-2xl shadow-sm dark:bg-slate-800 dark:border-slate-700 overflow-hidden">
-            <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700"><h2 class="text-sm font-bold text-slate-800 dark:text-white">Recent Attendance</h2></div>
+            @php
+                $attRange = in_array(request('att'), ['week', 'month'], true) ? request('att') : 'recent';
+                $attQ = \App\Models\AttendanceRecord::where('user_id', $employee->id)->orderByDesc('date');
+                if ($attRange === 'week') {
+                    $attQ->whereBetween('date', [now()->startOfWeek()->toDateString(), now()->endOfWeek()->toDateString()]);
+                } elseif ($attRange === 'month') {
+                    $attQ->whereBetween('date', [now()->startOfMonth()->toDateString(), now()->endOfMonth()->toDateString()]);
+                } else {
+                    $attQ->limit(14);
+                }
+                $atts = $attQ->get();
+                $tzSvc = app(\App\Services\TimezoneService::class);
+                $canEditAtt = $auth->isAdmin();
+                $cols = $canEditAtt ? 6 : 5;
+                $attTitle = ['recent' => 'Recent Attendance', 'week' => 'Attendance — This Week', 'month' => 'Attendance — ' . now()->format('F Y')][$attRange];
+                $attLink = fn ($r) => request()->fullUrlWithQuery(['att' => $r, 'section' => 'timetracking']) . '#attendance-card';
+                $attPill = fn ($active) => $active
+                    ? 'rounded-full bg-brand-500 px-3 py-1 text-[11px] font-bold text-slate-900'
+                    : 'rounded-full bg-slate-100 px-3 py-1 text-[11px] font-bold text-slate-500 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300';
+            @endphp
+            <div id="attendance-card" class="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex flex-wrap items-center justify-between gap-3">
+                <h2 class="text-sm font-bold text-slate-800 dark:text-white">{{ $attTitle }}</h2>
+                <div class="flex items-center gap-1.5">
+                    <a href="{{ $attLink('recent') }}" class="{{ $attPill($attRange === 'recent') }}">Recent</a>
+                    <a href="{{ $attLink('week') }}" class="{{ $attPill($attRange === 'week') }}">This week</a>
+                    <a href="{{ $attLink('month') }}" class="{{ $attPill($attRange === 'month') }}">This month</a>
+                </div>
+            </div>
             <div class="overflow-x-auto">
-                @php $atts=\App\Models\AttendanceRecord::where('user_id',$employee->id)->orderByDesc('date')->limit(14)->get(); $tzSvc=app(\App\Services\TimezoneService::class); $canEditAtt=$auth->isAdmin(); $cols=$canEditAtt?6:5; @endphp
                 <table class="w-full text-left">
                     <thead class="bg-slate-50 dark:bg-slate-900/40 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100 dark:border-slate-700">
                         <tr><th class="px-6 py-3">Date</th><th class="px-6 py-3">Clock In</th><th class="px-6 py-3">Clock Out</th><th class="px-6 py-3">Hours Worked</th><th class="px-6 py-3">Status</th>@if($canEditAtt)<th class="px-6 py-3 text-right">Edit</th>@endif</tr>
@@ -413,7 +440,7 @@
                                 <td class="px-6 py-3 font-semibold text-slate-700 dark:text-slate-200">{{ \Carbon\Carbon::parse($att->date)->format('D, d M Y') }}</td>
                                 <td class="px-6 py-3 text-slate-600">{{ $att->clock_in?$tzSvc->formatForUser($att->clock_in,$employee,'h:i A'):'-' }}</td>
                                 <td class="px-6 py-3 text-slate-600">{{ $att->clock_out?$tzSvc->formatForUser($att->clock_out,$employee,'h:i A'):'-' }}</td>
-                                <td class="px-6 py-3 font-semibold text-slate-700 dark:text-slate-200">@if($att->clock_in&&$att->clock_out){{ floor($att->total_minutes_worked/60) }}h {{ $att->total_minutes_worked%60 }}m@else-@endif</td>
+                                <td class="px-6 py-3 font-semibold text-slate-700 dark:text-slate-200">{{ $att->clock_in && $att->clock_out ? floor($att->total_minutes_worked / 60) . 'h ' . ($att->total_minutes_worked % 60) . 'm' : '-' }}</td>
                                 <td class="px-6 py-3"><span class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold capitalize {{ $asc }}">{{ str_replace('_',' ',$as) }}</span></td>
                                 @if($canEditAtt)
                                     <td class="px-6 py-3 text-right">
