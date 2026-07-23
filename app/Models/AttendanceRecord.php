@@ -98,6 +98,30 @@ class AttendanceRecord extends Model
     }
 
     /**
+     * Approved partial-day leave (half-day or hourly) covering the given date.
+     * Returns 'half_day' | 'hourly' | null. Someone on a half-day leave who
+     * clocks in around midday is ON LEAVE, not late — so a partial-day leave
+     * suppresses the "late" status (and half-day shows as its own status).
+     */
+    public static function partialDayLeaveFor(int $userId, string $date): ?string
+    {
+        $request = \App\Models\TimeOffRequest::where('user_id', $userId)
+            ->where('status', 'approved')
+            ->whereDate('start_date', '<=', $date)
+            ->whereDate('end_date', '>=', $date)
+            ->where(function ($q) {
+                $q->where('is_half_day', true)->orWhereIn('duration_type', ['half_day', 'hourly']);
+            })
+            ->first();
+
+        if (!$request) {
+            return null;
+        }
+
+        return ($request->is_half_day || $request->duration_type === 'half_day') ? 'half_day' : 'hourly';
+    }
+
+    /**
      * Find the (user, date) record — INCLUDING a soft-deleted one — restoring it
      * if trashed, or return a fresh unsaved model. The attendance_records table
      * has a UNIQUE(user_id, date) index that still counts soft-deleted rows, so
@@ -162,9 +186,20 @@ class AttendanceRecord extends Model
         } else {
             $this->late_minutes = 0;
             // On time: clear a previous "late"/"absent" but keep overtime/early-departure.
-            if (in_array($this->status, ['absent', 'late', 'missing_clock_out'], true)) {
+            if (in_array($this->status, ['absent', 'late', 'missing_clock_out', 'half_day'], true)) {
                 $this->status = 'present';
             }
+        }
+
+        // Approved partial-day leave overrides lateness: a half-day shows as
+        // "half_day", an hourly leave just isn't late.
+        $partial = self::partialDayLeaveFor((int) $this->user_id, Carbon::parse($this->date)->toDateString());
+        if ($partial === 'half_day') {
+            $this->status = 'half_day';
+            $this->late_minutes = 0;
+        } elseif ($partial === 'hourly' && $this->status === 'late') {
+            $this->status = 'present';
+            $this->late_minutes = 0;
         }
     }
 
@@ -274,6 +309,7 @@ class AttendanceRecord extends Model
             'late' => 'bg-amber-100 text-amber-700',
             'absent' => 'bg-red-100 text-red-700',
             'on_leave' => 'bg-blue-100 text-blue-700',
+            'half_day' => 'bg-indigo-100 text-indigo-700',
             'overtime' => 'bg-purple-100 text-purple-700',
             'missing_clock_out' => 'bg-orange-100 text-orange-700',
             'weekend', 'public_holiday' => 'bg-gray-100 text-gray-500',

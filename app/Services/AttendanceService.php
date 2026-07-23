@@ -98,6 +98,17 @@ class AttendanceService
                 $record->late_minutes = (int) max(1, round($cutoff->diffInMinutes($localIn)));
                 $record->status = 'late';
             }
+
+            // On an approved half-day (or hourly) leave, a late clock-in IS the
+            // leave — show "half_day", never "late".
+            $partial = AttendanceRecord::partialDayLeaveFor($user->id, Carbon::parse($record->date)->toDateString());
+            if ($partial === 'half_day') {
+                $record->status = 'half_day';
+                $record->late_minutes = 0;
+            } elseif ($partial === 'hourly' && $record->status === 'late') {
+                $record->status = 'present';
+                $record->late_minutes = 0;
+            }
         }
 
         $record->save();
@@ -411,7 +422,7 @@ class AttendanceService
                         $record->status = 'late';
                     }
                 }
-                
+
                 if ($workSchedule && $workSchedule->end_time) {
                     $expectedEnd = Carbon::parse($record->date->format('Y-m-d') . ' ' . $workSchedule->end_time);
                     if ($record->clock_out->greaterThan($expectedEnd->copy()->addMinutes($settings->overtime_threshold_minutes))) {
@@ -421,6 +432,17 @@ class AttendanceService
                         $record->early_departure_minutes = $record->clock_out->diffInMinutes($expectedEnd);
                         $record->status = 'early_departure';
                     }
+                }
+
+                // Approved half-day/hourly leave wins over late/early-departure —
+                // arriving late or leaving early IS the leave.
+                $partialLeave = AttendanceRecord::partialDayLeaveFor($record->user_id, $record->date->format('Y-m-d'));
+                if ($partialLeave === 'half_day') {
+                    $record->status = 'half_day';
+                    $record->late_minutes = 0;
+                } elseif ($partialLeave === 'hourly' && $record->status === 'late') {
+                    $record->status = 'present';
+                    $record->late_minutes = 0;
                 }
             }
 

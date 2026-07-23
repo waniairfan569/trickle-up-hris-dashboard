@@ -404,7 +404,7 @@
                     @forelse($atts as $att)
                         @php
                             $as=$att->status??'present';
-                            $asc=match($as){'present'=>'bg-emerald-50 text-emerald-700','absent'=>'bg-red-50 text-red-700','late'=>'bg-amber-50 text-amber-700',default=>'bg-slate-50 text-slate-600'};
+                            $asc=match($as){'present'=>'bg-emerald-50 text-emerald-700','absent'=>'bg-red-50 text-red-700','late'=>'bg-amber-50 text-amber-700','half_day'=>'bg-indigo-50 text-indigo-700','on_leave'=>'bg-blue-50 text-blue-700',default=>'bg-slate-50 text-slate-600'};
                             $ciVal=$att->clock_in?$tzSvc->formatForUser($att->clock_in,$employee,'H:i'):'';
                             $coVal=$att->clock_out?$tzSvc->formatForUser($att->clock_out,$employee,'H:i'):'';
                         @endphp

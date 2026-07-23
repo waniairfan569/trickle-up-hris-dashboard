@@ -74,6 +74,8 @@
                         <div class="rounded-lg bg-emerald-100 text-emerald-700 text-xs font-bold py-2">{{ intdiv($mins, 60) }}h {{ $mins % 60 }}m</div>
                     @elseif($st === 'on_leave')
                         <div class="rounded-lg bg-indigo-100 text-indigo-600 text-[10px] font-bold py-2">On leave</div>
+                    @elseif($st === 'half_day')
+                        <div class="rounded-lg bg-indigo-100 text-indigo-600 text-[10px] font-bold py-2">Half day</div>
                     @elseif($st === 'public_holiday')
                         <div class="rounded-lg bg-amber-100 text-amber-600 text-[10px] font-bold py-2">Holiday</div>
                     @elseif($st === 'absent')

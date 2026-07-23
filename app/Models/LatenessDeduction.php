@@ -10,7 +10,7 @@ class LatenessDeduction extends Model
 {
     use BelongsToTenant;
     protected $fillable = [
-        'user_id', 'year', 'month', 'late_count', 'days_deducted', 'policy_id',
+        'user_id', 'year', 'month', 'late_count', 'days_deducted', 'policy_id', 'warning_sent_at',
     ];
 
     protected $casts = [
@@ -18,6 +18,7 @@ class LatenessDeduction extends Model
         'month' => 'integer',
         'late_count' => 'integer',
         'days_deducted' => 'decimal:1',
+        'warning_sent_at' => 'datetime',
     ];
 
     public function employee()

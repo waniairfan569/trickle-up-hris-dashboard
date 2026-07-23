@@ -302,6 +302,17 @@ class ZktecoK50Service
                     $record->late_minutes = 0;
                     $record->status = 'present';
                 }
+
+                // Approved half-day/hourly leave suppresses "late" (see
+                // AttendanceRecord::partialDayLeaveFor).
+                $partial = AttendanceRecord::partialDayLeaveFor($user->id, $date);
+                if ($partial === 'half_day') {
+                    $record->status = 'half_day';
+                    $record->late_minutes = 0;
+                } elseif ($partial === 'hourly' && $record->status === 'late') {
+                    $record->status = 'present';
+                    $record->late_minutes = 0;
+                }
                 $record->save();
             }
         }

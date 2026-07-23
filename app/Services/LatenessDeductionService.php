@@ -75,11 +75,36 @@ class LatenessDeductionService
             }
         }
 
+        // Warn once per month when the free lates (3) are used up: the NEXT
+        // late arrival will cost half a day.
+        if ($lateCount >= 3 && !$record->warning_sent_at) {
+            $record->warning_sent_at = now();
+            try {
+                $user->notify(new \App\Notifications\LateArrivalsWarningNotification(
+                    $lateCount, $date->copy()->startOfMonth(), $policy->name
+                ));
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
+
         $record->fill([
             'late_count' => $lateCount,
             'days_deducted' => $target,
             'policy_id' => $policy->id,
         ])->save();
+
+        // Tell the employee when a deduction is actually applied (4th late →
+        // 0.5 day; 6th late → the second 0.5).
+        if ($delta > 0.009) {
+            try {
+                $user->notify(new \App\Notifications\LatenessDeductionNotification(
+                    $delta, $target, $lateCount, $date->copy()->startOfMonth(), $policy->name
+                ));
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
     }
 
     /**

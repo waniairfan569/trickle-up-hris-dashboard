@@ -85,6 +85,7 @@
                     <option value="late" {{ request('status') == 'late' ? 'selected' : '' }}>Late</option>
                     <option value="absent" {{ request('status') == 'absent' ? 'selected' : '' }}>Absent</option>
                     <option value="on_leave" {{ request('status') == 'on_leave' ? 'selected' : '' }}>On Leave</option>
+                    <option value="half_day" {{ request('status') == 'half_day' ? 'selected' : '' }}>Half Day</option>
                 </select>
             </form>
         </div>

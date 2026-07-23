@@ -8,7 +8,7 @@
     $brandInk = '#a16207';     // readable brand text on light
     $rowColor = [
         'present' => '#ffffff', 'late' => '#FFF8E1', 'absent' => '#FDECEC',
-        'on_leave' => '#EEF4FB', 'overtime' => '#EAF5EC', 'early_departure' => '#FFF4E6',
+        'on_leave' => '#EEF4FB', 'half_day' => '#EEF0FB', 'overtime' => '#EAF5EC', 'early_departure' => '#FFF4E6',
         'missing_clock_out' => '#F4ECF9',
     ];
 @endphp

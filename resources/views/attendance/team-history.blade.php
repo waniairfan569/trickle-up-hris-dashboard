@@ -37,6 +37,7 @@
                     <option value="">All Statuses</option>
                     <option value="present" {{ request('status') == 'present' ? 'selected' : '' }}>Present</option>
                     <option value="late" {{ request('status') == 'late' ? 'selected' : '' }}>Late</option>
+                    <option value="half_day" {{ request('status') == 'half_day' ? 'selected' : '' }}>Half Day</option>
                     <option value="absent" {{ request('status') == 'absent' ? 'selected' : '' }}>Absent</option>
                     <option value="overtime" {{ request('status') == 'overtime' ? 'selected' : '' }}>Overtime</option>
                 </select>
