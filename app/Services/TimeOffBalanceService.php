@@ -40,7 +40,18 @@ class TimeOffBalanceService
                 ],
             ]);
 
-            $this->getOrCreateBalance($user, $policy, $year);
+            // If the policy has a leave-year setting with pro-rata, a mid-year
+            // joiner gets a proportional opening balance instead of the full year.
+            $setting = \App\Models\LeaveYearSetting::where('policy_id', $policy->id)
+                ->where('is_active', true)
+                ->when($user->tenant_id, fn ($q) => $q->where('tenant_id', $user->tenant_id))
+                ->first();
+
+            if ($setting && $setting->pro_rata_enabled) {
+                app(\App\Services\LeaveRenewalService::class)->assignLeaveOnJoining($user, $setting, $policy);
+            } else {
+                $this->getOrCreateBalance($user, $policy, $year);
+            }
         }
     }
 

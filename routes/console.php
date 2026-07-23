@@ -23,6 +23,10 @@ Schedule::command('attendance:admin-clock-summary')->dailyAt('19:00');
 // Email all employees the day before about events happening tomorrow.
 Schedule::command('events:send-reminders')->dailyAt('18:00');
 
+// Leave-year renewals (encashment + carry forward + fresh balances) — runs any
+// setting whose next_renewal_date is due.
+Schedule::command('leave:process-renewals')->dailyAt('01:00')->withoutOverlapping()->runInBackground();
+
 // Daily attendance report — fires once at the configurable send_time on working
 // days (dynamic, no redeploy needed). Guarded against duplicate sends.
 Schedule::call(function () {

@@ -100,6 +100,9 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
         Route::post('admin/code-requests/{codeRequest}/reject', [\App\Http\Controllers\CodeRequestController::class, 'rejectCode'])->name('code-requests.reject');
     });
 
+    // Employee: my leave-encashment history.
+    Route::get('my-encashments', [\App\Http\Controllers\LeaveEncashmentController::class, 'myEncashments'])->name('leave-encashments.my');
+
     // Equipment Requests — employee asks to take company equipment home.
     Route::get('equipment', [\App\Http\Controllers\EquipmentRequestController::class, 'index'])->name('equipment.index');
     Route::post('equipment', [\App\Http\Controllers\EquipmentRequestController::class, 'store'])->name('equipment.store');
@@ -415,6 +418,17 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
         Route::post('time-off-policies/{policy}/unassign', [TimeOffPolicyController::class, 'unassign'])->name('time-off-policies.unassign');
         Route::get('time-off-policies/{time_off_policy}/balances', [TimeOffPolicyController::class, 'balances'])->name('time-off-policies.balances');
         Route::post('time-off-policies/{time_off_policy}/adjust-balance', [TimeOffPolicyController::class, 'adjustBalance'])->name('time-off-policies.adjust-balance');
+
+        // Leave year renewal + encashment (per-company rules).
+        Route::resource('leave-year-settings', \App\Http\Controllers\LeaveYearSettingsController::class)
+            ->parameters(['leave-year-settings' => 'leaveYearSetting'])
+            ->except(['show']);
+        Route::get('leave-year-settings/{leaveYearSetting}/preview', [\App\Http\Controllers\LeaveYearSettingsController::class, 'previewRenewal'])->name('leave-year-settings.preview');
+        Route::post('leave-year-settings/{leaveYearSetting}/renew', [\App\Http\Controllers\LeaveYearSettingsController::class, 'manualRenewal'])->name('leave-year-settings.renew');
+        Route::get('leave-encashments', [\App\Http\Controllers\LeaveEncashmentController::class, 'index'])->name('leave-encashments.index');
+        Route::post('leave-encashments/mark-paid', [\App\Http\Controllers\LeaveEncashmentController::class, 'markPaid'])->name('leave-encashments.mark-paid');
+        Route::post('leave-encashments/{record}/approve', [\App\Http\Controllers\LeaveEncashmentController::class, 'approve'])->name('leave-encashments.approve');
+        Route::post('leave-encashments/{record}/reject', [\App\Http\Controllers\LeaveEncashmentController::class, 'reject'])->name('leave-encashments.reject');
         
         // Onboarding Admin Actions
         Route::resource('onboarding-workflows', OnboardingWorkflowController::class)->names('onboarding.workflows');
