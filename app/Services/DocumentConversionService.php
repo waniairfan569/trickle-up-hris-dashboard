@@ -83,12 +83,8 @@ class DocumentConversionService
     {
         try {
             $bin = $this->binary();
-            if (!$bin) {
-                return null;
-            }
-
             $disk = Storage::disk();
-            if (!$disk->exists($storedPath)) {
+            if (!$bin || !$disk->exists($storedPath)) {
                 return null;
             }
 
@@ -100,25 +96,8 @@ class DocumentConversionService
             $inPath = $work . DIRECTORY_SEPARATOR . basename($storedPath);
             @file_put_contents($inPath, $disk->get($storedPath));
 
-            // Run: soffice --headless --convert-to pdf --outdir <work> <input>
-            // A dedicated UserInstallation profile dir (inside storage, so within
-            // open_basedir) lets LibreOffice run as the web user even when HOME
-            // isn't writable — a common silent-failure cause on shared hosting.
-            $profileDir = $work . DIRECTORY_SEPARATOR . 'profile';
-            @mkdir($profileDir, 0775, true);
-            $profileUri = 'file:///' . ltrim(str_replace('\\', '/', $profileDir), '/');
-            $isWindows = stripos(PHP_OS, 'WIN') === 0;
-            $envPrefix = $isWindows ? '' : 'HOME=' . escapeshellarg($work) . ' ';
-
-            $binQuoted = Str::contains($bin, ' ') ? '"' . $bin . '"' : $bin;
-            $cmd = $envPrefix . $binQuoted . ' --headless --norestore --nolockcheck '
-                . '-env:UserInstallation=' . escapeshellarg($profileUri)
-                . ' --convert-to pdf --outdir '
-                . escapeshellarg($work) . ' ' . escapeshellarg($inPath) . ' 2>&1';
-            @shell_exec($cmd);
-
-            $pdfLocal = preg_replace('/\.[^.\\/\\\\]+$/', '.pdf', $inPath);
-            if (!@is_file($pdfLocal) || @filesize($pdfLocal) === 0) {
+            $pdfLocal = $this->run($bin, $work, $inPath, 'pdf');
+            if (!$pdfLocal) {
                 $this->cleanup($work);
                 return null;
             }
@@ -137,6 +116,127 @@ class DocumentConversionService
             report($e);
             return null; // any failure → graceful fallback (upload a PDF)
         }
+    }
+
+    /**
+     * Convert a stored Office file to a single self-contained HTML string so
+     * the admin can EDIT the text in the browser before converting to PDF.
+     * Images LibreOffice exports beside the HTML are inlined as data: URIs.
+     * Returns null when conversion isn't possible.
+     */
+    public function toEditableHtml(string $storedPath): ?string
+    {
+        try {
+            $bin = $this->binary();
+            $disk = Storage::disk();
+            if (!$bin || !$disk->exists($storedPath)) {
+                return null;
+            }
+
+            $work = storage_path('app/tmp-convert/' . Str::random(14));
+            @mkdir($work, 0775, true);
+            $inPath = $work . DIRECTORY_SEPARATOR . basename($storedPath);
+            @file_put_contents($inPath, $disk->get($storedPath));
+
+            $htmlLocal = $this->run($bin, $work, $inPath, 'html');
+            if (!$htmlLocal) {
+                $this->cleanup($work);
+                return null;
+            }
+
+            $html = (string) file_get_contents($htmlLocal);
+
+            // Inline exported images (LibreOffice writes them as sibling files).
+            $html = preg_replace_callback('/src="([^"]+)"/i', function ($m) use ($work) {
+                $src = html_entity_decode($m[1]);
+                if (preg_match('#^(data:|https?://)#i', $src)) {
+                    return $m[0];
+                }
+                $file = $work . DIRECTORY_SEPARATOR . basename($src);
+                if (!@is_file($file)) {
+                    return $m[0];
+                }
+                $mime = match (strtolower(pathinfo($file, PATHINFO_EXTENSION))) {
+                    'png' => 'image/png',
+                    'gif' => 'image/gif',
+                    'svg' => 'image/svg+xml',
+                    default => 'image/jpeg',
+                };
+
+                return 'src="data:' . $mime . ';base64,' . base64_encode((string) file_get_contents($file)) . '"';
+            }, $html);
+
+            $this->cleanup($work);
+
+            return $html;
+        } catch (\Throwable $e) {
+            report($e);
+            return null;
+        }
+    }
+
+    /**
+     * Convert an (edited) HTML string to PDF, storing it at $targetStoredPath.
+     * Returns the stored path, or null on failure.
+     */
+    public function htmlToPdf(string $html, string $targetStoredPath): ?string
+    {
+        try {
+            $bin = $this->binary();
+            if (!$bin) {
+                return null;
+            }
+
+            $work = storage_path('app/tmp-convert/' . Str::random(14));
+            @mkdir($work, 0775, true);
+            $inPath = $work . DIRECTORY_SEPARATOR . 'document.html';
+            @file_put_contents($inPath, $html);
+
+            $pdfLocal = $this->run($bin, $work, $inPath, 'pdf:writer_web_pdf_Export');
+            if (!$pdfLocal) {
+                $this->cleanup($work);
+                return null;
+            }
+
+            $disk = Storage::disk();
+            $disk->put($targetStoredPath, (string) file_get_contents($pdfLocal));
+            $this->cleanup($work);
+
+            return $disk->exists($targetStoredPath) ? $targetStoredPath : null;
+        } catch (\Throwable $e) {
+            report($e);
+            return null;
+        }
+    }
+
+    /**
+     * Run soffice --headless --convert-to <format> and return the local output
+     * path, or null if nothing usable was produced.
+     *
+     * A dedicated UserInstallation profile dir (inside storage, so within
+     * open_basedir) lets LibreOffice run as the web user even when HOME
+     * isn't writable — a common silent-failure cause on shared hosting.
+     */
+    private function run(string $bin, string $work, string $inPath, string $format): ?string
+    {
+        $profileDir = $work . DIRECTORY_SEPARATOR . 'profile';
+        @mkdir($profileDir, 0775, true);
+        $profileUri = 'file:///' . ltrim(str_replace('\\', '/', $profileDir), '/');
+        $isWindows = stripos(PHP_OS, 'WIN') === 0;
+        $envPrefix = $isWindows ? '' : 'HOME=' . escapeshellarg($work) . ' ';
+
+        $binQuoted = Str::contains($bin, ' ') ? '"' . $bin . '"' : $bin;
+        $cmd = $envPrefix . $binQuoted . ' --headless --norestore --nolockcheck '
+            . '-env:UserInstallation=' . escapeshellarg($profileUri)
+            . ' --convert-to ' . escapeshellarg($format) . ' --outdir '
+            . escapeshellarg($work) . ' ' . escapeshellarg($inPath) . ' 2>&1';
+        @shell_exec($cmd);
+
+        // "pdf:writer_web_pdf_Export" → output extension "pdf".
+        $ext = strtok($format, ':');
+        $outPath = preg_replace('/\.[^.\\/\\\\]+$/', '.' . $ext, $inPath);
+
+        return (@is_file($outPath) && @filesize($outPath) > 0) ? $outPath : null;
     }
 
     private function cleanup(string $dir): void

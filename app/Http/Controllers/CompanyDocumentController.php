@@ -65,9 +65,24 @@ class CompanyDocumentController extends Controller
         $document->uploaded_by = auth()->id();
         $this->storeFile($document, $request, $category);
 
-        // Word (.doc/.docx) → convert to PDF so it can be used in the builder.
+        // Word (.doc/.docx) → open in the browser editor first, so the text can
+        // be changed / tokens typed in, THEN converted to PDF on "Convert".
         if (in_array($document->file_extension, ['doc', 'docx'], true)) {
-            $pdfPath = app(\App\Services\DocumentConversionService::class)->toPdf($document->file_path);
+            $conversion = app(\App\Services\DocumentConversionService::class);
+
+            $html = $conversion->toEditableHtml($document->file_path);
+            if ($html !== null) {
+                $document->save();
+                $this->syncAccess($document, $request);
+                Storage::put($this->editHtmlPath($document), $html);
+
+                return redirect()->route('company-documents.edit-content', $document)
+                    ->with('success', 'Document uploaded — edit the text below, then click “Convert to PDF”.');
+            }
+
+            // Fallback: straight docx → PDF (no editing step) if the HTML
+            // route failed but plain conversion works.
+            $pdfPath = $conversion->toPdf($document->file_path);
             if (!$pdfPath) {
                 Storage::delete($document->file_path);
                 return back()->withInput()->withErrors([
@@ -125,6 +140,19 @@ class CompanyDocumentController extends Controller
                 Storage::delete($document->file_path);
             }
             $this->storeFile($document, $request, $category);
+
+            // A replacement Word file goes through the browser editor too.
+            if (in_array($document->file_extension, ['doc', 'docx'], true)) {
+                $html = app(\App\Services\DocumentConversionService::class)->toEditableHtml($document->file_path);
+                if ($html !== null) {
+                    $document->save();
+                    $this->syncAccess($document, $request);
+                    Storage::put($this->editHtmlPath($document), $html);
+
+                    return redirect()->route('company-documents.edit-content', $document)
+                        ->with('success', 'New file uploaded — edit the text below, then click “Convert to PDF”.');
+                }
+            }
         }
 
         if ($document->requires_signature && $document->file_extension !== 'pdf') {
@@ -143,6 +171,78 @@ class CompanyDocumentController extends Controller
         }
 
         return redirect()->route('company-documents.admin')->with('success', 'Document updated.');
+    }
+
+    /**
+     * Step 1b — edit the text of an uploaded Word document in the browser
+     * before it is converted to PDF for field placement.
+     */
+    public function editContent(CompanyDocument $document)
+    {
+        abort_unless(in_array($document->file_extension, ['doc', 'docx'], true), 404);
+
+        $htmlPath = $this->editHtmlPath($document);
+        $html = Storage::exists($htmlPath)
+            ? Storage::get($htmlPath)
+            : app(\App\Services\DocumentConversionService::class)->toEditableHtml($document->file_path);
+
+        if ($html === null) {
+            return redirect()->route('company-documents.edit', $document)
+                ->withErrors(['file' => 'Couldn’t open this Word file for editing — please re-upload it, or upload a PDF.']);
+        }
+
+        // Profile-field token names admins can type/insert into the text.
+        $tokenGroups = [
+            'Employee' => ['[Employee Name]', '[CNIC]', '[Designation]', '[Department]', '[Email]', '[Joining Date]'],
+            'Agreement' => ['[Date]', '[Salary]', '[Probation Salary]'],
+            'Signatures' => ['[Employee Signature]', "[Sender's Signature]"],
+        ];
+
+        return view('company-documents.edit-content', compact('document', 'html', 'tokenGroups'));
+    }
+
+    /** Convert the (edited) HTML to PDF and continue to field placement. */
+    public function convertToPdf(Request $request, CompanyDocument $document)
+    {
+        abort_unless(in_array($document->file_extension, ['doc', 'docx'], true), 404);
+
+        $request->validate(['html' => 'required|string|max:8000000']);
+
+        $target = preg_replace('/\.[^.]+$/', '.pdf', $document->file_path);
+        if ($target === $document->file_path) {
+            $target .= '.pdf';
+        }
+
+        $pdfPath = app(\App\Services\DocumentConversionService::class)
+            ->htmlToPdf($request->input('html'), $target);
+        if (!$pdfPath) {
+            return back()->withErrors(['html' => 'Conversion to PDF failed — please try again, or upload a PDF instead.']);
+        }
+
+        // Swap the stored file to the PDF; drop the Word file and the edit HTML.
+        foreach ([$document->file_path, $this->editHtmlPath($document)] as $old) {
+            if ($old && Storage::exists($old)) {
+                Storage::delete($old);
+            }
+        }
+        $document->file_path = $pdfPath;
+        $document->file_name = preg_replace('/\.[^.]+$/', '.pdf', $document->file_name);
+        $document->file_type = 'application/pdf';
+        $document->file_extension = 'pdf';
+        $document->file_size = Storage::size($pdfPath);
+        $document->requires_signature = true;
+        $document->save();
+
+        $this->syncSignatureTemplate($document);
+
+        return redirect()->route('document-templates.edit', ['documentTemplate' => $document->template_id, 'place' => 1])
+            ->with('success', 'Converted to PDF — now drag your variables onto the document.');
+    }
+
+    /** Where the editable-HTML working copy of a Word upload lives. */
+    private function editHtmlPath(CompanyDocument $document): string
+    {
+        return preg_replace('/\.[^.]+$/', '', $document->file_path) . '.edit.html';
     }
 
     public function newVersion(Request $request, CompanyDocument $document)
