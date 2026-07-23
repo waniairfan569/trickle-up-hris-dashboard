@@ -414,9 +414,13 @@ class AttendanceService
                 
                 $settings = AttendanceSetting::first() ?? new AttendanceSetting();
                 $workSchedule = method_exists($record->employee, 'workSchedule') ? $record->employee->workSchedule : null;
-                
+                // Schedule times are the employee's local wall-clock — label them
+                // as such so comparisons against the (canonical) record times
+                // compare true instants.
+                $schedTz = app(\App\Services\TimezoneService::class)->getEffectiveTimezone($record->employee);
+
                 if ($workSchedule && $workSchedule->start_time) {
-                    $expectedStart = Carbon::parse($record->date->format('Y-m-d') . ' ' . $workSchedule->start_time);
+                    $expectedStart = Carbon::parse($record->date->format('Y-m-d') . ' ' . $workSchedule->start_time, $schedTz);
                     if ($record->clock_in->greaterThan($expectedStart->copy()->addMinutes($settings->grace_period_minutes))) {
                         $record->late_minutes = $expectedStart->diffInMinutes($record->clock_in);
                         $record->status = 'late';
@@ -424,7 +428,7 @@ class AttendanceService
                 }
 
                 if ($workSchedule && $workSchedule->end_time) {
-                    $expectedEnd = Carbon::parse($record->date->format('Y-m-d') . ' ' . $workSchedule->end_time);
+                    $expectedEnd = Carbon::parse($record->date->format('Y-m-d') . ' ' . $workSchedule->end_time, $schedTz);
                     if ($record->clock_out->greaterThan($expectedEnd->copy()->addMinutes($settings->overtime_threshold_minutes))) {
                         $record->overtime_minutes = $expectedEnd->diffInMinutes($record->clock_out);
                         $record->status = 'overtime';

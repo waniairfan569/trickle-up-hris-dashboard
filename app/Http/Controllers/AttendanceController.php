@@ -194,8 +194,15 @@ class AttendanceController extends Controller
             ['status' => 'correction_pending']
         );
 
-        $reqIn = $validated['requested_clock_in'] ? Carbon::parse($date->toDateString() . ' ' . $validated['requested_clock_in']) : null;
-        $reqOut = $validated['requested_clock_out'] ? Carbon::parse($date->toDateString() . ' ' . $validated['requested_clock_out']) : null;
+        // The typed times are the employee's local wall-clock — label them with
+        // the employee's timezone and store in the canonical one, exactly like
+        // the admin time editors do. Parsing them "naked" stamps them with the
+        // server timezone and shifts every correction by the UTC offset.
+        $tzSvc = app(\App\Services\TimezoneService::class);
+        $userTz = $tzSvc->getEffectiveTimezone($user);
+        $canonical = $tzSvc->canonicalTimezone();
+        $reqIn = $validated['requested_clock_in'] ? Carbon::parse($date->toDateString() . ' ' . $validated['requested_clock_in'], $userTz)->setTimezone($canonical) : null;
+        $reqOut = $validated['requested_clock_out'] ? Carbon::parse($date->toDateString() . ' ' . $validated['requested_clock_out'], $userTz)->setTimezone($canonical) : null;
 
         AttendanceCorrection::create([
             'user_id' => $user->id,
