@@ -9,7 +9,10 @@
     $policyDays = $policies->mapWithKeys(fn ($p) => [$p->id => (float) $p->days_per_year]);
     $inputCls = 'rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm shadow-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:bg-slate-900 dark:border-slate-600 dark:text-white';
 @endphp
-<script>window.__policyDays = @json($policyDays);</script>
+<script>
+    window.__policyDays = @json($policyDays);
+    window.__policyNames = @json($policies->pluck('name', 'id'));
+</script>
 
 <div class="max-w-3xl mx-auto space-y-6" x-data="leaveYearForm()">
     <a href="{{ route('leave-year-settings.index') }}" class="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-slate-800 dark:text-slate-400"><i data-lucide="arrow-left" class="h-4 w-4"></i> All settings</a>
@@ -20,30 +23,64 @@
         @csrf
         @if($setting->exists) @method('PUT') @endif
 
-        {{-- 1. Policy --}}
+        {{-- 1. Policy / Policies --}}
         <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 dark:bg-slate-800 dark:border-slate-700 space-y-4">
-            <h2 class="text-sm font-bold text-slate-800 dark:text-white">1 · Policy</h2>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Leave policy <span class="text-rose-500">*</span></label>
-                    <select name="policy_id" x-model="policyId" required class="w-full {{ $inputCls }}">
-                        <option value="">Select policy…</option>
-                        @foreach($policies as $p)
-                            <option value="{{ $p->id }}" @selected(old('policy_id', $setting->policy_id) == $p->id)>{{ $p->name }} ({{ rtrim(rtrim(number_format($p->days_per_year, 1), '0'), '.') }} days/yr)</option>
-                        @endforeach
-                    </select>
+            <h2 class="text-sm font-bold text-slate-800 dark:text-white">1 · {{ $setting->exists ? 'Policy' : 'Policies' }}</h2>
+
+            @if($setting->exists)
+                {{-- Edit: a setting always belongs to exactly one policy --}}
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Leave policy <span class="text-rose-500">*</span></label>
+                        <select name="policy_id" x-model="policyId" required class="w-full {{ $inputCls }}">
+                            <option value="">Select policy…</option>
+                            @foreach($policies as $p)
+                                <option value="{{ $p->id }}" @selected(old('policy_id', $setting->policy_id) == $p->id)>{{ $p->name }} ({{ rtrim(rtrim(number_format($p->days_per_year, 1), '0'), '.') }} days/yr)</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Company entity <span class="text-slate-400 normal-case font-medium">(optional)</span></label>
+                        <select name="company_entity_id" class="w-full {{ $inputCls }}">
+                            <option value="">Whole workspace</option>
+                            @foreach($entities as $e)<option value="{{ $e->id }}" @selected(old('company_entity_id', $setting->company_entity_id) == $e->id)>{{ $e->name }}</option>@endforeach
+                        </select>
+                    </div>
                 </div>
+            @else
+                {{-- Create: pick as many policies as needed — one setting per policy, same rules --}}
                 <div>
+                    <div class="flex items-center justify-between mb-1.5">
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Leave policies <span class="text-rose-500">*</span></label>
+                        <button type="button" @click="toggleAll()" class="text-[11px] font-bold text-brand-600 hover:text-brand-700"
+                                x-text="selected.length === allIds.length ? 'Clear all' : 'Select all'"></button>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        @foreach($policies as $p)
+                            <label class="flex items-center gap-2.5 rounded-xl border p-3 cursor-pointer transition"
+                                   :class="selected.includes('{{ $p->id }}') ? 'border-brand-500 bg-brand-50/60 dark:bg-brand-500/10' : 'border-slate-200 dark:border-slate-600'">
+                                <input type="checkbox" name="policy_ids[]" value="{{ $p->id }}" x-model="selected" class="rounded border-slate-300 text-brand-600 h-4 w-4">
+                                <span class="min-w-0">
+                                    <span class="block text-sm font-semibold text-slate-800 dark:text-white truncate">{{ $p->name }}</span>
+                                    <span class="block text-[11px] text-slate-400">{{ rtrim(rtrim(number_format($p->days_per_year, 1), '0'), '.') }} days/yr</span>
+                                </span>
+                            </label>
+                        @endforeach
+                    </div>
+                    <p class="text-[11px] text-slate-400 mt-1.5">One setting is created per selected policy, all with these same rules. A policy that already has a setting is skipped (edit that one instead).</p>
+                </div>
+                <div class="sm:w-1/2">
                     <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Company entity <span class="text-slate-400 normal-case font-medium">(optional)</span></label>
                     <select name="company_entity_id" class="w-full {{ $inputCls }}">
                         <option value="">Whole workspace</option>
                         @foreach($entities as $e)<option value="{{ $e->id }}" @selected(old('company_entity_id', $setting->company_entity_id) == $e->id)>{{ $e->name }}</option>@endforeach
                     </select>
                 </div>
-            </div>
+            @endif
+
             <div>
-                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Setting name <span class="text-rose-500">*</span></label>
-                <input type="text" name="name" value="{{ old('name', $setting->name) }}" required maxlength="120" placeholder="e.g. Annual Leave 2025-26" class="w-full {{ $inputCls }}">
+                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Setting name @if($setting->exists)<span class="text-rose-500">*</span>@else<span class="text-slate-400 normal-case font-medium">(optional — auto-named per policy if blank)</span>@endif</label>
+                <input type="text" name="name" value="{{ old('name', $setting->name) }}" {{ $setting->exists ? 'required' : '' }} maxlength="120" placeholder="{{ $setting->exists ? 'e.g. Annual Leave 2025-26' : 'Leave blank for “<Policy> — leave year”' }}" class="w-full {{ $inputCls }}">
             </div>
         </div>
 
@@ -79,6 +116,7 @@
                             <input type="number" step="0.01" min="0" max="100" x-model.number="encValue" @click.stop class="w-24 {{ $inputCls }}"> %
                             <span class="text-slate-400" x-text="percentExample()"></span>
                         </span>
+                        <span x-show="encType === 'percent_of_annual' && capsSummary()" x-cloak class="block mt-1.5 text-[11px] text-slate-400" x-text="capsSummary()"></span>
                     </span>
                 </label>
                 <label class="flex items-start gap-3 rounded-xl border p-3.5 cursor-pointer transition" :class="encType === 'full_remaining' ? 'border-brand-500 bg-brand-50/60 dark:bg-brand-500/10' : 'border-slate-200 dark:border-slate-600'">
@@ -149,7 +187,14 @@
 
                 {{-- Live preview --}}
                 <div class="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden" x-show="annualDays() > 0" x-cloak>
-                    <p class="px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-400 bg-slate-50 dark:bg-slate-900/40">Live preview — allocation by joining month (annual = <span x-text="annualDays()"></span> days)</p>
+                    <div class="px-4 py-2 flex items-center justify-between gap-3 bg-slate-50 dark:bg-slate-900/40">
+                        <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Live preview — allocation by joining month (annual = <span x-text="annualDays()"></span> days)</p>
+                        <select x-show="!isEdit && selected.length > 1" x-cloak x-model="previewChoice" class="rounded-lg border border-slate-300 px-2 py-1 text-[11px] font-semibold shadow-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                            <template x-for="id in selected" :key="id">
+                                <option :value="id" x-text="policyName(id)"></option>
+                            </template>
+                        </select>
+                    </div>
                     <div class="max-h-64 overflow-y-auto">
                         <table class="w-full text-xs">
                             <thead><tr class="text-left font-bold text-slate-400 border-b border-slate-100 dark:border-slate-700/60">
@@ -194,7 +239,11 @@
 <script>
     function leaveYearForm() {
         return {
+            isEdit: {{ $setting->exists ? 'true' : 'false' }},
             policyId: @json((string) old('policy_id', $setting->policy_id ?? '')),
+            selected: @json(array_map('strval', (array) old('policy_ids', []))),
+            allIds: @json($policies->pluck('id')->map(fn ($i) => (string) $i)->values()),
+            previewChoice: '',
             startMonth: {{ (int) old('year_start_month', $setting->year_start_month ?? 7) }},
             encType: @json(old('encashment_type', $setting->encashment_type ?? 'percent_of_annual')),
             encValue: {{ (float) old('encashment_value', $setting->encashment_value ?? 10) }},
@@ -204,7 +253,21 @@
             rounding: @json(old('pro_rata_round_to', $setting->pro_rata_round_to ?? 'half')),
             months: ['January','February','March','April','May','June','July','August','September','October','November','December'],
 
-            annualDays() { return parseFloat((window.__policyDays || {})[this.policyId] || 0); },
+            toggleAll() { this.selected = this.selected.length === this.allIds.length ? [] : [...this.allIds]; },
+            activeId() {
+                if (this.isEdit) return this.policyId;
+                if (this.previewChoice && this.selected.includes(this.previewChoice)) return this.previewChoice;
+                return this.selected[0] || '';
+            },
+            policyName(id) { return (window.__policyNames || {})[id] || ''; },
+            annualDays() { return parseFloat((window.__policyDays || {})[this.activeId()] || 0); },
+            capsSummary() {
+                if (this.isEdit || this.selected.length < 2) return '';
+                return this.selected.map(id => {
+                    const a = parseFloat((window.__policyDays || {})[id] || 0);
+                    return this.policyName(id) + ': ' + (Math.round(a * (this.encValue / 100) * 10) / 10);
+                }).join(' · ') + ' days cap';
+            },
             roundDays(x) {
                 if (this.rounding === 'half') return Math.round(x * 2) / 2;
                 if (this.rounding === 'full') return Math.ceil(x);

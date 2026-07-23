@@ -41,12 +41,55 @@ class LeaveYearSettingsController extends Controller
         ]);
     }
 
+    /** Create one setting per selected policy — same rules for all of them. */
     public function store(Request $request)
     {
-        $data = $this->validated($request);
-        LeaveYearSetting::create($data); // next_renewal_date auto-set on saving
+        $data = $this->validated($request, creating: true);
+        $policyIds = array_values(array_unique($data['policy_ids']));
+        $baseName = trim((string) ($data['name'] ?? ''));
+        unset($data['policy_ids'], $data['name']);
 
-        return redirect()->route('leave-year-settings.index')->with('success', 'Leave year settings created.');
+        $policies = TimeOffPolicy::whereIn('id', $policyIds)->get()->keyBy('id');
+        $created = 0;
+        $skipped = [];
+
+        foreach ($policyIds as $pid) {
+            $policy = $policies->get($pid);
+            if (!$policy) {
+                continue;
+            }
+
+            // One setting per policy(+entity) — a second would double-run renewals.
+            $exists = LeaveYearSetting::where('policy_id', $pid)
+                ->when($data['company_entity_id'],
+                    fn ($q, $e) => $q->where('company_entity_id', $e),
+                    fn ($q) => $q->whereNull('company_entity_id'))
+                ->exists();
+            if ($exists) {
+                $skipped[] = $policy->name;
+                continue;
+            }
+
+            LeaveYearSetting::create($data + [
+                'policy_id' => $pid,
+                'name' => $baseName === ''
+                    ? $policy->name . ' — leave year'
+                    : (count($policyIds) > 1 ? $baseName . ' — ' . $policy->name : $baseName),
+            ]); // next_renewal_date auto-set on saving
+            $created++;
+        }
+
+        if ($created === 0) {
+            return redirect()->route('leave-year-settings.index')
+                ->with('error', 'Nothing created — the selected polic' . (count($skipped) === 1 ? 'y already has' : 'ies already have') . ' a setting: ' . implode(', ', $skipped) . '. Edit those instead.');
+        }
+
+        $msg = $created . ' leave year setting' . ($created === 1 ? '' : 's') . ' created.';
+        if ($skipped) {
+            $msg .= ' Skipped (already have a setting): ' . implode(', ', $skipped) . '.';
+        }
+
+        return redirect()->route('leave-year-settings.index')->with('success', $msg);
     }
 
     public function edit(LeaveYearSetting $leaveYearSetting)
@@ -60,7 +103,21 @@ class LeaveYearSettingsController extends Controller
 
     public function update(Request $request, LeaveYearSetting $leaveYearSetting)
     {
-        $leaveYearSetting->update($this->validated($request));
+        $data = $this->validated($request);
+
+        // Keep one setting per policy(+entity) — switching to a policy that
+        // already has its own setting would double-run renewals.
+        $duplicate = LeaveYearSetting::where('policy_id', $data['policy_id'])
+            ->where('id', '!=', $leaveYearSetting->id)
+            ->when($data['company_entity_id'],
+                fn ($q, $e) => $q->where('company_entity_id', $e),
+                fn ($q) => $q->whereNull('company_entity_id'))
+            ->exists();
+        if ($duplicate) {
+            return back()->withInput()->withErrors(['policy_id' => 'That policy already has a leave-year setting — edit that one instead.']);
+        }
+
+        $leaveYearSetting->update($data);
 
         return redirect()->route('leave-year-settings.index')->with('success', 'Leave year settings updated.');
     }
@@ -111,12 +168,18 @@ class LeaveYearSettingsController extends Controller
             . "{$summary['total_lapsed']} day(s) lapsed.");
     }
 
-    private function validated(Request $request): array
+    private function validated(Request $request, bool $creating = false): array
     {
         $data = $request->validate([
             'company_entity_id' => 'nullable|exists:company_entities,id',
-            'policy_id' => 'required|exists:time_off_policies,id',
-            'name' => 'required|string|max:120',
+            ...($creating ? [
+                'policy_ids' => 'required|array|min:1',
+                'policy_ids.*' => 'integer|exists:time_off_policies,id',
+                'name' => 'nullable|string|max:120',
+            ] : [
+                'policy_id' => 'required|exists:time_off_policies,id',
+                'name' => 'required|string|max:120',
+            ]),
             'year_start_month' => 'required|integer|between:1,12',
             'year_start_day' => 'required|integer|between:1,28',
             'encashment_type' => ['required', Rule::in(['percent_of_annual', 'full_remaining', 'fixed_days', 'none'])],
@@ -127,6 +190,7 @@ class LeaveYearSettingsController extends Controller
             'pro_rata_round_to' => ['required', Rule::in(['none', 'half', 'full'])],
         ]);
 
+        $data['company_entity_id'] = $data['company_entity_id'] ?? null;
         $data['encashment_enabled'] = $data['encashment_type'] !== 'none';
         $data['carry_forward_enabled'] = $request->boolean('carry_forward_enabled');
         $data['pro_rata_enabled'] = $request->boolean('pro_rata_enabled');
