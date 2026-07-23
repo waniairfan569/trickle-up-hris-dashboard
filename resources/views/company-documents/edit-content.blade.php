@@ -68,37 +68,49 @@
     const frame = document.getElementById('docFrame');
     const rawHtml = {!! json_encode($html) !!};
 
-    // Load the converted document into the iframe and make it editable.
-    const fdoc = frame.contentDocument;
-    fdoc.open();
-    fdoc.write(rawHtml);
-    fdoc.close();
-    fdoc.designMode = 'on';
-
     // Editor-only chrome (page look) — removed again before submitting, so it
     // never leaks into the PDF.
-    const chrome = fdoc.createElement('style');
-    chrome.id = 'editor-chrome';
-    chrome.textContent = 'html{background:#eef2f7 !important;} body{max-width:820px;margin:24px auto !important;padding:48px 56px !important;background:#fff !important;box-shadow:0 1px 8px rgba(15,23,42,.12);border-radius:6px;min-height:60vh;caret-color:#0f172a;}';
-    (fdoc.head || fdoc.documentElement).appendChild(chrome);
+    const chromeCss = 'html{background:#eef2f7 !important;} body{max-width:820px;margin:24px auto !important;padding:48px 56px !important;background:#fff !important;box-shadow:0 1px 8px rgba(15,23,42,.12);border-radius:6px;min-height:60vh;caret-color:#0f172a;}';
+
+    // Always grab the CURRENT iframe document — srcdoc navigation replaces it,
+    // so a cached reference (or an early document.write) ends up pointing at a
+    // dead document and the page looks empty.
+    function fdoc() { return frame.contentDocument; }
+
+    function attachChrome(d) {
+        if (!d || d.getElementById('editor-chrome')) return;
+        const s = d.createElement('style');
+        s.id = 'editor-chrome';
+        s.textContent = chromeCss;
+        (d.head || d.documentElement).appendChild(s);
+    }
+
+    frame.addEventListener('load', () => {
+        const d = fdoc();
+        if (!d) return;
+        d.designMode = 'on';
+        attachChrome(d);
+    });
+    frame.srcdoc = rawHtml;
 
     function cmd(name) {
         frame.contentWindow.focus();
-        fdoc.execCommand(name, false, null);
+        fdoc().execCommand(name, false, null);
     }
 
     function insertToken(token) {
         if (!token) return;
         frame.contentWindow.focus();
-        fdoc.execCommand('insertText', false, token);
+        fdoc().execCommand('insertText', false, token);
     }
 
     document.getElementById('convertForm').addEventListener('submit', () => {
-        const c = fdoc.getElementById('editor-chrome');
+        const d = fdoc();
+        const c = d.getElementById('editor-chrome');
         if (c) c.remove();
-        document.getElementById('htmlInput').value = '<!DOCTYPE html>' + fdoc.documentElement.outerHTML;
+        document.getElementById('htmlInput').value = '<!DOCTYPE html>' + d.documentElement.outerHTML;
         // Re-attach in case validation bounces the user back without reload.
-        (fdoc.head || fdoc.documentElement).appendChild(chrome);
+        attachChrome(d);
     });
 </script>
 @endsection
