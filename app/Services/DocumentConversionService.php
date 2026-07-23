@@ -101,8 +101,19 @@ class DocumentConversionService
             @file_put_contents($inPath, $disk->get($storedPath));
 
             // Run: soffice --headless --convert-to pdf --outdir <work> <input>
+            // A dedicated UserInstallation profile dir (inside storage, so within
+            // open_basedir) lets LibreOffice run as the web user even when HOME
+            // isn't writable — a common silent-failure cause on shared hosting.
+            $profileDir = $work . DIRECTORY_SEPARATOR . 'profile';
+            @mkdir($profileDir, 0775, true);
+            $profileUri = 'file:///' . ltrim(str_replace('\\', '/', $profileDir), '/');
+            $isWindows = stripos(PHP_OS, 'WIN') === 0;
+            $envPrefix = $isWindows ? '' : 'HOME=' . escapeshellarg($work) . ' ';
+
             $binQuoted = Str::contains($bin, ' ') ? '"' . $bin . '"' : $bin;
-            $cmd = $binQuoted . ' --headless --norestore --nolockcheck --convert-to pdf --outdir '
+            $cmd = $envPrefix . $binQuoted . ' --headless --norestore --nolockcheck '
+                . '-env:UserInstallation=' . escapeshellarg($profileUri)
+                . ' --convert-to pdf --outdir '
                 . escapeshellarg($work) . ' ' . escapeshellarg($inPath) . ' 2>&1';
             @shell_exec($cmd);
 
@@ -130,8 +141,9 @@ class DocumentConversionService
 
     private function cleanup(string $dir): void
     {
+        // Recursive — LibreOffice leaves a nested profile dir behind.
         foreach (glob($dir . DIRECTORY_SEPARATOR . '*') ?: [] as $f) {
-            @unlink($f);
+            is_dir($f) ? $this->cleanup($f) : @unlink($f);
         }
         @rmdir($dir);
     }
