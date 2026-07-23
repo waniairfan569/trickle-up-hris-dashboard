@@ -397,7 +397,7 @@
         <div class="bg-white border border-slate-200/80 rounded-2xl shadow-sm dark:bg-slate-800 dark:border-slate-700 overflow-hidden">
             @php
                 $attRange = in_array(request('att'), ['week', 'month'], true) ? request('att') : 'recent';
-                $attQ = \App\Models\AttendanceRecord::where('user_id', $employee->id)->orderByDesc('date');
+                $attQ = \App\Models\AttendanceRecord::where('user_id', $employee->id)->where('status', '!=', 'weekend')->orderByDesc('date');
                 if ($attRange === 'week') {
                     $attQ->whereBetween('date', [now()->startOfWeek()->toDateString(), now()->endOfWeek()->toDateString()]);
                 } elseif ($attRange === 'month') {
