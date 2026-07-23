@@ -219,9 +219,32 @@ class CompanyDocumentController extends Controller
             return back()->withErrors(['html' => 'Conversion to PDF failed — please try again, or upload a PDF instead.']);
         }
 
-        // Swap the stored file to the PDF; drop the Word file and the edit HTML.
+        return $this->swapToPdf($document, $pdfPath);
+    }
+
+    /**
+     * Convert the ORIGINAL Word file straight to PDF, skipping the browser
+     * editor — keeps letterheads, watermarks and floating artwork exactly as
+     * designed in Word (the HTML editor can't hold floating objects in place).
+     */
+    public function convertOriginal(CompanyDocument $document)
+    {
+        abort_unless(in_array($document->file_extension, ['doc', 'docx'], true), 404);
+
+        $pdfPath = app(\App\Services\DocumentConversionService::class)->toPdf($document->file_path);
+        if (!$pdfPath) {
+            return back()->withErrors(['html' => 'Conversion to PDF failed — please try again, or upload a PDF instead.']);
+        }
+
+        return $this->swapToPdf($document, $pdfPath);
+    }
+
+    /** Swap the stored Word file for the converted PDF and continue to placement. */
+    private function swapToPdf(CompanyDocument $document, string $pdfPath)
+    {
+        // Drop the Word file and the edit HTML — only the PDF remains.
         foreach ([$document->file_path, $this->editHtmlPath($document)] as $old) {
-            if ($old && Storage::exists($old)) {
+            if ($old && $old !== $pdfPath && Storage::exists($old)) {
                 Storage::delete($old);
             }
         }

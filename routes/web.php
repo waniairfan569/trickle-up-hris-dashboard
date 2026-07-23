@@ -396,6 +396,7 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
         Route::get('company-documents/{document}/edit', [\App\Http\Controllers\CompanyDocumentController::class, 'edit'])->name('company-documents.edit');
         Route::get('company-documents/{document}/edit-content', [\App\Http\Controllers\CompanyDocumentController::class, 'editContent'])->name('company-documents.edit-content');
         Route::post('company-documents/{document}/convert', [\App\Http\Controllers\CompanyDocumentController::class, 'convertToPdf'])->name('company-documents.convert');
+        Route::post('company-documents/{document}/convert-original', [\App\Http\Controllers\CompanyDocumentController::class, 'convertOriginal'])->name('company-documents.convert-original');
         Route::put('company-documents/{document}', [\App\Http\Controllers\CompanyDocumentController::class, 'update'])->name('company-documents.update');
         Route::post('company-documents/{document}/new-version', [\App\Http\Controllers\CompanyDocumentController::class, 'newVersion'])->name('company-documents.new-version');
         Route::delete('company-documents/{document}', [\App\Http\Controllers\CompanyDocumentController::class, 'destroy'])->name('company-documents.destroy');

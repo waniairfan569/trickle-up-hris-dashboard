@@ -19,9 +19,18 @@
                 <h1 class="text-base font-bold text-slate-900 dark:text-white">{{ $document->title }}</h1>
                 <p class="text-xs text-slate-400 mt-0.5">Edit the text just like in Word — type or insert <span class="font-semibold">[tokens]</span> where employee data should go. When you’re done, convert to PDF and place your fields.</p>
             </div>
-            <button type="submit" form="convertForm" class="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-bold text-slate-900 hover:bg-brand-700">
-                <i data-lucide="file-check" class="h-4 w-4"></i> Convert to PDF &amp; continue
-            </button>
+            <div class="flex items-center gap-2">
+                <button type="submit" form="convertOriginalForm" title="Keeps letterhead, watermark and floating images exactly as designed in Word — but discards edits made below" class="inline-flex items-center gap-2 rounded-xl bg-white border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200">
+                    <i data-lucide="image" class="h-4 w-4"></i> Keep Word layout — convert as-is
+                </button>
+                <button type="submit" form="convertForm" class="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-bold text-slate-900 hover:bg-brand-700">
+                    <i data-lucide="file-check" class="h-4 w-4"></i> Convert edited text to PDF
+                </button>
+            </div>
+        </div>
+        <div class="px-5 py-2.5 border-b border-amber-100 bg-amber-50/70 text-[11px] text-amber-700 dark:bg-amber-500/10 dark:border-amber-500/20 dark:text-amber-400 flex items-start gap-1.5">
+            <i data-lucide="alert-triangle" class="h-3.5 w-3.5 shrink-0 mt-0.5"></i>
+            <span><span class="font-bold">Branded document (letterhead / watermark / logo)?</span> This editor flows the text like a web page, so floating artwork can shift. Finish the wording in Word itself (branding in Insert&nbsp;→&nbsp;Header&nbsp;&amp;&nbsp;Footer, watermark via Design&nbsp;→&nbsp;Watermark, tokens typed in the text), then use <span class="font-bold">“Keep Word layout — convert as-is”</span> for a pixel-perfect PDF. Use the editor only for plain-text documents.</span>
         </div>
 
         {{-- Toolbar --}}
@@ -56,10 +65,16 @@
         @csrf
         <input type="hidden" name="html" id="htmlInput">
     </form>
+    <form method="POST" action="{{ route('company-documents.convert-original', $document) }}" id="convertOriginalForm">
+        @csrf
+    </form>
 
-    <div class="flex justify-end">
+    <div class="flex justify-end gap-2">
+        <button type="submit" form="convertOriginalForm" class="inline-flex items-center gap-2 rounded-xl bg-white border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200">
+            <i data-lucide="image" class="h-4 w-4"></i> Keep Word layout — convert as-is
+        </button>
         <button type="submit" form="convertForm" class="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-6 py-2.5 text-sm font-bold text-slate-900 hover:bg-brand-700">
-            <i data-lucide="file-check" class="h-4 w-4"></i> Convert to PDF &amp; continue
+            <i data-lucide="file-check" class="h-4 w-4"></i> Convert edited text to PDF
         </button>
     </div>
 </div>
