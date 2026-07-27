@@ -138,21 +138,43 @@
     // a blank underline still picks up the label before it (e.g. "Signature:"),
     // and trailing blanks / underscores / dashes are trimmed off so the anchor
     // ends on real text.
+    const cleanAnchor = t => (t || '').replace(/\s+/g, ' ').replace(/[\s_.·•–—-]+$/, '').trim();
+    const meaningful = t => t.replace(/[^A-Za-z0-9]/g, '').length;
+
     function currentAnchor() {
         try {
             const sel = fdoc().getSelection();
             if (!sel || !sel.rangeCount) return '';
             const r = sel.getRangeAt(0);
-            // Text of the whole block up to the caret.
-            const pre = r.cloneRange();
+
             let block = r.startContainer;
             while (block && block.nodeType === 3) block = block.parentNode;
-            const blockEl = (block && block.closest) ? (block.closest('p,td,th,li,div,h1,h2,h3,h4') || block) : block;
-            if (blockEl) pre.selectNodeContents(blockEl);
-            pre.setEnd(r.startContainer, r.startOffset);
-            let text = (pre.toString() || '').replace(/\s+/g, ' ');
-            text = text.replace(/[\s_.–—-]+$/, '');   // drop trailing blanks / _ / – — -
-            return text.slice(-60);
+            const blockEl = (block && block.closest)
+                ? (block.closest('td,th,li,p,div,h1,h2,h3,h4') || block) : block;
+
+            // Text of the current block up to the caret.
+            let text = '';
+            if (blockEl) {
+                const pre = r.cloneRange();
+                pre.selectNodeContents(blockEl);
+                pre.setEnd(r.startContainer, r.startOffset);
+                text = pre.toString();
+            } else if (r.startContainer.nodeType === 3) {
+                text = r.startContainer.textContent.slice(0, r.startOffset);
+            }
+
+            let anchor = cleanAnchor(text);
+            // A caret on a blank line / empty table cell has no label to anchor
+            // to — walk back to preceding cells/blocks to borrow the label
+            // (e.g. "Signature:" sitting in the cell before the blank).
+            let node = blockEl, guard = 0;
+            while (meaningful(anchor) < 3 && node && guard++ < 5) {
+                node = node.previousElementSibling
+                    || (node.parentElement ? node.parentElement.previousElementSibling : null);
+                if (!node) break;
+                anchor = cleanAnchor((node.textContent || '') + ' ' + text);
+            }
+            return anchor.slice(-60);
         } catch (e) { return ''; }
     }
 

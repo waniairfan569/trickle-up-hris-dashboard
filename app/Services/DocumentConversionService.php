@@ -150,23 +150,39 @@ class DocumentConversionService
     }
 
     /**
-     * Concatenated text of every <w:t> run in document order, plus a map of
-     * [node, startOffset, length] windows so an absolute char offset can be
-     * resolved back to the run node that holds it.
+     * Whitespace-normalised text of every <w:t> run in document order, plus a
+     * map from each normalised char index to [node, offsetAfterCharInNode].
+     * Runs of whitespace collapse to one space, so an anchor captured from the
+     * browser HTML (which may use different spacing/tabs than the .docx) still
+     * matches. The map lets a match be inserted straight into the run node that
+     * holds the anchor's last char.
      *
-     * @return array{0:string,1:array<int,array{0:\DOMNode,1:int,2:int}>}
+     * @return array{0:string,1:array<int,array{0:\DOMNode,1:int}>}
      */
-    private function buildRunTextMap(\DOMXPath $xpath): array
+    private function buildNormalizedRunMap(\DOMXPath $xpath): array
     {
-        $full = '';
+        $norm = '';
         $map = [];
+        $prevSpace = false;
         foreach ($xpath->query('//w:t') as $t) {
-            $len = mb_strlen($t->textContent);
-            $map[] = [$t, mb_strlen($full), $len];
-            $full .= $t->textContent;
+            $chars = preg_split('//u', $t->textContent, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+            foreach ($chars as $li => $ch) {
+                if (preg_match('/\s/u', $ch)) {
+                    if ($prevSpace) {
+                        continue; // collapse consecutive whitespace
+                    }
+                    $norm .= ' ';
+                    $map[] = [$t, $li + 1];
+                    $prevSpace = true;
+                } else {
+                    $norm .= $ch;
+                    $map[] = [$t, $li + 1];
+                    $prevSpace = false;
+                }
+            }
         }
 
-        return [$full, $map];
+        return [$norm, $map];
     }
 
     /**
@@ -234,41 +250,45 @@ class DocumentConversionService
             }
 
             $placed = 0;
-            // A single forward cursor over the WHOLE document, so tokens land in
-            // reading order and two tokens can never pile up at the same match
-            // (each search starts after the previous insertion).
-            $cursor = 0;
+            // A single forward cursor (in normalised space) over the WHOLE
+            // document, so tokens land in reading order and two tokens can never
+            // pile up at the same match (each search starts after the previous
+            // insertion).
+            $cursorNorm = 0;
 
             foreach ($pending as $tk) {
-                [$full, $map] = $this->buildRunTextMap($xpath);
+                [$norm, $map] = $this->buildNormalizedRunMap($xpath);
+                $needle = trim(preg_replace('/\s+/u', ' ', $tk['anchor']));
+                if ($needle === '') {
+                    continue;
+                }
 
-                // Prefer the next occurrence at/after the cursor; only fall back
-                // to a from-start search if the anchor doesn't appear ahead.
-                $pos = mb_strpos($full, $tk['anchor'], $cursor);
+                $from = min($cursorNorm, mb_strlen($norm));
+                $pos = mb_strpos($norm, $needle, $from);
                 if ($pos === false) {
-                    $pos = mb_strpos($full, $tk['anchor']);
+                    $pos = mb_strpos($norm, $needle); // fall back to first occurrence
                 }
                 if ($pos === false) {
                     continue;
                 }
-                $end = $pos + mb_strlen($tk['anchor']);
 
-                foreach ($map as [$node, $start, $len]) {
-                    if ($end >= $start && $end <= $start + $len) {
-                        $local = $end - $start;
-                        $text = $node->textContent;
-                        $before = mb_substr($text, 0, $local);
-                        $after = mb_substr($text, $local);
-                        $sep = ($before !== '' && !preg_match('/\s$/u', $before)) ? ' ' : '';
-                        $node->textContent = $before . $sep . $tk['token'] . $after;
-                        $node->setAttribute('xml:space', 'preserve');
-                        $placed++;
-                        // Advance past what we just inserted so the next token
-                        // searches forward from here.
-                        $cursor = $end + mb_strlen($sep . $tk['token']);
-                        break;
-                    }
+                $endIdx = $pos + mb_strlen($needle) - 1; // last matched normalised char
+                if (!isset($map[$endIdx])) {
+                    continue;
                 }
+                [$node, $localOffset] = $map[$endIdx];
+
+                $text = $node->textContent;
+                $before = mb_substr($text, 0, $localOffset);
+                $after = mb_substr($text, $localOffset);
+                $sep = ($before !== '' && !preg_match('/\s$/u', $before)) ? ' ' : '';
+                $node->textContent = $before . $sep . $tk['token'] . $after;
+                $node->setAttribute('xml:space', 'preserve');
+                $placed++;
+
+                // Advance past the anchor + inserted token in the rebuilt norm.
+                $cursorNorm = $pos + mb_strlen($needle)
+                    + mb_strlen(trim(preg_replace('/\s+/u', ' ', $sep . $tk['token'])));
             }
 
             if ($placed === 0) {

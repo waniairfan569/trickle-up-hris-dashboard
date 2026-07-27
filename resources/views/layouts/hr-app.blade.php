@@ -356,8 +356,8 @@
                 @endif
 
                 @if(session('error'))
-                    <div x-data="{ show: true }" 
-                         x-show="show" 
+                    <div x-data="{ show: true }"
+                         x-show="show"
                          x-init="setTimeout(() => show = false, 6000)"
                          class="mb-6 flex items-center justify-between rounded-xl bg-rose-50 border border-rose-200 p-4 text-rose-800 shadow-sm dark:bg-rose-500/10 dark:border-rose-500/20 dark:text-rose-400"
                          x-transition:leave="transition ease-in duration-300 transform opacity-0 translate-y-2">
@@ -366,6 +366,20 @@
                             <span class="text-sm font-medium">{{ session('error') }}</span>
                         </div>
                         <button type="button" @click="show = false" class="text-rose-600 hover:text-rose-800 dark:text-rose-400 dark:hover:text-rose-300">
+                            <i data-lucide="x" class="h-4 w-4"></i>
+                        </button>
+                    </div>
+                @endif
+
+                @if(session('warning'))
+                    <div x-data="{ show: true }"
+                         x-show="show"
+                         class="mb-6 flex items-start justify-between gap-3 rounded-xl bg-amber-50 border border-amber-200 p-4 text-amber-800 shadow-sm dark:bg-amber-500/10 dark:border-amber-500/20 dark:text-amber-300">
+                        <div class="flex items-start gap-3">
+                            <i data-lucide="alert-triangle" class="h-5 w-5 shrink-0 text-amber-500 dark:text-amber-400"></i>
+                            <span class="text-sm font-medium">{{ session('warning') }}</span>
+                        </div>
+                        <button type="button" @click="show = false" class="text-amber-600 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300 shrink-0">
                             <i data-lucide="x" class="h-4 w-4"></i>
                         </button>
                     </div>

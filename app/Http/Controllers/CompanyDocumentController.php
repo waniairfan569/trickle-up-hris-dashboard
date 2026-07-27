@@ -242,9 +242,10 @@ class CompanyDocumentController extends Controller
         // Tokens captured in the editor: [{anchor, token}, …]. Inject them into
         // a copy of the .docx so "convert as-is" keeps them in the text.
         $tokens = json_decode((string) $request->input('tokens', '[]'), true) ?: [];
+        $hadTokens = is_array($tokens) && count($tokens) > 0;
         $source = $document->file_path;
         $injected = null;
-        if (is_array($tokens) && $tokens) {
+        if ($hadTokens) {
             $injected = $service->injectTokensIntoDocx($document->file_path, $tokens);
             if ($injected) {
                 $source = $injected;
@@ -261,7 +262,15 @@ class CompanyDocumentController extends Controller
             return back()->withErrors(['html' => 'Conversion to PDF failed — please try again, or upload a PDF instead.']);
         }
 
-        return $this->swapToPdf($document, $pdfPath);
+        $redirect = $this->swapToPdf($document, $pdfPath);
+
+        // Tokens were added but none could be matched into the Word layout —
+        // don't fail silently; tell the admin how to get them in reliably.
+        if ($hadTokens && !$injected) {
+            $redirect->with('warning', 'Your document was converted, but the tokens couldn’t be placed automatically into the Word layout. The reliable ways: type the tokens directly in Word where you want them (e.g. put [Employee Signature] on the signature line) and re-upload, or drag field boxes onto the blanks in the next step.');
+        }
+
+        return $redirect;
     }
 
     /** Swap the stored Word file for the converted PDF and continue to placement. */
