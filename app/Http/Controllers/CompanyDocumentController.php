@@ -230,12 +230,33 @@ class CompanyDocumentController extends Controller
      * Convert the ORIGINAL Word file straight to PDF, skipping the browser
      * editor — keeps letterheads, watermarks and floating artwork exactly as
      * designed in Word (the HTML editor can't hold floating objects in place).
+     * Any tokens the admin added in the editor are injected into the Word file
+     * first, so branding AND tokens survive together.
      */
-    public function convertOriginal(CompanyDocument $document)
+    public function convertOriginal(Request $request, CompanyDocument $document)
     {
         abort_unless(in_array($document->file_extension, ['doc', 'docx'], true), 404);
 
-        $pdfPath = app(\App\Services\DocumentConversionService::class)->toPdf($document->file_path);
+        $service = app(\App\Services\DocumentConversionService::class);
+
+        // Tokens captured in the editor: [{anchor, token}, …]. Inject them into
+        // a copy of the .docx so "convert as-is" keeps them in the text.
+        $tokens = json_decode((string) $request->input('tokens', '[]'), true) ?: [];
+        $source = $document->file_path;
+        $injected = null;
+        if (is_array($tokens) && $tokens) {
+            $injected = $service->injectTokensIntoDocx($document->file_path, $tokens);
+            if ($injected) {
+                $source = $injected;
+            }
+        }
+
+        $pdfPath = $service->toPdf($source);
+
+        if ($injected && Storage::exists($injected)) {
+            Storage::delete($injected); // temp working copy — keep only the PDF
+        }
+
         if (!$pdfPath) {
             return back()->withErrors(['html' => 'Conversion to PDF failed — please try again, or upload a PDF instead.']);
         }

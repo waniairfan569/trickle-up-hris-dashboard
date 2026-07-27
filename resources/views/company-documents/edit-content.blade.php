@@ -20,8 +20,8 @@
                 <p class="text-xs text-slate-400 mt-0.5">Edit the text just like in Word — type or insert <span class="font-semibold">[tokens]</span> where employee data should go. When you’re done, convert to PDF and place your fields.</p>
             </div>
             <div class="flex items-center gap-2">
-                <button type="submit" form="convertOriginalForm" title="Keeps letterhead, watermark and floating images exactly as designed in Word — but discards edits made below" class="inline-flex items-center gap-2 rounded-xl bg-white border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200">
-                    <i data-lucide="image" class="h-4 w-4"></i> Keep Word layout — convert as-is
+                <button type="submit" form="convertOriginalForm" title="Keeps letterhead, watermark and floating images exactly as in Word, and carries over the tokens you inserted from the dropdown" class="inline-flex items-center gap-2 rounded-xl bg-white border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200">
+                    <i data-lucide="image" class="h-4 w-4"></i> Keep Word layout + tokens
                 </button>
                 <button type="submit" form="convertForm" class="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-bold text-slate-900 hover:bg-brand-700">
                     <i data-lucide="file-check" class="h-4 w-4"></i> Convert edited text to PDF
@@ -30,7 +30,7 @@
         </div>
         <div class="px-5 py-2.5 border-b border-amber-100 bg-amber-50/70 text-[11px] text-amber-700 dark:bg-amber-500/10 dark:border-amber-500/20 dark:text-amber-400 flex items-start gap-1.5">
             <i data-lucide="alert-triangle" class="h-3.5 w-3.5 shrink-0 mt-0.5"></i>
-            <span><span class="font-bold">Branded document (letterhead / watermark / logo)?</span> This editor flows the text like a web page, so floating artwork can shift. Finish the wording in Word itself (branding in Insert&nbsp;→&nbsp;Header&nbsp;&amp;&nbsp;Footer, watermark via Design&nbsp;→&nbsp;Watermark, tokens typed in the text), then use <span class="font-bold">“Keep Word layout — convert as-is”</span> for a pixel-perfect PDF. Use the editor only for plain-text documents.</span>
+            <span><span class="font-bold">Branded document (letterhead / watermark / logo)?</span> This editor flows the text like a web page, so floating artwork can shift. Add your tokens with the <span class="font-bold">“Insert token”</span> dropdown above (place the cursor where the value should go), then click <span class="font-bold">“Keep Word layout + tokens”</span> — those tokens are dropped into the original Word file, so you get a pixel-perfect PDF <span class="italic">with</span> the tokens. (“Convert edited text to PDF” instead re-flows everything and is best for plain, unbranded documents.)</span>
         </div>
         @if(!empty($missingFonts))
             <div class="px-5 py-3 border-b border-rose-100 bg-rose-50/80 text-[11px] text-rose-700 dark:bg-rose-500/10 dark:border-rose-500/20 dark:text-rose-300 flex items-start gap-1.5">
@@ -77,11 +77,12 @@
     </form>
     <form method="POST" action="{{ route('company-documents.convert-original', $document) }}" id="convertOriginalForm">
         @csrf
+        <input type="hidden" name="tokens" id="tokensInput">
     </form>
 
     <div class="flex justify-end gap-2">
         <button type="submit" form="convertOriginalForm" class="inline-flex items-center gap-2 rounded-xl bg-white border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200">
-            <i data-lucide="image" class="h-4 w-4"></i> Keep Word layout — convert as-is
+            <i data-lucide="image" class="h-4 w-4"></i> Keep Word layout + tokens
         </button>
         <button type="submit" form="convertForm" class="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-6 py-2.5 text-sm font-bold text-slate-900 hover:bg-brand-700">
             <i data-lucide="file-check" class="h-4 w-4"></i> Convert edited text to PDF
@@ -118,16 +119,46 @@
     });
     frame.srcdoc = rawHtml;
 
+    // Tokens the admin inserts, with the text right before the caret — lets the
+    // server drop the same tokens into the original Word file for "convert
+    // as-is", so branding AND tokens survive together.
+    const insertedTokens = [];
+
     function cmd(name) {
         frame.contentWindow.focus();
         fdoc().execCommand(name, false, null);
     }
 
+    // Text immediately before the caret (last ~40 chars) — the anchor the
+    // server matches against inside the .docx.
+    function currentAnchor() {
+        try {
+            const sel = fdoc().getSelection();
+            if (!sel || !sel.rangeCount) return '';
+            const r = sel.getRangeAt(0);
+            let text = '';
+            const n = r.startContainer;
+            if (n.nodeType === 3) {
+                text = n.textContent.slice(0, r.startOffset);
+            } else if (n.childNodes && r.startOffset > 0) {
+                const prev = n.childNodes[r.startOffset - 1];
+                text = prev ? (prev.textContent || '') : '';
+            }
+            return text.replace(/\s+/g, ' ').replace(/\s+$/, '').slice(-40);
+        } catch (e) { return ''; }
+    }
+
     function insertToken(token) {
         if (!token) return;
         frame.contentWindow.focus();
+        const anchor = currentAnchor();
+        if (anchor) insertedTokens.push({ anchor, token });
         fdoc().execCommand('insertText', false, token);
     }
+
+    document.getElementById('convertOriginalForm').addEventListener('submit', () => {
+        document.getElementById('tokensInput').value = JSON.stringify(insertedTokens);
+    });
 
     document.getElementById('convertForm').addEventListener('submit', () => {
         const d = fdoc();

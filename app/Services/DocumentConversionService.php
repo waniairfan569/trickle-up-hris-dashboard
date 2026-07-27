@@ -127,6 +127,132 @@ class DocumentConversionService
         }
     }
 
+    /**
+     * Insert tokens the admin added in the browser editor into a COPY of the
+     * original .docx, so "convert as-is" keeps the Word branding/layout AND the
+     * tokens. Each entry is ['anchor' => text just before the caret at insert
+     * time, 'token' => '[Employee Name]']; the token is placed right after the
+     * anchor text within the same run (so it inherits that run's formatting).
+     * Returns the stored path of the injected copy, or null if nothing could be
+     * placed (caller then converts the untouched original).
+     */
+    public function injectTokensIntoDocx(string $storedDocxPath, array $tokens): ?string
+    {
+        try {
+            if (!class_exists(\ZipArchive::class) || empty($tokens)
+                || !Str::endsWith(strtolower($storedDocxPath), '.docx')) {
+                return null;
+            }
+            $disk = Storage::disk();
+            if (!$disk->exists($storedDocxPath)) {
+                return null;
+            }
+
+            $work = tempnam(sys_get_temp_dir(), 'inj') . '.docx';
+            @file_put_contents($work, $disk->get($storedDocxPath));
+
+            $zip = new \ZipArchive();
+            if ($zip->open($work) !== true) {
+                @unlink($work);
+                return null;
+            }
+            $xml = $zip->getFromName('word/document.xml');
+            if ($xml === false) {
+                $zip->close();
+                @unlink($work);
+                return null;
+            }
+
+            $dom = new \DOMDocument();
+            $dom->preserveWhiteSpace = true;
+            libxml_use_internal_errors(true);
+            $ok = $dom->loadXML($xml);
+            libxml_clear_errors();
+            if (!$ok) {
+                $zip->close();
+                @unlink($work);
+                return null;
+            }
+
+            $xpath = new \DOMXPath($dom);
+            $xpath->registerNamespace('w', 'http://schemas.openxmlformats.org/wordprocessingml/2006/main');
+
+            $pending = array_values(array_filter($tokens, fn ($t) => !empty($t['anchor']) && !empty($t['token'])));
+            $placed = 0;
+
+            foreach ($xpath->query('//w:p') as $paragraph) {
+                if (empty($pending)) {
+                    break;
+                }
+
+                // Re-scan the paragraph after each insertion (offsets shift).
+                $progress = true;
+                while ($progress && !empty($pending)) {
+                    $progress = false;
+                    $tNodes = iterator_to_array($xpath->query('.//w:t', $paragraph));
+                    if (!$tNodes) {
+                        break;
+                    }
+
+                    // Concatenated paragraph text + per-node offset windows.
+                    $full = '';
+                    $map = [];
+                    foreach ($tNodes as $t) {
+                        $len = mb_strlen($t->textContent);
+                        $map[] = [$t, mb_strlen($full), $len];
+                        $full .= $t->textContent;
+                    }
+
+                    foreach ($pending as $i => $tk) {
+                        $pos = mb_strpos($full, $tk['anchor']);
+                        if ($pos === false) {
+                            continue;
+                        }
+                        $end = $pos + mb_strlen($tk['anchor']);
+
+                        foreach ($map as [$node, $start, $len]) {
+                            if ($end >= $start && $end <= $start + $len) {
+                                $local = $end - $start;
+                                $text = $node->textContent;
+                                $before = mb_substr($text, 0, $local);
+                                $after = mb_substr($text, $local);
+                                $sep = ($before !== '' && !preg_match('/\s$/u', $before)) ? ' ' : '';
+                                $node->textContent = $before . $sep . $tk['token'] . $after;
+                                $node->setAttribute('xml:space', 'preserve');
+                                break;
+                            }
+                        }
+
+                        unset($pending[$i]);
+                        $pending = array_values($pending);
+                        $placed++;
+                        $progress = true;
+                        break; // paragraph text changed — rebuild the map
+                    }
+                }
+            }
+
+            if ($placed === 0) {
+                $zip->close();
+                @unlink($work);
+                return null;
+            }
+
+            $zip->deleteName('word/document.xml');
+            $zip->addFromString('word/document.xml', $dom->saveXML());
+            $zip->close();
+
+            $stored = preg_replace('/\.docx$/i', '', $storedDocxPath) . '.injected.docx';
+            $disk->put($stored, (string) file_get_contents($work));
+            @unlink($work);
+
+            return $disk->exists($stored) ? $stored : null;
+        } catch (\Throwable $e) {
+            report($e);
+            return null;
+        }
+    }
+
     /** Lowercased set of font families installed on the host (via fc-list). */
     public function installedFontFamilies(): array
     {
