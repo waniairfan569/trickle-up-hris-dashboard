@@ -32,6 +32,16 @@
             <i data-lucide="alert-triangle" class="h-3.5 w-3.5 shrink-0 mt-0.5"></i>
             <span><span class="font-bold">Branded document (letterhead / watermark / logo)?</span> This editor flows the text like a web page, so floating artwork can shift. Finish the wording in Word itself (branding in Insert&nbsp;→&nbsp;Header&nbsp;&amp;&nbsp;Footer, watermark via Design&nbsp;→&nbsp;Watermark, tokens typed in the text), then use <span class="font-bold">“Keep Word layout — convert as-is”</span> for a pixel-perfect PDF. Use the editor only for plain-text documents.</span>
         </div>
+        @if(!empty($missingFonts))
+            <div class="px-5 py-3 border-b border-rose-100 bg-rose-50/80 text-[11px] text-rose-700 dark:bg-rose-500/10 dark:border-rose-500/20 dark:text-rose-300 flex items-start gap-1.5">
+                <i data-lucide="type" class="h-3.5 w-3.5 shrink-0 mt-0.5"></i>
+                <span>
+                    <span class="font-bold">Missing fonts on the server — this is why the layout shifts.</span>
+                    This document uses <span class="font-bold">{{ implode(', ', $missingFonts) }}</span>, which {{ count($missingFonts) === 1 ? 'is' : 'are' }} not installed on the server, so it gets replaced with a different-width font and the spacing/line breaks move.
+                    <span class="block mt-1">Fix: ask your host to install {{ count($missingFonts) === 1 ? 'this font' : 'these fonts' }} (Calibri&nbsp;→&nbsp;<code>carlito</code>, Cambria&nbsp;→&nbsp;<code>caladea</code>; other/brand fonts: copy the <code>.ttf</code> to <code>/usr/share/fonts</code> then <code>fc-cache&nbsp;-f</code>). Once installed, re-upload — the PDF will match Word exactly. Until then, the closest result is to set the document’s font to Arial / Times New Roman / Courier New in Word (already covered on the server).</span>
+                </span>
+            </div>
+        @endif
 
         {{-- Toolbar --}}
         <div class="px-3 py-2 border-b border-slate-100 dark:border-slate-700/60 bg-slate-50/70 dark:bg-slate-900/30 flex flex-wrap items-center gap-1">

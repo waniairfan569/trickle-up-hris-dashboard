@@ -74,6 +74,143 @@ class DocumentConversionService
     }
 
     /**
+     * Font families a .docx references (from word/fontTable.xml + theme). These
+     * are the fonts the layout was DESIGNED with; if the converting host lacks
+     * them, LibreOffice substitutes different-width fonts and the PDF layout
+     * drifts. Returns [] for non-docx / unreadable / no-zip-extension.
+     */
+    public function fontsInDocx(string $storedPath): array
+    {
+        try {
+            if (!class_exists(\ZipArchive::class) || !Str::endsWith(strtolower($storedPath), '.docx')) {
+                return [];
+            }
+            $disk = Storage::disk();
+            if (!$disk->exists($storedPath)) {
+                return [];
+            }
+
+            // ZipArchive needs a real local file (the disk may be remote).
+            $tmp = tempnam(sys_get_temp_dir(), 'ft') . '.docx';
+            @file_put_contents($tmp, $disk->get($storedPath));
+
+            $zip = new \ZipArchive();
+            if ($zip->open($tmp) !== true) {
+                @unlink($tmp);
+                return [];
+            }
+
+            $names = [];
+            foreach ([
+                'word/fontTable.xml' => '/w:name="([^"]+)"/',
+                'word/theme/theme1.xml' => '/typeface="([^"]+)"/',
+            ] as $entry => $rx) {
+                $xml = $zip->getFromName($entry);
+                if ($xml === false) {
+                    continue;
+                }
+                if (preg_match_all($rx, $xml, $m)) {
+                    foreach ($m[1] as $n) {
+                        $n = trim($n);
+                        if ($n !== '' && $n[0] !== '+') { // skip theme refs like "+mn-lt"
+                            $names[$n] = true;
+                        }
+                    }
+                }
+            }
+            $zip->close();
+            @unlink($tmp);
+
+            return array_keys($names);
+        } catch (\Throwable $e) {
+            return [];
+        }
+    }
+
+    /** Lowercased set of font families installed on the host (via fc-list). */
+    public function installedFontFamilies(): array
+    {
+        static $cache = null;
+        if ($cache !== null) {
+            return $cache;
+        }
+        if (!function_exists('shell_exec') || stripos(PHP_OS, 'WIN') === 0) {
+            return $cache = [];
+        }
+        try {
+            $out = (string) @shell_exec('fc-list : family 2>/dev/null');
+            $set = [];
+            foreach (preg_split('/[\r\n]+/', $out) as $line) {
+                foreach (explode(',', $line) as $fam) {
+                    $fam = strtolower(trim($fam));
+                    if ($fam !== '') {
+                        $set[$fam] = true;
+                    }
+                }
+            }
+
+            return $cache = $set;
+        } catch (\Throwable $e) {
+            return $cache = [];
+        }
+    }
+
+    /**
+     * Is a font available on the host directly OR through a metric-compatible
+     * substitute (same character widths → identical layout)? $installed is a
+     * lowercased family set as returned by installedFontFamilies().
+     */
+    public function fontCoveredBy(string $font, array $installed): bool
+    {
+        $key = strtolower(trim($font));
+
+        // A doc font is satisfied if ANY of these families is present.
+        $aliases = [
+            'arial' => ['arial', 'liberation sans', 'arimo'],
+            'helvetica' => ['helvetica', 'liberation sans', 'arimo'],
+            'times new roman' => ['times new roman', 'liberation serif', 'tinos'],
+            'times' => ['times new roman', 'liberation serif', 'tinos'],
+            'courier new' => ['courier new', 'liberation mono', 'cousine'],
+            'courier' => ['courier new', 'liberation mono', 'cousine'],
+            'calibri' => ['calibri', 'carlito'],
+            'calibri light' => ['calibri light', 'calibri', 'carlito'],
+            'cambria' => ['cambria', 'caladea'],
+            'cambria math' => ['cambria math', 'caladea'],
+        ];
+
+        foreach ($aliases[$key] ?? [$key] as $candidate) {
+            if (isset($installed[$candidate])) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Fonts a .docx needs that the host can't render (directly or via a
+     * metric-compatible substitute) — the usual cause of shifted layout in the
+     * converted PDF. Returns [] when detection isn't possible (no fc-list, not
+     * a docx, no zip ext), so it never blocks or false-warns.
+     */
+    public function missingFonts(string $storedPath): array
+    {
+        $installed = $this->installedFontFamilies();
+        if (empty($installed)) {
+            return []; // can't introspect the host → don't guess
+        }
+
+        $missing = [];
+        foreach ($this->fontsInDocx($storedPath) as $font) {
+            if (!$this->fontCoveredBy($font, $installed)) {
+                $missing[$font] = true;
+            }
+        }
+
+        return array_keys($missing);
+    }
+
+    /**
      * Convert a stored Office file to PDF on the same disk. Returns the stored
      * path of the resulting PDF, or null if conversion isn't possible/failed.
      *

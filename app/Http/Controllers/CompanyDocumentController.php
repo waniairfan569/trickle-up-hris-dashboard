@@ -198,7 +198,11 @@ class CompanyDocumentController extends Controller
             'Signatures' => ['[Employee Signature]', "[Sender's Signature]"],
         ];
 
-        return view('company-documents.edit-content', compact('document', 'html', 'tokenGroups'));
+        // Fonts this document needs that the server can't render — the cause of
+        // shifted layout in the converted PDF.
+        $missingFonts = app(\App\Services\DocumentConversionService::class)->missingFonts($document->file_path);
+
+        return view('company-documents.edit-content', compact('document', 'html', 'tokenGroups', 'missingFonts'));
     }
 
     /** Convert the (edited) HTML to PDF and continue to field placement. */
