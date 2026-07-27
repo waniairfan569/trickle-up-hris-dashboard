@@ -128,13 +128,34 @@ class DocumentConversionService
     }
 
     /**
+     * Concatenated text of every <w:t> run in document order, plus a map of
+     * [node, startOffset, length] windows so an absolute char offset can be
+     * resolved back to the run node that holds it.
+     *
+     * @return array{0:string,1:array<int,array{0:\DOMNode,1:int,2:int}>}
+     */
+    private function buildRunTextMap(\DOMXPath $xpath): array
+    {
+        $full = '';
+        $map = [];
+        foreach ($xpath->query('//w:t') as $t) {
+            $len = mb_strlen($t->textContent);
+            $map[] = [$t, mb_strlen($full), $len];
+            $full .= $t->textContent;
+        }
+
+        return [$full, $map];
+    }
+
+    /**
      * Insert tokens the admin added in the browser editor into a COPY of the
      * original .docx, so "convert as-is" keeps the Word branding/layout AND the
      * tokens. Each entry is ['anchor' => text just before the caret at insert
      * time, 'token' => '[Employee Name]']; the token is placed right after the
      * anchor text within the same run (so it inherits that run's formatting).
-     * Returns the stored path of the injected copy, or null if nothing could be
-     * placed (caller then converts the untouched original).
+     * Tokens are expected in document order; a forward cursor keeps them from
+     * clustering. Returns the stored path of the injected copy, or null if
+     * nothing could be placed (caller then converts the untouched original).
      */
     public function injectTokensIntoDocx(string $storedDocxPath, array $tokens): ?string
     {
@@ -177,57 +198,53 @@ class DocumentConversionService
             $xpath = new \DOMXPath($dom);
             $xpath->registerNamespace('w', 'http://schemas.openxmlformats.org/wordprocessingml/2006/main');
 
-            $pending = array_values(array_filter($tokens, fn ($t) => !empty($t['anchor']) && !empty($t['token'])));
-            $placed = 0;
-
-            foreach ($xpath->query('//w:p') as $paragraph) {
-                if (empty($pending)) {
-                    break;
+            // Normalise anchors: drop trailing blank/underscore fill so an anchor
+            // like "Signature: _____" becomes "Signature:" (a real, findable
+            // label). Anchors shorter than 3 meaningful chars are too generic to
+            // place safely, so they're skipped rather than dumped at the top.
+            $pending = [];
+            foreach ($tokens as $tk) {
+                $anchor = rtrim((string) ($tk['anchor'] ?? ''), " \t\r\n_.–—-");
+                if (empty($tk['token']) || mb_strlen(trim($anchor)) < 3) {
+                    continue;
                 }
+                $pending[] = ['anchor' => $anchor, 'token' => $tk['token']];
+            }
 
-                // Re-scan the paragraph after each insertion (offsets shift).
-                $progress = true;
-                while ($progress && !empty($pending)) {
-                    $progress = false;
-                    $tNodes = iterator_to_array($xpath->query('.//w:t', $paragraph));
-                    if (!$tNodes) {
-                        break;
-                    }
+            $placed = 0;
+            // A single forward cursor over the WHOLE document, so tokens land in
+            // reading order and two tokens can never pile up at the same match
+            // (each search starts after the previous insertion).
+            $cursor = 0;
 
-                    // Concatenated paragraph text + per-node offset windows.
-                    $full = '';
-                    $map = [];
-                    foreach ($tNodes as $t) {
-                        $len = mb_strlen($t->textContent);
-                        $map[] = [$t, mb_strlen($full), $len];
-                        $full .= $t->textContent;
-                    }
+            foreach ($pending as $tk) {
+                [$full, $map] = $this->buildRunTextMap($xpath);
 
-                    foreach ($pending as $i => $tk) {
-                        $pos = mb_strpos($full, $tk['anchor']);
-                        if ($pos === false) {
-                            continue;
-                        }
-                        $end = $pos + mb_strlen($tk['anchor']);
+                // Prefer the next occurrence at/after the cursor; only fall back
+                // to a from-start search if the anchor doesn't appear ahead.
+                $pos = mb_strpos($full, $tk['anchor'], $cursor);
+                if ($pos === false) {
+                    $pos = mb_strpos($full, $tk['anchor']);
+                }
+                if ($pos === false) {
+                    continue;
+                }
+                $end = $pos + mb_strlen($tk['anchor']);
 
-                        foreach ($map as [$node, $start, $len]) {
-                            if ($end >= $start && $end <= $start + $len) {
-                                $local = $end - $start;
-                                $text = $node->textContent;
-                                $before = mb_substr($text, 0, $local);
-                                $after = mb_substr($text, $local);
-                                $sep = ($before !== '' && !preg_match('/\s$/u', $before)) ? ' ' : '';
-                                $node->textContent = $before . $sep . $tk['token'] . $after;
-                                $node->setAttribute('xml:space', 'preserve');
-                                break;
-                            }
-                        }
-
-                        unset($pending[$i]);
-                        $pending = array_values($pending);
+                foreach ($map as [$node, $start, $len]) {
+                    if ($end >= $start && $end <= $start + $len) {
+                        $local = $end - $start;
+                        $text = $node->textContent;
+                        $before = mb_substr($text, 0, $local);
+                        $after = mb_substr($text, $local);
+                        $sep = ($before !== '' && !preg_match('/\s$/u', $before)) ? ' ' : '';
+                        $node->textContent = $before . $sep . $tk['token'] . $after;
+                        $node->setAttribute('xml:space', 'preserve');
                         $placed++;
-                        $progress = true;
-                        break; // paragraph text changed — rebuild the map
+                        // Advance past what we just inserted so the next token
+                        // searches forward from here.
+                        $cursor = $end + mb_strlen($sep . $tk['token']);
+                        break;
                     }
                 }
             }

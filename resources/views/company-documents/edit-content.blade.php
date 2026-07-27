@@ -129,22 +129,26 @@
         fdoc().execCommand(name, false, null);
     }
 
-    // Text immediately before the caret (last ~40 chars) — the anchor the
-    // server matches against inside the .docx.
+    // The label/text right before the caret — the anchor the server matches
+    // inside the .docx. We climb to the containing block so a caret sitting on
+    // a blank underline still picks up the label before it (e.g. "Signature:"),
+    // and trailing blanks / underscores / dashes are trimmed off so the anchor
+    // ends on real text.
     function currentAnchor() {
         try {
             const sel = fdoc().getSelection();
             if (!sel || !sel.rangeCount) return '';
             const r = sel.getRangeAt(0);
-            let text = '';
-            const n = r.startContainer;
-            if (n.nodeType === 3) {
-                text = n.textContent.slice(0, r.startOffset);
-            } else if (n.childNodes && r.startOffset > 0) {
-                const prev = n.childNodes[r.startOffset - 1];
-                text = prev ? (prev.textContent || '') : '';
-            }
-            return text.replace(/\s+/g, ' ').replace(/\s+$/, '').slice(-40);
+            // Text of the whole block up to the caret.
+            const pre = r.cloneRange();
+            let block = r.startContainer;
+            while (block && block.nodeType === 3) block = block.parentNode;
+            const blockEl = (block && block.closest) ? (block.closest('p,td,th,li,div,h1,h2,h3,h4') || block) : block;
+            if (blockEl) pre.selectNodeContents(blockEl);
+            pre.setEnd(r.startContainer, r.startOffset);
+            let text = (pre.toString() || '').replace(/\s+/g, ' ');
+            text = text.replace(/[\s_.–—-]+$/, '');   // drop trailing blanks / _ / – — -
+            return text.slice(-60);
         } catch (e) { return ''; }
     }
 
@@ -157,7 +161,14 @@
     }
 
     document.getElementById('convertOriginalForm').addEventListener('submit', () => {
-        document.getElementById('tokensInput').value = JSON.stringify(insertedTokens);
+        // Send tokens in DOCUMENT order (by where their anchor sits) so the
+        // server's forward cursor drops each one at the right spot.
+        const plain = (fdoc().body ? fdoc().body.innerText : '').replace(/\s+/g, ' ');
+        const ordered = insertedTokens
+            .map(t => ({ ...t, _pos: plain.indexOf(t.anchor.replace(/\s+/g, ' ')) }))
+            .sort((a, b) => (a._pos < 0 ? 1e9 : a._pos) - (b._pos < 0 ? 1e9 : b._pos))
+            .map(({ anchor, token }) => ({ anchor, token }));
+        document.getElementById('tokensInput').value = JSON.stringify(ordered);
     });
 
     document.getElementById('convertForm').addEventListener('submit', () => {
