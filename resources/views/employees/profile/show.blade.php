@@ -508,7 +508,7 @@
                 <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-700/60">
                     <span class="text-sm font-bold text-slate-700 dark:text-slate-200">Signature documents ({{ $signatureRequests->count() }})</span>
                     @if($auth->isAdmin())
-                        <a href="{{ route('document-templates.index') }}" class="inline-flex items-center gap-1.5 rounded-xl bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-200">
+                        <a href="{{ route('company-documents.admin') }}" class="inline-flex items-center gap-1.5 rounded-xl bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-200">
                             <i data-lucide="send" class="h-3.5 w-3.5"></i> Send new
                         </a>
                     @endif
@@ -537,7 +537,7 @@
                     <p class="text-sm font-bold text-slate-600 dark:text-slate-300">No signature documents yet</p>
                     <p class="text-xs text-slate-400 mt-1">Documents sent for signature will appear here.</p>
                     @if($auth->isAdmin())
-                        <a href="{{ route('document-templates.index') }}" class="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-4 py-2 text-xs font-bold text-slate-900 hover:bg-brand-700">
+                        <a href="{{ route('company-documents.admin') }}" class="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-4 py-2 text-xs font-bold text-slate-900 hover:bg-brand-700">
                             <i data-lucide="send" class="h-3.5 w-3.5"></i> Send for signature
                         </a>
                     @endif

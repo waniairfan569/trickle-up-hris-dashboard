@@ -106,12 +106,12 @@ class DocumentTemplateController extends Controller
         // guided flow: fields & signers saved → Preview (step 3) → Send (step 4).
         $companyDoc = \App\Models\CompanyDocument::where('template_id', $documentTemplate->id)->first();
         if ($companyDoc) {
-            return redirect()->route('document-templates.preview-view', $documentTemplate)
+            return redirect()->route('company-documents.preview-sign', $companyDoc)
                 ->with('success', 'Fields & signers saved — preview your document, then send it for signature.');
         }
 
-        return redirect()->route('document-templates.index')
-            ->with('success', "Document template “{$documentTemplate->name}” updated.");
+        return redirect()->route('company-documents.admin')
+            ->with('success', 'Document updated.');
     }
 
     /** Soft-archive a template. */
@@ -363,7 +363,8 @@ class DocumentTemplateController extends Controller
                 'description' => $template->description,
                 'tags' => $template->tags ?? [],
                 'fileName' => $template->file_name,
-                'fileUrl' => $template->isPdf() ? route('document-templates.preview', $template) : null,
+                'fileUrl' => ($template->isPdf() && $template->companyDocument)
+                    ? route('company-documents.signing-file', $template->companyDocument) : null,
                 'isPdf' => $template->isPdf(),
                 'entities' => $template->entities->pluck('id')->map(fn ($id) => (string) $id)->all(),
                 'departments' => $template->departments->pluck('id')->map(fn ($id) => (string) $id)->all(),

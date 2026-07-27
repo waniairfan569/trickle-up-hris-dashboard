@@ -27,7 +27,7 @@
 
 <div class="max-w-3xl mx-auto space-y-6" x-data="signedDownloader()">
     <div class="flex items-center gap-3">
-        <a href="{{ route('documents.index') }}" class="inline-flex h-9 w-9 items-center justify-center rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-700"><i data-lucide="arrow-left" class="h-5 w-5"></i></a>
+        <a href="{{ auth()->user()->isAdmin() ? route('company-documents.admin') : route('document-library.index') }}" class="inline-flex h-9 w-9 items-center justify-center rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-700"><i data-lucide="arrow-left" class="h-5 w-5"></i></a>
         <div class="flex-1 min-w-0">
             <h1 class="text-xl font-extrabold tracking-tight text-slate-900 dark:text-white truncate">{{ $documentRequest->template->name ?? 'Document' }}</h1>
             <p class="text-xs text-slate-500 dark:text-slate-400">For {{ $documentRequest->subject->full_name ?? '—' }} · sent by {{ $documentRequest->creator->full_name ?? '—' }}</p>

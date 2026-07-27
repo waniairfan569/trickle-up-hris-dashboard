@@ -8,8 +8,8 @@
 
 @if(!$isPdf)
     <div class="max-w-2xl mx-auto space-y-6">
-        <a href="{{ route('document-templates.index') }}" class="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white">
-            <i data-lucide="arrow-left" class="h-4 w-4"></i> Back to templates
+        <a href="{{ route('company-documents.admin') }}" class="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white">
+            <i data-lucide="arrow-left" class="h-4 w-4"></i> Back to documents
         </a>
         <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-8 text-center dark:bg-slate-800 dark:border-slate-700">
             <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-50 text-amber-500 mb-4 mx-auto dark:bg-amber-500/10"><i data-lucide="file-text" class="h-7 w-7"></i></div>
@@ -18,10 +18,10 @@
                 This template is a <span class="font-semibold">{{ strtoupper(pathinfo($documentTemplate->file_name, PATHINFO_EXTENSION)) }}</span> file. In-browser preview, field placement and e-signing need a <span class="font-semibold">PDF</span>. Re-upload a PDF version to use the full workflow, or download the current file.
             </p>
             <div class="flex items-center justify-center gap-2 mt-5">
-                <a href="{{ route('document-templates.preview', $documentTemplate) }}" class="inline-flex items-center gap-2 rounded-xl bg-white border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200">
+                <a href="{{ route('company-documents.signing-file', $documentTemplate->companyDocument) }}" class="inline-flex items-center gap-2 rounded-xl bg-white border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200">
                     <i data-lucide="download" class="h-4 w-4"></i> Download file
                 </a>
-                <a href="{{ route('document-templates.edit', $documentTemplate) }}" class="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-bold text-slate-900 shadow-md shadow-brand-500/20 hover:bg-brand-700">
+                <a href="{{ route('company-documents.place-fields', $documentTemplate->companyDocument) }}" class="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-bold text-slate-900 shadow-md shadow-brand-500/20 hover:bg-brand-700">
                     <i data-lucide="upload" class="h-4 w-4"></i> Edit &amp; upload PDF
                 </a>
             </div>
@@ -33,7 +33,7 @@
     $fieldList = $fields->values()->map(fn ($f, $i) => array_merge($f, ['idx' => $i]))->all();
 @endphp
 <script>
-    window.__pvFileUrl = "{{ route('document-templates.preview', $documentTemplate) }}";
+    window.__pvFileUrl = "{{ route('company-documents.signing-file', $documentTemplate->companyDocument) }}";
     window.__pvFields = @json($fieldList);
     window.__pvSigners = @json($signers);
 </script>
@@ -45,10 +45,10 @@
 
     <!-- Top bar -->
     <div class="flex items-center justify-between">
-        <a href="{{ route('document-templates.edit', $documentTemplate) }}" class="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white">
+        <a href="{{ route('company-documents.place-fields', $documentTemplate->companyDocument) }}" class="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white">
             <i data-lucide="arrow-left" class="h-4 w-4"></i> Back to field setup
         </a>
-        <a href="{{ route('document-templates.send-form', $documentTemplate) }}" class="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-4 py-2 text-sm font-bold text-slate-900 shadow-md shadow-brand-500/20 hover:bg-brand-700">
+        <a href="{{ route('company-documents.send-form', $documentTemplate->companyDocument) }}" class="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-4 py-2 text-sm font-bold text-slate-900 shadow-md shadow-brand-500/20 hover:bg-brand-700">
             <i data-lucide="send" class="h-4 w-4"></i> Send for signature
         </a>
     </div>

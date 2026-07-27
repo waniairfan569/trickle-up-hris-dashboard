@@ -57,6 +57,18 @@ class DocumentTemplate extends Model
         return $this->hasMany(DocumentTemplateField::class);
     }
 
+    /** The company document this template backs (the single source of truth). */
+    public function companyDocument()
+    {
+        return $this->hasOne(CompanyDocument::class, 'template_id');
+    }
+
+    /** Signature requests sent from this document. */
+    public function requests()
+    {
+        return $this->hasMany(DocumentRequest::class, 'document_template_id');
+    }
+
     /** Human-readable file size, e.g. "1.4 MB". */
     public function getReadableSizeAttribute(): string
     {

@@ -45,10 +45,10 @@
                         @endif
                     </p>
                     <div class="flex flex-wrap gap-2 mt-4">
-                        <a href="{{ route('document-templates.edit', $document->template) }}" class="inline-flex items-center gap-1.5 rounded-xl bg-white border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200"><i data-lucide="users" class="h-4 w-4"></i> Set up signers &amp; fields</a>
-                        <a href="{{ route('document-templates.preview', $document->template) }}" class="inline-flex items-center gap-1.5 rounded-xl bg-white border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200"><i data-lucide="eye" class="h-4 w-4"></i> Preview</a>
+                        <a href="{{ route('company-documents.place-fields', $document) }}" class="inline-flex items-center gap-1.5 rounded-xl bg-white border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200"><i data-lucide="users" class="h-4 w-4"></i> Set up signers &amp; fields</a>
+                        <a href="{{ route('company-documents.preview-sign', $document) }}" class="inline-flex items-center gap-1.5 rounded-xl bg-white border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200"><i data-lucide="eye" class="h-4 w-4"></i> Preview</a>
                         @if($tplSignerCount > 0)
-                            <a href="{{ route('document-templates.send-form', $document->template) }}" class="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-4 py-2 text-sm font-bold text-slate-900 hover:bg-brand-700"><i data-lucide="send" class="h-4 w-4"></i> Send for signature</a>
+                            <a href="{{ route('company-documents.send-form', $document) }}" class="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-4 py-2 text-sm font-bold text-slate-900 hover:bg-brand-700"><i data-lucide="send" class="h-4 w-4"></i> Send for signature</a>
                         @endif
                     </div>
                 </div>

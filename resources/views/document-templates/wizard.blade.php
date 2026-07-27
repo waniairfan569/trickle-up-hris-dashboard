@@ -1,7 +1,7 @@
 @extends('layouts.hr-app')
 
 @section('title', $template ? 'Edit document template' : 'Create document template')
-@section('breadcrumb', 'Document Templates')
+@section('breadcrumb', 'Company Documents')
 
 @section('content')
 <style>[x-cloak]{display:none!important}</style>
@@ -67,7 +67,7 @@
 @endphp
 
 <form method="POST"
-      action="{{ $template ? route('document-templates.update', $template) : route('document-templates.store') }}"
+      action="{{ route('company-documents.save-fields', $template->companyDocument) }}"
       enctype="multipart/form-data"
       x-data="documentWizard()"
       x-init="$nextTick(() => { if (window.lucide) lucide.createIcons(); if (step === 4) initPlacement(); })"
@@ -78,7 +78,7 @@
     <!-- Header bar -->
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
         <div class="flex items-center gap-3">
-            <a href="{{ $backedByCompanyDoc ? route('company-documents.admin') : route('document-templates.index') }}" class="inline-flex h-9 w-9 items-center justify-center rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-700" title="Cancel">
+            <a href="{{ route('company-documents.admin') }}" class="inline-flex h-9 w-9 items-center justify-center rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-700" title="Cancel">
                 <i data-lucide="x" class="h-5 w-5"></i>
             </a>
             <div>

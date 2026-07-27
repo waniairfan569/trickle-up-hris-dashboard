@@ -56,6 +56,7 @@
                         <th class="text-left px-5 py-3">Document</th>
                         <th class="text-left px-5 py-3">Category</th>
                         <th class="text-left px-5 py-3">Access</th>
+                        <th class="text-left px-5 py-3">Signing</th>
                         <th class="text-left px-5 py-3">Ver.</th>
                         <th class="text-left px-5 py-3">Size</th>
                         <th class="text-left px-5 py-3">Downloads</th>
@@ -86,6 +87,18 @@
                             </td>
                             <td class="px-5 py-3"><span class="inline-flex items-center gap-1 text-slate-600 dark:text-slate-300"><i data-lucide="{{ optional($doc->category)->icon ?: 'folder' }}" class="h-3.5 w-3.5"></i> {{ optional($doc->category)->name }}</span></td>
                             <td class="px-5 py-3"><span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold {{ $accClass }}">{{ $accLabel }}</span></td>
+                            <td class="px-5 py-3">
+                                @php $sign = $doc->signingStatus(); @endphp
+                                @if($sign)
+                                    @if($sign['request'])
+                                        <a href="{{ route('documents.show', $sign['request']) }}" class="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold {{ $sign['color'] }} hover:opacity-80">{{ $sign['label'] }}</a>
+                                    @else
+                                        <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold {{ $sign['color'] }}">{{ $sign['label'] }}</span>
+                                    @endif
+                                @else
+                                    <span class="text-slate-300">—</span>
+                                @endif
+                            </td>
                             <td class="px-5 py-3 text-slate-500">v{{ $doc->version }}</td>
                             <td class="px-5 py-3 text-slate-500">{{ $doc->file_size_label }}</td>
                             <td class="px-5 py-3 text-slate-500">{{ $doc->download_count }}</td>
@@ -97,7 +110,7 @@
                             <td class="px-5 py-3">
                                 <div class="flex items-center justify-end gap-1">
                                     @if($doc->requires_signature && $doc->template_id)
-                                        <a href="{{ route('document-templates.send-form', $doc->template_id) }}" title="Send for signature" class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-500/10"><i data-lucide="send" class="h-4 w-4"></i></a>
+                                        <a href="{{ route('company-documents.send-form', $doc) }}" title="Send for signature" class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-500/10"><i data-lucide="send" class="h-4 w-4"></i></a>
                                     @endif
                                     <a href="{{ route('document-library.view', $doc) }}" target="_blank" title="View" class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700"><i data-lucide="eye" class="h-4 w-4"></i></a>
                                     <a href="{{ route('document-library.download', $doc) }}" title="Download" class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700"><i data-lucide="download" class="h-4 w-4"></i></a>
@@ -108,7 +121,7 @@
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="8" class="px-5 py-16 text-center">
+                        <tr><td colspan="9" class="px-5 py-16 text-center">
                             <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-50 text-slate-400 dark:bg-slate-700 mb-3 mx-auto"><i data-lucide="folder-open" class="h-7 w-7"></i></div>
                             <p class="text-sm font-bold text-slate-600 dark:text-slate-300">No documents yet</p>
                             <p class="text-xs text-slate-400 mt-1">Upload your first company document.</p>

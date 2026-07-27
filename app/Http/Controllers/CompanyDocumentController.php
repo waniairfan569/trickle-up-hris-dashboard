@@ -21,7 +21,7 @@ class CompanyDocumentController extends Controller
 
     public function adminIndex(Request $request)
     {
-        $query = CompanyDocument::with(['category', 'uploader'])->withCount('acknowledgments')->latest();
+        $query = CompanyDocument::with(['category', 'uploader', 'template.requests.signers'])->withCount('acknowledgments')->latest();
 
         if ($request->filled('category')) {
             $query->where('category_id', $request->category);
@@ -110,7 +110,7 @@ class CompanyDocumentController extends Controller
 
         // PDF → open the placement builder directly on the "place fields" step.
         if ($isPdf && $document->template_id) {
-            return redirect()->route('document-templates.edit', ['documentTemplate' => $document->template_id, 'place' => 1])
+            return redirect()->route('company-documents.place-fields', ['document' => $document->id, 'place' => 1])
                 ->with('success', 'Document uploaded — now drag your variables onto the document.');
         }
 
@@ -166,7 +166,7 @@ class CompanyDocumentController extends Controller
 
         // Just turned on signatures but no signers set up yet → go finish the steps.
         if ($document->isSignable() && $document->template && $document->template->signers()->count() === 0) {
-            return redirect()->route('document-templates.edit', $document->template_id)
+            return redirect()->route('company-documents.place-fields', $document)
                 ->with('success', 'Document saved — now add signers and place the fields.');
         }
 
@@ -292,7 +292,7 @@ class CompanyDocumentController extends Controller
 
         $this->syncSignatureTemplate($document);
 
-        return redirect()->route('document-templates.edit', ['documentTemplate' => $document->template_id, 'place' => 1])
+        return redirect()->route('company-documents.place-fields', ['document' => $document->id, 'place' => 1])
             ->with('success', 'Converted to PDF — now drag your variables onto the document.');
     }
 
@@ -370,6 +370,60 @@ class CompanyDocumentController extends Controller
         $document->logView($user, 'acknowledged');
 
         return back()->with('success', 'Thank you — your acknowledgment of “' . $document->title . '” has been recorded.');
+    }
+
+    // ----- Signing builder (steps 2–4, keyed by the company document) -------
+
+    /** Step 2 — place fields & choose signers (renders the builder). */
+    public function placeFields(CompanyDocument $document)
+    {
+        return app(DocumentTemplateController::class)->edit($this->ensureSigningTemplate($document));
+    }
+
+    /** Save placed fields & signers, then continue to preview. */
+    public function saveFields(Request $request, CompanyDocument $document)
+    {
+        return app(DocumentTemplateController::class)->update($request, $this->ensureSigningTemplate($document));
+    }
+
+    /** Step 3 — preview the document with fields/signature spots. */
+    public function previewSign(CompanyDocument $document)
+    {
+        return app(DocumentTemplateController::class)->previewView($this->ensureSigningTemplate($document));
+    }
+
+    /** Serve the document's file for the in-browser PDF renderer. */
+    public function signingFile(CompanyDocument $document)
+    {
+        abort_unless($document->file_path && Storage::exists($document->file_path), 404);
+        $headers = $document->file_extension === 'pdf' ? ['Content-Type' => 'application/pdf'] : [];
+
+        return Storage::response($document->file_path, $document->file_name, $headers);
+    }
+
+    /** Step 4 — pick the employee & signer chain. */
+    public function sendForm(CompanyDocument $document)
+    {
+        return app(DocumentRequestController::class)->sendForm($this->ensureSigningTemplate($document));
+    }
+
+    /** Send for signature — creates the request + resolves signers. */
+    public function send(Request $request, CompanyDocument $document)
+    {
+        return app(DocumentRequestController::class)->send($request, $this->ensureSigningTemplate($document));
+    }
+
+    /** The signing template backing a document — create it on demand if missing. */
+    private function ensureSigningTemplate(CompanyDocument $document): DocumentTemplate
+    {
+        if (!$document->template_id) {
+            $document->requires_signature = true;
+            $document->save();
+            $this->syncSignatureTemplate($document);
+            $document->refresh();
+        }
+
+        return $document->template;
     }
 
     /** Admin: who has and hasn't acknowledged a document. */

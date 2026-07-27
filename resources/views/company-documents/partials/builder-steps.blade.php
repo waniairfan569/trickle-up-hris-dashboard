@@ -17,9 +17,9 @@
         $isPdf = method_exists($template, 'isPdf') ? $template->isPdf() : true;
         $steps = [
             1 => ['label' => 'Upload',       'icon' => 'upload',       'url' => route('company-documents.edit', $__companyDoc)],
-            2 => ['label' => 'Place fields', 'icon' => 'layout-grid',  'url' => route('document-templates.edit', $template)],
-            3 => ['label' => 'Preview',      'icon' => 'eye',          'url' => route('document-templates.preview-view', $template)],
-            4 => ['label' => 'Send',         'icon' => 'send',         'url' => route('document-templates.send-form', $template)],
+            2 => ['label' => 'Place fields', 'icon' => 'layout-grid',  'url' => route('company-documents.place-fields', $__companyDoc)],
+            3 => ['label' => 'Preview',      'icon' => 'eye',          'url' => route('company-documents.preview-sign', $__companyDoc)],
+            4 => ['label' => 'Send',         'icon' => 'send',         'url' => route('company-documents.send-form', $__companyDoc)],
         ];
     @endphp
     <nav class="mb-6 rounded-2xl border border-slate-200/80 bg-white px-3 py-3 shadow-sm dark:border-slate-700 dark:bg-slate-800">

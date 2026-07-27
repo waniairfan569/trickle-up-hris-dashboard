@@ -37,7 +37,7 @@
     @include('company-documents.partials.builder-steps', ['template' => $documentTemplate, 'current' => 4])
 
     <div class="flex items-center gap-3">
-        <a href="{{ route('document-templates.preview-view', $documentTemplate) }}" class="inline-flex h-9 w-9 items-center justify-center rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-700" title="Back to preview"><i data-lucide="arrow-left" class="h-5 w-5"></i></a>
+        <a href="{{ route('company-documents.preview-sign', $documentTemplate->companyDocument) }}" class="inline-flex h-9 w-9 items-center justify-center rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-700" title="Back to preview"><i data-lucide="arrow-left" class="h-5 w-5"></i></a>
         <div>
             <h1 class="text-xl font-extrabold tracking-tight text-slate-900 dark:text-white">Send for signature</h1>
             <p class="text-xs text-slate-500 dark:text-slate-400">{{ $documentTemplate->name }}</p>
@@ -50,7 +50,7 @@
         </div>
     @endif
 
-    <form method="POST" action="{{ route('document-templates.send', $documentTemplate) }}"
+    <form method="POST" action="{{ route('company-documents.send', $documentTemplate->companyDocument) }}"
           class="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 dark:bg-slate-800 dark:border-slate-700 space-y-6">
         @csrf
 

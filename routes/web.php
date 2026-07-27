@@ -283,8 +283,8 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
     Route::get('document-library/{document}/view', [\App\Http\Controllers\CompanyDocumentController::class, 'view'])->name('document-library.view');
     Route::post('document-library/{document}/acknowledge', [\App\Http\Controllers\CompanyDocumentController::class, 'acknowledge'])->name('document-library.acknowledge');
 
-    // Documents for signature — inbox + signing flow (any participant)
-    Route::get('documents', [\App\Http\Controllers\DocumentRequestController::class, 'index'])->name('documents.index');
+    // Documents for signature — signing flow (any participant). The admin list
+    // is folded into Company Documents; the employee inbox lives in the Library.
     Route::get('documents/{documentRequest}', [\App\Http\Controllers\DocumentRequestController::class, 'show'])->name('documents.show');
     Route::get('documents/{documentRequest}/file', [\App\Http\Controllers\DocumentRequestController::class, 'file'])->name('documents.file');
     Route::get('documents/{documentRequest}/signed-data', [\App\Http\Controllers\DocumentRequestController::class, 'signedData'])->name('documents.signed-data');
@@ -320,18 +320,14 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
         Route::resource('departments', DepartmentController::class);
         Route::get('departments/{department}/employees', [DepartmentController::class, 'employees'])->name('departments.employees');
 
-        // Document Templates (contracts, NDAs, letters — reusable + auto-fill)
-        Route::post('document-templates/{documentTemplate}/archive', [\App\Http\Controllers\DocumentTemplateController::class, 'archive'])->name('document-templates.archive');
-        Route::post('document-templates/{documentTemplate}/restore', [\App\Http\Controllers\DocumentTemplateController::class, 'restore'])->name('document-templates.restore');
-        Route::get('document-templates/{documentTemplate}/preview', [\App\Http\Controllers\DocumentTemplateController::class, 'preview'])->name('document-templates.preview');
-        Route::get('document-templates/{documentTemplate}/preview-view', [\App\Http\Controllers\DocumentTemplateController::class, 'previewView'])->name('document-templates.preview-view');
-        Route::get('document-templates/{documentTemplate}/generate', [\App\Http\Controllers\DocumentTemplateController::class, 'generate'])->name('document-templates.generate');
-        Route::get('document-templates/{documentTemplate}/fill-data', [\App\Http\Controllers\DocumentTemplateController::class, 'fillData'])->name('document-templates.fill-data');
-        Route::get('document-templates/{documentTemplate}/send', [\App\Http\Controllers\DocumentRequestController::class, 'sendForm'])->name('document-templates.send-form');
-        Route::post('document-templates/{documentTemplate}/send', [\App\Http\Controllers\DocumentRequestController::class, 'send'])->name('document-templates.send');
-        Route::resource('document-templates', \App\Http\Controllers\DocumentTemplateController::class)
-            ->parameters(['document-templates' => 'documentTemplate'])
-            ->except(['show']);
+        // Company-document signing builder (steps 2–4) — one system, no separate
+        // template module. All keyed by the company document itself.
+        Route::get('company-documents/{document}/place-fields', [\App\Http\Controllers\CompanyDocumentController::class, 'placeFields'])->name('company-documents.place-fields');
+        Route::put('company-documents/{document}/place-fields', [\App\Http\Controllers\CompanyDocumentController::class, 'saveFields'])->name('company-documents.save-fields');
+        Route::get('company-documents/{document}/preview-sign', [\App\Http\Controllers\CompanyDocumentController::class, 'previewSign'])->name('company-documents.preview-sign');
+        Route::get('company-documents/{document}/signing-file', [\App\Http\Controllers\CompanyDocumentController::class, 'signingFile'])->name('company-documents.signing-file');
+        Route::get('company-documents/{document}/send', [\App\Http\Controllers\CompanyDocumentController::class, 'sendForm'])->name('company-documents.send-form');
+        Route::post('company-documents/{document}/send', [\App\Http\Controllers\CompanyDocumentController::class, 'send'])->name('company-documents.send');
 
         // Reusable saved signatures (email signatures) — stamped onto documents.
         Route::get('signature-templates', [\App\Http\Controllers\SignatureTemplateController::class, 'index'])->name('signature-templates.index');

@@ -159,27 +159,6 @@ class DocumentRequestController extends Controller
             ->with('success', "“{$documentTemplate->name}” sent to {$subject->full_name} for signature.");
     }
 
-    /** GET documents — inbox of requests I must sign / am involved in. */
-    public function index(Request $request)
-    {
-        $user = auth()->user();
-
-        $all = DocumentRequest::with(['template', 'subject', 'signers.user'])
-            ->when(!$user->isAdmin(), function ($q) use ($user) {
-                $q->where(function ($w) use ($user) {
-                    $w->where('subject_employee_id', $user->id)
-                        ->orWhere('created_by', $user->id)
-                        ->orWhereHas('signers', fn ($s) => $s->where('user_id', $user->id));
-                });
-            })
-            ->latest()
-            ->get();
-
-        $toSign = $all->filter(fn ($r) => $r->isAwaiting($user))->values();
-
-        return view('documents.index', compact('toSign', 'all'));
-    }
-
     /** GET documents/{request} — request detail + audit trail. */
     public function show(DocumentRequest $documentRequest)
     {

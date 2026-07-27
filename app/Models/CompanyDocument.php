@@ -43,6 +43,41 @@ class CompanyDocument extends Model
     }
 
     /** This document can be sent for e-signature once a template is set up. */
+    /**
+     * Signing status for the admin list: null when the document isn't a signing
+     * document, else ['label','color','request'] from its latest sent request.
+     */
+    public function signingStatus(): ?array
+    {
+        if (!$this->requires_signature) {
+            return null;
+        }
+
+        $template = $this->template;
+        if (!$template) {
+            return ['label' => 'Draft', 'color' => 'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-300', 'request' => null];
+        }
+
+        $req = $template->relationLoaded('requests')
+            ? $template->requests->sortByDesc('id')->first()
+            : $template->requests()->with('signers')->latest('id')->first();
+
+        if (!$req) {
+            return ['label' => 'Draft', 'color' => 'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-300', 'request' => null];
+        }
+        if ($req->status === 'completed') {
+            return ['label' => 'Signed', 'color' => 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400', 'request' => $req];
+        }
+        if ($req->status === 'declined') {
+            return ['label' => 'Declined', 'color' => 'bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400', 'request' => $req];
+        }
+
+        $total = $req->signers->count();
+        $signed = $req->signers->where('status', 'signed')->count();
+
+        return ['label' => "Awaiting signature ({$signed}/{$total})", 'color' => 'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400', 'request' => $req];
+    }
+
     public function isSignable(): bool
     {
         return $this->requires_signature && $this->file_extension === 'pdf';
