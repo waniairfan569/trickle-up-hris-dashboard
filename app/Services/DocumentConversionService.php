@@ -151,11 +151,11 @@ class DocumentConversionService
 
     /**
      * Whitespace-normalised text of every <w:t> run in document order, plus a
-     * map from each normalised char index to [node, offsetAfterCharInNode].
-     * Runs of whitespace collapse to one space, so an anchor captured from the
-     * browser HTML (which may use different spacing/tabs than the .docx) still
-     * matches. The map lets a match be inserted straight into the run node that
-     * holds the anchor's last char.
+     * map from each normalised char index to [node, charIndexInNode] (the 0-based
+     * index of that char within the run's text). Runs of whitespace collapse to
+     * one space, so an anchor/find captured from the browser HTML (which may use
+     * different spacing/tabs than the .docx) still matches. The map lets a match
+     * be resolved back to the exact run node + offset.
      *
      * @return array{0:string,1:array<int,array{0:\DOMNode,1:int}>}
      */
@@ -172,17 +172,154 @@ class DocumentConversionService
                         continue; // collapse consecutive whitespace
                     }
                     $norm .= ' ';
-                    $map[] = [$t, $li + 1];
+                    $map[] = [$t, $li];
                     $prevSpace = true;
                 } else {
                     $norm .= $ch;
-                    $map[] = [$t, $li + 1];
+                    $map[] = [$t, $li];
                     $prevSpace = false;
                 }
             }
         }
 
         return [$norm, $map];
+    }
+
+    /**
+     * Apply the admin's body-text edits (change wording, remove spaces, insert
+     * tokens — anything they did in the browser editor) to a COPY of the
+     * original .docx, so "Keep Word layout" preserves the letterhead / watermark
+     * / header / footer (all separate .docx parts, untouched) AND the edited
+     * text. Each edit is ['find' => original paragraph text, 'replace' => the
+     * edited text]; only paragraphs whose text actually changed are sent, so
+     * everything else keeps its exact original formatting. A forward cursor
+     * keeps repeated paragraphs in order. Returns the injected copy's stored
+     * path, or null when nothing could be applied (caller falls back).
+     */
+    public function applyEditsToDocx(string $storedDocxPath, array $edits): ?string
+    {
+        try {
+            $pending = [];
+            foreach ($edits as $e) {
+                $find = trim(preg_replace('/\s+/u', ' ', (string) ($e['find'] ?? '')));
+                if ($find === '' || mb_strlen($find) < 2) {
+                    continue; // too short to locate safely
+                }
+                $pending[] = ['find' => $find, 'replace' => (string) ($e['replace'] ?? '')];
+            }
+
+            if (!class_exists(\ZipArchive::class) || empty($pending)
+                || !Str::endsWith(strtolower($storedDocxPath), '.docx')) {
+                return null;
+            }
+            $disk = Storage::disk();
+            if (!$disk->exists($storedDocxPath)) {
+                return null;
+            }
+
+            $work = tempnam(sys_get_temp_dir(), 'edt') . '.docx';
+            @file_put_contents($work, $disk->get($storedDocxPath));
+
+            $zip = new \ZipArchive();
+            if ($zip->open($work) !== true) {
+                @unlink($work);
+                return null;
+            }
+            $xml = $zip->getFromName('word/document.xml');
+            if ($xml === false) {
+                $zip->close();
+                @unlink($work);
+                return null;
+            }
+
+            $dom = new \DOMDocument();
+            $dom->preserveWhiteSpace = true;
+            libxml_use_internal_errors(true);
+            $ok = $dom->loadXML($xml);
+            libxml_clear_errors();
+            if (!$ok) {
+                $zip->close();
+                @unlink($work);
+                return null;
+            }
+
+            $xpath = new \DOMXPath($dom);
+            $xpath->registerNamespace('w', 'http://schemas.openxmlformats.org/wordprocessingml/2006/main');
+
+            $applied = 0;
+            $cursor = 0;
+
+            foreach ($pending as $edit) {
+                [$norm, $map] = $this->buildNormalizedRunMap($xpath);
+                $from = min($cursor, mb_strlen($norm));
+                $pos = mb_strpos($norm, $edit['find'], $from);
+                if ($pos === false) {
+                    $pos = mb_strpos($norm, $edit['find']);
+                }
+                if ($pos === false) {
+                    continue; // original text not found (e.g. paragraph was removed)
+                }
+                $start = $pos;
+                $end = $pos + mb_strlen($edit['find']) - 1;
+                if (!isset($map[$start], $map[$end])) {
+                    continue;
+                }
+
+                // Group the matched chars by run node, tracking each node's
+                // matched char range.
+                $nodes = [];
+                $ranges = new \SplObjectStorage();
+                for ($k = $start; $k <= $end; $k++) {
+                    [$node, $ci] = $map[$k];
+                    if (!$ranges->contains($node)) {
+                        $ranges[$node] = [$ci, $ci];
+                        $nodes[] = $node;
+                    } else {
+                        $r = $ranges[$node];
+                        $ranges[$node] = [min($r[0], $ci), max($r[1], $ci)];
+                    }
+                }
+
+                $first = $nodes[0];
+                $last = $nodes[count($nodes) - 1];
+                if ($first === $last) {
+                    [$a, $b] = $ranges[$first];
+                    $text = $first->textContent;
+                    $first->textContent = mb_substr($text, 0, $a) . $edit['replace'] . mb_substr($text, $b + 1);
+                } else {
+                    [$fa] = $ranges[$first];
+                    $first->textContent = mb_substr($first->textContent, 0, $fa) . $edit['replace'];
+                    [, $lb] = $ranges[$last];
+                    $last->textContent = mb_substr($last->textContent, $lb + 1);
+                    for ($n = 1; $n < count($nodes) - 1; $n++) {
+                        $nodes[$n]->textContent = ''; // fully inside the match
+                    }
+                }
+                $first->setAttribute('xml:space', 'preserve');
+                $applied++;
+                $cursor = $pos + mb_strlen(trim(preg_replace('/\s+/u', ' ', $edit['replace'])));
+            }
+
+            if ($applied === 0) {
+                $zip->close();
+                @unlink($work);
+                return null;
+            }
+
+            $zip->deleteName('word/document.xml');
+            $zip->addFromString('word/document.xml', $dom->saveXML());
+            $zip->close();
+
+            $stored = preg_replace('/\.docx$/i', '', $storedDocxPath) . '.edited.docx';
+            $disk->put($stored, (string) file_get_contents($work));
+            @unlink($work);
+
+            return $disk->exists($stored) ? $stored : null;
+        } catch (\Throwable $e) {
+            report($e);
+
+            return null;
+        }
     }
 
     /**
@@ -276,8 +413,9 @@ class DocumentConversionService
                 if (!isset($map[$endIdx])) {
                     continue;
                 }
-                [$node, $localOffset] = $map[$endIdx];
+                [$node, $charIdx] = $map[$endIdx];
 
+                $localOffset = $charIdx + 1; // insert AFTER the matched char
                 $text = $node->textContent;
                 $before = mb_substr($text, 0, $localOffset);
                 $after = mb_substr($text, $localOffset);

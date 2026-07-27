@@ -239,17 +239,25 @@ class CompanyDocumentController extends Controller
 
         $service = app(\App\Services\DocumentConversionService::class);
 
-        // Tokens captured in the editor: [{anchor, token}, …]. Inject them into
-        // a copy of the .docx so "convert as-is" keeps them in the text.
+        // Body-text edits ([{find, replace}, …]) and, as a fallback, anchored
+        // tokens. Edits carry everything the admin changed in the editor — reworded
+        // text, removed spaces AND inserted tokens — so they're applied to a copy
+        // of the .docx first; the Word branding (letterhead/watermark/header/footer)
+        // lives in separate parts and is untouched.
+        $edits = json_decode((string) $request->input('edits', '[]'), true) ?: [];
         $tokens = json_decode((string) $request->input('tokens', '[]'), true) ?: [];
-        $hadTokens = is_array($tokens) && count($tokens) > 0;
+        $hadChanges = (is_array($edits) && $edits) || (is_array($tokens) && $tokens);
+
         $source = $document->file_path;
         $injected = null;
-        if ($hadTokens) {
+        if (is_array($edits) && $edits) {
+            $injected = $service->applyEditsToDocx($document->file_path, $edits);
+        }
+        if (!$injected && is_array($tokens) && $tokens) {
             $injected = $service->injectTokensIntoDocx($document->file_path, $tokens);
-            if ($injected) {
-                $source = $injected;
-            }
+        }
+        if ($injected) {
+            $source = $injected;
         }
 
         $pdfPath = $service->toPdf($source);
@@ -264,10 +272,10 @@ class CompanyDocumentController extends Controller
 
         $redirect = $this->swapToPdf($document, $pdfPath);
 
-        // Tokens were added but none could be matched into the Word layout —
+        // Changes were made but none could be matched into the Word layout —
         // don't fail silently; tell the admin how to get them in reliably.
-        if ($hadTokens && !$injected) {
-            $redirect->with('warning', 'Your document was converted, but the tokens couldn’t be placed automatically into the Word layout. The reliable ways: type the tokens directly in Word where you want them (e.g. put [Employee Signature] on the signature line) and re-upload, or drag field boxes onto the blanks in the next step.');
+        if ($hadChanges && !$injected) {
+            $redirect->with('warning', 'Your document was converted with the Word layout, but the text edits couldn’t be matched automatically (this happens if whole paragraphs were added or removed). For those, edit the wording in Word itself and re-upload — the letterhead and watermark are always preserved.');
         }
 
         return $redirect;

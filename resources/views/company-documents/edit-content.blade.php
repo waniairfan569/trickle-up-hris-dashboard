@@ -31,8 +31,7 @@
         <div class="px-5 py-3 border-b border-sky-100 bg-sky-50/70 text-[11px] text-sky-800 dark:bg-sky-500/10 dark:border-sky-500/20 dark:text-sky-300">
             <p class="font-bold flex items-center gap-1.5"><i data-lucide="lightbulb" class="h-3.5 w-3.5"></i> Which button should I use?</p>
             <ul class="mt-1.5 space-y-1 list-disc pl-5">
-                <li><span class="font-bold">Branded document</span> (letterhead / watermark / logo): use <span class="font-bold">“Keep Word layout + tokens”</span>. It converts your original Word file untouched, so the design is pixel-perfect. Add each token with the <span class="font-bold">“Insert token”</span> dropdown — click in the document exactly where the value goes first, then pick the token.
-                <span class="block text-sky-600 dark:text-sky-400">Most reliable of all: type the tokens straight into Word (e.g. put <code>[Employee Signature]</code> on the signature line), upload, and use this button — the tokens are guaranteed to land where you typed them.</span></li>
+                <li><span class="font-bold">Branded document</span> (letterhead / watermark / logo): use <span class="font-bold">“Keep Word layout + tokens”</span>. It converts your original Word file, so the letterhead, watermark, header &amp; footer stay pixel-perfect. You can still <span class="font-bold">edit the body text here</span> — reword lines, remove spaces, and insert tokens (via the dropdown) — and those changes are synced into the Word file too. (Adding or deleting whole paragraphs isn’t synced this way — do that in Word.)</li>
                 <li><span class="font-bold">Plain, unbranded document</span>: edit the text freely below and use <span class="font-bold">“Convert edited text to PDF”</span>. This re-flows the page like a web document, so don’t use it for anything with a letterhead or watermark.</li>
             </ul>
         </div>
@@ -81,6 +80,7 @@
     </form>
     <form method="POST" action="{{ route('company-documents.convert-original', $document) }}" id="convertOriginalForm">
         @csrf
+        <input type="hidden" name="edits" id="editsInput">
         <input type="hidden" name="tokens" id="tokensInput">
     </form>
 
@@ -115,11 +115,30 @@
         (d.head || d.documentElement).appendChild(s);
     }
 
+    // The original paragraph texts (captured once the document loads) — compared
+    // against the edited text on submit to know exactly which paragraphs changed.
+    let originalBlocks = [];
+
+    // Plain text of each leaf block (paragraph / heading / list item / table
+    // cell) in document order — the unit we sync back into the Word file.
+    function blockTexts() {
+        const d = fdoc();
+        if (!d || !d.body) return [];
+        const out = [];
+        d.body.querySelectorAll('p, li, h1, h2, h3, h4, h5, h6, td, th, pre, div').forEach((el) => {
+            if (el.querySelector('p, li, h1, h2, h3, h4, h5, h6, td, th, pre, table, div')) return; // leaf blocks only
+            const t = (el.textContent || '').replace(/\s+/g, ' ').trim();
+            if (t !== '') out.push(t);
+        });
+        return out;
+    }
+
     frame.addEventListener('load', () => {
         const d = fdoc();
         if (!d) return;
         d.designMode = 'on';
         attachChrome(d);
+        originalBlocks = blockTexts();
     });
     frame.srcdoc = rawHtml;
 
@@ -207,8 +226,23 @@
     }
 
     document.getElementById('convertOriginalForm').addEventListener('submit', () => {
-        // Send tokens in DOCUMENT order (by where their anchor sits) so the
-        // server's forward cursor drops each one at the right spot.
+        // 1) Body-text edits: compare the current paragraphs to the originals.
+        //    A changed paragraph → {find: original, replace: edited}. This carries
+        //    reworded text, removed spaces AND inserted tokens all at once. Only
+        //    works when the paragraph count is unchanged (no whole paragraphs
+        //    added/removed); otherwise we fall back to token anchors on the server.
+        const now = blockTexts();
+        const edits = [];
+        if (now.length === originalBlocks.length) {
+            for (let i = 0; i < now.length; i++) {
+                if (now[i] !== originalBlocks[i] && originalBlocks[i].length >= 2) {
+                    edits.push({ find: originalBlocks[i], replace: now[i] });
+                }
+            }
+        }
+        document.getElementById('editsInput').value = JSON.stringify(edits);
+
+        // 2) Token anchors (fallback / when paragraph count changed), in document order.
         const plain = (fdoc().body ? fdoc().body.innerText : '').replace(/\s+/g, ' ');
         const ordered = insertedTokens
             .map(t => ({ ...t, _pos: plain.indexOf(t.anchor.replace(/\s+/g, ' ')) }))
