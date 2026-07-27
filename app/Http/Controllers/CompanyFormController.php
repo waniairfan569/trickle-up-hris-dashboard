@@ -81,6 +81,7 @@ class CompanyFormController extends Controller
             'status' => $validated['status'] ?? $companyForm->status,
             'is_anonymous' => $request->boolean('is_anonymous'),
             'allow_multiple_submissions' => $request->boolean('allow_multiple_submissions'),
+            'is_monthly' => $request->boolean('is_monthly'),
             'show_progress_bar' => $request->boolean('show_progress_bar'),
             'requires_signature' => $request->boolean('requires_signature'),
         ]);
@@ -201,24 +202,62 @@ class CompanyFormController extends Controller
             ['assigned_by' => auth()->id(), 'assigned_at' => now()]
         );
 
+        // Monthly forms open for the current month; one-off forms have no period.
+        $period = $companyForm->is_monthly ? $companyForm->currentPeriod() : null;
+
         // Create a pending submission for each targeted user + notify.
         $count = 0;
         foreach ($companyForm->getAssignedUsersFor() as $user) {
             $sub = FormSubmission::firstOrCreate(
-                ['form_id' => $companyForm->id, 'user_id' => $user->id],
+                ['form_id' => $companyForm->id, 'user_id' => $user->id, 'period' => $period],
                 ['assignment_id' => $assignment->id, 'status' => 'pending']
             );
             if ($sub->wasRecentlyCreated) {
                 $count++;
                 try {
-                    $user->notify(new FormAssigned($companyForm));
+                    $user->notify(new FormAssigned($companyForm, $period));
                 } catch (\Throwable $e) {
                     // ignore per-user notification failure
                 }
             }
         }
 
-        return back()->with('success', "Form assigned. {$count} new employee(s) added.");
+        $when = $period ? ' for ' . CompanyForm::periodLabel($period) : '';
+        return back()->with('success', "Form assigned{$when}. {$count} new employee(s) added.");
+    }
+
+    /**
+     * Open a monthly form for the CURRENT month: create a fresh pending
+     * submission for every assigned employee who doesn't have one yet, and
+     * notify them. Idempotent — safe to click again or run from the scheduler.
+     */
+    public function openMonth(CompanyForm $companyForm)
+    {
+        abort_unless($companyForm->is_monthly, 404);
+
+        $period = $companyForm->currentPeriod();
+        $count = 0;
+
+        foreach ($companyForm->getAssignedUsersFor() as $user) {
+            $sub = FormSubmission::firstOrCreate(
+                ['form_id' => $companyForm->id, 'user_id' => $user->id, 'period' => $period],
+                ['status' => 'pending']
+            );
+            if ($sub->wasRecentlyCreated) {
+                $count++;
+                try {
+                    $user->notify(new FormAssigned($companyForm, $period));
+                } catch (\Throwable $e) {
+                    // ignore per-user notification failure
+                }
+            }
+        }
+
+        $label = CompanyForm::periodLabel($period);
+
+        return back()->with('success', $count > 0
+            ? "Opened “{$companyForm->title}” for {$label} — {$count} employee(s) notified."
+            : "“{$companyForm->title}” is already open for {$label} for everyone assigned.");
     }
 
     /**
@@ -256,7 +295,19 @@ class CompanyFormController extends Controller
         abort_unless($companyForm->canBeReviewedBy($request->user()), 403);
 
         $assigned = $companyForm->getAssignedUsersFor();
-        $submissions = $companyForm->submissions()->with('employee.department')->latest('id')->get();
+
+        // Monthly forms: filter submissions to a chosen month (default: latest).
+        $periods = $companyForm->submissionPeriods();
+        $period = null;
+        if ($companyForm->is_monthly && $periods) {
+            $requested = $request->get('period');
+            $period = ($requested === 'all') ? 'all'
+                : (in_array($requested, $periods, true) ? $requested : $periods[0]);
+        }
+
+        $submissions = $companyForm->submissions()->with('employee.department')
+            ->when($period && $period !== 'all', fn ($q) => $q->where('period', $period))
+            ->latest('id')->get();
 
         $stats = [
             'assigned' => $assigned->count(),
@@ -265,7 +316,13 @@ class CompanyFormController extends Controller
             'overdue' => $companyForm->isOverdue() ? $submissions->where('status', '!=', 'submitted')->count() : 0,
         ];
 
-        return view('company-forms.responses', ['form' => $companyForm, 'submissions' => $submissions, 'stats' => $stats]);
+        return view('company-forms.responses', [
+            'form' => $companyForm,
+            'submissions' => $submissions,
+            'stats' => $stats,
+            'periods' => $periods,
+            'selectedPeriod' => $period,
+        ]);
     }
 
     public function viewSubmission(Request $request, FormSubmission $submission)

@@ -17,6 +17,21 @@
         <a href="{{ route('company-forms.export', $form) }}" class="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-bold text-slate-900 hover:bg-brand-700"><i data-lucide="download" class="h-4 w-4"></i> Export to Excel</a>
     </div>
 
+    @if($form->is_monthly && !empty($periods))
+        <div class="flex flex-wrap items-center gap-1.5">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mr-1">Month:</span>
+            @php
+                $pill = fn ($active) => $active
+                    ? 'rounded-full bg-brand-500 px-3 py-1 text-[11px] font-bold text-slate-900'
+                    : 'rounded-full bg-slate-100 px-3 py-1 text-[11px] font-bold text-slate-500 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300';
+            @endphp
+            @foreach($periods as $p)
+                <a href="{{ route('company-forms.responses', ['companyForm' => $form, 'period' => $p]) }}" class="{{ $pill($selectedPeriod === $p) }}">{{ \App\Models\CompanyForm::periodLabel($p) }}</a>
+            @endforeach
+            <a href="{{ route('company-forms.responses', ['companyForm' => $form, 'period' => 'all']) }}" class="{{ $pill($selectedPeriod === 'all') }}">All months</a>
+        </div>
+    @endif
+
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
         @foreach([['Assigned', $stats['assigned'], 'text-slate-700'], ['Submitted', $stats['submitted'], 'text-emerald-600'], ['Pending', $stats['pending'], 'text-amber-600'], ['Overdue', $stats['overdue'], 'text-rose-600']] as [$label, $val, $color])
             <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-5 dark:bg-slate-800 dark:border-slate-700">
@@ -30,13 +45,14 @@
         <div class="overflow-x-auto">
             <table class="w-full text-sm">
                 <thead><tr class="text-left text-[11px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100 dark:border-slate-700/60">
-                    <th class="px-5 py-3">Employee</th><th class="px-5 py-3">Department</th><th class="px-5 py-3">Status</th><th class="px-5 py-3">Submitted</th><th class="px-5 py-3"></th>
+                    <th class="px-5 py-3">Employee</th><th class="px-5 py-3">Department</th>@if($form->is_monthly)<th class="px-5 py-3">Month</th>@endif<th class="px-5 py-3">Status</th><th class="px-5 py-3">Submitted</th><th class="px-5 py-3"></th>
                 </tr></thead>
                 <tbody>
                     @forelse($submissions as $s)
                         <tr class="border-b border-slate-100 last:border-0 dark:border-slate-700/60">
                             <td class="px-5 py-2.5 font-semibold text-slate-800 dark:text-white">{{ $form->is_anonymous ? 'Anonymous' : (optional($s->employee)->full_name ?? '—') }}</td>
                             <td class="px-5 py-2.5 text-slate-500">{{ optional(optional($s->employee)->department)->name ?? '—' }}</td>
+                            @if($form->is_monthly)<td class="px-5 py-2.5 text-slate-500 whitespace-nowrap">{{ $s->periodLabel() ?: '—' }}</td>@endif
                             <td class="px-5 py-2.5">
                                 <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold {{ $badge[$s->status] }}">{{ ucfirst(str_replace('_',' ',$s->status)) }}</span>
                                 @if(in_array($s->review_status, ['approved', 'rejected'], true))
@@ -47,7 +63,7 @@
                             <td class="px-5 py-2.5 text-right">@if($s->status === 'submitted')<a href="{{ route('company-forms.submission', $s) }}" class="text-xs font-bold text-brand-600 hover:underline">View response</a>@endif</td>
                         </tr>
                     @empty
-                        <tr><td colspan="5" class="px-5 py-12 text-center text-sm text-slate-400">No submissions yet.</td></tr>
+                        <tr><td colspan="{{ $form->is_monthly ? 6 : 5 }}" class="px-5 py-12 text-center text-sm text-slate-400">No submissions yet.</td></tr>
                     @endforelse
                 </tbody>
             </table>

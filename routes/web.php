@@ -368,6 +368,7 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
         Route::delete('form-fields/{field}', [\App\Http\Controllers\CompanyFormController::class, 'deleteField'])->name('company-forms.fields.delete');
         Route::post('form-fields/{field}/move', [\App\Http\Controllers\CompanyFormController::class, 'moveField'])->name('company-forms.fields.move');
         Route::post('company-forms/{companyForm}/assign', [\App\Http\Controllers\CompanyFormController::class, 'assign'])->name('company-forms.assign');
+        Route::post('company-forms/{companyForm}/open-month', [\App\Http\Controllers\CompanyFormController::class, 'openMonth'])->name('company-forms.open-month');
         Route::delete('company-forms/{companyForm}/assignments/{assignment}', [\App\Http\Controllers\CompanyFormController::class, 'unassign'])->name('company-forms.unassign');
         Route::get('company-forms/{companyForm}/details', [\App\Http\Controllers\CompanyFormController::class, 'show'])->name('company-forms.show');
         Route::get('company-forms/{companyForm}/export', [\App\Http\Controllers\CompanyFormController::class, 'exportResponses'])->name('company-forms.export');

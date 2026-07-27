@@ -20,6 +20,7 @@
     <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden dark:bg-slate-800 dark:border-slate-700">
         <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-700/60">
             <h1 class="text-xl font-extrabold text-slate-900 dark:text-white">{{ $form->title }}</h1>
+            @if($submission->period)<span class="inline-flex items-center rounded-full bg-indigo-50 px-2.5 py-0.5 text-[11px] font-bold text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400 mt-1"><i data-lucide="calendar" class="h-3 w-3 mr-1"></i>{{ $submission->periodLabel() }} submission</span>@endif
             @if($form->description)<p class="text-sm text-slate-500 dark:text-slate-400 mt-1">{{ $form->description }}</p>@endif
             @if($form->deadline)
                 <p class="text-xs mt-2 {{ $form->isOverdue() ? 'text-amber-600 font-semibold' : 'text-slate-400' }}">

@@ -47,6 +47,19 @@
             </div>
             <button type="submit" class="rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-bold text-slate-900 hover:bg-brand-700"><i data-lucide="user-plus" class="h-4 w-4 inline -mt-0.5"></i> Assign</button>
         </form>
+
+        @if($form->is_monthly)
+            <div class="mt-4 flex flex-wrap items-center gap-3 rounded-xl border border-brand-200 bg-brand-50/50 p-3 dark:border-brand-500/20 dark:bg-brand-500/5">
+                <i data-lucide="calendar-clock" class="h-5 w-5 text-brand-600 shrink-0"></i>
+                <p class="text-xs text-slate-600 dark:text-slate-300 flex-1 min-w-[12rem]">
+                    <span class="font-bold">Monthly form.</span> Everyone assigned is re-notified to submit each month (auto-opens on the 1st). Need it opened now for <span class="font-bold">{{ \App\Models\CompanyForm::periodLabel(now()->format('Y-m')) }}</span>?
+                </p>
+                <form action="{{ route('company-forms.open-month', $form) }}" method="POST">
+                    @csrf
+                    <button type="submit" class="rounded-xl bg-white border border-brand-300 px-4 py-2 text-xs font-bold text-brand-700 hover:bg-brand-50 dark:bg-slate-800 dark:border-slate-600 dark:text-brand-300"><i data-lucide="send" class="h-3.5 w-3.5 inline -mt-0.5"></i> Open for {{ now()->format('F') }}</button>
+                </form>
+            </div>
+        @endif
     </div>
 
     <!-- Current assignments -->

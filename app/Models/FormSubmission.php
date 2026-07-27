@@ -13,7 +13,7 @@ class FormSubmission extends Model
     use HasFactory;
 
     protected $fillable = [
-        'form_id', 'user_id', 'assignment_id', 'status',
+        'form_id', 'user_id', 'assignment_id', 'period', 'status',
         'started_at', 'submitted_at', 'signature_data', 'ip_address',
         'review_status', 'review_note', 'reviewed_by', 'reviewed_at',
     ];
@@ -71,6 +71,12 @@ class FormSubmission extends Model
     public function isComplete(): bool
     {
         return $this->status === 'submitted';
+    }
+
+    /** "July 2026" for a monthly submission, else empty. */
+    public function periodLabel(): string
+    {
+        return CompanyForm::periodLabel($this->period);
     }
 
     public function progressPercent(): int

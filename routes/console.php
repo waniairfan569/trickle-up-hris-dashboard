@@ -26,6 +26,7 @@ Schedule::command('events:send-reminders')->dailyAt('18:00');
 // Leave-year renewals (encashment + carry forward + fresh balances) — runs any
 // setting whose next_renewal_date is due.
 Schedule::command('leave:process-renewals')->dailyAt('01:00')->withoutOverlapping()->runInBackground();
+Schedule::command('forms:open-monthly')->dailyAt('02:00')->withoutOverlapping();
 
 // Daily attendance report — fires once at the configurable send_time on working
 // days (dynamic, no redeploy needed). Guarded against duplicate sends.

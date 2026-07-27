@@ -18,13 +18,14 @@ class CompanyForm extends Model
 
     protected $fillable = [
         'company_entity_id', 'title', 'description', 'slug', 'status',
-        'is_anonymous', 'allow_multiple_submissions', 'show_progress_bar',
+        'is_anonymous', 'allow_multiple_submissions', 'is_monthly', 'show_progress_bar',
         'requires_signature', 'deadline', 'created_by',
     ];
 
     protected $casts = [
         'is_anonymous' => 'boolean',
         'allow_multiple_submissions' => 'boolean',
+        'is_monthly' => 'boolean',
         'show_progress_bar' => 'boolean',
         'requires_signature' => 'boolean',
         'deadline' => 'datetime',
@@ -114,14 +115,55 @@ class CompanyForm extends Model
         return User::whereIn('id', $userIds->unique()->all())->get();
     }
 
-    public function getSubmissionFor(User $user): ?FormSubmission
+    /** Current month key, e.g. "2026-07". */
+    public function currentPeriod(): string
     {
-        return $this->submissions()->where('user_id', $user->id)->latest('id')->first();
+        return now()->format('Y-m');
+    }
+
+    /** "2026-07" → "July 2026". */
+    public static function periodLabel(?string $period): string
+    {
+        if (!$period) {
+            return '';
+        }
+        try {
+            return \Carbon\Carbon::createFromFormat('Y-m', $period)->format('F Y');
+        } catch (\Throwable $e) {
+            return $period;
+        }
+    }
+
+    /**
+     * The user's submission for this form. For a monthly form it is scoped to a
+     * period (defaults to the current month); for a one-off form the period is
+     * ignored and the latest submission is returned (unchanged behaviour).
+     */
+    public function getSubmissionFor(User $user, ?string $period = null): ?FormSubmission
+    {
+        $query = $this->submissions()->where('user_id', $user->id);
+
+        if ($this->is_monthly) {
+            $query->where('period', $period ?? $this->currentPeriod());
+        }
+
+        return $query->latest('id')->first();
     }
 
     public function getPendingCountFor(User $user): int
     {
         return $this->submissions()->where('user_id', $user->id)->where('status', '!=', 'submitted')->count();
+    }
+
+    /** Distinct periods this form has submissions for, newest first (for filters). */
+    public function submissionPeriods(): array
+    {
+        return $this->submissions()
+            ->whereNotNull('period')
+            ->distinct()
+            ->orderByDesc('period')
+            ->pluck('period')
+            ->all();
     }
 
     public function isOverdue(): bool

@@ -10,21 +10,32 @@ use Illuminate\Support\Facades\Storage;
 
 class FormSubmissionController extends Controller
 {
-    /** Employee: list forms assigned to me. */
+    /** Employee: list forms assigned to me (optionally filtered by month). */
     public function myForms(Request $request)
     {
         $user = $request->user();
-        $submissions = $user->formSubmissions()
+        $all = $user->formSubmissions()
             ->with(['form', 'reviewer'])
             ->get()
             ->filter(fn ($s) => $s->form && $s->form->status !== 'draft')
             ->sortByDesc('id')
             ->values();
 
+        // Months the employee has submissions for (monthly forms) → filter pills.
+        $periods = $all->pluck('period')->filter()->unique()->sortDesc()->values()->all();
+        $selectedPeriod = $request->get('period');
+        if ($selectedPeriod && $selectedPeriod !== 'all' && !in_array($selectedPeriod, $periods, true)) {
+            $selectedPeriod = null;
+        }
+
+        $submissions = ($selectedPeriod && $selectedPeriod !== 'all')
+            ? $all->where('period', $selectedPeriod)->values()
+            : $all;
+
         // Seeing the list clears the "new forms" sidebar badge.
         $user->forceFill(['forms_last_seen_at' => now()])->saveQuietly();
 
-        return view('employee.forms.index', compact('submissions'));
+        return view('employee.forms.index', compact('submissions', 'periods', 'selectedPeriod'));
     }
 
     /** Employee: open a form to fill (or view if already submitted & single-submission). */
@@ -132,7 +143,10 @@ class FormSubmissionController extends Controller
      */
     private function draftFor(CompanyForm $form, User $user): FormSubmission
     {
-        $latest = $form->getSubmissionFor($user);
+        // Monthly forms are scoped to the current month, so each month gets its
+        // own fresh submission and past months stay as history.
+        $period = $form->is_monthly ? $form->currentPeriod() : null;
+        $latest = $form->getSubmissionFor($user, $period);
 
         if ($latest && $latest->status !== 'submitted') {
             if ($latest->status === 'pending') {
@@ -144,6 +158,7 @@ class FormSubmissionController extends Controller
         return FormSubmission::create([
             'form_id' => $form->id,
             'user_id' => $user->id,
+            'period' => $period,
             'status' => 'in_progress',
             'started_at' => now(),
         ]);
