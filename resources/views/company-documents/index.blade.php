@@ -76,6 +76,9 @@
                                             @if($doc->requires_signature)
                                                 <span class="inline-flex items-center gap-1 rounded-full bg-brand-50 px-2 py-0.5 text-[10px] font-bold text-brand-700 dark:bg-brand-500/10 dark:text-brand-300 shrink-0"><i data-lucide="file-signature" class="h-3 w-3"></i> Signature</span>
                                             @endif
+                                            @if($doc->requires_acknowledgment)
+                                                <a href="{{ route('company-documents.acknowledgments', $doc) }}" title="See who has acknowledged" class="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700 dark:bg-amber-500/10 dark:text-amber-300 shrink-0 hover:bg-amber-100"><i data-lucide="check-square" class="h-3 w-3"></i> {{ $doc->acknowledgments_count }} acknowledged</a>
+                                            @endif
                                         </p>
                                         <p class="text-xs text-slate-400 truncate">{{ $doc->file_name }} · by {{ optional($doc->uploader)->full_name ?? '—' }}</p>
                                     </div>

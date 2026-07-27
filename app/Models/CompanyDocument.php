@@ -58,6 +58,40 @@ class CompanyDocument extends Model
         return $this->hasMany(DocumentAccess::class, 'document_id');
     }
 
+    public function acknowledgments()
+    {
+        return $this->hasMany(DocumentAcknowledgment::class, 'document_id');
+    }
+
+    public function acknowledgmentFor(?User $user): ?DocumentAcknowledgment
+    {
+        if (!$user) {
+            return null;
+        }
+
+        return $this->acknowledgments()->where('user_id', $user->id)->first();
+    }
+
+    public function isAcknowledgedBy(?User $user): bool
+    {
+        return $user && $this->acknowledgments()->where('user_id', $user->id)->exists();
+    }
+
+    /** Non-deactivated users who can access this document (its acknowledgment audience). */
+    public function eligibleUsers()
+    {
+        $base = User::where('account_status', '!=', 'deactivated');
+
+        return match ($this->access_level) {
+            'company_wide' => $base->get(),
+            'department' => $base->whereIn('department_id',
+                $this->accessRecords()->where('access_type', 'department')->pluck('access_id'))->get(),
+            'specific_users' => $base->whereIn('id',
+                $this->accessRecords()->where('access_type', 'user')->pluck('access_id'))->get(),
+            default => collect(),
+        };
+    }
+
     public function scopeActive(Builder $q): Builder
     {
         return $q->where('is_active', true);

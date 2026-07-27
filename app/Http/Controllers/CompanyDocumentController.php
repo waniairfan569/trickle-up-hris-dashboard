@@ -21,7 +21,7 @@ class CompanyDocumentController extends Controller
 
     public function adminIndex(Request $request)
     {
-        $query = CompanyDocument::with(['category', 'uploader'])->latest();
+        $query = CompanyDocument::with(['category', 'uploader'])->withCount('acknowledgments')->latest();
 
         if ($request->filled('category')) {
             $query->where('category_id', $request->category);
@@ -356,6 +356,41 @@ class CompanyDocumentController extends Controller
         ]);
     }
 
+    /** Employee ticks the acknowledgment checkbox — record it once. */
+    public function acknowledge(Request $request, CompanyDocument $document)
+    {
+        $user = $request->user();
+        abort_unless($document->isAccessibleBy($user), 403, 'You do not have access to this document.');
+        abort_unless($document->requires_acknowledgment, 400, 'This document does not require acknowledgment.');
+
+        \App\Models\DocumentAcknowledgment::firstOrCreate(
+            ['document_id' => $document->id, 'user_id' => $user->id],
+            ['acknowledged_at' => now(), 'ip_address' => $request->ip()]
+        );
+        $document->logView($user, 'acknowledged');
+
+        return back()->with('success', 'Thank you — your acknowledgment of “' . $document->title . '” has been recorded.');
+    }
+
+    /** Admin: who has and hasn't acknowledged a document. */
+    public function acknowledgments(CompanyDocument $document)
+    {
+        $eligible = $document->eligibleUsers();
+        $acked = $document->acknowledgments()->with('employee.department')->get()->keyBy('user_id');
+
+        $rows = $eligible->map(fn ($u) => [
+            'user' => $u,
+            'ack' => $acked->get($u->id),
+        ])->sortBy(fn ($r) => [$r['ack'] ? 0 : 1, $r['user']->first_name])->values();
+
+        return view('company-documents.acknowledgments', [
+            'document' => $document,
+            'rows' => $rows,
+            'ackedCount' => $acked->count(),
+            'total' => $eligible->count(),
+        ]);
+    }
+
     // ----- Employee --------------------------------------------------------
 
     public function employeeIndex()
@@ -372,6 +407,11 @@ class CompanyDocumentController extends Controller
             ->filter(fn ($c) => $documents->where('category_id', $c->id)->isNotEmpty())
             ->values();
 
+        // This user's acknowledgments, keyed by document, for the checkbox state.
+        $acks = \App\Models\DocumentAcknowledgment::where('user_id', $user->id)
+            ->whereIn('document_id', $documents->pluck('id'))
+            ->get()->keyBy('document_id');
+
         // Documents sent to this person that are awaiting their signature.
         $toSign = \App\Models\DocumentRequest::with(['template', 'subject'])
             ->where('status', 'in_progress')
@@ -380,7 +420,7 @@ class CompanyDocumentController extends Controller
             ->filter(fn ($r) => $r->isAwaiting($user))
             ->values();
 
-        return view('employee.documents.index', compact('documents', 'categories', 'toSign'));
+        return view('employee.documents.index', compact('documents', 'categories', 'toSign', 'acks'));
     }
 
     // ----- Helpers ---------------------------------------------------------

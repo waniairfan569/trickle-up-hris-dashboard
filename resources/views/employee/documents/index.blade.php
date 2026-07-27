@@ -67,7 +67,23 @@
                         </div>
                     </div>
                     @if($doc->description)<p class="text-sm text-slate-500 dark:text-slate-400 mt-3 line-clamp-2 flex-1">{{ $doc->description }}</p>@else<div class="flex-1"></div>@endif
-                    @if($doc->requires_acknowledgment)<span class="inline-flex items-center gap-1 mt-3 w-max rounded-full bg-amber-50 text-amber-700 px-2 py-0.5 text-[11px] font-bold"><i data-lucide="alert-circle" class="h-3 w-3"></i> Acknowledgment required</span>@endif
+                    @if($doc->requires_acknowledgment)
+                        @php $ack = $acks[$doc->id] ?? null; @endphp
+                        @if($ack)
+                            <div class="mt-3 flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2 dark:bg-emerald-500/10">
+                                <i data-lucide="check-circle" class="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0"></i>
+                                <span class="text-[11px] font-bold text-emerald-700 dark:text-emerald-400">Acknowledged on {{ $ack->acknowledged_at->format('d M Y') }}</span>
+                            </div>
+                        @else
+                            <form method="POST" action="{{ route('document-library.acknowledge', $doc) }}" class="mt-3">
+                                @csrf
+                                <label class="flex items-start gap-2 rounded-lg bg-amber-50 px-3 py-2 cursor-pointer hover:bg-amber-100/70 dark:bg-amber-500/10 dark:hover:bg-amber-500/20">
+                                    <input type="checkbox" onchange="if(this.checked){ this.disabled=true; this.form.submit(); }" class="mt-0.5 h-4 w-4 rounded border-amber-300 text-brand-600 focus:ring-brand-500">
+                                    <span class="text-[11px] font-semibold text-amber-800 dark:text-amber-300">I acknowledge that I have read and understood this document.</span>
+                                </label>
+                            </form>
+                        @endif
+                    @endif
                     <div class="flex items-center gap-2 mt-4 pt-4 border-t border-slate-100 dark:border-slate-700">
                         <a href="{{ route('document-library.download', $doc) }}" class="inline-flex items-center justify-center gap-1.5 flex-1 rounded-xl bg-brand-600 px-3 py-2 text-sm font-bold text-slate-900 hover:bg-brand-700"><i data-lucide="download" class="h-4 w-4"></i> Download</a>
                         @if($isPdf)

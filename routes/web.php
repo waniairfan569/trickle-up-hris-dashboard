@@ -281,6 +281,7 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
     Route::get('document-library', [\App\Http\Controllers\CompanyDocumentController::class, 'employeeIndex'])->name('document-library.index');
     Route::get('document-library/{document}/download', [\App\Http\Controllers\CompanyDocumentController::class, 'download'])->name('document-library.download');
     Route::get('document-library/{document}/view', [\App\Http\Controllers\CompanyDocumentController::class, 'view'])->name('document-library.view');
+    Route::post('document-library/{document}/acknowledge', [\App\Http\Controllers\CompanyDocumentController::class, 'acknowledge'])->name('document-library.acknowledge');
 
     // Documents for signature — inbox + signing flow (any participant)
     Route::get('documents', [\App\Http\Controllers\DocumentRequestController::class, 'index'])->name('documents.index');
@@ -394,6 +395,7 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
         Route::get('company-documents', [\App\Http\Controllers\CompanyDocumentController::class, 'adminIndex'])->name('company-documents.admin');
         Route::get('company-documents/create', [\App\Http\Controllers\CompanyDocumentController::class, 'create'])->name('company-documents.create');
         Route::post('company-documents', [\App\Http\Controllers\CompanyDocumentController::class, 'store'])->name('company-documents.store');
+        Route::get('company-documents/{document}/acknowledgments', [\App\Http\Controllers\CompanyDocumentController::class, 'acknowledgments'])->name('company-documents.acknowledgments');
         Route::get('company-documents/{document}/edit', [\App\Http\Controllers\CompanyDocumentController::class, 'edit'])->name('company-documents.edit');
         Route::get('company-documents/{document}/edit-content', [\App\Http\Controllers\CompanyDocumentController::class, 'editContent'])->name('company-documents.edit-content');
         Route::post('company-documents/{document}/convert', [\App\Http\Controllers\CompanyDocumentController::class, 'convertToPdf'])->name('company-documents.convert');
