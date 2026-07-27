@@ -158,42 +158,60 @@
                                 const m = pdfjsLib.Util.transform(vp.transform, it.transform);
                                 return { str: it.str || '', x: m[4], y: m[5], h: Math.hypot(m[2], m[3]) || 11, w: (it.width || 0) * (vp.scale || 1) };
                             }).filter((r) => r.str.length);
-                            const lines = {};
-                            runs.forEach((r) => { const k = Math.round(r.y); (lines[k] = lines[k] || []).push(r); });
-                            Object.values(lines).forEach((lineRuns) => {
-                                lineRuns.sort((a, b) => a.x - b.x);
-                                let full = ''; const owner = [];
-                                lineRuns.forEach((r, ri) => { for (const ch of r.str) { full += ch; owner.push(ri); } });
-                                // Text tokens.
-                                for (const [tok, val] of Object.entries(data.tokens || {})) {
-                                    let pos = full.indexOf(tok);
-                                    while (pos !== -1) {
-                                        const a = lineRuns[owner[pos]], b = lineRuns[owner[pos + tok.length - 1]];
-                                        const width = Math.max(a.w, (b.x + b.w) - a.x) + 2;
-                                        plPage.drawRectangle({ x: a.x, y: ph - a.y - a.h * 0.22, width, height: a.h * 1.15, color: rgb(1, 1, 1) });
-                                        plPage.drawText(String(val), { x: a.x, y: ph - a.y, size: a.h * 0.92, font, color: rgb(0.06, 0.06, 0.09) });
-                                        full = full.slice(0, pos) + ' '.repeat(tok.length) + full.slice(pos + tok.length);
-                                        pos = full.indexOf(tok);
-                                    }
-                                }
-                                // Signature image tokens → stamp the signature image.
-                                for (const [tok, url] of Object.entries(sigTokens)) {
-                                    const png = embeddedSig[url];
-                                    let pos = full.indexOf(tok);
-                                    while (pos !== -1) {
-                                        const a = lineRuns[owner[pos]], b = lineRuns[owner[pos + tok.length - 1]];
-                                        const twidth = Math.max(a.w, (b.x + b.w) - a.x) + 2;
-                                        plPage.drawRectangle({ x: a.x, y: ph - a.y - a.h * 0.22, width: twidth, height: a.h * 1.3, color: rgb(1, 1, 1) });
-                                        if (png) {
-                                            const h = a.h * 2.8;                 // signature ~2.8× the line text
-                                            const w = png.width * (h / png.height);
-                                            plPage.drawImage(png, { x: a.x, y: ph - a.y - h * 0.18, width: w, height: h });
-                                        }
-                                        full = full.slice(0, pos) + ' '.repeat(tok.length) + full.slice(pos + tok.length);
-                                        pos = full.indexOf(tok);
-                                    }
-                                }
+                            // Match tokens across the WHOLE page in reading order,
+                            // not per line — so a token that wraps to the next line
+                            // (e.g. "[Employee" + "Signature]") is still found. A
+                            // boundary space is inserted between runs and token
+                            // whitespace is matched flexibly (\s+) to absorb the
+                            // space introduced at a wrap point.
+                            const ord = runs.slice().sort((a, b) => (Math.round(a.y) - Math.round(b.y)) || (a.x - b.x));
+                            let full = ''; const owner = [];
+                            ord.forEach((r, ri) => {
+                                if (full.length) { full += ' '; owner.push(-1); }
+                                for (const ch of r.str) { full += ch; owner.push(ri); }
                             });
+                            const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+');
+                            const coverRuns = (si, ei) => {
+                                const seen = new Set();
+                                for (let k = si; k <= ei; k++) {
+                                    const ri = owner[k];
+                                    if (ri < 0 || seen.has(ri)) continue;
+                                    seen.add(ri);
+                                    const r = ord[ri];
+                                    plPage.drawRectangle({ x: r.x, y: ph - r.y - r.h * 0.22, width: r.w + 2, height: r.h * 1.3, color: rgb(1, 1, 1) });
+                                }
+                            };
+                            const runMatch = (tok, draw) => {
+                                const rx = new RegExp(esc(tok), 'g');
+                                let m, guard = 0;
+                                while ((m = rx.exec(full)) !== null && guard++ < 200) {
+                                    let si = m.index, ei = m.index + m[0].length - 1;
+                                    while (si <= ei && owner[si] < 0) si++;
+                                    while (ei >= si && owner[ei] < 0) ei--;
+                                    if (si <= ei) {
+                                        coverRuns(si, ei);
+                                        draw(ord[owner[si]]);
+                                    }
+                                    full = full.slice(0, m.index) + ' '.repeat(m[0].length) + full.slice(m.index + m[0].length);
+                                    rx.lastIndex = 0;
+                                }
+                            };
+                            // Text tokens.
+                            for (const [tok, val] of Object.entries(data.tokens || {})) {
+                                runMatch(tok, (a) => {
+                                    plPage.drawText(String(val), { x: a.x, y: ph - a.y, size: a.h * 0.92, font, color: rgb(0.06, 0.06, 0.09) });
+                                });
+                            }
+                            // Signature image tokens → stamp the actual signature image.
+                            for (const [tok, url] of Object.entries(sigTokens)) {
+                                const png = embeddedSig[url];
+                                runMatch(tok, (a) => {
+                                    if (!png) return;
+                                    const h = a.h * 2.8;                 // signature ~2.8× the line text
+                                    const w = png.width * (h / png.height);
+                                    plPage.drawImage(png, { x: a.x, y: ph - a.y - h * 0.18, width: w, height: h });
+                                });
+                            }
                         }
                     } catch (e) { /* token baking is best-effort */ }
                 }

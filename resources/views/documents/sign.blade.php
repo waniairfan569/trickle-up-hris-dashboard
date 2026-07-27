@@ -224,37 +224,48 @@
                     return { str: it.str || '', x: m[4], y: m[5], h, w: (it.width || 0) * (vp.scale || 1) };
                 }).filter((r) => r.str.length);
 
-                // Group runs into visual lines by baseline, so a placeholder split
-                // across several runs (e.g. "[Full" + " Name]") can still be matched.
-                const lines = {};
-                runs.forEach((r) => { const key = Math.round(r.y); (lines[key] = lines[key] || []).push(r); });
-
-                Object.values(lines).forEach((lineRuns) => {
-                    lineRuns.sort((a, b) => a.x - b.x);
-                    // Build the line string with a char→run index map.
-                    let full = ''; const owner = [];
-                    lineRuns.forEach((r, ri) => { for (const ch of r.str) { full += ch; owner.push(ri); } });
-
-                    for (const [tok, val] of Object.entries(tokens)) {
-                        let pos = full.indexOf(tok);
-                        while (pos !== -1) {
-                            const a = lineRuns[owner[pos]];
-                            const b = lineRuns[owner[pos + tok.length - 1]];
-                            const left = a.x, top = a.y - a.h;
-                            const width = Math.max(a.w, (b.x + b.w) - a.x) + 2;
+                // Match tokens across the WHOLE page in reading order (not per
+                // line) so a placeholder split across runs OR wrapped to the next
+                // line (e.g. "[Employee" + "Signature]") is still matched. A
+                // boundary space between runs + flexible whitespace absorb the
+                // space introduced at a wrap point.
+                const ord = runs.slice().sort((a, b) => (Math.round(a.y) - Math.round(b.y)) || (a.x - b.x));
+                let full = ''; const owner = [];
+                ord.forEach((r, ri) => {
+                    if (full.length) { full += ' '; owner.push(-1); }
+                    for (const ch of r.str) { full += ch; owner.push(ri); }
+                });
+                const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+');
+                const coverRun = (r) => {
+                    const el = document.createElement('div');
+                    el.style.cssText = 'position:absolute;background:#fff;'
+                        + `left:${r.x}px;top:${r.y - r.h}px;height:${r.h * 1.25}px;width:${r.w + 2}px;`;
+                    container.appendChild(el);
+                };
+                for (const [tok, val] of Object.entries(tokens)) {
+                    const rx = new RegExp(esc(tok), 'g');
+                    let m, guard = 0;
+                    while ((m = rx.exec(full)) !== null && guard++ < 200) {
+                        let si = m.index, ei = m.index + m[0].length - 1;
+                        while (si <= ei && owner[si] < 0) si++;
+                        while (ei >= si && owner[ei] < 0) ei--;
+                        if (si <= ei) {
+                            const seen = new Set();
+                            for (let k = si; k <= ei; k++) { const ri = owner[k]; if (ri < 0 || seen.has(ri)) continue; seen.add(ri); coverRun(ord[ri]); }
+                            const a = ord[owner[si]];
                             const el = document.createElement('div');
                             el.textContent = val;
                             el.style.cssText = 'position:absolute;background:#fff;color:#0f172a;white-space:nowrap;overflow:hidden;'
-                                + `left:${left}px;top:${top}px;height:${a.h * 1.25}px;line-height:${a.h * 1.25}px;min-width:${width}px;`
+                                + `left:${a.x}px;top:${a.y - a.h}px;height:${a.h * 1.25}px;line-height:${a.h * 1.25}px;min-width:${a.w + 2}px;`
                                 + `font-size:${a.h}px;font-family:Helvetica,Arial,sans-serif;padding:0 1px;`;
                             container.appendChild(el);
-                            // Blank out this match so we don't loop forever / re-match.
-                            full = full.slice(0, pos) + ' '.repeat(tok.length) + full.slice(pos + tok.length);
-                            pos = full.indexOf(tok);
                         }
+                        full = full.slice(0, m.index) + ' '.repeat(m[0].length) + full.slice(m.index + m[0].length);
+                        rx.lastIndex = 0;
                     }
-                });
+                }
             },
+
 
             // ---- signature modal ----
             openSign() {
