@@ -74,10 +74,15 @@ class DocumentConversionService
     }
 
     /**
-     * Font families a .docx references (from word/fontTable.xml + theme). These
-     * are the fonts the layout was DESIGNED with; if the converting host lacks
-     * them, LibreOffice substitutes different-width fonts and the PDF layout
-     * drifts. Returns [] for non-docx / unreadable / no-zip-extension.
+     * Font families a .docx ACTUALLY applies to text — the Latin fonts on runs
+     * in the body, headers and footers, plus the theme's major/minor Latin font
+     * where a run references it. If the converting host lacks one of these,
+     * LibreOffice substitutes a different-width font and the layout drifts.
+     *
+     * Deliberately ignores word/fontTable.xml and the theme's per-script
+     * fallback list (游ゴシック, 맑은 고딕, 等线, Wingdings, …) — Office writes those
+     * into every document as boilerplate whether used or not, so reporting them
+     * is pure noise. Returns [] for non-docx / unreadable / no-zip-extension.
      */
     public function fontsInDocx(string $storedPath): array
     {
@@ -100,26 +105,43 @@ class DocumentConversionService
                 return [];
             }
 
+            // Theme major/minor Latin fonts only (e.g. Calibri Light / Calibri),
+            // not the per-script fallback table.
+            $themeXml = (string) ($zip->getFromName('word/theme/theme1.xml') ?: '');
+            $themeMinor = preg_match('/<a:minorFont>.*?<a:latin[^>]*typeface="([^"]*)"/s', $themeXml, $m) ? trim($m[1]) : '';
+            $themeMajor = preg_match('/<a:majorFont>.*?<a:latin[^>]*typeface="([^"]*)"/s', $themeXml, $m) ? trim($m[1]) : '';
+
             $names = [];
-            foreach ([
-                'word/fontTable.xml' => '/w:name="([^"]+)"/',
-                'word/theme/theme1.xml' => '/typeface="([^"]+)"/',
-            ] as $entry => $rx) {
+            for ($i = 0; $i < $zip->numFiles; $i++) {
+                $entry = (string) $zip->getNameIndex($i);
+                if (!preg_match('#^word/(document|header\d+|footer\d+)\.xml$#', $entry)) {
+                    continue;
+                }
                 $xml = $zip->getFromName($entry);
                 if ($xml === false) {
                     continue;
                 }
-                if (preg_match_all($rx, $xml, $m)) {
-                    foreach ($m[1] as $n) {
-                        $n = trim($n);
-                        if ($n !== '' && $n[0] !== '+') { // skip theme refs like "+mn-lt"
-                            $names[$n] = true;
+                if (!preg_match_all('/<w:rFonts\b[^>]*>/', $xml, $mm)) {
+                    continue;
+                }
+                foreach ($mm[0] as $tag) {
+                    foreach (['ascii', 'hAnsi'] as $attr) {
+                        if (preg_match('/w:' . $attr . '="([^"]+)"/', $tag, $x)) {
+                            $names[trim($x[1])] = true;
+                        }
+                    }
+                    if (preg_match('/w:(?:ascii|hAnsi)Theme="(minor|major)/', $tag, $tm)) {
+                        $ref = $tm[1] === 'minor' ? $themeMinor : $themeMajor;
+                        if ($ref !== '') {
+                            $names[$ref] = true;
                         }
                     }
                 }
             }
             $zip->close();
             @unlink($tmp);
+
+            unset($names['']);
 
             return array_keys($names);
         } catch (\Throwable $e) {

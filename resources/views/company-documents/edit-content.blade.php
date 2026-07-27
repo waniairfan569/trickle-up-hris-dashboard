@@ -28,17 +28,21 @@
                 </button>
             </div>
         </div>
-        <div class="px-5 py-2.5 border-b border-amber-100 bg-amber-50/70 text-[11px] text-amber-700 dark:bg-amber-500/10 dark:border-amber-500/20 dark:text-amber-400 flex items-start gap-1.5">
-            <i data-lucide="alert-triangle" class="h-3.5 w-3.5 shrink-0 mt-0.5"></i>
-            <span><span class="font-bold">Branded document (letterhead / watermark / logo)?</span> This editor flows the text like a web page, so floating artwork can shift. Add your tokens with the <span class="font-bold">“Insert token”</span> dropdown above (place the cursor where the value should go), then click <span class="font-bold">“Keep Word layout + tokens”</span> — those tokens are dropped into the original Word file, so you get a pixel-perfect PDF <span class="italic">with</span> the tokens. (“Convert edited text to PDF” instead re-flows everything and is best for plain, unbranded documents.)</span>
+        <div class="px-5 py-3 border-b border-sky-100 bg-sky-50/70 text-[11px] text-sky-800 dark:bg-sky-500/10 dark:border-sky-500/20 dark:text-sky-300">
+            <p class="font-bold flex items-center gap-1.5"><i data-lucide="lightbulb" class="h-3.5 w-3.5"></i> Which button should I use?</p>
+            <ul class="mt-1.5 space-y-1 list-disc pl-5">
+                <li><span class="font-bold">Branded document</span> (letterhead / watermark / logo): use <span class="font-bold">“Keep Word layout + tokens”</span>. It converts your original Word file untouched, so the design is pixel-perfect. Add each token with the <span class="font-bold">“Insert token”</span> dropdown — click in the document exactly where the value goes first, then pick the token.
+                <span class="block text-sky-600 dark:text-sky-400">Most reliable of all: type the tokens straight into Word (e.g. put <code>[Employee Signature]</code> on the signature line), upload, and use this button — the tokens are guaranteed to land where you typed them.</span></li>
+                <li><span class="font-bold">Plain, unbranded document</span>: edit the text freely below and use <span class="font-bold">“Convert edited text to PDF”</span>. This re-flows the page like a web document, so don’t use it for anything with a letterhead or watermark.</li>
+            </ul>
         </div>
         @if(!empty($missingFonts))
-            <div class="px-5 py-3 border-b border-rose-100 bg-rose-50/80 text-[11px] text-rose-700 dark:bg-rose-500/10 dark:border-rose-500/20 dark:text-rose-300 flex items-start gap-1.5">
+            <div class="px-5 py-3 border-b border-amber-100 bg-amber-50/80 text-[11px] text-amber-800 dark:bg-amber-500/10 dark:border-amber-500/20 dark:text-amber-300 flex items-start gap-1.5">
                 <i data-lucide="type" class="h-3.5 w-3.5 shrink-0 mt-0.5"></i>
                 <span>
-                    <span class="font-bold">Missing fonts on the server — this is why the layout shifts.</span>
-                    This document uses <span class="font-bold">{{ implode(', ', $missingFonts) }}</span>, which {{ count($missingFonts) === 1 ? 'is' : 'are' }} not installed on the server, so it gets replaced with a different-width font and the spacing/line breaks move.
-                    <span class="block mt-1">Fix: ask your host to install {{ count($missingFonts) === 1 ? 'this font' : 'these fonts' }} (Calibri&nbsp;→&nbsp;<code>carlito</code>, Cambria&nbsp;→&nbsp;<code>caladea</code>; other/brand fonts: copy the <code>.ttf</code> to <code>/usr/share/fonts</code> then <code>fc-cache&nbsp;-f</code>). Once installed, re-upload — the PDF will match Word exactly. Until then, the closest result is to set the document’s font to Arial / Times New Roman / Courier New in Word (already covered on the server).</span>
+                    <span class="font-bold">Heads up — the server is missing {{ count($missingFonts) === 1 ? 'a font' : 'fonts' }} this document uses:</span>
+                    <span class="font-bold">{{ implode(', ', $missingFonts) }}</span>. LibreOffice will substitute {{ count($missingFonts) === 1 ? 'it' : 'them' }} with a similar font, so spacing may shift slightly in the PDF.
+                    <span class="block mt-1">To match Word exactly, ask your host to install {{ count($missingFonts) === 1 ? 'it' : 'them' }} (copy the <code>.ttf</code> to <code>/usr/share/fonts</code>, then <code>fc-cache&nbsp;-f</code>), or simply set the document’s font to <span class="font-bold">Arial, Times New Roman or Calibri</span> in Word — those are already covered on the server.</span>
                 </span>
             </div>
         @endif
@@ -156,8 +160,28 @@
         if (!token) return;
         frame.contentWindow.focus();
         const anchor = currentAnchor();
+        const d = fdoc();
+        const sel = d.getSelection();
+
+        // Insert the token text node directly at the caret — reliable across
+        // browsers, unlike execCommand('insertText') which silently no-ops when
+        // the caret isn't inside the iframe (that lost the token in the edited
+        // PDF while the as-is path still had it from the anchor list).
+        if (sel && sel.rangeCount) {
+            const r = sel.getRangeAt(0);
+            r.deleteContents();
+            const node = d.createTextNode(token);
+            r.insertNode(node);
+            r.setStartAfter(node);
+            r.collapse(true);
+            sel.removeAllRanges();
+            sel.addRange(r);
+        } else {
+            // No caret in the document yet → append so it's never lost.
+            (d.body || d.documentElement).appendChild(d.createTextNode(' ' + token));
+        }
+
         if (anchor) insertedTokens.push({ anchor, token });
-        fdoc().execCommand('insertText', false, token);
     }
 
     document.getElementById('convertOriginalForm').addEventListener('submit', () => {
