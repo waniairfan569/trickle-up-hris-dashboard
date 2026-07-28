@@ -341,9 +341,14 @@ class TimeOffController extends Controller
         
         $allPolicies = TimeOffPolicy::active()->get();
 
+        // Every policy (active or not) an admin can reclassify a request into —
+        // e.g. a "Planned Leaves" policy that's inactive for new applications
+        // but still valid to move existing leave to.
+        $movePolicies = TimeOffPolicy::orderBy('name')->get();
+
         return view('time-off.index', compact(
             'myPolicies', 'myBalances', 'timeOffBalances', 'myRequests',
-            'teamRequests', 'allRequests', 'allPolicies'
+            'teamRequests', 'allRequests', 'allPolicies', 'movePolicies'
         ));
     }
 

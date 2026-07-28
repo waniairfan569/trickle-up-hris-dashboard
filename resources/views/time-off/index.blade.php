@@ -357,7 +357,7 @@
                                     <select name="policy_id" title="Move this leave to another category" data-current="{{ $request->policy_id }}"
                                             onchange="if (this.value !== this.dataset.current && confirm('Move this leave to “' + this.options[this.selectedIndex].text + '”? Balances will be adjusted.')) { this.form.submit(); } else { this.value = this.dataset.current; }"
                                             class="text-xs rounded-lg border border-slate-200 py-1 pl-2 pr-6 font-semibold text-slate-600 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:bg-slate-900 dark:border-slate-600 dark:text-slate-300">
-                                        @foreach($allPolicies as $p)
+                                        @foreach($movePolicies as $p)
                                             <option value="{{ $p->id }}" {{ $p->id == $request->policy_id ? 'selected' : '' }}>{{ $p->name }}</option>
                                         @endforeach
                                     </select>
