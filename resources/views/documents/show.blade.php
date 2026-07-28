@@ -168,33 +168,30 @@
                             // whitespace is matched flexibly (\s+) to absorb the
                             // space introduced at a wrap point.
                             const ord = runs.slice().sort((a, b) => (Math.round(a.y) - Math.round(b.y)) || (a.x - b.x));
-                            let full = ''; const owner = [];
+                            // Map each char to its run + offset WITHIN the run, so we
+                            // white out only the token's span — not the whole run,
+                            // which would erase the sentence an inline token sits in.
+                            let full = ''; const map = [];
                             ord.forEach((r, ri) => {
-                                if (full.length) { full += ' '; owner.push(-1); }
-                                for (const ch of r.str) { full += ch; owner.push(ri); }
+                                if (full.length) { full += ' '; map.push({ ri: -1, ci: -1 }); }
+                                for (let ci = 0; ci < r.str.length; ci++) { full += r.str[ci]; map.push({ ri, ci }); }
                             });
                             const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+');
-                            const coverRuns = (si, ei) => {
-                                const seen = new Set();
-                                for (let k = si; k <= ei; k++) {
-                                    const ri = owner[k];
-                                    if (ri < 0 || seen.has(ri)) continue;
-                                    seen.add(ri);
-                                    const r = ord[ri];
-                                    plPage.drawRectangle({ x: r.x, y: ph - r.y - r.h * 0.22, width: r.w + 2, height: r.h * 1.3, color: rgb(1, 1, 1) });
-                                }
-                            };
                             const runMatch = (tok, draw) => {
                                 const rx = new RegExp(esc(tok), 'g');
                                 let m, guard = 0;
                                 while ((m = rx.exec(full)) !== null && guard++ < 200) {
-                                    let si = m.index, ei = m.index + m[0].length - 1;
-                                    while (si <= ei && owner[si] < 0) si++;
-                                    while (ei >= si && owner[ei] < 0) ei--;
-                                    if (si <= ei) {
-                                        coverRuns(si, ei);
-                                        draw(ord[owner[si]]);
+                                    const S = m.index, E = m.index + m[0].length - 1;
+                                    const byRun = new Map();
+                                    for (let k = S; k <= E; k++) { const { ri, ci } = map[k]; if (ri < 0) continue; const g = byRun.get(ri); if (!g) byRun.set(ri, [ci, ci]); else { g[0] = Math.min(g[0], ci); g[1] = Math.max(g[1], ci); } }
+                                    let first = null;
+                                    for (const [ri, [c0, c1]] of byRun) {
+                                        const r = ord[ri]; const L = r.str.length || 1;
+                                        const x0 = r.x + (c0 / L) * r.w, x1 = r.x + ((c1 + 1) / L) * r.w;
+                                        plPage.drawRectangle({ x: x0, y: ph - r.y - r.h * 0.22, width: (x1 - x0) + 1, height: r.h * 1.3, color: rgb(1, 1, 1) });
+                                        if (first === null) first = { x: x0, y: r.y, h: r.h };
                                     }
+                                    if (first) draw(first);
                                     full = full.slice(0, m.index) + ' '.repeat(m[0].length) + full.slice(m.index + m[0].length);
                                     rx.lastIndex = 0;
                                 }

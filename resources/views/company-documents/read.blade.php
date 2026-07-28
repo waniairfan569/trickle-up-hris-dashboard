@@ -88,30 +88,38 @@
                     return { str: it.str || '', x: m[4], y: m[5], h: Math.hypot(m[2], m[3]) || 11, w: (it.width || 0) * (vp.scale || 1) };
                 }).filter((r) => r.str.length);
                 const ord = runs.slice().sort((a, b) => (Math.round(a.y) - Math.round(b.y)) || (a.x - b.x));
-                let full = ''; const owner = [];
-                ord.forEach((r, ri) => { if (full.length) { full += ' '; owner.push(-1); } for (const ch of r.str) { full += ch; owner.push(ri); } });
+                // Map each char to its run + offset WITHIN that run, so we can
+                // cover only the token's span (not the whole run — which would
+                // erase the surrounding sentence text an inline token sits in).
+                let full = ''; const map = [];
+                ord.forEach((r, ri) => {
+                    if (full.length) { full += ' '; map.push({ ri: -1, ci: -1 }); }
+                    for (let ci = 0; ci < r.str.length; ci++) { full += r.str[ci]; map.push({ ri, ci }); }
+                });
                 const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+');
-                const coverRun = (r) => {
-                    const el = document.createElement('div');
-                    el.style.cssText = `position:absolute;background:#fff;left:${r.x}px;top:${r.y - r.h}px;height:${r.h * 1.25}px;width:${r.w + 2}px;`;
-                    container.appendChild(el);
-                };
+                const box = (x, y, w, h) => { const el = document.createElement('div'); el.style.cssText = `position:absolute;background:#fff;left:${x}px;top:${y}px;width:${w}px;height:${h}px;`; container.appendChild(el); return el; };
                 for (const [tok, val] of Object.entries(tokens)) {
                     const rx = new RegExp(esc(tok), 'g');
                     let m, guard = 0;
                     while ((m = rx.exec(full)) !== null && guard++ < 200) {
-                        let si = m.index, ei = m.index + m[0].length - 1;
-                        while (si <= ei && owner[si] < 0) si++;
-                        while (ei >= si && owner[ei] < 0) ei--;
-                        if (si <= ei) {
-                            const seen = new Set();
-                            for (let k = si; k <= ei; k++) { const ri = owner[k]; if (ri < 0 || seen.has(ri)) continue; seen.add(ri); coverRun(ord[ri]); }
-                            const a = ord[owner[si]];
+                        const S = m.index, E = m.index + m[0].length - 1;
+                        // Matched char range per run (proportional sub-position).
+                        const byRun = new Map();
+                        for (let k = S; k <= E; k++) { const { ri, ci } = map[k]; if (ri < 0) continue; const g = byRun.get(ri); if (!g) byRun.set(ri, [ci, ci]); else { g[0] = Math.min(g[0], ci); g[1] = Math.max(g[1], ci); } }
+                        let first = null;
+                        for (const [ri, [c0, c1]] of byRun) {
+                            const r = ord[ri]; const L = r.str.length || 1;
+                            const x0 = r.x + (c0 / L) * r.w;
+                            const x1 = r.x + ((c1 + 1) / L) * r.w;
+                            box(x0, r.y - r.h, (x1 - x0) + 1, r.h * 1.25);       // white-out just the token
+                            if (first === null) first = { x: x0, y: r.y - r.h, h: r.h };
+                        }
+                        if (first) {
                             const el = document.createElement('div');
                             el.textContent = val;
                             el.style.cssText = 'position:absolute;background:#fff;color:#0f172a;white-space:nowrap;overflow:hidden;'
-                                + `left:${a.x}px;top:${a.y - a.h}px;height:${a.h * 1.25}px;line-height:${a.h * 1.25}px;min-width:${a.w + 2}px;`
-                                + `font-size:${a.h}px;font-family:Helvetica,Arial,sans-serif;padding:0 1px;`;
+                                + `left:${first.x}px;top:${first.y}px;height:${first.h * 1.25}px;line-height:${first.h * 1.25}px;`
+                                + `font-size:${first.h}px;font-family:Helvetica,Arial,sans-serif;padding:0 1px;`;
                             container.appendChild(el);
                         }
                         full = full.slice(0, m.index) + ' '.repeat(m[0].length) + full.slice(m.index + m[0].length);
