@@ -18,6 +18,7 @@
     window.__docTokens = @json($tokens ?? []);
     window.__autoSignLastPage = @json($autoSignLastPage ?? false);
     window.__mySigTokens = @json($sigSpellings ?? []);
+    window.__savedSignatures = @json(($savedSignatures ?? collect())->map(fn ($s) => ['name' => $s->name, 'image' => $s->image_data]));
     window.__filledFields = @json($filledFields ?? []);
 </script>
 <script src="https://unpkg.com/pdfjs-dist@3.11.174/legacy/build/pdf.min.js"></script>
@@ -110,10 +111,22 @@
                 <button type="button" @click="closeModal()" class="text-slate-400 hover:text-slate-700"><i data-lucide="x" class="h-5 w-5"></i></button>
             </div>
             <div class="flex gap-1 px-6 pt-3 border-b border-slate-100 dark:border-slate-700/60">
-                <button type="button" @click="modalMode = 'draw'" class="flex items-center gap-1.5 px-3 py-2 text-sm font-semibold border-b-2 -mb-px" :class="modalMode === 'draw' ? 'border-slate-800 text-slate-800 dark:border-white dark:text-white' : 'border-transparent text-slate-400'"><i data-lucide="pen-tool" class="h-4 w-4"></i></button>
-                <button type="button" @click="modalMode = 'type'" class="flex items-center gap-1.5 px-3 py-2 text-sm font-semibold border-b-2 -mb-px" :class="modalMode === 'type' ? 'border-slate-800 text-slate-800 dark:border-white dark:text-white' : 'border-transparent text-slate-400'"><i data-lucide="keyboard" class="h-4 w-4"></i></button>
+                <button type="button" @click="modalMode = 'draw'" class="flex items-center gap-1.5 px-3 py-2 text-sm font-semibold border-b-2 -mb-px" :class="modalMode === 'draw' ? 'border-slate-800 text-slate-800 dark:border-white dark:text-white' : 'border-transparent text-slate-400'"><i data-lucide="pen-tool" class="h-4 w-4"></i> Draw</button>
+                <button type="button" @click="modalMode = 'type'" class="flex items-center gap-1.5 px-3 py-2 text-sm font-semibold border-b-2 -mb-px" :class="modalMode === 'type' ? 'border-slate-800 text-slate-800 dark:border-white dark:text-white' : 'border-transparent text-slate-400'"><i data-lucide="keyboard" class="h-4 w-4"></i> Type</button>
+                <button type="button" x-show="savedSignatures.length" @click="modalMode = 'saved'" class="flex items-center gap-1.5 px-3 py-2 text-sm font-semibold border-b-2 -mb-px" :class="modalMode === 'saved' ? 'border-slate-800 text-slate-800 dark:border-white dark:text-white' : 'border-transparent text-slate-400'"><i data-lucide="bookmark" class="h-4 w-4"></i> Saved</button>
             </div>
             <div class="p-6">
+                <div x-show="modalMode === 'saved'" x-cloak>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mb-3">Pick a saved signature to use it.</p>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-[220px] overflow-y-auto">
+                        <template x-for="(s, i) in savedSignatures" :key="i">
+                            <button type="button" @click="useSaved(s.image)" class="rounded-xl border border-slate-200 dark:border-slate-600 p-2 hover:border-brand-400 hover:bg-brand-50/40 dark:hover:bg-brand-500/10 flex flex-col items-center gap-1">
+                                <img :src="s.image" class="h-16 max-w-full object-contain">
+                                <span class="text-[11px] font-semibold text-slate-600 dark:text-slate-300 truncate w-full text-center" x-text="s.name"></span>
+                            </button>
+                        </template>
+                    </div>
+                </div>
                 <div x-show="modalMode === 'draw'" class="rounded-xl border border-slate-200 dark:border-slate-600 relative">
                     <canvas x-ref="pad" width="600" height="200" class="sigpad w-full bg-white rounded-xl"></canvas>
                     <button type="button" @click="clearPad()" class="absolute bottom-2 left-2 text-slate-400 hover:text-rose-500"><i data-lucide="x" class="h-4 w-4"></i></button>
@@ -128,7 +141,7 @@
                     <button type="button" @click="fontIndex = (fontIndex + 1) % fonts.length" class="absolute bottom-2 right-3 inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800"><i data-lucide="refresh-cw" class="h-3.5 w-3.5"></i> Change font</button>
                 </div>
             </div>
-            <div class="flex items-center justify-between px-6 py-4 border-t border-slate-100 dark:border-slate-700/60">
+            <div x-show="modalMode !== 'saved'" class="flex items-center justify-between px-6 py-4 border-t border-slate-100 dark:border-slate-700/60">
                 <span class="text-xs text-slate-500 dark:text-slate-400">I understand this is a legal representation of my signature.</span>
                 <button type="button" @click="insert()" :disabled="!canInsert()" :class="canInsert() ? 'bg-brand-600 text-slate-900 hover:bg-brand-700' : 'bg-slate-200 text-slate-400 cursor-not-allowed dark:bg-slate-700'" class="inline-flex items-center gap-1.5 rounded-xl px-6 py-2.5 text-sm font-bold shadow-sm">Insert</button>
             </div>
@@ -147,6 +160,7 @@
             boxes: window.__signBoxes || [],
             autoSignLastPage: window.__autoSignLastPage || false,
             filledFields: window.__filledFields || [],
+            savedSignatures: window.__savedSignatures || [],
             signature: '',
             submitErr: '',
             // modal
@@ -304,6 +318,14 @@
             insert() {
                 if (!this.canInsert()) return;
                 this.signature = this.modalMode === 'draw' ? this.$refs.pad.toDataURL('image/png') : this.typedToImage();
+                this.submitErr = '';
+                this.closeModal();
+            },
+
+            // Use a saved signature template directly.
+            useSaved(image) {
+                if (!image) return;
+                this.signature = image;
                 this.submitErr = '';
                 this.closeModal();
             },

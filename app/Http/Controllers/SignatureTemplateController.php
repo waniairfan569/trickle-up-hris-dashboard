@@ -20,7 +20,7 @@ class SignatureTemplateController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:100',
-            'image_data' => ['required', 'string', 'starts_with:data:image/', 'max:2000000'],
+            'image_data' => ['required', 'string', 'starts_with:data:image/', 'max:6000000'],
         ], [
             'image_data.required' => 'Please draw, type or upload a signature.',
         ]);

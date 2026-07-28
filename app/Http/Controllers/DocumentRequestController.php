@@ -210,7 +210,10 @@ class DocumentRequestController extends Controller
         $tokens = $this->resolveTokens($documentRequest->subject);
         $tokens = array_merge($tokens, $this->signatureBlockTokens($documentRequest));
 
-        return view('documents.sign', compact('documentRequest', 'signer', 'myBoxes', 'tokens', 'autoSignLastPage', 'filledFields', 'sigSpellings'));
+        // Saved signature templates the signer can reuse instead of drawing.
+        $savedSignatures = \App\Models\SignatureTemplate::latest()->get(['id', 'name', 'image_data']);
+
+        return view('documents.sign', compact('documentRequest', 'signer', 'myBoxes', 'tokens', 'autoSignLastPage', 'filledFields', 'sigSpellings', 'savedSignatures'));
     }
 
     /** Signature-token spellings per party (regardless of signed state). */

@@ -17,14 +17,14 @@
     @if($errors->any())<div class="rounded-xl bg-rose-50 p-4 border border-rose-200 text-sm text-rose-700 dark:bg-rose-500/10 dark:border-rose-500/20"><ul class="list-disc pl-5">@foreach($errors->all() as $e)<li>{{ $e }}</li>@endforeach</ul></div>@endif
 
     {{-- Create --}}
-    <form method="POST" action="{{ route('signature-templates.store') }}" x-data="sigPad()" @submit="return prepare($event)"
+    <form method="POST" action="{{ route('signature-templates.store') }}" x-data="sigPad()" x-ref="form" @submit.prevent="save()"
           class="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 dark:bg-slate-800 dark:border-slate-700 space-y-4">
         @csrf
         <input type="hidden" name="image_data" x-ref="imageData">
 
         <div>
             <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Signature name <span class="text-rose-500">*</span></label>
-            <input type="text" name="name" required maxlength="100" placeholder="e.g. CEO signature, HR — Sobia"
+            <input type="text" name="name" value="{{ old('name') }}" required maxlength="100" placeholder="e.g. CEO signature, HR — Sobia"
                    class="w-full sm:w-80 rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
         </div>
 
@@ -122,7 +122,25 @@
             clearPad() { if (this.ctx) { this.ctx.clearRect(0, 0, this.$refs.pad.width, this.$refs.pad.height); this.hasDrawn = false; } },
             onUpload(e) {
                 const f = e.target.files[0]; if (!f) return;
-                const r = new FileReader(); r.onload = () => { this.uploaded = r.result; }; r.readAsDataURL(f);
+                const r = new FileReader();
+                r.onload = () => {
+                    // Downscale to a sane signature size + re-encode as PNG, so a
+                    // large phone photo/JPEG doesn't blow past the size limit.
+                    const img = new Image();
+                    img.onload = () => {
+                        const maxW = 600;
+                        const scale = Math.min(1, maxW / (img.width || maxW));
+                        const c = document.createElement('canvas');
+                        c.width = Math.max(1, Math.round(img.width * scale));
+                        c.height = Math.max(1, Math.round(img.height * scale));
+                        const ctx = c.getContext('2d');
+                        ctx.drawImage(img, 0, 0, c.width, c.height);
+                        this.uploaded = c.toDataURL('image/png');
+                    };
+                    img.onerror = () => { this.uploaded = r.result; };
+                    img.src = r.result;
+                };
+                r.readAsDataURL(f);
             },
             typedToImage() {
                 const c = document.createElement('canvas'); c.width = 520; c.height = 180;
@@ -131,13 +149,21 @@
                 ctx.fillText(this.typed || '', c.width / 2, c.height / 2);
                 return c.toDataURL('image/png');
             },
-            prepare(e) {
+            save() {
                 let data = null;
-                if (this.mode === 'draw') { if (!this.hasDrawn) { e.preventDefault(); alert('Please draw your signature.'); return false; } data = this.$refs.pad.toDataURL('image/png'); }
-                else if (this.mode === 'type') { if (!this.typed.trim()) { e.preventDefault(); alert('Please type a name.'); return false; } data = this.typedToImage(); }
-                else { if (!this.uploaded) { e.preventDefault(); alert('Please choose an image.'); return false; } data = this.uploaded; }
+                if (this.mode === 'draw') {
+                    if (!this.hasDrawn) { alert('Please draw your signature.'); return; }
+                    data = this.$refs.pad.toDataURL('image/png');
+                } else if (this.mode === 'type') {
+                    if (!this.typed.trim()) { alert('Please type a name.'); return; }
+                    data = this.typedToImage();
+                } else {
+                    if (!this.uploaded) { alert('Please choose an image.'); return; }
+                    data = this.uploaded;
+                }
                 this.$refs.imageData.value = data;
-                return true;
+                // Native submit (does NOT re-fire @submit) — sends the image reliably.
+                this.$refs.form.submit();
             },
         };
     }
