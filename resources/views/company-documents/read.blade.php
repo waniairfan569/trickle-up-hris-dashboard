@@ -107,12 +107,13 @@
                         const byRun = new Map();
                         for (let k = S; k <= E; k++) { const { ri, ci } = map[k]; if (ri < 0) continue; const g = byRun.get(ri); if (!g) byRun.set(ri, [ci, ci]); else { g[0] = Math.min(g[0], ci); g[1] = Math.max(g[1], ci); } }
                         let first = null;
+                        const pad = Math.max(1.5, ord[byRun.keys().next().value].h * 0.22);
                         for (const [ri, [c0, c1]] of byRun) {
                             const r = ord[ri]; const L = r.str.length || 1;
                             const x0 = r.x + (c0 / L) * r.w;
                             const x1 = r.x + ((c1 + 1) / L) * r.w;
-                            box(x0, r.y - r.h, (x1 - x0) + 1, r.h * 1.25);       // white-out just the token
-                            if (first === null) first = { x: x0, y: r.y - r.h, h: r.h };
+                            box(x0 - pad, r.y - r.h, (x1 - x0) + pad * 2, r.h * 1.25); // white-out the token (+ small pad to catch [ ] edges)
+                            if (first === null) first = { x: x0 - pad, y: r.y - r.h, h: r.h };
                         }
                         if (first) {
                             const el = document.createElement('div');
