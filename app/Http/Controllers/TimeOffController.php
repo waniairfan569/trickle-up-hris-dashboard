@@ -315,7 +315,7 @@ class TimeOffController extends Controller
         // stage (managers see their team's manager-stage items; HR admins see the
         // HR-stage / HR-only items company-wide; super admins see all).
         $teamRequests = collect();
-        if ($user->teamMemberIds()->isNotEmpty() || $user->hasRole('hr_admin') || $user->hasRole('super_admin')) {
+        if ($user->isManager() || $user->hasRole('hr_admin') || $user->hasRole('super_admin')) {
             $teamRequests = TimeOffRequest::with('employee', 'policy')
                 ->where('status', 'pending')
                 ->orderBy('start_date', 'asc')

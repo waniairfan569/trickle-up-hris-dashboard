@@ -165,9 +165,17 @@ class User extends Authenticatable
             ->map(fn ($id) => (int) $id)->unique()->values();
     }
 
-    /** Does this user manage the given employee — as primary OR an additional manager? */
+    /**
+     * Can this user manage the given employee for permission purposes — i.e. is
+     * a role-Manager AND the employee's primary/additional manager? An Employee
+     * set as someone's manager returns false (manager tools are role-gated).
+     */
     public function managesUser($employeeId): bool
     {
+        if (!$this->hasRole(Role::MANAGER)) {
+            return false;
+        }
+
         return $this->teamMemberIds()->contains((int) $employeeId);
     }
 
@@ -260,13 +268,14 @@ class User extends Authenticatable
     }
 
     /**
-     * Determine if the user is a manager (has direct reports or has manager role).
+     * Determine if the user is a manager. Manager access is granted STRICTLY by
+     * the RBAC role — being set as someone's manager (manager_id / additional
+     * managers) does NOT by itself grant manager tools. The reporting
+     * relationship only decides WHOSE team a role-manager sees.
      */
     public function isManager(): bool
     {
-        return $this->directReports()->exists()
-            || $this->additionalTeam()->exists()
-            || $this->hasRole(Role::MANAGER);
+        return $this->hasRole(Role::MANAGER);
     }
 
     /**
@@ -275,6 +284,12 @@ class User extends Authenticatable
     public function canManage(User $target): bool
     {
         if ($target->id === $this->id) {
+            return false;
+        }
+
+        // Manager capabilities are role-gated: only a role-Manager (admins are
+        // checked separately at call sites) can manage their reporting line.
+        if (!$this->hasRole(Role::MANAGER)) {
             return false;
         }
 
@@ -313,13 +328,11 @@ class User extends Authenticatable
         }
 
         if ($this->hasRole(Role::MANAGER)) {
-            return 'department';
-        }
-
-        if ($this->directReports()->exists() || $this->additionalTeam()->exists()) {
             return 'team';
         }
 
+        // Being someone's manager without the Manager role grants no elevated
+        // scope — access is strictly by RBAC role.
         return 'self';
     }
 
