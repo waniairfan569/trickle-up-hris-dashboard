@@ -55,7 +55,9 @@ class ProfileTemplateController extends Controller
     public function show(ProfileTemplate $profile_template)
     {
         $profile_template->load('sections.fields');
-        return view('profile-templates.show', compact('profile_template'));
+        $isDefaultTemplate = $profile_template->type === 'default';
+
+        return view('profile-templates.show', compact('profile_template', 'isDefaultTemplate'));
     }
 
     public function edit(ProfileTemplate $profile_template)
