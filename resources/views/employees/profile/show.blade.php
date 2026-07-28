@@ -320,6 +320,34 @@
                 @endif
             </div>
         </div>
+
+        @php
+            $latePenalties = \App\Models\LatenessDeduction::where('user_id', $employee->id)
+                ->where('days_deducted', '>', 0)->with('policy')->orderByDesc('year')->orderByDesc('month')->get();
+        @endphp
+        @if($latePenalties->isNotEmpty())
+            <div class="bg-white border border-slate-200/80 rounded-2xl shadow-sm dark:bg-slate-800 dark:border-slate-700 overflow-hidden">
+                <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center gap-2">
+                    <i data-lucide="alarm-clock" class="h-4 w-4 text-amber-500"></i>
+                    <h2 class="text-sm font-bold text-slate-800 dark:text-white">Late-arrival penalties</h2>
+                    <span class="text-[11px] text-slate-400">deducted from leave for repeated late arrivals</span>
+                </div>
+                <div class="divide-y divide-slate-100 dark:divide-slate-700">
+                    @foreach($latePenalties as $pen)
+                        <div class="px-6 py-4 flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-semibold text-slate-800 dark:text-white">{{ \Carbon\Carbon::create($pen->year, $pen->month, 1)->format('F Y') }}</p>
+                                <p class="text-xs text-slate-400 mt-0.5">{{ $pen->late_count }} late arrivals · deducted from {{ optional($pen->policy)->name ?? 'leave balance' }}</p>
+                            </div>
+                            <span class="inline-flex items-center gap-1 rounded-full bg-amber-50 text-amber-700 px-2.5 py-1 text-[11px] font-bold dark:bg-amber-500/10 dark:text-amber-400">
+                                −{{ rtrim(rtrim(number_format($pen->days_deducted, 1), '0'), '.') }} day{{ $pen->days_deducted == 1 ? '' : 's' }}
+                            </span>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        @endif
+
         <div class="bg-white border border-slate-200/80 rounded-2xl shadow-sm dark:bg-slate-800 dark:border-slate-700 overflow-hidden">
             <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700"><h2 class="text-sm font-bold text-slate-800 dark:text-white">Recent Requests</h2></div>
             <div class="divide-y divide-slate-100 dark:divide-slate-700">
