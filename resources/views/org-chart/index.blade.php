@@ -8,16 +8,16 @@
     [x-cloak]{display:none!important}
     .org-scroll { overflow:auto; background:#f4f3ee; border-radius:20px; border:1px solid #e7e5df; }
     .dark .org-scroll { background:#0f172a; border-color:#334155; }
-    .org-tree, .org-tree ul { display:flex; justify-content:center; padding-top:26px; position:relative; margin:0; }
-    .org-tree li { list-style:none; position:relative; padding:26px 14px 0; display:flex; flex-direction:column; align-items:center; }
-    .org-tree li::before, .org-tree li::after { content:''; position:absolute; top:0; right:50%; border-top:2px solid #c9c6bd; width:50%; height:26px; }
+    .org-tree, .org-tree ul { display:flex; justify-content:center; padding-top:18px; position:relative; margin:0; }
+    .org-tree li { list-style:none; position:relative; padding:18px 7px 0; display:flex; flex-direction:column; align-items:center; }
+    .org-tree li::before, .org-tree li::after { content:''; position:absolute; top:0; right:50%; border-top:2px solid #c9c6bd; width:50%; height:18px; }
     .org-tree li::after { right:auto; left:50%; border-left:2px solid #c9c6bd; }
     .org-tree li:only-child::after, .org-tree li:only-child::before { display:none; }
     .org-tree li:only-child { padding-top:0; }
     .org-tree li:first-child::before, .org-tree li:last-child::after { border:0 none; }
     .org-tree li:last-child::before { border-right:2px solid #c9c6bd; border-radius:0 8px 0 0; }
     .org-tree li:first-child::after { border-radius:8px 0 0 0; }
-    .org-tree ul ul::before { content:''; position:absolute; top:0; left:50%; border-left:2px solid #c9c6bd; width:0; height:26px; }
+    .org-tree ul ul::before { content:''; position:absolute; top:0; left:50%; border-left:2px solid #c9c6bd; width:0; height:18px; }
     .dark .org-tree li::before, .dark .org-tree li::after, .dark .org-tree li:last-child::before, .dark .org-tree ul ul::before { border-color:#475569; }
 
     .org-card { position:relative; width:214px; background:#fff; border:1px solid #e2e8f0; border-radius:14px; padding:26px 16px 18px; box-shadow:0 1px 3px rgba(15,23,42,.07); text-align:left; }

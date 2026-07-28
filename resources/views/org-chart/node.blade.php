@@ -2,7 +2,7 @@
 
 @if($nodeType === 'dept')
     {{-- Department group node: clusters same-department reports of a manager. --}}
-    <li x-data="{ open: true }">
+    <li x-data="{ open: false }">
         <div class="org-card org-dept" :class="open && {{ count($node['children']) ? 'true' : 'false' }} ? 'is-open' : ''"
              data-name="{{ strtolower($node['name']) }}">
             <div class="org-dept-head">
@@ -33,7 +33,7 @@
     </li>
 @else
 @php $jt = trim((string)($node['title'] ?? '')); $showTitle = $jt !== '' && strtolower($jt) !== 'employee'; @endphp
-<li x-data="{ open: true }">
+<li x-data="{ open: false }">
     <div class="org-card" :class="open && {{ count($node['children']) ? 'true' : 'false' }} ? 'is-open' : ''"
          data-name="{{ strtolower($node['name'] . ' ' . $jt) }}">
         @if(!empty($node['avatar']))
