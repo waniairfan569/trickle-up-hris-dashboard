@@ -281,6 +281,7 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
     Route::get('document-library', [\App\Http\Controllers\CompanyDocumentController::class, 'employeeIndex'])->name('document-library.index');
     Route::get('document-library/{document}/download', [\App\Http\Controllers\CompanyDocumentController::class, 'download'])->name('document-library.download');
     Route::get('document-library/{document}/view', [\App\Http\Controllers\CompanyDocumentController::class, 'view'])->name('document-library.view');
+    Route::get('document-library/{document}/read', [\App\Http\Controllers\CompanyDocumentController::class, 'readDocument'])->name('document-library.read');
     Route::post('document-library/{document}/acknowledge', [\App\Http\Controllers\CompanyDocumentController::class, 'acknowledge'])->name('document-library.acknowledge');
 
     // Documents for signature — signing flow (any participant). The admin list

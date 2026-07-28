@@ -397,69 +397,7 @@ class DocumentRequestController extends Controller
      */
     private function resolveTokens($subject): array
     {
-        if (!$subject) {
-            return [];
-        }
-
-        $fmtDate = function ($d) {
-            if ($d === null || $d === '') {
-                return null;
-            }
-            try {
-                return \Carbon\Carbon::parse($d)->format('d M Y');
-            } catch (\Throwable $e) {
-                return (string) $d;
-            }
-        };
-
-        // Real values pulled from the assigned employee's record / profile.
-        $fullName   = $subject->full_name ?: $subject->getFieldValue('full_name');
-        $jobTitle   = $subject->job_title ?: $subject->getFieldValue('job_title');
-        $department = optional($subject->department)->name ?: $subject->getFieldValue('department');
-        $email      = $subject->email ?: $subject->getFieldValue('email');
-        $startDate  = $fmtDate($subject->getFieldValue('start_date')
-            ?: $subject->getFieldValue('date_of_commencement')
-            ?: $subject->hire_date
-            ?: $subject->joined_at);
-        $salaryRaw  = $subject->getFieldValue('salary') ?: $subject->salary;
-        $salary     = ($salaryRaw !== null && $salaryRaw !== '') ? number_format((float) $salaryRaw) : null;
-        $probRaw    = $subject->getFieldValue('probation_salary');
-        $probSalary = ($probRaw !== null && $probRaw !== '') ? number_format((float) $probRaw) : null;
-        $cnic       = $subject->getFieldValue('cnic_number') ?: $subject->getFieldValue('cnic');
-        $today      = now()->format('d M Y');
-
-        // Each real value → every placeholder spelling a document might use, so
-        // both natural ([Full Name]) and key ([full_name]) forms resolve. Matching
-        // is case-sensitive, so we list the capitalised variants explicitly.
-        $concepts = [
-            [$fullName,   ['Full Name', 'Employee Name', 'Employee', 'Candidate', 'Name',
-                           'full_name', 'employee_name', 'candidate', 'name']],
-            [$jobTitle,   ['Job Title', 'Position', 'Designation', 'Role',
-                           'job_title', 'job', 'position', 'designation', 'title']],
-            [$department, ['Department', 'department', 'dept']],
-            [$email,      ['Email', 'Work Email', 'email', 'work_email']],
-            [$today,      ['Date', 'Date of Agreement', 'Agreement Date', 'Today',
-                           'date', 'today_date', 'today', 'agreement_date', 'date_of_agreement', 'signing_date']],
-            [$startDate,  ['Start Date', 'Date of Commencement', 'Commencement Date', 'Joining Date',
-                           'start_date', 'commencement_date', 'date_of_commencement', 'joining_date']],
-            [$salary,     ['Amount', 'Salary', 'amount', 'salary']],
-            [$probSalary, ['Probation Salary', 'Probation Amount', 'Salary During Probation',
-                           'probation_salary', 'probation_amount']],
-            [$cnic,       ['CNIC', 'CNIC Number', 'CNIC No', 'National ID', 'ID Number', 'NIC',
-                           'cnic', 'cnic_number', 'cnic_no', 'national_id']],
-        ];
-
-        $tokens = [];
-        foreach ($concepts as [$value, $names]) {
-            if ($value === null || $value === '') {
-                continue;
-            }
-            foreach ($names as $name) {
-                $tokens['[' . $name . ']'] = (string) $value;
-            }
-        }
-
-        return $tokens;
+        return app(\App\Services\DocumentTokenService::class)->profileTokens($subject);
     }
 
     /**

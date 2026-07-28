@@ -194,7 +194,7 @@ class CompanyDocumentController extends Controller
         // Profile-field token names admins can type/insert into the text.
         $tokenGroups = [
             'Employee' => ['[Employee Name]', '[CNIC]', '[Designation]', '[Department]', '[Email]', '[Joining Date]'],
-            'Agreement' => ['[Date]', '[Salary]', '[Probation Salary]'],
+            'Agreement' => ['[Date]', '[Salary]', '[Probation Salary]', '[Probation Start Date]', '[Probation End Date]'],
             'Signatures' => ['[Employee Signature]', "[Sender's Signature]"],
         ];
 
@@ -362,6 +362,25 @@ class CompanyDocumentController extends Controller
             'Content-Type' => $document->file_type ?: 'application/octet-stream',
             'Content-Disposition' => 'inline; filename="' . $document->file_name . '"',
         ]);
+    }
+
+    /**
+     * Read a document with its [tokens] filled in for the CURRENT employee —
+     * so a document set for acknowledgment (not signature) still shows the
+     * reader's own name / CNIC / dates. Includes the acknowledgment action.
+     */
+    public function readDocument(CompanyDocument $document)
+    {
+        $user = auth()->user();
+        abort_unless($document->isAccessibleBy($user), 403, 'You do not have access to this document.');
+        abort_unless($document->file_extension === 'pdf' && $document->file_path && Storage::exists($document->file_path), 404);
+
+        $document->logView($user, 'view');
+
+        $tokens = app(\App\Services\DocumentTokenService::class)->profileTokens($user);
+        $ack = $document->requires_acknowledgment ? $document->acknowledgmentFor($user) : null;
+
+        return view('company-documents.read', compact('document', 'tokens', 'ack'));
     }
 
     /** Employee ticks the acknowledgment checkbox — record it once. */
