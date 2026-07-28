@@ -139,11 +139,6 @@
             </form>
         </div>
 
-        <p class="text-center text-xs text-slate-500">
-            New agency?
-            <a href="{{ route('register') }}" class="font-bold text-brand-400 hover:text-brand-300">Create your workspace</a>
-        </p>
-
     </div>
 
     <!-- Initialize Lucide Icons -->
