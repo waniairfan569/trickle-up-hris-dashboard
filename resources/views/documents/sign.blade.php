@@ -17,6 +17,7 @@
     window.__signBoxes = @json($boxOpts);
     window.__docTokens = @json($tokens ?? []);
     window.__autoSignLastPage = @json($autoSignLastPage ?? false);
+    window.__mySigTokens = @json($sigSpellings ?? []);
     window.__filledFields = @json($filledFields ?? []);
 </script>
 <script src="https://unpkg.com/pdfjs-dist@3.11.174/legacy/build/pdf.min.js"></script>
@@ -186,9 +187,13 @@
                     }
                     this.pages = meta; this.pdfReady = true; this.pdfLoading = false;
 
-                    // No box was placed → drop a "Sign here" box on the REAL last page.
+                    // No box was placed → drop a "Sign here" box. Prefer the
+                    // position of a signature TOKEN in the document (so it sits
+                    // right where the signature will appear); only fall back to
+                    // the bottom of the last page when there's no token.
                     if (this.autoSignLastPage && this.boxes.length === 0 && meta.length) {
-                        this.boxes.push({ idx: 0, page: meta[meta.length - 1].num, x: 0.08, y: 0.86, w: 0.34, h: 0.06, label: 'Signature', type: 'signature' });
+                        const tokenBox = await this.findSigTokenBox();
+                        this.boxes.push(tokenBox || { idx: 0, page: meta[meta.length - 1].num, x: 0.08, y: 0.86, w: 0.34, h: 0.06, label: 'Signature', type: 'signature' });
                     }
 
                     await this.$nextTick();
@@ -204,6 +209,43 @@
                     this.pdfReady = false; this.pdfLoading = false;
                     this.pdfError = 'Could not render the document (' + (e && e.message ? e.message : e) + ').';
                 }
+            },
+
+            // Locate a signature token for this signer (e.g. "[Employee Signature]")
+            // and return a signing box positioned right at it, or null if none.
+            async findSigTokenBox() {
+                const spellings = window.__mySigTokens || [];
+                if (!spellings.length) return null;
+                const lib = window.pdfjsLib;
+                const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+');
+                for (let i = 0; i < __pdfPages.length; i++) {
+                    const { page, vp } = __pdfPages[i];
+                    let tc;
+                    try { tc = await page.getTextContent(); } catch (e) { continue; }
+                    const runs = tc.items.map((it) => {
+                        const m = lib.Util.transform(vp.transform, it.transform);
+                        return { str: it.str || '', x: m[4], y: m[5], h: Math.hypot(m[2], m[3]) || 11, w: (it.width || 0) * (vp.scale || 1) };
+                    }).filter(r => r.str.length);
+                    const ord = runs.slice().sort((a, b) => (Math.round(a.y) - Math.round(b.y)) || (a.x - b.x));
+                    let full = ''; const owner = [];
+                    ord.forEach((r, ri) => { if (full.length) { full += ' '; owner.push(-1); } for (const ch of r.str) { full += ch; owner.push(ri); } });
+                    const pg = this.pages[i];
+                    for (const tok of spellings) {
+                        const m = new RegExp(esc(tok)).exec(full);
+                        if (!m) continue;
+                        let si = m.index; const end = m.index + m[0].length - 1;
+                        while (si <= end && owner[si] < 0) si++;
+                        if (si > end) continue;
+                        const a = ord[owner[si]];
+                        return {
+                            idx: 0, page: pg.num,
+                            x: a.x / pg.width, y: Math.max(0, (a.y - a.h) / pg.height),
+                            w: Math.max(0.26, (a.w + 4) / pg.width), h: 0.06,
+                            label: 'Signature', type: 'signature',
+                        };
+                    }
+                }
+                return null;
             },
 
             // Overlay real values on top of literal [token] text in the PDF, so the

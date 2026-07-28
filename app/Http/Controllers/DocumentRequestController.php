@@ -188,9 +188,11 @@ class DocumentRequestController extends Controller
             ->values();
 
         // No signature box was placed for this signer — the client will drop a
-        // "Sign here" box at the bottom of the ACTUAL last page once the PDF is
-        // rendered (the server can't know the PDF's page count).
+        // "Sign here" box. If the document contains a signature TOKEN for this
+        // signer's party (e.g. [Employee Signature]) the client places the box
+        // AT the token; otherwise it falls back to the bottom of the last page.
         $autoSignLastPage = $myBoxes->isEmpty();
+        $sigSpellings = $this->signatureTokenSpellings()[$myParty] ?? [];
 
         // Placed text fields, pre-filled from the signer's profile, so the
         // signing screen matches what will be flattened into the final PDF.
@@ -208,7 +210,16 @@ class DocumentRequestController extends Controller
         $tokens = $this->resolveTokens($documentRequest->subject);
         $tokens = array_merge($tokens, $this->signatureBlockTokens($documentRequest));
 
-        return view('documents.sign', compact('documentRequest', 'signer', 'myBoxes', 'tokens', 'autoSignLastPage', 'filledFields'));
+        return view('documents.sign', compact('documentRequest', 'signer', 'myBoxes', 'tokens', 'autoSignLastPage', 'filledFields', 'sigSpellings'));
+    }
+
+    /** Signature-token spellings per party (regardless of signed state). */
+    private function signatureTokenSpellings(): array
+    {
+        return [
+            'employee' => ['[candidate_signature]', '[Employee Signature]', "[Employee's Signature]", '[Candidate Signature]'],
+            'sender_party' => ['[company_signature]', '[Company Signature]', '[Sender Signature]', "[Sender's Signature]", "[Sender's signature]", '[Authorised Signature]', '[Authorized Signature]'],
+        ];
     }
 
     /** POST documents/{request}/sign — store this signer's signature, advance the flow. */

@@ -139,6 +139,9 @@
                 // ([Employee Signature] / [Sender's signature]) stamp the actual
                 // signature IMAGE at their position instead of text.
                 const sigTokens = data.signatureTokens || {};
+                // Whether a signature was stamped at a token — if so, we skip the
+                // bottom-of-page fallback signature so it isn't duplicated.
+                let sigTokenStamped = false;
                 if ((Object.keys(data.tokens || {}).length || Object.keys(sigTokens).length) && window.pdfjsLib) {
                     try {
                         // Embed each unique signature image once.
@@ -207,6 +210,7 @@
                                 const png = embeddedSig[url];
                                 runMatch(tok, (a) => {
                                     if (!png) return;
+                                    sigTokenStamped = true;
                                     const h = a.h * 2.8;                 // signature ~2.8× the line text
                                     const w = png.width * (h / png.height);
                                     plPage.drawImage(png, { x: a.x, y: ph - a.y - h * 0.18, width: w, height: h });
@@ -217,6 +221,9 @@
                 }
 
                 for (const f of data.fields) {
+                    // A signature already stamped at a token → skip the bottom-of-
+                    // page fallback so the signature isn't duplicated.
+                    if (f.lastPage && sigTokenStamped) continue;
                     // Fallback signatures are flagged lastPage; otherwise clamp to a valid page.
                     const pageNum = f.lastPage ? pages.length : Math.min(f.page || 1, pages.length);
                     const page = pages[pageNum - 1];
