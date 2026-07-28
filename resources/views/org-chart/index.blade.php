@@ -39,6 +39,16 @@
     .dark .org-also { border-color:#475569; color:#94a3b8; }
     .org-also-label { display:inline-flex; align-items:center; gap:3px; font-weight:700; color:#6366f1; text-transform:uppercase; letter-spacing:.03em; font-size:9.5px; margin-right:4px; }
     .dark .org-also-label { color:#a5b4fc; }
+
+    /* Department group node — clusters same-department reports of a manager. */
+    .org-dept { width:auto; min-width:160px; max-width:230px; padding:11px 15px; background:#fffbea; border-color:#fde047; }
+    .dark .org-dept { background:#3a2e05; border-color:#a16207; }
+    .org-dept-head { display:flex; align-items:center; gap:9px; }
+    .org-dept-icon { flex:none; display:flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:9px; background:#fcd82f; color:#1a1a24; }
+    .org-dept-name { font-weight:800; font-size:13px; color:#0f172a; white-space:nowrap; }
+    .dark .org-dept-name { color:#fff; }
+    .org-dept .org-line { color:#a16207; }
+    .dark .org-dept .org-line { color:#fcd82f; }
 </style>
 
 <div x-data="{ zoom: 0.85 }" class="space-y-4">
@@ -47,10 +57,18 @@
             <h1 class="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">Org Chart</h1>
             <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Reporting hierarchy. Click a number to collapse or expand a team.</p>
         </div>
-        <div class="relative">
-            <i data-lucide="search" class="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400"></i>
-            <input type="text" id="org-search" placeholder="Search name or title…"
-                   class="rounded-xl border border-slate-200 pl-8 pr-3 py-2 text-xs font-semibold focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:bg-slate-900 dark:border-slate-700 dark:text-white">
+        <div class="flex items-center gap-3">
+            <label class="inline-flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300 cursor-pointer select-none whitespace-nowrap">
+                <input type="checkbox" {{ $groupByDept ? 'checked' : '' }}
+                       onchange="location.href='{{ url()->current() }}' + (this.checked ? '' : '?flat=1')"
+                       class="rounded border-slate-300 text-brand-600 h-4 w-4 focus:ring-brand-500">
+                Group by department
+            </label>
+            <div class="relative">
+                <i data-lucide="search" class="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400"></i>
+                <input type="text" id="org-search" placeholder="Search name or title…"
+                       class="rounded-xl border border-slate-200 pl-8 pr-3 py-2 text-xs font-semibold focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:bg-slate-900 dark:border-slate-700 dark:text-white">
+            </div>
         </div>
     </div>
 

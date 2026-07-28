@@ -182,11 +182,18 @@ class EmployeeController extends Controller
                 }
             });
 
-        // Build a nested tree (id, name, title, dept, location, avatar, initials, children).
-        $build = function ($u) use (&$build, $byManager, $alsoReportsTo) {
-            $children = $byManager->get($u->id, collect());
+        // Group a manager's direct reports by department (default on). Turned off
+        // with ?flat=1 to see every report as a flat row.
+        $groupByDept = !$request->boolean('flat');
 
-            return [
+        // Build a nested tree. Person nodes hold children; when a manager's
+        // reports span 2+ departments, those reports are bucketed under
+        // lightweight "department" group nodes so same-department people cluster.
+        $build = function ($u) use (&$build, $byManager, $alsoReportsTo, $groupByDept) {
+            $reports = $byManager->get($u->id, collect())->sortBy('last_name')->values();
+
+            $node = [
+                'type' => 'person',
                 'id' => $u->id,
                 'name' => $u->last_name ? trim($u->last_name . ', ' . $u->first_name) : ($u->first_name ?: 'Employee'),
                 'title' => $u->job_title,
@@ -195,9 +202,32 @@ class EmployeeController extends Controller
                 'avatar' => $u->avatar_url,
                 'initials' => $u->initials,
                 'also_reports_to' => $alsoReportsTo[$u->id] ?? [],
-                'count' => $children->count(),
-                'children' => $children->sortBy('last_name')->map($build)->values()->all(),
+                'count' => $reports->count(),
+                'children' => [],
             ];
+
+            if ($reports->isEmpty()) {
+                return $node;
+            }
+
+            $deptGroups = $reports->groupBy(fn ($r) => $r->department?->name ?: 'Unassigned');
+
+            if ($groupByDept && $deptGroups->count() >= 2) {
+                $node['children'] = $deptGroups
+                    ->map(fn ($group, $deptName) => [
+                        'type' => 'dept',
+                        'name' => $deptName,
+                        'count' => $group->count(),
+                        'children' => $group->map($build)->values()->all(),
+                    ])
+                    ->sortBy('name')
+                    ->values()
+                    ->all();
+            } else {
+                $node['children'] = $reports->map($build)->values()->all();
+            }
+
+            return $node;
         };
 
         // Roots: no manager, or a manager who isn't in the active set.
@@ -207,7 +237,7 @@ class EmployeeController extends Controller
             ->values()
             ->all();
 
-        return view('org-chart.index', compact('tree'));
+        return view('org-chart.index', compact('tree', 'groupByDept'));
     }
 
     /**
