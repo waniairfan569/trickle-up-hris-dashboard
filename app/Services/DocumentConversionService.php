@@ -323,6 +323,149 @@ class DocumentConversionService
     }
 
     /**
+     * Replace EVERY occurrence of each token ([Employee Name] → "Jane Doe", …)
+     * in a COPY of the .docx and return the filled copy's stored path — so a
+     * per-employee document can be converted to a PDF where the values are real,
+     * reflowed text (exact layout), not painted over the top. Returns null when
+     * nothing was replaced (caller falls back to the overlay).
+     *
+     * @param array<string,string> $tokens
+     */
+    public function fillTokensToDocx(string $storedDocxPath, array $tokens): ?string
+    {
+        try {
+            if (!class_exists(\ZipArchive::class) || empty($tokens)
+                || !Str::endsWith(strtolower($storedDocxPath), '.docx')) {
+                return null;
+            }
+            $disk = Storage::disk();
+            if (!$disk->exists($storedDocxPath)) {
+                return null;
+            }
+
+            $work = tempnam(sys_get_temp_dir(), 'fill') . '.docx';
+            @file_put_contents($work, $disk->get($storedDocxPath));
+
+            $zip = new \ZipArchive();
+            if ($zip->open($work) !== true) {
+                @unlink($work);
+                return null;
+            }
+            $xml = $zip->getFromName('word/document.xml');
+            if ($xml === false) {
+                $zip->close();
+                @unlink($work);
+                return null;
+            }
+
+            $dom = new \DOMDocument();
+            $dom->preserveWhiteSpace = true;
+            libxml_use_internal_errors(true);
+            $ok = $dom->loadXML($xml);
+            libxml_clear_errors();
+            if (!$ok) {
+                $zip->close();
+                @unlink($work);
+                return null;
+            }
+
+            $xpath = new \DOMXPath($dom);
+            $xpath->registerNamespace('w', 'http://schemas.openxmlformats.org/wordprocessingml/2006/main');
+
+            // Longest tokens first so a short spelling never eats part of a
+            // longer one (bracket delimiters already prevent most collisions).
+            uksort($tokens, fn ($a, $b) => mb_strlen((string) $b) <=> mb_strlen((string) $a));
+
+            $applied = 0;
+            foreach ($tokens as $find => $replace) {
+                $needle = trim(preg_replace('/\s+/u', ' ', (string) $find));
+                if ($needle === '') {
+                    continue;
+                }
+                $safety = 0;
+                while ($safety++ < 500) {
+                    [$norm, $map] = $this->buildNormalizedRunMap($xpath);
+                    $pos = mb_strpos($norm, $needle);
+                    if ($pos === false) {
+                        break;
+                    }
+                    if (!$this->replaceSpan($map, $pos, $pos + mb_strlen($needle) - 1, (string) $replace)) {
+                        break;
+                    }
+                    $applied++;
+                }
+            }
+
+            if ($applied === 0) {
+                $zip->close();
+                @unlink($work);
+                return null;
+            }
+
+            $zip->deleteName('word/document.xml');
+            $zip->addFromString('word/document.xml', $dom->saveXML());
+            $zip->close();
+
+            $stored = preg_replace('/\.docx$/i', '', $storedDocxPath) . '.filled.docx';
+            $disk->put($stored, (string) file_get_contents($work));
+            @unlink($work);
+
+            return $disk->exists($stored) ? $stored : null;
+        } catch (\Throwable $e) {
+            report($e);
+
+            return null;
+        }
+    }
+
+    /**
+     * Replace the run-text span [start..end] (normalised indices, via the run
+     * map) with $replace, keeping the first run's formatting. Returns false if
+     * the span can't be resolved.
+     */
+    private function replaceSpan(array $map, int $start, int $end, string $replace): bool
+    {
+        if (!isset($map[$start], $map[$end])) {
+            return false;
+        }
+
+        $nodes = [];
+        $ranges = new \SplObjectStorage();
+        for ($k = $start; $k <= $end; $k++) {
+            [$node, $ci] = $map[$k];
+            if (!$ranges->contains($node)) {
+                $ranges[$node] = [$ci, $ci];
+                $nodes[] = $node;
+            } else {
+                $r = $ranges[$node];
+                $ranges[$node] = [min($r[0], $ci), max($r[1], $ci)];
+            }
+        }
+        if (empty($nodes)) {
+            return false;
+        }
+
+        $first = $nodes[0];
+        $last = $nodes[count($nodes) - 1];
+        if ($first === $last) {
+            [$a, $b] = $ranges[$first];
+            $text = $first->textContent;
+            $first->textContent = mb_substr($text, 0, $a) . $replace . mb_substr($text, $b + 1);
+        } else {
+            [$fa] = $ranges[$first];
+            $first->textContent = mb_substr($first->textContent, 0, $fa) . $replace;
+            [, $lb] = $ranges[$last];
+            $last->textContent = mb_substr($last->textContent, $lb + 1);
+            for ($n = 1; $n < count($nodes) - 1; $n++) {
+                $nodes[$n]->textContent = '';
+            }
+        }
+        $first->setAttribute('xml:space', 'preserve');
+
+        return true;
+    }
+
+    /**
      * Insert tokens the admin added in the browser editor into a COPY of the
      * original .docx, so "convert as-is" keeps the Word branding/layout AND the
      * tokens. Each entry is ['anchor' => text just before the caret at insert

@@ -42,7 +42,7 @@
 <script src="https://unpkg.com/pdfjs-dist@3.11.174/legacy/build/pdf.min.js"></script>
 <script>if (window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@3.11.174/legacy/build/pdf.worker.min.js';</script>
 <script>
-    window.__readFileUrl = "{{ route('document-library.view', $document) }}";
+    window.__readFileUrl = "{{ $fileUrl ?? route('document-library.view', $document) }}";
     window.__readTokens = @json($tokens ?? []);
 
     function readDoc() {

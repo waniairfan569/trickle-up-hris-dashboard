@@ -262,12 +262,23 @@ class CompanyDocumentController extends Controller
 
         $pdfPath = $service->toPdf($source);
 
-        if ($injected && Storage::exists($injected)) {
-            Storage::delete($injected); // temp working copy — keep only the PDF
+        if (!$pdfPath) {
+            if ($injected && Storage::exists($injected)) {
+                Storage::delete($injected);
+            }
+            return back()->withErrors(['html' => 'Conversion to PDF failed — please try again, or upload a PDF instead.']);
         }
 
-        if (!$pdfPath) {
-            return back()->withErrors(['html' => 'Conversion to PDF failed — please try again, or upload a PDF instead.']);
+        // Keep the token-bearing Word source alongside the PDF so a reader can
+        // later regenerate a per-employee copy with tokens filled as real,
+        // reflowed text (exact layout). Saved before swapToPdf removes the
+        // original .docx.
+        $srcTarget = preg_replace('/\.pdf$/i', '.source.docx', $pdfPath);
+        if (Storage::exists($source)) {
+            Storage::copy($source, $srcTarget);
+        }
+        if ($injected && Storage::exists($injected)) {
+            Storage::delete($injected); // temp working copy — keep only PDF + source
         }
 
         $redirect = $this->swapToPdf($document, $pdfPath);
@@ -377,10 +388,69 @@ class CompanyDocumentController extends Controller
 
         $document->logView($user, 'view');
 
-        $tokens = app(\App\Services\DocumentTokenService::class)->profileTokens($user);
+        // Exact fill: if the Word source is kept AND LibreOffice is available,
+        // serve a per-employee PDF with tokens as real, reflowed text. Otherwise
+        // fall back to painting the values over the PDF (overlay).
+        $exact = Storage::exists($this->sourceDocxPath($document))
+            && app(\App\Services\DocumentConversionService::class)->available();
+
+        $fileUrl = $exact ? route('document-library.filled', $document) : route('document-library.view', $document);
+        $tokens = $exact ? [] : app(\App\Services\DocumentTokenService::class)->profileTokens($user);
         $ack = $document->requires_acknowledgment ? $document->acknowledgmentFor($user) : null;
 
-        return view('company-documents.read', compact('document', 'tokens', 'ack'));
+        return view('company-documents.read', compact('document', 'tokens', 'ack', 'fileUrl'));
+    }
+
+    /** Where the kept Word source for a converted document lives (beside the PDF). */
+    private function sourceDocxPath(CompanyDocument $document): string
+    {
+        return preg_replace('/\.pdf$/i', '.source.docx', (string) $document->file_path);
+    }
+
+    private function streamPdf(string $path, string $name)
+    {
+        return response(Storage::get($path), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="' . $name . '"',
+        ]);
+    }
+
+    /**
+     * Serve a per-employee PDF with the document's tokens filled as real text
+     * (exact layout). Generated from the kept Word source and cached per user;
+     * falls back to the raw PDF if there's no source or conversion fails.
+     */
+    public function filled(CompanyDocument $document)
+    {
+        $user = auth()->user();
+        abort_unless($document->isAccessibleBy($user), 403, 'You do not have access to this document.');
+        abort_unless($document->file_path && Storage::exists($document->file_path), 404);
+
+        $src = $this->sourceDocxPath($document);
+        if (!Storage::exists($src)) {
+            return $this->streamPdf($document->file_path, $document->file_name);
+        }
+
+        $cache = preg_replace('/\.pdf$/i', '.filled-' . $user->id . '.pdf', $document->file_path);
+        $stale = !Storage::exists($cache) || Storage::lastModified($cache) < Storage::lastModified($src);
+
+        if ($stale) {
+            $conversion = app(\App\Services\DocumentConversionService::class);
+            $tokens = app(\App\Services\DocumentTokenService::class)->profileTokens($user);
+            $filledDocx = $conversion->fillTokensToDocx($src, $tokens);
+            $pdf = $filledDocx ? $conversion->toPdf($filledDocx) : null;
+            if ($filledDocx && Storage::exists($filledDocx)) {
+                Storage::delete($filledDocx);
+            }
+            if ($pdf && Storage::exists($pdf)) {
+                Storage::put($cache, Storage::get($pdf));
+                Storage::delete($pdf);
+            } else {
+                return $this->streamPdf($document->file_path, $document->file_name); // fill failed → raw
+            }
+        }
+
+        return $this->streamPdf($cache, $document->file_name);
     }
 
     /** Employee ticks the acknowledgment checkbox — record it once. */
