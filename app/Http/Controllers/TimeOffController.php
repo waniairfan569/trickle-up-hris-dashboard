@@ -568,6 +568,51 @@ class TimeOffController extends Controller
         return back()->with('success', 'Request rejected.');
     }
 
+    /**
+     * Admin: move an existing request to a different leave category (policy) —
+     * e.g. Unplanned → Planned. The balance the request occupies (pending while
+     * awaiting a decision, or used once approved) is shifted from the old policy
+     * to the new one so both stay correct.
+     */
+    public function changePolicy(Request $request, TimeOffRequest $timeOffRequest)
+    {
+        $user = auth()->user();
+        abort_unless($user && ($user->hasRole('super_admin') || $user->hasRole('hr_admin')), 403, 'Only HR / Super Admin can change a leave category.');
+
+        $validated = $request->validate(['policy_id' => 'required|exists:time_off_policies,id']);
+        $newPolicy = TimeOffPolicy::findOrFail($validated['policy_id']);
+        $oldPolicy = $timeOffRequest->policy;
+
+        if ((int) $newPolicy->id === (int) $timeOffRequest->policy_id) {
+            return back()->with('error', 'The request is already in that category.');
+        }
+
+        $days = (float) $timeOffRequest->days_requested;
+        $employee = $timeOffRequest->employee;
+
+        // Shift the balance the request occupies from old → new policy.
+        if ($timeOffRequest->status === 'pending') {
+            $this->balanceService->removePending($employee, $oldPolicy, $days);
+            $this->balanceService->addPending($employee, $newPolicy, $days);
+        } elseif ($timeOffRequest->status === 'approved') {
+            $year = Carbon::parse($timeOffRequest->start_date)->year;
+            $this->balanceService->getOrCreateBalance($employee, $oldPolicy, $year)->decrement('used', $days);
+            $this->balanceService->getOrCreateBalance($employee, $newPolicy, $year)->increment('used', $days);
+        }
+        // rejected / cancelled requests hold no balance — just re-categorise.
+
+        $fromName = $oldPolicy->name;
+        $timeOffRequest->update(['policy_id' => $newPolicy->id]);
+
+        try {
+            $employee->notify(new \App\Notifications\LeaveCategoryChanged($timeOffRequest->fresh(), $fromName, $newPolicy->name));
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
+        return back()->with('success', "Leave category changed from “{$fromName}” to “{$newPolicy->name}” for {$employee->first_name}.");
+    }
+
     public function destroy(TimeOffRequest $timeOff) // Cancel
     {
         $user = auth()->user() ?? User::first();

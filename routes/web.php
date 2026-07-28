@@ -182,6 +182,8 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
         ->name('time-off.approve');
     Route::post('time-off/{timeOffRequest}/reject', [TimeOffController::class, 'reject'])
         ->name('time-off.reject');
+    Route::post('time-off/{timeOffRequest}/change-policy', [TimeOffController::class, 'changePolicy'])
+        ->name('time-off.change-policy');
 
     Route::get('time-off/team-calendar', [TimeOffController::class, 'teamCalendar'])
         ->name('time-off.team-calendar');

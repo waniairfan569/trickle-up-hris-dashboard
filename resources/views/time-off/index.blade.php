@@ -351,6 +351,18 @@
                         </td>
                         <td class="px-6 py-4 text-sm text-slate-500 dark:text-slate-400 align-top">
                             <div class="font-medium text-slate-700 dark:text-slate-300">{{ $request->policy->name }}</div>
+                            @if(in_array($request->status, ['pending', 'approved']))
+                                <form action="{{ route('time-off.change-policy', $request) }}" method="POST" class="mt-1.5 inline-block">
+                                    @csrf
+                                    <select name="policy_id" title="Move this leave to another category" data-current="{{ $request->policy_id }}"
+                                            onchange="if (this.value !== this.dataset.current && confirm('Move this leave to “' + this.options[this.selectedIndex].text + '”? Balances will be adjusted.')) { this.form.submit(); } else { this.value = this.dataset.current; }"
+                                            class="text-xs rounded-lg border border-slate-200 py-1 pl-2 pr-6 font-semibold text-slate-600 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:bg-slate-900 dark:border-slate-600 dark:text-slate-300">
+                                        @foreach($allPolicies as $p)
+                                            <option value="{{ $p->id }}" {{ $p->id == $request->policy_id ? 'selected' : '' }}>{{ $p->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </form>
+                            @endif
                             @if($request->reason)
                                 <div class="text-xs text-slate-500 italic mt-1 max-w-[240px] line-clamp-2 dark:text-slate-400" title="{{ $request->reason }}">“{{ $request->reason }}”</div>
                             @endif
