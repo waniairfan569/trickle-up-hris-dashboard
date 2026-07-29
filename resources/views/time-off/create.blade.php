@@ -147,8 +147,8 @@
     function timeOffForm() {
         return {
             selectedPolicy: {{ old('policy_id', $myPolicies->first()->id ?? 'null') }},
-            startDate: '{{ old('start_date') }}',
-            endDate: '{{ old('end_date') }}',
+            startDate: '{{ old('start_date', request('start_date')) }}',
+            endDate: '{{ old('end_date', request('start_date')) }}',
             durationType: '{{ old('duration_type', 'full_day') }}',
             startTime: '{{ old('start_time') }}',
             endTime: '{{ old('end_time') }}',

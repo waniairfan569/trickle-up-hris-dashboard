@@ -15,6 +15,12 @@
                 See who's on leave — browse by month, week or day.
             </p>
         </div>
+        <div class="mt-4 sm:mt-0">
+            <a href="{{ route('time-off.create') }}" class="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-bold text-slate-900 shadow-md shadow-brand-500/20 hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 transition duration-150">
+                <i data-lucide="plus" class="h-4 w-4"></i>
+                Request Time Off
+            </a>
+        </div>
     </div>
 
     {{-- Toolbar --}}
@@ -166,9 +172,14 @@
 
     {{-- ===================== SELECTED DAY PANEL (month/week) ===================== --}}
     <div x-show="selected && view !== 'day'" x-cloak class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-5 dark:bg-slate-800 dark:border-slate-700/80">
-        <div class="mb-4 flex items-center justify-between">
+        <div class="mb-4 flex items-center justify-between gap-3">
             <h3 class="text-sm font-extrabold text-slate-900 dark:text-white" x-text="selectedLabel"></h3>
-            <button type="button" @click="selected = null" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="h-4 w-4"></i></button>
+            <div class="flex items-center gap-2">
+                <a :href="'{{ route('time-off.create') }}?start_date=' + selected" class="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-bold text-slate-900 hover:bg-brand-700 transition">
+                    <i data-lucide="plus" class="h-3.5 w-3.5"></i> Request for this day
+                </a>
+                <button type="button" @click="selected = null" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="h-4 w-4"></i></button>
+            </div>
         </div>
         <template x-if="selectedLeaves().length">
             <div class="space-y-2">
