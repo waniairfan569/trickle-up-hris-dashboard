@@ -59,21 +59,12 @@
         <button type="button" @click="sent=false" class="mt-2 text-xs font-bold text-emerald-700 underline">Send another</button>
     </div>
 
-    {{-- Recent requests --}}
+    {{-- Full history lives on the "View all" page. --}}
     @if($myCodeRequests->count())
-        <div class="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700/60 space-y-1.5">
-            @foreach($myCodeRequests as $r)
-                <div class="flex items-center justify-between gap-2 text-xs">
-                    <span class="font-bold text-slate-700 dark:text-slate-200">{{ $r->tool_name }}</span>
-                    <span class="text-slate-400">{{ $r->created_at->diffForHumans(null, true) }} ago</span>
-                    @if($r->status === 'code_sent')
-                        <span class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 font-bold text-emerald-700 dark:bg-emerald-500/10">✅ Received</span>
-                    @else
-                        <span class="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 font-bold text-amber-700 dark:bg-amber-500/10">⏳ Pending</span>
-                    @endif
-                </div>
-            @endforeach
-            <a href="{{ route('code-requests.my') }}" class="block text-[11px] font-bold text-brand-600 hover:text-brand-700 pt-1">View all →</a>
+        <div class="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700/60">
+            <a href="{{ route('code-requests.my') }}" class="inline-flex items-center gap-1.5 text-[11px] font-bold text-brand-600 hover:text-brand-700">
+                <i data-lucide="history" class="h-3.5 w-3.5"></i> View my request history →
+            </a>
         </div>
     @endif
 </div>

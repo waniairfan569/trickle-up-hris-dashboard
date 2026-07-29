@@ -11,6 +11,15 @@ use Illuminate\Support\Facades\Notification;
 
 class AnnouncementController extends Controller
 {
+    /** Read-only list of all active announcements for every employee. */
+    public function all()
+    {
+        $announcements = Announcement::active()->with('creator')
+            ->orderByDesc('is_pinned')->latest()->get();
+
+        return view('announcements.all', compact('announcements'));
+    }
+
     public function index(Request $request)
     {
         abort_unless($request->user() && $request->user()->isAdmin(), 403);

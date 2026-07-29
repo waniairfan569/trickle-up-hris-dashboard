@@ -83,6 +83,7 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
 
     // Announcements — admins post; everyone sees them on the dashboard.
+    Route::get('all-announcements', [\App\Http\Controllers\AnnouncementController::class, 'all'])->name('announcements.all');
     Route::middleware('role:super_admin,hr_admin')->group(function () {
         Route::get('announcements', [\App\Http\Controllers\AnnouncementController::class, 'index'])->name('announcements.index');
         Route::post('announcements', [\App\Http\Controllers\AnnouncementController::class, 'store'])->name('announcements.store');

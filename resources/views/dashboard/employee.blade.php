@@ -620,26 +620,8 @@
                 }
             </script>
 
-            <!-- Announcements (above To-dos) -->
+            <!-- Announcements -->
             @include('partials.announcements')
-
-            <!-- To-dos Widget -->
-            <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-6 flex flex-col dark:bg-slate-800 dark:border-slate-700">
-                <div class="flex items-center gap-3 mb-6">
-                    <div class="h-10 w-10 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100/50 dark:border-slate-700/50 flex items-center justify-center text-slate-400">
-                        <i data-lucide="check-circle" class="h-5 w-5"></i>
-                    </div>
-                    <h2 class="text-base font-semibold text-slate-800 dark:text-white">To-dos</h2>
-                </div>
-                
-                <div class="bg-slate-50 rounded-xl p-8 flex flex-col items-center justify-center text-center dark:bg-slate-800/50">
-                    <div class="w-12 h-12 rounded-full bg-emerald-50 text-emerald-500 flex items-center justify-center mb-4 dark:bg-emerald-500/10">
-                        <i data-lucide="check" class="h-6 w-6"></i>
-                    </div>
-                    <h3 class="text-sm font-bold text-slate-800 mb-1 dark:text-white">All done for today</h3>
-                    <p class="text-[11px] text-slate-500 max-w-xs">No pending items. If anything comes up we will display it here for you to take action.</p>
-                </div>
-            </div>
 
             <!-- Upcoming Time Off Widget -->
             <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-6 flex flex-col h-[314px] dark:bg-slate-800 dark:border-slate-700">
