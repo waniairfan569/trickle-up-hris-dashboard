@@ -25,13 +25,15 @@ class DepartmentController extends Controller
         return view('departments.index', compact('departments', 'totalDepartments', 'totalEmployees', 'departmentsWithoutHead'));
     }
 
-    public function create()
+    public function create(Request $request)
     {
-        $topLevelDepartments = Department::topLevel()->orderBy('name')->get();
-        // Just get all active users for head selection (could be scoped better in real app)
-        $users = User::orderBy('first_name')->get(); 
-        
-        return view('departments.create', compact('topLevelDepartments', 'users'));
+        // Any department can be a parent, so sub-departments can nest at any depth.
+        $topLevelDepartments = Department::orderBy('name')->get();
+        $users = User::orderBy('first_name')->get();
+        // Pre-select the parent when adding a sub-department from a department page.
+        $preselectParent = $request->integer('parent') ?: null;
+
+        return view('departments.create', compact('topLevelDepartments', 'users', 'preselectParent'));
     }
 
     public function store(Request $request)
@@ -66,10 +68,31 @@ class DepartmentController extends Controller
 
     public function edit(Department $department)
     {
-        $topLevelDepartments = Department::topLevel()->where('id', '!=', $department->id)->orderBy('name')->get();
+        // Any department can be a parent, except this one and its own
+        // descendants (which would create a cycle).
+        $excluded = $this->descendantIds($department)->push($department->id)->all();
+        $topLevelDepartments = Department::whereNotIn('id', $excluded)->orderBy('name')->get();
         $users = User::orderBy('first_name')->get();
 
         return view('departments.edit', compact('department', 'topLevelDepartments', 'users'));
+    }
+
+    /** IDs of every department nested under the given one (any depth). */
+    private function descendantIds(Department $department): \Illuminate\Support\Collection
+    {
+        $ids = collect();
+        $stack = [$department->id];
+        while ($stack) {
+            $childIds = Department::where('parent_id', array_pop($stack))->pluck('id');
+            foreach ($childIds as $cid) {
+                if (!$ids->contains($cid)) {
+                    $ids->push($cid);
+                    $stack[] = $cid;
+                }
+            }
+        }
+
+        return $ids;
     }
 
     public function update(Request $request, Department $department)

@@ -137,15 +137,18 @@
                                 </span>
                             </div>
                             
-                            <div class="shrink-0">
-                                <a href="{{ route('departments.edit', $dept) }}" class="inline-flex p-2 text-slate-400 hover:text-brand-600 transition hover:bg-brand-50 rounded-lg dark:hover:bg-slate-700 dark:hover:text-brand-400">
+                            <div class="shrink-0 flex items-center gap-1">
+                                <a href="{{ route('departments.create', ['parent' => $dept->id]) }}" title="Add a sub-department" class="inline-flex p-2 text-slate-400 hover:text-brand-600 transition hover:bg-brand-50 rounded-lg dark:hover:bg-slate-700 dark:hover:text-brand-400">
+                                    <i data-lucide="folder-plus" class="h-4 w-4"></i>
+                                </a>
+                                <a href="{{ route('departments.edit', $dept) }}" title="Edit department" class="inline-flex p-2 text-slate-400 hover:text-brand-600 transition hover:bg-brand-50 rounded-lg dark:hover:bg-slate-700 dark:hover:text-brand-400">
                                     <i data-lucide="pencil" class="h-4 w-4"></i>
                                 </a>
                             </div>
                         </div>
                     </div>
                 </li>
-                
+
                 <!-- Children -->
                 @foreach($dept->children as $child)
                     <li class="bg-slate-50/30 hover:bg-slate-50/80 dark:bg-slate-800/30 dark:hover:bg-slate-800/80 transition">

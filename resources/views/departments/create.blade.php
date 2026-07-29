@@ -48,7 +48,7 @@
                     <select name="parent_id" class="w-full rounded-xl border-slate-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
                         <option value="">None (Top Level)</option>
                         @foreach($topLevelDepartments as $parent)
-                            <option value="{{ $parent->id }}" {{ old('parent_id') == $parent->id ? 'selected' : '' }}>{{ $parent->name }}</option>
+                            <option value="{{ $parent->id }}" {{ (int) old('parent_id', $preselectParent ?? null) === $parent->id ? 'selected' : '' }}>{{ $parent->name }}</option>
                         @endforeach
                     </select>
                 </div>

@@ -14,7 +14,10 @@
                 Update the department's details or structure.
             </p>
         </div>
-        <div class="mt-4 sm:mt-0">
+        <div class="mt-4 sm:mt-0 flex items-center gap-3">
+            <a href="{{ route('departments.create', ['parent' => $department->id]) }}" class="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-4 py-2 text-sm font-bold text-slate-900 hover:bg-brand-700 transition">
+                <i data-lucide="plus" class="h-4 w-4"></i> Add sub-department
+            </a>
             <a href="{{ route('departments.index') }}" class="text-sm font-bold text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition">
                 Back to List
             </a>
