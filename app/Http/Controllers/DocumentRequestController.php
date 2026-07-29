@@ -209,11 +209,38 @@ class DocumentRequestController extends Controller
 
         $tokens = $this->resolveTokens($documentRequest->subject);
         $tokens = array_merge($tokens, $this->signatureBlockTokens($documentRequest));
+        // Values employees already typed (bracket-token => value) so re-opens
+        // and later signers see the filled contract, not raw placeholders.
+        $tokens = array_merge($tokens, $this->savedFieldValues($documentRequest));
+
+        // Every signature-token spelling (all parties) so the client never
+        // mistakes a signature placeholder for an employee-fillable field.
+        $allSigSpellings = \Illuminate\Support\Arr::flatten($this->signatureTokenSpellings());
+
+        // Only the person the document is FOR (or a sole signer) is offered the
+        // fill-in form; other signers just see whatever the employee entered.
+        $canFillFields = $signerCount <= 1
+            || (int) $signer->user_id === (int) $documentRequest->subject_employee_id;
 
         // Saved signature templates the signer can reuse instead of drawing.
         $savedSignatures = \App\Models\SignatureTemplate::latest()->get(['id', 'name', 'image_data']);
 
-        return view('documents.sign', compact('documentRequest', 'signer', 'myBoxes', 'tokens', 'autoSignLastPage', 'filledFields', 'sigSpellings', 'savedSignatures'));
+        return view('documents.sign', compact('documentRequest', 'signer', 'myBoxes', 'tokens', 'autoSignLastPage', 'filledFields', 'sigSpellings', 'savedSignatures', 'allSigSpellings', 'canFillFields'));
+    }
+
+    /** Merge every signer's employee-entered field values into one map. */
+    private function savedFieldValues(DocumentRequest $documentRequest): array
+    {
+        $documentRequest->loadMissing('signers');
+        $out = [];
+        foreach ($documentRequest->signers as $s) {
+            foreach ((array) $s->field_values as $token => $value) {
+                if (is_string($token) && $value !== null && $value !== '') {
+                    $out[$token] = (string) $value;
+                }
+            }
+        }
+        return $out;
     }
 
     /** Signature-token spellings per party (regardless of signed state). */
@@ -231,12 +258,29 @@ class DocumentRequestController extends Controller
         $user = auth()->user();
         abort_unless($documentRequest->isAwaiting($user), 403, 'This document is not awaiting your signature.');
 
-        $request->validate(['signature' => 'required|string']);
+        $request->validate([
+            'signature' => 'required|string',
+            'employee_fields' => 'nullable|string',
+        ]);
+
+        // Employee-filled values (bracket-token => typed value), posted as JSON.
+        $fieldValues = [];
+        if ($raw = $request->input('employee_fields')) {
+            $decoded = json_decode($raw, true);
+            if (is_array($decoded)) {
+                foreach ($decoded as $token => $value) {
+                    if (is_string($token) && (is_string($value) || is_numeric($value))) {
+                        $fieldValues[$token] = trim((string) $value);
+                    }
+                }
+            }
+        }
 
         $signer = $documentRequest->currentSigner();
         $signer->update([
             'status' => 'signed',
             'signature_image' => $request->input('signature'),
+            'field_values' => $fieldValues ?: null,
             'signed_at' => now(),
             'signed_ip' => $request->ip(),
         ]);
@@ -375,6 +419,9 @@ class DocumentRequestController extends Controller
         // from the text set so it isn't drawn twice (image + name).
         $signatureTokens = $this->signatureImageTokens($documentRequest);
         $textTokens = array_merge($this->resolveTokens($subject), $this->signatureBlockTokens($documentRequest));
+        // Employee-typed values (loan amount, instalments, …) bake in like any
+        // other token, on top of profile values.
+        $textTokens = array_merge($textTokens, $this->savedFieldValues($documentRequest));
         foreach (array_keys($signatureTokens) as $k) {
             unset($textTokens[$k]);
         }

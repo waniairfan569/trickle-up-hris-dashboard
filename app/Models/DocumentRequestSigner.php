@@ -19,6 +19,7 @@ class DocumentRequestSigner extends Model
         'source_role',
         'status',
         'signature_image',
+        'field_values',
         'signed_at',
         'signed_ip',
     ];
@@ -26,6 +27,7 @@ class DocumentRequestSigner extends Model
     protected $casts = [
         'position' => 'integer',
         'signed_at' => 'datetime',
+        'field_values' => 'array',
     ];
 
     public function request()

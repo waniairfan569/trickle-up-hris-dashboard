@@ -18,6 +18,8 @@
     window.__docTokens = @json($tokens ?? []);
     window.__autoSignLastPage = @json($autoSignLastPage ?? false);
     window.__mySigTokens = @json($sigSpellings ?? []);
+    window.__allSigTokens = @json($allSigSpellings ?? []);
+    window.__canFillFields = @json($canFillFields ?? false);
     window.__savedSignatures = @json(($savedSignatures ?? collect())->map(fn ($s) => ['name' => $s->name, 'image' => $s->image_data]));
     window.__filledFields = @json($filledFields ?? []);
 </script>
@@ -66,6 +68,22 @@
 
         <!-- Action panel -->
         <aside class="lg:sticky lg:top-4 self-start space-y-4">
+            <!-- Fields the employee fills in -->
+            <div x-show="canFill && empFields.length" x-cloak class="bg-white rounded-2xl border border-amber-200 shadow-sm p-5 dark:bg-slate-800 dark:border-amber-500/30 space-y-3">
+                <div>
+                    <h2 class="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-1.5"><i data-lucide="pencil" class="h-4 w-4 text-amber-500"></i> Fill in your details</h2>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Complete these before signing. They'll be filled into the document.</p>
+                </div>
+                <template x-for="f in empFields" :key="f.token">
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1" x-text="f.label"></label>
+                        <input type="text" x-model="fieldValues[f.token]" @input="paintEmp()"
+                               class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 dark:bg-slate-900 dark:border-slate-600 dark:text-white"
+                               :placeholder="f.label">
+                    </div>
+                </template>
+            </div>
+
             <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-5 dark:bg-slate-800 dark:border-slate-700 space-y-4">
                 <div>
                     <h2 class="text-sm font-bold text-slate-800 dark:text-white">Sign this document</h2>
@@ -81,11 +99,12 @@
                     <i data-lucide="pen-tool" class="h-4 w-4"></i> <span x-text="signature ? 'Change signature' : 'Add your signature'"></span>
                 </button>
 
-                <form method="POST" action="{{ route('documents.sign.store', $documentRequest) }}" @submit="if (!signature) { submitErr = 'Please add your signature first.'; $event.preventDefault(); }">
+                <form method="POST" action="{{ route('documents.sign.store', $documentRequest) }}" @submit="onSubmit($event)">
                     @csrf
                     <input type="hidden" name="signature" :value="signature">
+                    <input type="hidden" name="employee_fields" :value="JSON.stringify(fieldValues)">
                     <p x-show="submitErr" x-cloak class="text-xs text-rose-600 mb-2" x-text="submitErr"></p>
-                    <button type="submit" :disabled="!signature" :class="!signature && 'opacity-50 cursor-not-allowed'"
+                    <button type="submit" :disabled="!signature || !fieldsComplete()" :class="(!signature || !fieldsComplete()) && 'opacity-50 cursor-not-allowed'"
                             class="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-bold text-slate-900 shadow-md shadow-brand-500/20 hover:bg-brand-700">
                         <i data-lucide="check" class="h-4 w-4"></i> Sign &amp; submit
                     </button>
@@ -163,6 +182,12 @@
             savedSignatures: window.__savedSignatures || [],
             signature: '',
             submitErr: '',
+            // Employee-fillable fields (bracket tokens the profile can't answer).
+            canFill: window.__canFillFields || false,
+            empFields: [],       // [{ token: '[Loan Amount]', label: 'Loan Amount' }]
+            fieldValues: {},     // token => typed value
+            _idx: {},            // per-page text index for overlays
+            _empLayers: {},      // per-page DOM layer for live employee overlays
             // modal
             modalOpen: false,
             modalMode: 'draw',
@@ -189,6 +214,7 @@
                 if (this._rendering) return;   // never render the same canvases twice at once
                 this._rendering = true;
                 this.pdfLoading = true; this.pdfError = ''; this.pages = []; this.pdfReady = false; __pdfPages = [];
+                this._idx = {}; this._empLayers = {}; this._empSeen = {}; this._empOrder = [];
                 try {
                     const lib = window.pdfjsLib;
                     if (!lib) { this.pdfError = 'PDF viewer failed to load.'; this.pdfLoading = false; return; }
@@ -211,12 +237,17 @@
 
                     await this.$nextTick();
                     for (let i = 0; i < meta.length; i++) {
-                        const c = document.getElementById('signcanvas-' + meta[i].num);
+                        const num = meta[i].num;
+                        const c = document.getElementById('signcanvas-' + num);
                         if (!c) continue;
                         c.width = meta[i].width; c.height = meta[i].height;
                         await __pdfPages[i].page.render({ canvasContext: c.getContext('2d'), viewport: __pdfPages[i].vp }).promise;
-                        await this.overlayTokens(__pdfPages[i].page, __pdfPages[i].vp, meta[i].num);
+                        this._idx[num] = await this.buildIndex(__pdfPages[i].page, __pdfPages[i].vp, num);
+                        this.paintTokens(num, window.__docTokens || {});  // profile + already-saved values
+                        this.detectEmp(num);                              // find employee-fillable tokens
                     }
+                    this.buildFieldList();
+                    this.paintEmp();
                     if (window.lucide) lucide.createIcons();
                 } catch (e) {
                     this.pdfReady = false; this.pdfLoading = false;
@@ -226,66 +257,132 @@
                 }
             },
 
-            // Overlay real values on top of literal [token] text in the PDF, so the
-            // signer sees the filled contract instead of [candidate]/[job]/etc.
-            async overlayTokens(page, vp, num) {
-                const tokens = window.__docTokens || {};
-                if (!Object.keys(tokens).length) return;
+            // Build a per-page text index (runs in reading order + a char→run map)
+            // so tokens split across runs or wrapped to the next line still match.
+            async buildIndex(page, vp, num) {
                 const container = document.querySelector(`[data-page="${num}"]`);
-                if (!container) return;
                 let tc;
-                try { tc = await page.getTextContent(); } catch (e) { return; }
+                try { tc = await page.getTextContent(); } catch (e) { return { ord: [], full: '', map: [], container }; }
                 const lib = window.pdfjsLib;
-
-                // Position every text run in screen coords.
                 const runs = tc.items.map((it) => {
                     const m = lib.Util.transform(vp.transform, it.transform);
                     const h = Math.hypot(m[2], m[3]) || 11;
                     return { str: it.str || '', x: m[4], y: m[5], h, w: (it.width || 0) * (vp.scale || 1) };
                 }).filter((r) => r.str.length);
-
-                // Match tokens across the WHOLE page in reading order (not per
-                // line) so a placeholder split across runs OR wrapped to the next
-                // line (e.g. "[Employee" + "Signature]") is still matched. A
-                // boundary space between runs + flexible whitespace absorb the
-                // space introduced at a wrap point.
                 const ord = runs.slice().sort((a, b) => (Math.round(a.y) - Math.round(b.y)) || (a.x - b.x));
-                // Char → (run, offset-in-run), so we cover only the token's span,
-                // not the whole run (which would erase the sentence around an
-                // inline token).
                 let full = ''; const map = [];
                 ord.forEach((r, ri) => {
                     if (full.length) { full += ' '; map.push({ ri: -1, ci: -1 }); }
                     for (let ci = 0; ci < r.str.length; ci++) { full += r.str[ci]; map.push({ ri, ci }); }
                 });
+                return { ord, full, map, container };
+            },
+
+            mkBox(target, x, y, w, h, bg) {
+                const el = document.createElement('div');
+                el.style.cssText = `position:absolute;background:${bg};left:${x}px;top:${y}px;width:${w}px;height:${h}px;`;
+                target.appendChild(el);
+            },
+
+            // White-out a [token] wherever it occurs on the page and draw `val`
+            // (or a highlighted blank when `highlight` and no value yet).
+            matchDraw(idx, work, tok, val, target, highlight) {
+                const { ord, map } = idx;
                 const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+');
-                const box = (x, y, w, h) => { const el = document.createElement('div'); el.style.cssText = `position:absolute;background:#fff;left:${x}px;top:${y}px;width:${w}px;height:${h}px;`; container.appendChild(el); };
+                const rx = new RegExp(esc(tok), 'g');
+                const bg = (highlight && !val) ? '#fef9c3' : '#fff';
+                let m, guard = 0;
+                while ((m = rx.exec(work.full)) !== null && guard++ < 200) {
+                    const S = m.index, E = m.index + m[0].length - 1;
+                    const byRun = new Map();
+                    for (let k = S; k <= E; k++) { const cc = map[k]; if (!cc || cc.ri < 0) continue; const g = byRun.get(cc.ri); if (!g) byRun.set(cc.ri, [cc.ci, cc.ci]); else { g[0] = Math.min(g[0], cc.ci); g[1] = Math.max(g[1], cc.ci); } }
+                    let first = null;
+                    for (const [ri, [c0, c1]] of byRun) {
+                        const r = ord[ri]; const L = r.str.length || 1;
+                        const x0 = r.x + (c0 / L) * r.w, x1 = r.x + ((c1 + 1) / L) * r.w;
+                        this.mkBox(target, x0, r.y - r.h, (x1 - x0) + 1, r.h * 1.25, bg);
+                        if (first === null) first = { x: x0, y: r.y - r.h, h: r.h };
+                    }
+                    if (first && (val || highlight)) {
+                        const el = document.createElement('div');
+                        el.textContent = val || '';
+                        el.style.cssText = `position:absolute;background:${bg};color:#0f172a;white-space:nowrap;overflow:hidden;`
+                            + `left:${first.x}px;top:${first.y}px;height:${first.h * 1.25}px;line-height:${first.h * 1.25}px;`
+                            + `font-size:${first.h}px;font-family:Helvetica,Arial,sans-serif;padding:0 1px;`;
+                        target.appendChild(el);
+                    }
+                    work.full = work.full.slice(0, m.index) + ' '.repeat(m[0].length) + work.full.slice(m.index + m[0].length);
+                    rx.lastIndex = 0;
+                }
+            },
+
+            // Overlay resolved token values (profile + already-saved) so the signer
+            // sees the filled contract instead of [candidate]/[job]/etc.
+            paintTokens(num, tokens) {
+                const idx = this._idx[num];
+                if (!idx || !idx.container || !Object.keys(tokens).length) return;
+                const work = { full: idx.full };
                 for (const [tok, val] of Object.entries(tokens)) {
-                    const rx = new RegExp(esc(tok), 'g');
-                    let m, guard = 0;
-                    while ((m = rx.exec(full)) !== null && guard++ < 200) {
-                        const S = m.index, E = m.index + m[0].length - 1;
-                        const byRun = new Map();
-                        for (let k = S; k <= E; k++) { const { ri, ci } = map[k]; if (ri < 0) continue; const g = byRun.get(ri); if (!g) byRun.set(ri, [ci, ci]); else { g[0] = Math.min(g[0], ci); g[1] = Math.max(g[1], ci); } }
-                        let first = null;
-                        for (const [ri, [c0, c1]] of byRun) {
-                            const r = ord[ri]; const L = r.str.length || 1;
-                            const x0 = r.x + (c0 / L) * r.w, x1 = r.x + ((c1 + 1) / L) * r.w;
-                            box(x0, r.y - r.h, (x1 - x0) + 1, r.h * 1.25);
-                            if (first === null) first = { x: x0, y: r.y - r.h, h: r.h };
-                        }
-                        if (first) {
-                            const el = document.createElement('div');
-                            el.textContent = val;
-                            el.style.cssText = 'position:absolute;background:#fff;color:#0f172a;white-space:nowrap;overflow:hidden;'
-                                + `left:${first.x}px;top:${first.y}px;height:${first.h * 1.25}px;line-height:${first.h * 1.25}px;`
-                                + `font-size:${first.h}px;font-family:Helvetica,Arial,sans-serif;padding:0 1px;`;
-                            container.appendChild(el);
-                        }
-                        full = full.slice(0, m.index) + ' '.repeat(m[0].length) + full.slice(m.index + m[0].length);
-                        rx.lastIndex = 0;
+                    this.matchDraw(idx, work, tok, String(val ?? ''), idx.container, false);
+                }
+            },
+
+            // Find bracket placeholders the profile can't answer and aren't
+            // signatures — these become employee-fillable fields.
+            detectEmp(num) {
+                const idx = this._idx[num];
+                if (!idx) return;
+                const norm = (s) => s.toLowerCase().replace(/\s+/g, ' ').replace(/\[\s+/g, '[').replace(/\s+\]/g, ']').trim();
+                const known = new Set(Object.keys(window.__docTokens || {}).map(norm));
+                (window.__allSigTokens || []).forEach((t) => known.add(norm(t)));
+                const rx = /\[[^\]\r\n]{1,60}\]/g;
+                let m;
+                while ((m = rx.exec(idx.full)) !== null) {
+                    const raw = m[0];
+                    const key = norm(raw);
+                    if (known.has(key) || this._empSeen[key]) continue;
+                    if (/signature|initial|sign here/i.test(raw)) continue;
+                    this._empSeen[key] = true;
+                    const label = raw.replace(/^\[|\]$/g, '').replace(/[_\s]+/g, ' ').trim();
+                    this._empOrder.push({ token: raw, label: label || 'Field' });
+                }
+            },
+
+            buildFieldList() {
+                this.empFields = this._empOrder || [];
+                const fv = {};
+                this.empFields.forEach((f) => { fv[f.token] = this.fieldValues[f.token] || ''; });
+                this.fieldValues = fv;
+            },
+
+            // Live overlay of the employee's typed values (yellow highlight while blank).
+            paintEmp() {
+                for (const num of Object.keys(this._idx)) {
+                    const idx = this._idx[num];
+                    if (!idx || !idx.container) continue;
+                    let layer = this._empLayers[num];
+                    if (!layer) {
+                        layer = document.createElement('div');
+                        layer.style.cssText = 'position:absolute;inset:0;pointer-events:none;';
+                        idx.container.appendChild(layer);
+                        this._empLayers[num] = layer;
+                    }
+                    layer.innerHTML = '';
+                    const work = { full: idx.full };
+                    for (const f of this.empFields) {
+                        this.matchDraw(idx, work, f.token, (this.fieldValues[f.token] || '').trim(), layer, true);
                     }
                 }
+            },
+
+            fieldsComplete() {
+                if (!this.canFill) return true;
+                return this.empFields.every((f) => (this.fieldValues[f.token] || '').trim() !== '');
+            },
+
+            onSubmit(e) {
+                if (!this.signature) { this.submitErr = 'Please add your signature first.'; e.preventDefault(); return; }
+                if (!this.fieldsComplete()) { this.submitErr = 'Please fill in all the required fields first.'; e.preventDefault(); return; }
             },
 
 
