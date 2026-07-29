@@ -186,10 +186,93 @@ class EmployeeController extends Controller
         // with ?flat=1 to see every report as a flat row.
         $groupByDept = !$request->boolean('flat');
 
+        // Department hierarchy (id → name, parent_id) so a manager's reports nest
+        // by the real sub-department tree instead of collapsing into sibling
+        // buckets. e.g. Pod Cobalt/SEO/… sit under "Performance Marketing" (which
+        // has no direct staff) rather than jumping up next to Ai Automation/Misc.
+        $deptInfo = \App\Models\Department::get(['id', 'name', 'parent_id'])->keyBy('id');
+
+        // Turn a manager's reports into nested "department" group nodes: each
+        // person sits in their exact department, and departments nest under their
+        // parent chain up to (but not including) the manager's own department.
+        // Intermediate departments with no direct staff still appear as a group.
+        $buildDeptForest = function ($reports, $mgrDeptId) use (&$build, $deptInfo) {
+            $mgrDeptId = (int) $mgrDeptId;
+            $peopleByDept = $reports->groupBy(fn ($r) => (int) ($r->department_id ?? 0));
+
+            $groups = [];       // deptId => ['name' => ..., 'people' => Collection]
+            $childrenOf = [];   // parentDeptId => [childDeptId, ...]
+            $rootKey = -1;      // forest root (top-level groups under the person)
+
+            $ensure = function ($deptId) use (&$groups, $deptInfo) {
+                if (!isset($groups[$deptId])) {
+                    $groups[$deptId] = [
+                        'name' => optional($deptInfo->get($deptId))->name ?: 'Unassigned',
+                        'people' => collect(),
+                    ];
+                }
+            };
+
+            foreach ($peopleByDept as $deptId => $people) {
+                $deptId = (int) $deptId;
+                $ensure($deptId);
+                $groups[$deptId]['people'] = $people;
+
+                // Walk up to the manager's department, wiring parent → child links.
+                $current = $deptId;
+                $seen = [];
+                while (true) {
+                    if ($current === $mgrDeptId || isset($seen[$current])) {
+                        $childrenOf[$rootKey][] = $current;   // report sits in the manager's own dept
+                        break;
+                    }
+                    $seen[$current] = true;
+                    $parent = (int) (optional($deptInfo->get($current))->parent_id ?? 0);
+                    if ($parent === $mgrDeptId || $parent === 0 || !$deptInfo->has($parent)) {
+                        $childrenOf[$rootKey][] = $current;   // top-level group under the person
+                        break;
+                    }
+                    $ensure($parent);
+                    $childrenOf[$parent][] = $current;
+                    $current = $parent;
+                }
+            }
+
+            // Recursively build dept nodes; count = people across the whole subtree.
+            $makeNode = function ($deptId) use (&$makeNode, &$groups, &$childrenOf, &$build) {
+                $childIds = array_values(array_unique($childrenOf[$deptId] ?? []));
+
+                $personChildren = $groups[$deptId]['people']
+                    ->sortBy('last_name')->values()->map($build)->values()->all();
+
+                $subGroups = collect($childIds)
+                    ->map(fn ($cid) => $makeNode($cid))
+                    ->sortBy('name')->values()->all();
+
+                $count = count($personChildren);
+                foreach ($subGroups as $sg) {
+                    $count += $sg['count'];
+                }
+
+                return [
+                    'type' => 'dept',
+                    'name' => $groups[$deptId]['name'],
+                    'count' => $count,
+                    // sub-department groups first, then people who sit directly here
+                    'children' => array_merge($subGroups, $personChildren),
+                ];
+            };
+
+            $rootIds = array_values(array_unique($childrenOf[$rootKey] ?? []));
+            return collect($rootIds)
+                ->map(fn ($cid) => $makeNode($cid))
+                ->sortBy('name')->values()->all();
+        };
+
         // Build a nested tree. Person nodes hold children; when a manager's
         // reports span 2+ departments, those reports are bucketed under
-        // lightweight "department" group nodes so same-department people cluster.
-        $build = function ($u) use (&$build, $byManager, $alsoReportsTo, $groupByDept) {
+        // "department" group nodes that nest by the real sub-department tree.
+        $build = function ($u) use (&$build, &$buildDeptForest, $byManager, $alsoReportsTo, $groupByDept) {
             $reports = $byManager->get($u->id, collect())->sortBy('last_name')->values();
 
             $node = [
@@ -210,19 +293,10 @@ class EmployeeController extends Controller
                 return $node;
             }
 
-            $deptGroups = $reports->groupBy(fn ($r) => $r->department?->name ?: 'Unassigned');
+            $distinctDepts = $reports->pluck('department_id')->map(fn ($d) => (int) $d)->unique();
 
-            if ($groupByDept && $deptGroups->count() >= 2) {
-                $node['children'] = $deptGroups
-                    ->map(fn ($group, $deptName) => [
-                        'type' => 'dept',
-                        'name' => $deptName,
-                        'count' => $group->count(),
-                        'children' => $group->map($build)->values()->all(),
-                    ])
-                    ->sortBy('name')
-                    ->values()
-                    ->all();
+            if ($groupByDept && $distinctDepts->count() >= 2) {
+                $node['children'] = $buildDeptForest($reports, $u->department_id);
             } else {
                 $node['children'] = $reports->map($build)->values()->all();
             }
