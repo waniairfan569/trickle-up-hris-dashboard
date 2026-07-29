@@ -214,14 +214,14 @@
                             @endif
                         </button>
 
-                        <div x-show="open" style="display: none;" 
-                             x-transition:enter="transition ease-out duration-100" 
-                             x-transition:enter-start="transform opacity-0 scale-95" 
-                             x-transition:enter-end="transform opacity-100 scale-100" 
-                             x-transition:leave="transition ease-in duration-75" 
-                             x-transition:leave-start="transform opacity-100 scale-100" 
-                             x-transition:leave-end="transform opacity-0 scale-95" 
-                             class="absolute right-0 mt-2 w-80 origin-top-right rounded-xl bg-white shadow-lg ring-1 ring-slate-900/5 focus:outline-none dark:bg-slate-800 dark:ring-white/10 z-50 overflow-hidden border border-slate-200 dark:border-slate-700">
+                        <div x-show="open" style="display: none;"
+                             x-transition:enter="transition ease-out duration-100"
+                             x-transition:enter-start="transform opacity-0 scale-95"
+                             x-transition:enter-end="transform opacity-100 scale-100"
+                             x-transition:leave="transition ease-in duration-75"
+                             x-transition:leave-start="transform opacity-100 scale-100"
+                             x-transition:leave-end="transform opacity-0 scale-95"
+                             class="fixed top-16 right-3 sm:right-6 lg:right-8 mt-1 w-[calc(100vw-1.5rem)] sm:w-96 origin-top-right rounded-xl bg-white shadow-xl ring-1 ring-slate-900/5 focus:outline-none dark:bg-slate-800 dark:ring-white/10 z-50 overflow-hidden border border-slate-200 dark:border-slate-700">
                             
                             <div class="px-4 py-3 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
                                 <h3 class="text-sm font-bold text-slate-900 dark:text-white">Notifications</h3>

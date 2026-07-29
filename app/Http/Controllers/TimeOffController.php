@@ -653,13 +653,32 @@ class TimeOffController extends Controller
 
     public function teamCalendar()
     {
-        // For demonstration, simple JSON endpoint or a full view.
-        // I will return a view that renders the calendar.
         $requests = TimeOffRequest::with('employee', 'policy')
             ->whereIn('status', ['approved', 'pending'])
             ->get();
-            
-        return view('time-off.team-calendar', compact('requests'));
+
+        // Flatten to a calendar-friendly payload the client renders as a
+        // month / week / day grid. Ranges are expanded day-by-day in JS.
+        $leaves = $requests
+            ->filter(fn ($r) => $r->employee && $r->start_date && $r->end_date)
+            ->map(function ($r) {
+                $first = $r->employee->first_name ?: '';
+                $last = $r->employee->last_name ?: '';
+                return [
+                    'id' => $r->id,
+                    'name' => trim($first . ' ' . $last) ?: 'Employee',
+                    'initials' => strtoupper(substr($first, 0, 1) . substr($last, 0, 1)) ?: '—',
+                    'policy' => $r->policy?->name ?? 'Leave',
+                    'status' => $r->status,
+                    'start' => $r->start_date->format('Y-m-d'),
+                    'end' => $r->end_date->format('Y-m-d'),
+                    'duration' => $r->duration_label,
+                ];
+            })
+            ->sortBy('start')
+            ->values();
+
+        return view('time-off.team-calendar', compact('requests', 'leaves'));
     }
 
     public function assignDefaultPolicies(\App\Models\User $employee)
