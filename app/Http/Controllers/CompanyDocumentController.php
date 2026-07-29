@@ -394,11 +394,23 @@ class CompanyDocumentController extends Controller
         $exact = Storage::exists($this->sourceDocxPath($document))
             && app(\App\Services\DocumentConversionService::class)->available();
 
-        $fileUrl = $exact ? route('document-library.filled', $document) : route('document-library.view', $document);
-        $tokens = $exact ? [] : app(\App\Services\DocumentTokenService::class)->profileTokens($user);
         $ack = $document->requires_acknowledgment ? $document->acknowledgmentFor($user) : null;
 
-        return view('company-documents.read', compact('document', 'tokens', 'ack', 'fileUrl'));
+        // Values the employee already typed when acknowledging — overlaid so a
+        // re-opened document shows the filled contract. The exact (regenerated)
+        // PDF already bakes profile tokens, so it only needs these on top.
+        $saved = ($ack && is_array($ack->field_values)) ? $ack->field_values : [];
+
+        $fileUrl = $exact ? route('document-library.filled', $document) : route('document-library.view', $document);
+        $tokens = $exact
+            ? $saved
+            : array_merge(app(\App\Services\DocumentTokenService::class)->profileTokens($user), $saved);
+
+        // Only offer the fill-in form when acknowledgment is required and the
+        // person hasn't acknowledged yet.
+        $canFill = $document->requires_acknowledgment && !$ack;
+
+        return view('company-documents.read', compact('document', 'tokens', 'ack', 'fileUrl', 'canFill'));
     }
 
     /** Where the kept Word source for a converted document lives (beside the PDF). */
@@ -460,9 +472,22 @@ class CompanyDocumentController extends Controller
         abort_unless($document->isAccessibleBy($user), 403, 'You do not have access to this document.');
         abort_unless($document->requires_acknowledgment, 400, 'This document does not require acknowledgment.');
 
+        // Employee-filled values (bracket-token => typed value), posted as JSON.
+        $fieldValues = [];
+        if ($raw = $request->input('employee_fields')) {
+            $decoded = json_decode($raw, true);
+            if (is_array($decoded)) {
+                foreach ($decoded as $token => $value) {
+                    if (is_string($token) && (is_string($value) || is_numeric($value))) {
+                        $fieldValues[$token] = trim((string) $value);
+                    }
+                }
+            }
+        }
+
         \App\Models\DocumentAcknowledgment::firstOrCreate(
             ['document_id' => $document->id, 'user_id' => $user->id],
-            ['acknowledged_at' => now(), 'ip_address' => $request->ip()]
+            ['acknowledged_at' => now(), 'ip_address' => $request->ip(), 'field_values' => $fieldValues ?: null]
         );
         $document->logView($user, 'acknowledged');
 

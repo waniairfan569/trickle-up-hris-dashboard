@@ -10,11 +10,12 @@ class DocumentAcknowledgment extends Model
     use BelongsToTenant;
 
     protected $fillable = [
-        'tenant_id', 'document_id', 'user_id', 'acknowledged_at', 'ip_address',
+        'tenant_id', 'document_id', 'user_id', 'acknowledged_at', 'ip_address', 'field_values',
     ];
 
     protected $casts = [
         'acknowledged_at' => 'datetime',
+        'field_values' => 'array',
     ];
 
     public function document()
