@@ -72,7 +72,11 @@ class DashboardController extends Controller
         return view('dashboard.employee', $shared);
     }
 
-    /** Active company events in a window, expanded to each day they cover. */
+    /**
+     * Active company events in a window — ONE entry per event carrying its
+     * start and end dates. A multi-day event is a single ranged row (the client
+     * renders "28 Jul – 15 Aug"), not one row per day it covers.
+     */
     protected function companyEvents()
     {
         $windowStart = today()->copy()->subDays(31);
@@ -86,21 +90,17 @@ class DashboardController extends Controller
             })
             ->orderBy('date')
             ->get()
-            ->flatMap(function ($e) use ($windowStart, $windowEnd) {
-                $start = $e->date->copy()->max($windowStart);
-                $end = ($e->end_date ?: $e->date)->copy()->min($windowEnd);
-                $days = collect();
-                for ($d = $start->copy(); $d->lte($end); $d->addDay()) {
-                    $days->push([
-                        'id' => $e->id,
-                        'title' => $e->title,
-                        'date' => $d->toDateString(),
-                        'location' => $e->location,
-                        'color' => $e->color ?: 'brand',
-                        'multi' => (bool) $e->is_multi_day,
-                    ]);
-                }
-                return $days;
+            ->map(function ($e) {
+                $end = $e->end_date ?: $e->date;
+                return [
+                    'id' => $e->id,
+                    'title' => $e->title,
+                    'date' => $e->date->toDateString(),
+                    'end' => $end->toDateString(),
+                    'location' => $e->location,
+                    'color' => $e->color ?: 'brand',
+                    'multi' => (bool) $e->is_multi_day,
+                ];
             })
             ->sortBy('date')->values();
     }

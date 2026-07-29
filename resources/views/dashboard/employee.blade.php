@@ -146,8 +146,8 @@
                     <div x-show="tab === 'events'" x-cloak>
                         <template x-if="upcomingEvents().length === 0"><p class="text-xs font-semibold text-slate-400 text-center mt-10">No upcoming events</p></template>
                         <div class="space-y-2.5">
-                            <template x-for="e in upcomingEvents()" :key="e.id + e.date">
-                                <div class="flex items-center gap-3 rounded-lg p-1.5 -mx-1.5" :class="e.date === current ? 'bg-brand-50 dark:bg-brand-500/10' : ''">
+                            <template x-for="e in upcomingEvents()" :key="e.id">
+                                <div class="flex items-center gap-3 rounded-lg p-1.5 -mx-1.5" :class="eventOngoing(e) ? 'bg-brand-50 dark:bg-brand-500/10' : ''">
                                     <div class="h-9 w-10 rounded-lg flex flex-col items-center justify-center text-white" :class="dotBg(e.color)">
                                         <span class="text-[9px] font-bold uppercase leading-none" x-text="monthOf(e.date)"></span>
                                         <span class="text-sm font-extrabold leading-none" x-text="dayOf(e.date)"></span>
@@ -155,7 +155,7 @@
                                     <div class="flex-1 min-w-0">
                                         <p class="text-sm font-bold text-slate-800 dark:text-white truncate" x-text="e.title"></p>
                                         <p class="text-xs text-slate-500 dark:text-slate-400 truncate">
-                                            <span x-text="e.date === current ? 'Today' : relDate(e.date)"></span>
+                                            <span x-text="eventWhen(e)"></span>
                                             <span x-show="e.location" x-text="' · ' + e.location"></span>
                                         </p>
                                     </div>
@@ -189,7 +189,17 @@
                         oooFiltered() { const q = this.oooSearch.toLowerCase(); return this.oooOnDate().filter(o => o.name.toLowerCase().includes(q)); },
                         todaysCelebrations() { return this.celebrations.filter(e => e.date === this.current); },
                         todaysHolidays() { return this.holidays.filter(h => h.date === this.current); },
-                        upcomingEvents() { return this.events.filter(e => e.date >= this.current); },
+                        // Show events still running or upcoming (end >= today), one row each.
+                        upcomingEvents() { return this.events.filter(e => this.eventEnd(e) >= this.current); },
+                        eventEnd(e) { return e.end || e.date; },
+                        eventOngoing(e) { return this.current >= e.date && this.current <= this.eventEnd(e); },
+                        dm(ds) { return new Date(ds + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }); },
+                        eventWhen(e) {
+                            const end = this.eventEnd(e);
+                            if (e.date === end) { return e.date === this.current ? 'Today' : this.relDate(e.date); }
+                            const range = this.dm(e.date) + ' – ' + this.dm(end);
+                            return this.eventOngoing(e) ? ('In progress · ' + range) : range;
+                        },
                         count(key) {
                             if (key === 'celebrations') return this.todaysCelebrations().length;
                             if (key === 'holidays') return this.todaysHolidays().length;

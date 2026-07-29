@@ -9,6 +9,10 @@
     // and never counted absent.
     $realEmployeeIds = \App\Models\Employee::real()->pluck('user_id')->filter();
 
+    // Employees hidden from every attendance sheet/report — never shown as
+    // absent or late on the dashboard.
+    $attendanceHiddenIds = \App\Models\User::attendanceHiddenIds();
+
     $pendingApprovals = \App\Models\TimeOffRequest::where('status', 'pending')->count();
 
     // Today's snapshot
@@ -21,7 +25,8 @@
     $plannedLeave = $leaveToday->reject($isUnplanned)->pluck('user_id')->unique()->count();
     $onLeaveIds = $leaveToday->pluck('user_id')->unique();
 
-    $todayRecs = \App\Models\AttendanceRecord::whereDate('date', today())->get();
+    $todayRecs = \App\Models\AttendanceRecord::whereDate('date', today())
+        ->whereNotIn('user_id', $attendanceHiddenIds->all())->get();
     $lateToday = $todayRecs->where('status', 'late')->count();
     $presentIds = $todayRecs->whereIn('status', ['present', 'late', 'overtime', 'early_departure'])->pluck('user_id')->unique();
 
@@ -34,6 +39,7 @@
     // absent). Default schedule is Mon–Fri when none is assigned.
     $absentUserIds = \App\Models\User::active()
         ->whereIn('id', $realEmployeeIds->all())
+        ->whereNotIn('id', $attendanceHiddenIds->all())
         ->whereNotIn('id', $presentIds->all())
         ->whereNotIn('id', $onLeaveIds->all())
         ->with('workSchedule')
@@ -163,7 +169,7 @@
     <!-- Stats Cards Grid -->
     <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
         @foreach($statCards as $c)
-            <div class="relative overflow-hidden rounded-2xl bg-white border border-slate-200/80 p-6 shadow-sm hover:-translate-y-1 hover:shadow-md transition duration-200 dark:bg-slate-800 dark:border-slate-800">
+            <div class="relative rounded-2xl bg-white border border-slate-200/80 p-6 shadow-sm hover:-translate-y-1 hover:shadow-md transition duration-200 dark:bg-slate-800 dark:border-slate-800">
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-xs font-bold uppercase tracking-wider text-slate-400">{{ $c['label'] }}</p>
@@ -188,7 +194,7 @@
                         @if(count($c['people']) > 3)
                             <div class="relative">
                                 <button type="button" @click="open = !open" @click.outside="open = false" class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-500 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300">+{{ count($c['people']) - 3 }} more</button>
-                                <div x-show="open" x-cloak x-transition class="absolute z-20 mt-1 left-0 w-44 rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg dark:bg-slate-800 dark:border-slate-700 max-h-48 overflow-y-auto">
+                                <div x-show="open" x-cloak x-transition class="absolute z-30 bottom-full mb-1 left-0 w-44 rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl dark:bg-slate-800 dark:border-slate-700 max-h-48 overflow-y-auto">
                                     @foreach($c['people'] as $nm)
                                         <p class="px-2 py-1 text-[11px] text-slate-600 dark:text-slate-300 truncate">{{ $nm }}</p>
                                     @endforeach
