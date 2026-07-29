@@ -74,6 +74,8 @@
                 </div>
             </div>
 
+            {{-- Entity & Location filters — super admin only. --}}
+            @if($auth->isSuperAdmin())
             <!-- Entity Filter -->
             <div class="md:col-span-3">
                 <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Entity</label>
@@ -97,6 +99,7 @@
                     @endforeach
                 </select>
             </div>
+            @endif
 
             <!-- Department Filter -->
             <div class="md:col-span-4">
