@@ -50,6 +50,8 @@
             loading: true, error: '',
             init() { this.render(); },
             async render() {
+                if (this._rendered) return; // render the pages only once
+                this._rendered = true;
                 const lib = window.pdfjsLib;
                 if (!lib) { this.error = 'PDF viewer failed to load.'; this.loading = false; return; }
                 try {

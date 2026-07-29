@@ -24,7 +24,7 @@
 <script src="https://unpkg.com/pdfjs-dist@3.11.174/legacy/build/pdf.min.js"></script>
 <script>if (window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@3.11.174/legacy/build/pdf.worker.min.js';</script>
 
-<div class="max-w-5xl mx-auto space-y-5" x-data="signView()" x-init="init()">
+<div class="max-w-5xl mx-auto space-y-5" x-data="signView()">
     <div class="flex items-center gap-3">
         <a href="{{ route('documents.show', $documentRequest) }}" class="inline-flex h-9 w-9 items-center justify-center rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-700"><i data-lucide="arrow-left" class="h-5 w-5"></i></a>
         <div>
@@ -186,6 +186,8 @@
             },
 
             async loadPdf() {
+                if (this._rendering) return;   // never render the same canvases twice at once
+                this._rendering = true;
                 this.pdfLoading = true; this.pdfError = ''; this.pages = []; this.pdfReady = false; __pdfPages = [];
                 try {
                     const lib = window.pdfjsLib;
@@ -219,6 +221,8 @@
                 } catch (e) {
                     this.pdfReady = false; this.pdfLoading = false;
                     this.pdfError = 'Could not render the document (' + (e && e.message ? e.message : e) + ').';
+                } finally {
+                    this._rendering = false;
                 }
             },
 
