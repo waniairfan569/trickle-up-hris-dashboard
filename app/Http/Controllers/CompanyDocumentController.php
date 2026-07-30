@@ -191,12 +191,13 @@ class CompanyDocumentController extends Controller
                 ->withErrors(['file' => 'Couldn’t open this Word file for editing — please re-upload it, or upload a PDF.']);
         }
 
-        // Profile-field token names admins can type/insert into the text.
-        $tokenGroups = [
-            'Employee' => ['[Employee Name]', '[CNIC]', '[Designation]', '[Department]', '[Email]', '[Joining Date]'],
-            'Agreement' => ['[Date]', '[Salary]', '[Probation Salary]', '[Probation Start Date]', '[Probation End Date]'],
-            'Signatures' => ['[Employee Signature]', "[Sender's Signature]"],
-        ];
+        // Profile-field token names admins can insert — built from the standard
+        // fields PLUS every profile field, so newly-added fields appear here too.
+        $catalog = app(\App\Services\DocumentTokenService::class)->availableTokens();
+        $tokenGroups = [];
+        foreach ($catalog as $group => $items) {
+            $tokenGroups[$group] = array_map(fn ($i) => $i['token'], $items);
+        }
 
         // Fonts this document needs that the server can't render — the cause of
         // shifted layout in the converted PDF.

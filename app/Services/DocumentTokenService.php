@@ -89,6 +89,70 @@ class DocumentTokenService
             }
         }
 
+        // Every profile field defined for this employee is ALSO a token — by its
+        // display name AND its key — so a newly added field (e.g. a Compensation
+        // field like "Revised Gross Monthly Salary") works in documents with no
+        // code change. The hardcoded concepts above win on any shared spelling.
+        foreach ($subject->getAllProfileFields() as $field) {
+            $value = $subject->getFieldValue($field->key);
+            if ($value === null || $value === '' || is_array($value)) {
+                continue;
+            }
+            foreach (['[' . $field->name . ']', '[' . $field->key . ']'] as $spelling) {
+                if (!isset($tokens[$spelling])) {
+                    $tokens[$spelling] = (string) $value;
+                }
+            }
+        }
+
         return $tokens;
+    }
+
+    /**
+     * The catalog of tokens an admin can drop into a document, grouped for a
+     * copy-me reference. Built from the standard fields PLUS every profile field
+     * (grouped by its section), so any field added to the profile shows up here
+     * automatically. No subject needed — this lists what's *available*, not one
+     * person's values.
+     */
+    public function availableTokens(): array
+    {
+        $groups = [
+            'General' => [
+                ['label' => 'Employee name', 'token' => '[Employee Name]'],
+                ['label' => 'Designation / job title', 'token' => '[Designation]'],
+                ['label' => 'Department', 'token' => '[Department]'],
+                ['label' => 'Work email', 'token' => '[Email]'],
+                ['label' => 'CNIC', 'token' => '[CNIC]'],
+                ['label' => "Today's date", 'token' => '[Agreement Date]'],
+                ['label' => 'Joining date', 'token' => '[Joining Date]'],
+            ],
+        ];
+
+        $sections = \App\Models\ProfileSection::with(['fields' => fn ($q) => $q->orderBy('sort_order')])
+            ->orderBy('sort_order')->get();
+
+        $seen = [];
+        foreach ($sections as $section) {
+            $items = [];
+            foreach ($section->fields as $field) {
+                if (isset($seen[$field->key])) {
+                    continue;
+                }
+                $seen[$field->key] = true;
+                $items[] = ['label' => $field->name, 'token' => '[' . $field->name . ']'];
+            }
+            if (!empty($items)) {
+                $name = $section->name ?: 'Fields';
+                $groups[$name] = array_merge($groups[$name] ?? [], $items);
+            }
+        }
+
+        $groups['Signatures'] = [
+            ['label' => 'Employee signature', 'token' => '[Employee Signature]'],
+            ['label' => 'Company signature', 'token' => '[Company Signature]'],
+        ];
+
+        return $groups;
     }
 }

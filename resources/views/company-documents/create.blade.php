@@ -102,6 +102,9 @@
             </div>
         </div>
 
+        {{-- Token reference — what admins can drop into the Word/PDF. --}}
+        @include('company-documents.partials.token-reference')
+
         {{-- Access + Settings show only when EDITING. On a new upload, step 1 is
              just Details + File; access, signers and fields come in later steps. --}}
         @if($editing)
