@@ -56,12 +56,6 @@
         <span>Dashboard</span>
     </a>
 
-    <a href="{{ route('employees.index') }}"
-       class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ (Str::startsWith($routeName, 'employees') && !Str::endsWith($routeName, 'profile') && !Str::endsWith($routeName, 'pending-invitations') && !request()->is('employees/' . auth()->id() . '/profile*')) ? 'bg-brand-600 text-slate-900 shadow-md shadow-brand-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
-        <i data-lucide="users" class="h-4 w-4 shrink-0 transition {{ (Str::startsWith($routeName, 'employees') && !Str::endsWith($routeName, 'profile') && !Str::endsWith($routeName, 'pending-invitations') && !request()->is('employees/' . auth()->id() . '/profile*')) ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>
-        <span>Employees Directory</span>
-    </a>
-
     @if(auth()->user()->hasRole('super_admin') || auth()->user()->hasRole('hr_admin'))
     <a href="{{ route('employees.pending-invitations') }}"
        class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ Str::startsWith($routeName, 'employees.pending-invitations') ? 'bg-brand-600 text-slate-900 shadow-md shadow-brand-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
@@ -171,19 +165,40 @@
 </div>
 
 @role('manager,hr_admin,super_admin')
-<div class="mt-6 pt-6 border-t border-slate-850 space-y-1">
-    <div class="px-3 mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">Team Management</div>
-    
+@php
+    $teamOpen = collect(['attendance.live', 'attendance.on-leave', 'attendance.team', 'attendance.corrections', 'probation'])->contains(fn ($r) => Str::startsWith($routeName, $r))
+        || (Str::startsWith($routeName, 'employees') && !Str::endsWith($routeName, 'profile') && !Str::endsWith($routeName, 'pending-invitations') && !request()->is('employees/' . auth()->id() . '/profile*'));
+@endphp
+<div class="mt-6 pt-6 border-t border-slate-850" x-data="{ open: {{ $teamOpen ? 'true' : 'false' }} }">
+    <button type="button" @click="open = !open"
+       class="w-full flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ $teamOpen ? 'text-white bg-slate-800' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
+        <span class="flex items-center gap-x-3"><i data-lucide="users-round" class="h-4 w-4 shrink-0 transition {{ $teamOpen ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i> Team Management</span>
+        <i data-lucide="chevron-down" class="h-4 w-4 shrink-0 transition-transform" :class="open ? 'rotate-180' : ''"></i>
+    </button>
+    <div x-show="open" x-cloak class="mt-1 ml-4 pl-3 border-l border-slate-800 space-y-1">
+
     <a href="{{ route('attendance.live') }}" 
        class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ Str::startsWith($routeName, 'attendance.live') ? 'bg-brand-600 text-slate-900 shadow-md shadow-brand-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
         <i data-lucide="activity" class="h-4 w-4 shrink-0 transition {{ Str::startsWith($routeName, 'attendance.live') ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>
         <span>Live Board</span>
     </a>
 
+    <a href="{{ route('employees.index') }}"
+       class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ (Str::startsWith($routeName, 'employees') && !Str::endsWith($routeName, 'profile') && !Str::endsWith($routeName, 'pending-invitations') && !request()->is('employees/' . auth()->id() . '/profile*')) ? 'bg-brand-600 text-slate-900 shadow-md shadow-brand-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
+        <i data-lucide="users" class="h-4 w-4 shrink-0 transition {{ (Str::startsWith($routeName, 'employees') && !Str::endsWith($routeName, 'profile') && !Str::endsWith($routeName, 'pending-invitations') && !request()->is('employees/' . auth()->id() . '/profile*')) ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>
+        <span>Employees Directory</span>
+    </a>
+
     <a href="{{ route('attendance.on-leave') }}"
        class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ Str::startsWith($routeName, 'attendance.on-leave') ? 'bg-brand-600 text-slate-900 shadow-md shadow-brand-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
         <i data-lucide="palmtree" class="h-4 w-4 shrink-0 transition {{ Str::startsWith($routeName, 'attendance.on-leave') ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>
         <span>On Leave</span>
+    </a>
+
+    <a href="{{ route('attendance.team') }}"
+       class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ Str::startsWith($routeName, 'attendance.team') ? 'bg-brand-600 text-slate-900 shadow-md shadow-brand-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
+        <i data-lucide="clipboard-list" class="h-4 w-4 shrink-0 transition {{ Str::startsWith($routeName, 'attendance.team') ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>
+        <span>Team Attendance</span>
     </a>
 
     @if(auth()->user()->isAdmin())
@@ -194,18 +209,47 @@
     </a>
     @endif
 
-    <a href="{{ route('attendance.team') }}"
-       class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ Str::startsWith($routeName, 'attendance.team') ? 'bg-brand-600 text-slate-900 shadow-md shadow-brand-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
-        <i data-lucide="clipboard-list" class="h-4 w-4 shrink-0 transition {{ Str::startsWith($routeName, 'attendance.team') ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>
-        <span>Team Attendance</span>
-    </a>
-
     <a href="{{ route('attendance.corrections') }}" 
        class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ Str::startsWith($routeName, 'attendance.corrections') ? 'bg-brand-600 text-slate-900 shadow-md shadow-brand-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
         <i data-lucide="file-check-2" class="h-4 w-4 shrink-0 transition {{ Str::startsWith($routeName, 'attendance.corrections') ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>
         <span>Pending Corrections</span>
         {!! $navBadge($nav['corrections']) !!}
     </a>
+    </div>
+</div>
+@endrole
+
+<!-- Navigation Group: Communication -->
+@role('super_admin,hr_admin')
+@php $commOpen = Str::startsWith($routeName, 'announcements'); @endphp
+<div class="mt-6 pt-6 border-t border-slate-850" x-data="{ open: {{ $commOpen ? 'true' : 'false' }} }">
+    <button type="button" @click="open = !open"
+       class="w-full flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ $commOpen ? 'text-white bg-slate-800' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
+        <span class="flex items-center gap-x-3"><i data-lucide="megaphone" class="h-4 w-4 shrink-0 transition {{ $commOpen ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i> Communication</span>
+        <i data-lucide="chevron-down" class="h-4 w-4 shrink-0 transition-transform" :class="open ? 'rotate-180' : ''"></i>
+    </button>
+    <div x-show="open" x-cloak class="mt-1 ml-4 pl-3 border-l border-slate-800 space-y-1">
+        <a href="{{ route('announcements.index') }}" class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'announcements') ? 'bg-brand-600 text-slate-900 shadow-md shadow-brand-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
+            <i data-lucide="megaphone" class="h-4 w-4 shrink-0"></i><span class="flex-1">Announcements</span>
+        </a>
+    </div>
+</div>
+@endrole
+
+<!-- Navigation Group: Calendar & Events -->
+@role('super_admin,hr_admin')
+@php $calOpen = Str::startsWith($routeName, 'events'); @endphp
+<div class="mt-6 pt-6 border-t border-slate-850" x-data="{ open: {{ $calOpen ? 'true' : 'false' }} }">
+    <button type="button" @click="open = !open"
+       class="w-full flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ $calOpen ? 'text-white bg-slate-800' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
+        <span class="flex items-center gap-x-3"><i data-lucide="calendar-days" class="h-4 w-4 shrink-0 transition {{ $calOpen ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i> Calendar &amp; Events</span>
+        <i data-lucide="chevron-down" class="h-4 w-4 shrink-0 transition-transform" :class="open ? 'rotate-180' : ''"></i>
+    </button>
+    <div x-show="open" x-cloak class="mt-1 ml-4 pl-3 border-l border-slate-800 space-y-1">
+        <a href="{{ route('events.index') }}" class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'events') ? 'bg-brand-600 text-slate-900 shadow-md shadow-brand-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
+            <i data-lucide="calendar-heart" class="h-4 w-4 shrink-0"></i><span class="flex-1">Events</span>
+        </a>
+    </div>
 </div>
 @endrole
 
@@ -233,12 +277,6 @@
             <a href="{{ route('billing.index') }}" class="block rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'billing') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">Billing &amp; Plans</a>
         </div>
     </div>
-
-    <a href="{{ route('announcements.index') }}"
-       class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ Str::startsWith($routeName, 'announcements') ? 'bg-brand-600 text-slate-900 shadow-md shadow-brand-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
-        <i data-lucide="megaphone" class="h-4 w-4 shrink-0 transition {{ Str::startsWith($routeName, 'announcements') ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>
-        <span>Announcements</span>
-    </a>
 
     <a href="{{ route('departments.index') }}"
        class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ Str::startsWith($routeName, 'departments') ? 'bg-brand-600 text-slate-900 shadow-md shadow-brand-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
@@ -277,12 +315,6 @@
             <a href="{{ route('shifts.index') }}" class="block rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'shifts.index') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">Shift Management</a>
         </div>
     </div>
-
-    <a href="{{ route('events.index') }}"
-       class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ Str::startsWith($routeName, 'events') ? 'bg-brand-600 text-slate-900 shadow-md shadow-brand-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
-        <i data-lucide="calendar-heart" class="h-4 w-4 shrink-0 transition {{ Str::startsWith($routeName, 'events') ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>
-        <span>Events</span>
-    </a>
 
     @php
         $attnOpen = collect(['attendance-reports', 'employees.attendance-mode'])->contains(fn ($r) => Str::startsWith($routeName, $r));
