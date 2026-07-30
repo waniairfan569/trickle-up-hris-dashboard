@@ -73,8 +73,26 @@
 </div>
 
 <!-- Navigation Group: My Workspace (everything related to me) -->
-<div class="mt-6 pt-6 border-t border-slate-850 space-y-1">
-    <div class="px-3 mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">My Workspace</div>
+@php
+    $myWorkspaceOpen = (Str::startsWith($routeName, 'employees.profile') || request()->is('employees/' . auth()->id() . '/profile*'))
+        || Str::startsWith($routeName, 'account.security')
+        || Str::startsWith($routeName, 'attendance.my-history')
+        || Str::startsWith($routeName, 'shifts.my-schedule')
+        || (Str::startsWith($routeName, 'time-off') && !Str::contains($routeName, 'policies'))
+        || Str::startsWith($routeName, 'performance')
+        || Str::startsWith($routeName, 'my-forms') || Str::startsWith($routeName, 'forms.')
+        || Str::startsWith($routeName, 'company-forms.my-reviews')
+        || Str::startsWith($routeName, 'my-policies') || Str::startsWith($routeName, 'policies.')
+        || request()->routeIs('equipment.index')
+        || Str::startsWith($routeName, 'document-library') || Str::startsWith($routeName, 'documents.');
+@endphp
+<div class="mt-6 pt-6 border-t border-slate-850" x-data="{ open: {{ $myWorkspaceOpen ? 'true' : 'false' }} }">
+    <button type="button" @click="open = !open"
+       class="w-full flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ $myWorkspaceOpen ? 'text-white bg-slate-800' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
+        <span class="flex items-center gap-x-3"><i data-lucide="briefcase" class="h-4 w-4 shrink-0 transition {{ $myWorkspaceOpen ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i> My Workspace</span>
+        <i data-lucide="chevron-down" class="h-4 w-4 shrink-0 transition-transform" :class="open ? 'rotate-180' : ''"></i>
+    </button>
+    <div x-show="open" x-cloak class="mt-1 ml-4 pl-3 border-l border-slate-800 space-y-1">
 
     <a href="{{ route('employees.profile', auth()->id()) }}"
        class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ (Str::startsWith($routeName, 'employees.profile') || request()->is('employees/' . auth()->id() . '/profile*')) ? 'bg-brand-600 text-slate-900 shadow-md shadow-brand-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
@@ -149,6 +167,7 @@
         <span>Document Library</span>
         {!! $navBadge($nav['sign'] ?? 0) !!}
     </a>
+    </div>
 </div>
 
 @role('manager,hr_admin,super_admin')
