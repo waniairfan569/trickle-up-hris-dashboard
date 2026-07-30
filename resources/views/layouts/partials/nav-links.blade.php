@@ -40,7 +40,7 @@
         : '';
 @endphp
 
-<!-- Navigation Group: Core -->
+<!-- Navigation Group: Primary -->
 <div class="space-y-1">
     @if(optional(auth()->user())->isOperator())
     <a href="{{ route('operator.index') }}"
@@ -56,7 +56,27 @@
         <span>Dashboard</span>
     </a>
 
-    <a href="{{ route('employees.profile', auth()->id()) }}" 
+    <a href="{{ route('employees.index') }}"
+       class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ (Str::startsWith($routeName, 'employees') && !Str::endsWith($routeName, 'profile') && !Str::endsWith($routeName, 'pending-invitations') && !request()->is('employees/' . auth()->id() . '/profile*')) ? 'bg-brand-600 text-slate-900 shadow-md shadow-brand-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
+        <i data-lucide="users" class="h-4 w-4 shrink-0 transition {{ (Str::startsWith($routeName, 'employees') && !Str::endsWith($routeName, 'profile') && !Str::endsWith($routeName, 'pending-invitations') && !request()->is('employees/' . auth()->id() . '/profile*')) ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>
+        <span>Employees Directory</span>
+    </a>
+
+    @if(auth()->user()->hasRole('super_admin') || auth()->user()->hasRole('hr_admin'))
+    <a href="{{ route('employees.pending-invitations') }}"
+       class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ Str::startsWith($routeName, 'employees.pending-invitations') ? 'bg-brand-600 text-slate-900 shadow-md shadow-brand-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
+        <i data-lucide="mail-warning" class="h-4 w-4 shrink-0 transition {{ Str::startsWith($routeName, 'employees.pending-invitations') ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>
+        <span>Pending Invitations</span>
+        {!! $navBadge($nav['invites']) !!}
+    </a>
+    @endif
+</div>
+
+<!-- Navigation Group: My Workspace (everything related to me) -->
+<div class="mt-6 pt-6 border-t border-slate-850 space-y-1">
+    <div class="px-3 mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">My Workspace</div>
+
+    <a href="{{ route('employees.profile', auth()->id()) }}"
        class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ (Str::startsWith($routeName, 'employees.profile') || request()->is('employees/' . auth()->id() . '/profile*')) ? 'bg-brand-600 text-slate-900 shadow-md shadow-brand-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
         <i data-lucide="user" class="h-4 w-4 shrink-0 transition {{ (Str::startsWith($routeName, 'employees.profile') || request()->is('employees/' . auth()->id() . '/profile*')) ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>
         <span>My Profile</span>
@@ -70,38 +90,23 @@
     </a>
     @endrole
 
-    <a href="{{ route('employees.index') }}"
-       class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ (Str::startsWith($routeName, 'employees') && !Str::endsWith($routeName, 'profile') && !Str::endsWith($routeName, 'pending-invitations') && !request()->is('employees/' . auth()->id() . '/profile*')) ? 'bg-brand-600 text-slate-900 shadow-md shadow-brand-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
-        <i data-lucide="users" class="h-4 w-4 shrink-0 transition {{ (Str::startsWith($routeName, 'employees') && !Str::endsWith($routeName, 'profile') && !Str::endsWith($routeName, 'pending-invitations') && !request()->is('employees/' . auth()->id() . '/profile*')) ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>
-        <span>Employees Directory</span>
-    </a>
-
-    @if(auth()->user()->hasRole('super_admin') || auth()->user()->hasRole('hr_admin'))
-    <a href="{{ route('employees.pending-invitations') }}" 
-       class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ Str::startsWith($routeName, 'employees.pending-invitations') ? 'bg-brand-600 text-slate-900 shadow-md shadow-brand-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
-        <i data-lucide="mail-warning" class="h-4 w-4 shrink-0 transition {{ Str::startsWith($routeName, 'employees.pending-invitations') ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>
-        <span>Pending Invitations</span>
-        {!! $navBadge($nav['invites']) !!}
-    </a>
-    @endif
-
-    <a href="{{ route('time-off.index') }}" 
-       class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ (Str::startsWith($routeName, 'time-off') && !Str::contains($routeName, 'policies')) ? 'bg-brand-600 text-slate-900 shadow-md shadow-brand-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
-        <i data-lucide="calendar" class="h-4 w-4 shrink-0 transition {{ (Str::startsWith($routeName, 'time-off') && !Str::contains($routeName, 'policies')) ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>
-        <span>Time Off Requests</span>
-        {!! $navBadge($nav['timeoff']) !!}
-    </a>
-
-    <a href="{{ route('attendance.my-history') }}" 
+    <a href="{{ route('attendance.my-history') }}"
        class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ Str::startsWith($routeName, 'attendance.my-history') ? 'bg-brand-600 text-slate-900 shadow-md shadow-brand-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
         <i data-lucide="clock" class="h-4 w-4 shrink-0 transition {{ Str::startsWith($routeName, 'attendance.my-history') ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>
         <span>My Attendance</span>
     </a>
 
-    <a href="{{ route('shifts.my-schedule') }}" 
+    <a href="{{ route('shifts.my-schedule') }}"
        class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ Str::startsWith($routeName, 'shifts.my-schedule') ? 'bg-brand-600 text-slate-900 shadow-md shadow-brand-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
         <i data-lucide="calendar-clock" class="h-4 w-4 shrink-0 transition {{ Str::startsWith($routeName, 'shifts.my-schedule') ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>
         <span>My Schedule</span>
+    </a>
+
+    <a href="{{ route('time-off.index') }}"
+       class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ (Str::startsWith($routeName, 'time-off') && !Str::contains($routeName, 'policies')) ? 'bg-brand-600 text-slate-900 shadow-md shadow-brand-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
+        <i data-lucide="calendar" class="h-4 w-4 shrink-0 transition {{ (Str::startsWith($routeName, 'time-off') && !Str::contains($routeName, 'policies')) ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>
+        <span>Time Off Requests</span>
+        {!! $navBadge($nav['timeoff']) !!}
     </a>
 
     <a href="{{ route('performance.index') }}"
@@ -109,8 +114,6 @@
         <i data-lucide="award" class="h-4 w-4 shrink-0 transition {{ Str::startsWith($routeName, 'performance') ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>
         <span>Performance Reviews</span>
     </a>
-
-    {{-- "Documents" (sign inbox) merged into Document Library below. --}}
 
     <a href="{{ route('my-forms.index') }}"
        class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ (Str::startsWith($routeName, 'my-forms') || Str::startsWith($routeName, 'forms.')) ? 'bg-brand-600 text-slate-900 shadow-md shadow-brand-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
