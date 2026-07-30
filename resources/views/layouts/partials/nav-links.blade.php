@@ -57,7 +57,8 @@
     </a>
 </div>
 
-<!-- Navigation Group: My Workspace (everything related to me) -->
+<!-- Navigation Group: Menu (personal / team / comms) — one divider, evenly spaced groups -->
+<div class="mt-6 pt-6 border-t border-slate-850 space-y-1">
 @php
     $myWorkspaceOpen = (Str::startsWith($routeName, 'employees.profile') || request()->is('employees/' . auth()->id() . '/profile*'))
         || Str::startsWith($routeName, 'attendance.my-history')
@@ -70,7 +71,7 @@
         || request()->routeIs('equipment.index')
         || Str::startsWith($routeName, 'document-library') || Str::startsWith($routeName, 'documents.');
 @endphp
-<div class="mt-6 pt-6 border-t border-slate-850" x-data="{ open: {{ $myWorkspaceOpen ? 'true' : 'false' }} }">
+<div x-data="{ open: {{ $myWorkspaceOpen ? 'true' : 'false' }} }">
     <button type="button" @click="open = !open"
        class="w-full flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ $myWorkspaceOpen ? 'text-white bg-slate-800' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
         <span class="flex items-center gap-x-3"><i data-lucide="briefcase" class="h-4 w-4 shrink-0 transition {{ $myWorkspaceOpen ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i> My Workspace</span>
@@ -132,7 +133,7 @@
     $teamOpen = collect(['attendance.live', 'attendance.on-leave', 'attendance.team', 'attendance.corrections', 'probation'])->contains(fn ($r) => Str::startsWith($routeName, $r))
         || (Str::startsWith($routeName, 'employees') && !Str::endsWith($routeName, 'profile') && !Str::endsWith($routeName, 'pending-invitations') && !request()->is('employees/' . auth()->id() . '/profile*'));
 @endphp
-<div class="mt-6 pt-6 border-t border-slate-850" x-data="{ open: {{ $teamOpen ? 'true' : 'false' }} }">
+<div x-data="{ open: {{ $teamOpen ? 'true' : 'false' }} }">
     <button type="button" @click="open = !open"
        class="w-full flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ $teamOpen ? 'text-white bg-slate-800' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
         <span class="flex items-center gap-x-3"><i data-lucide="users-round" class="h-4 w-4 shrink-0 transition {{ $teamOpen ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i> Team Management</span>
@@ -173,7 +174,7 @@
 <!-- Navigation Group: Communication -->
 @role('super_admin,hr_admin')
 @php $commOpen = Str::startsWith($routeName, 'announcements'); @endphp
-<div class="mt-6 pt-6 border-t border-slate-850" x-data="{ open: {{ $commOpen ? 'true' : 'false' }} }">
+<div x-data="{ open: {{ $commOpen ? 'true' : 'false' }} }">
     <button type="button" @click="open = !open"
        class="w-full flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ $commOpen ? 'text-white bg-slate-800' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
         <span class="flex items-center gap-x-3"><i data-lucide="megaphone" class="h-4 w-4 shrink-0 transition {{ $commOpen ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i> Communication</span>
@@ -190,7 +191,7 @@
 <!-- Navigation Group: Calendar & Events -->
 @role('super_admin,hr_admin')
 @php $calOpen = Str::startsWith($routeName, 'events'); @endphp
-<div class="mt-6 pt-6 border-t border-slate-850" x-data="{ open: {{ $calOpen ? 'true' : 'false' }} }">
+<div x-data="{ open: {{ $calOpen ? 'true' : 'false' }} }">
     <button type="button" @click="open = !open"
        class="w-full flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ $calOpen ? 'text-white bg-slate-800' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
         <span class="flex items-center gap-x-3"><i data-lucide="calendar-days" class="h-4 w-4 shrink-0 transition {{ $calOpen ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i> Calendar &amp; Events</span>
@@ -203,6 +204,8 @@
     </div>
 </div>
 @endrole
+</div>
+{{-- end Menu section --}}
 
 <!-- Navigation Group: Administration -->
 @role('super_admin,hr_admin')
