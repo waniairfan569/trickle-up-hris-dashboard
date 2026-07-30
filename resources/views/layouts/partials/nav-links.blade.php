@@ -233,20 +233,20 @@
         <div x-show="open" x-cloak class="mt-1 ml-4 pl-3 border-l border-slate-800 space-y-1">
             <div x-data="{ open: {{ $companySettingsOpen ? 'true' : 'false' }} }">
                 <button type="button" @click="open = !open" class="w-full flex items-center justify-between rounded-lg px-3 py-2 text-sm font-semibold transition {{ $companySettingsOpen ? 'text-white' : 'text-slate-400 hover:text-white' }}">
-                    <span>Company Settings</span>
+                    <span class="flex items-center gap-x-3"><i data-lucide="settings" class="h-4 w-4 shrink-0"></i> Company Settings</span>
                     <i data-lucide="chevron-down" class="h-3.5 w-3.5 shrink-0 transition-transform" :class="open ? 'rotate-180' : ''"></i>
                 </button>
                 <div x-show="open" x-cloak class="mt-1 ml-3 pl-3 border-l border-slate-800/60 space-y-1">
-                    <a href="{{ route('company-entities.index') }}" class="block rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'company-entities') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">General</a>
-                    <a href="{{ route('company-forms.index') }}" class="block rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'company-forms') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">Company Forms</a>
-                    <a href="{{ route('company-policies.index') }}" class="block rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'company-policies') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">Company Policies</a>
-                    <a href="{{ route('company-documents.admin') }}" class="block rounded-lg px-3 py-2 text-sm font-semibold transition {{ (Str::startsWith($routeName, 'company-documents') || Str::startsWith($routeName, 'document-categories')) ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">Company Documents</a>
-                    <a href="{{ route('workspace.branding') }}" class="block rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'workspace.branding') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">Workspace Branding</a>
-                    <a href="{{ route('billing.index') }}" class="block rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'billing') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">Billing &amp; Plans</a>
+                    <a href="{{ route('company-entities.index') }}" class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'company-entities') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}"><i data-lucide="building-2" class="h-4 w-4 shrink-0"></i><span class="flex-1">General</span></a>
+                    <a href="{{ route('company-forms.index') }}" class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'company-forms') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}"><i data-lucide="clipboard-list" class="h-4 w-4 shrink-0"></i><span class="flex-1">Company Forms</span></a>
+                    <a href="{{ route('company-policies.index') }}" class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'company-policies') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}"><i data-lucide="book-text" class="h-4 w-4 shrink-0"></i><span class="flex-1">Company Policies</span></a>
+                    <a href="{{ route('company-documents.admin') }}" class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ (Str::startsWith($routeName, 'company-documents') || Str::startsWith($routeName, 'document-categories')) ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}"><i data-lucide="file-text" class="h-4 w-4 shrink-0"></i><span class="flex-1">Company Documents</span></a>
+                    <a href="{{ route('workspace.branding') }}" class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'workspace.branding') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}"><i data-lucide="palette" class="h-4 w-4 shrink-0"></i><span class="flex-1">Workspace Branding</span></a>
+                    <a href="{{ route('billing.index') }}" class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'billing') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}"><i data-lucide="credit-card" class="h-4 w-4 shrink-0"></i><span class="flex-1">Billing &amp; Plans</span></a>
                 </div>
             </div>
-            <a href="{{ route('departments.index') }}" class="block rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'departments') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">Departments</a>
-            <a href="{{ route('office-locations.index') }}" class="block rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'office-locations') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">Office Locations</a>
+            <a href="{{ route('departments.index') }}" class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'departments') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}"><i data-lucide="network" class="h-4 w-4 shrink-0"></i><span class="flex-1">Departments</span></a>
+            <a href="{{ route('office-locations.index') }}" class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'office-locations') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}"><i data-lucide="map-pin" class="h-4 w-4 shrink-0"></i><span class="flex-1">Office Locations</span></a>
         </div>
     </div>
 
@@ -258,8 +258,8 @@
             <i data-lucide="chevron-down" class="h-4 w-4 shrink-0 transition-transform" :class="open ? 'rotate-180' : ''"></i>
         </button>
         <div x-show="open" x-cloak class="mt-1 ml-4 pl-3 border-l border-slate-800 space-y-1">
-            <a href="{{ route('profile-templates.index') }}" class="block rounded-lg px-3 py-2 text-sm font-semibold transition {{ (Str::startsWith($routeName, 'profile-templates') || Str::startsWith($routeName, 'profile-sections') || Str::startsWith($routeName, 'profile-fields')) ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">Profile Templates</a>
-            <a href="{{ route('signature-templates.index') }}" class="block rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'signature-templates') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">Signature Templates</a>
+            <a href="{{ route('profile-templates.index') }}" class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ (Str::startsWith($routeName, 'profile-templates') || Str::startsWith($routeName, 'profile-sections') || Str::startsWith($routeName, 'profile-fields')) ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}"><i data-lucide="user-cog" class="h-4 w-4 shrink-0"></i><span class="flex-1">Profile Templates</span></a>
+            <a href="{{ route('signature-templates.index') }}" class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'signature-templates') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}"><i data-lucide="signature" class="h-4 w-4 shrink-0"></i><span class="flex-1">Signature Templates</span></a>
         </div>
     </div>
 
@@ -273,25 +273,25 @@
         <div x-show="open" x-cloak class="mt-1 ml-4 pl-3 border-l border-slate-800 space-y-1">
             <div x-data="{ open: {{ $timeSettingsOpen ? 'true' : 'false' }} }">
                 <button type="button" @click="open = !open" class="w-full flex items-center justify-between rounded-lg px-3 py-2 text-sm font-semibold transition {{ $timeSettingsOpen ? 'text-white' : 'text-slate-400 hover:text-white' }}">
-                    <span>Time Settings</span>
+                    <span class="flex items-center gap-x-3"><i data-lucide="timer" class="h-4 w-4 shrink-0"></i> Time Settings</span>
                     <i data-lucide="chevron-down" class="h-3.5 w-3.5 shrink-0 transition-transform" :class="open ? 'rotate-180' : ''"></i>
                 </button>
                 <div x-show="open" x-cloak class="mt-1 ml-3 pl-3 border-l border-slate-800/60 space-y-1">
-                    <a href="{{ route('time-off-policies.index') }}" class="block rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'time-off-policies') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">Time Off Policies</a>
-                    <a href="{{ route('leave-year-settings.index') }}" class="block rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'leave-year-settings') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">Leave Year &amp; Encashment</a>
-                    <a href="{{ route('leave-encashments.index') }}" class="block rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'leave-encashments.index') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">Encashment Records</a>
-                    <a href="{{ route('time-tracking-policies.index') }}" class="block rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'time-tracking-policies') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">Time Tracking</a>
-                    <a href="{{ route('shifts.index') }}" class="block rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'shifts.index') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">Shift Management</a>
+                    <a href="{{ route('time-off-policies.index') }}" class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'time-off-policies') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}"><i data-lucide="calendar" class="h-4 w-4 shrink-0"></i><span class="flex-1">Time Off Policies</span></a>
+                    <a href="{{ route('leave-year-settings.index') }}" class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'leave-year-settings') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}"><i data-lucide="calendar-days" class="h-4 w-4 shrink-0"></i><span class="flex-1">Leave Year &amp; Encashment</span></a>
+                    <a href="{{ route('leave-encashments.index') }}" class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'leave-encashments.index') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}"><i data-lucide="wallet" class="h-4 w-4 shrink-0"></i><span class="flex-1">Encashment Records</span></a>
+                    <a href="{{ route('time-tracking-policies.index') }}" class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'time-tracking-policies') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}"><i data-lucide="clock" class="h-4 w-4 shrink-0"></i><span class="flex-1">Time Tracking</span></a>
+                    <a href="{{ route('shifts.index') }}" class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'shifts.index') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}"><i data-lucide="calendar-clock" class="h-4 w-4 shrink-0"></i><span class="flex-1">Shift Management</span></a>
                 </div>
             </div>
             <div x-data="{ open: {{ $attnOpen ? 'true' : 'false' }} }">
                 <button type="button" @click="open = !open" class="w-full flex items-center justify-between rounded-lg px-3 py-2 text-sm font-semibold transition {{ $attnOpen ? 'text-white' : 'text-slate-400 hover:text-white' }}">
-                    <span>Attendance</span>
+                    <span class="flex items-center gap-x-3"><i data-lucide="calendar-check" class="h-4 w-4 shrink-0"></i> Attendance</span>
                     <i data-lucide="chevron-down" class="h-3.5 w-3.5 shrink-0 transition-transform" :class="open ? 'rotate-180' : ''"></i>
                 </button>
                 <div x-show="open" x-cloak class="mt-1 ml-3 pl-3 border-l border-slate-800/60 space-y-1">
-                    <a href="{{ route('attendance-reports.settings') }}" class="block rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'attendance-reports') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">Attendance Reports</a>
-                    <a href="{{ route('employees.attendance-mode') }}" class="block rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'employees.attendance-mode') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">Attendance Mode</a>
+                    <a href="{{ route('attendance-reports.settings') }}" class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'attendance-reports') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}"><i data-lucide="bar-chart-3" class="h-4 w-4 shrink-0"></i><span class="flex-1">Attendance Reports</span></a>
+                    <a href="{{ route('employees.attendance-mode') }}" class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'employees.attendance-mode') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}"><i data-lucide="sliders-horizontal" class="h-4 w-4 shrink-0"></i><span class="flex-1">Attendance Mode</span></a>
                 </div>
             </div>
         </div>
@@ -305,10 +305,10 @@
             <i data-lucide="chevron-down" class="h-4 w-4 shrink-0 transition-transform" :class="open ? 'rotate-180' : ''"></i>
         </button>
         <div x-show="open" x-cloak class="mt-1 ml-4 pl-3 border-l border-slate-800 space-y-1">
-            <a href="{{ route('account.security') }}" class="block rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'account.security') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">Security</a>
-            <a href="{{ route('roles.index') }}" class="block rounded-lg px-3 py-2 text-sm font-semibold transition {{ request()->routeIs('roles.*') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">Roles &amp; Permissions</a>
-            <a href="{{ route('admin.sessions.index') }}" class="block rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'admin.sessions') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">Active Sessions</a>
-            <a href="{{ route('admin.audit-logs') }}" class="block rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'admin.audit-logs') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">System Audit Logs</a>
+            <a href="{{ route('account.security') }}" class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'account.security') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}"><i data-lucide="lock" class="h-4 w-4 shrink-0"></i><span class="flex-1">Security</span></a>
+            <a href="{{ route('roles.index') }}" class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ request()->routeIs('roles.*') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}"><i data-lucide="shield" class="h-4 w-4 shrink-0"></i><span class="flex-1">Roles &amp; Permissions</span></a>
+            <a href="{{ route('admin.sessions.index') }}" class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'admin.sessions') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}"><i data-lucide="monitor-smartphone" class="h-4 w-4 shrink-0"></i><span class="flex-1">Active Sessions</span></a>
+            <a href="{{ route('admin.audit-logs') }}" class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'admin.audit-logs') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}"><i data-lucide="history" class="h-4 w-4 shrink-0"></i><span class="flex-1">System Audit Logs</span></a>
         </div>
     </div>
 
@@ -320,7 +320,7 @@
             <i data-lucide="chevron-down" class="h-4 w-4 shrink-0 transition-transform" :class="open ? 'rotate-180' : ''"></i>
         </button>
         <div x-show="open" x-cloak class="mt-1 ml-4 pl-3 border-l border-slate-800 space-y-1">
-            <a href="{{ route('zkteco.dashboard') }}" class="block rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'zkteco') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">ZKTeco Devices</a>
+            <a href="{{ route('zkteco.dashboard') }}" class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'zkteco') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}"><i data-lucide="fingerprint" class="h-4 w-4 shrink-0"></i><span class="flex-1">ZKTeco Devices</span></a>
         </div>
     </div>
 </div>
