@@ -60,32 +60,7 @@
     <!-- Geofence Status Badge -->
     <div id="geofence-status" class="hidden text-xs font-medium py-1.5 px-3 rounded-md mt-2"></div>
 
-    @if($bioMode)
-        @php $bioUid = (string) (auth()->user()->zkteco_uid ?: auth()->user()->id); @endphp
-        <!-- Biometric ID badge (QR of the device UID) -->
-        <div class="mt-3 flex items-center gap-4 rounded-xl border border-indigo-100 bg-indigo-50/50 p-3 dark:border-indigo-500/20 dark:bg-indigo-500/5">
-            <div id="bio-qr" class="shrink-0 rounded-lg bg-white p-1.5 shadow-sm"></div>
-            <div class="min-w-0">
-                <p class="text-xs font-bold text-indigo-700 dark:text-indigo-300 flex items-center gap-1"><i data-lucide="fingerprint" class="h-3.5 w-3.5"></i> Biometric clock-in</p>
-                <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Clock in &amp; out on the fingerprint / face device. Your device ID:</p>
-                <p class="text-sm font-mono font-bold text-slate-800 dark:text-white">{{ $bioUid }}</p>
-            </div>
-        </div>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-        <script>
-            (function () {
-                function renderBioQR() {
-                    var el = document.getElementById('bio-qr');
-                    if (el && window.QRCode && !el.dataset.done) {
-                        new QRCode(el, { text: @json($bioUid), width: 72, height: 72, correctLevel: QRCode.CorrectLevel.M });
-                        el.dataset.done = '1';
-                    }
-                }
-                if (document.readyState !== 'loading') renderBioQR();
-                else document.addEventListener('DOMContentLoaded', renderBioQR);
-            })();
-        </script>
-    @endif
+    {{-- Biometric QR card removed — the "Clock in on the biometric device" note in the header is enough. --}}
 </div>
 
 <script>
@@ -108,7 +83,7 @@
     // Render the live clock in the employee's EFFECTIVE timezone, not the
     // browser's local timezone.
     const userTz = '{{ app(\App\Services\TimezoneService::class)->getEffectiveTimezone(auth()->user()) }}';
-    const liveTimeFmt = new Intl.DateTimeFormat('en-GB', { timeZone: userTz, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+    const liveTimeFmt = new Intl.DateTimeFormat('en-US', { timeZone: userTz, hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true });
     const liveDateFmt = new Intl.DateTimeFormat('en-US', { timeZone: userTz, weekday: 'long', month: 'long', day: 'numeric' });
 
     function updateClock() {
@@ -117,7 +92,7 @@
             document.getElementById('live-time').innerText = liveTimeFmt.format(now);
             document.getElementById('live-date').innerText = liveDateFmt.format(now);
         } catch (e) {
-            document.getElementById('live-time').innerText = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
+            document.getElementById('live-time').innerText = now.toLocaleTimeString('en-US', {hour: 'numeric', minute:'2-digit', second:'2-digit', hour12: true});
             document.getElementById('live-date').innerText = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
         }
 
