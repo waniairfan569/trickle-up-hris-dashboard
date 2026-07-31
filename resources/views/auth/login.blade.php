@@ -131,6 +131,12 @@
                     </div>
                 </div>
 
+                <!-- Remember me -->
+                <label class="flex items-center gap-2 cursor-pointer select-none">
+                    <input type="checkbox" name="remember" value="1" class="h-4 w-4 rounded border-slate-700 bg-slate-950/60 text-brand-500 focus:ring-brand-500 focus:ring-offset-0">
+                    <span class="text-[11px] font-semibold text-slate-400">Keep me signed in on this device</span>
+                </label>
+
                 <!-- Submit Button -->
                 <button type="submit" class="w-full inline-flex justify-center items-center gap-x-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-xs font-extrabold text-slate-900 py-4 shadow-lg shadow-brand-500/20 transition duration-150">
                     <span>Authenticate Console Session</span>

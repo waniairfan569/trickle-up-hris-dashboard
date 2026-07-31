@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Simple page + auth actions that were previously inline route closures.
@@ -29,20 +32,33 @@ class PageController extends Controller
             'password' => 'required',
         ]);
 
-        // Always "remember" so the session persists for the full lifetime.
-        if (Auth::attempt($credentials, true)) {
-            // Block archived (deactivated) / suspended accounts from signing in.
-            if (in_array(Auth::user()->account_status, ['deactivated', 'suspended'], true)) {
+        // Brute-force protection: lock out after repeated failures per email+IP.
+        $throttleKey = Str::transliterate(Str::lower($request->input('email')) . '|' . $request->ip());
+        if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
+            $seconds = RateLimiter::availableIn($throttleKey);
+            throw ValidationException::withMessages([
+                'email' => "Too many login attempts. Please try again in {$seconds} second" . ($seconds === 1 ? '' : 's') . '.',
+            ]);
+        }
+
+        // "Remember me" is opt-in (unchecked → session ends per the session lifetime).
+        if (Auth::attempt($credentials, $request->boolean('remember'))) {
+            // Block accounts that aren't allowed to sign in yet / anymore.
+            if (in_array(Auth::user()->account_status, ['deactivated', 'suspended', 'invited'], true)) {
                 Auth::logout();
                 $request->session()->invalidate();
                 $request->session()->regenerateToken();
                 return back()->withErrors([
-                    'email' => 'This account has been deactivated. Please contact your administrator.',
+                    'email' => 'This account is not active. Please contact your administrator.',
                 ]);
             }
+            RateLimiter::clear($throttleKey);
             $request->session()->regenerate();
             return redirect()->intended('/dashboard');
         }
+
+        // Failed attempt — count it toward the lockout (decays after 60s).
+        RateLimiter::hit($throttleKey, 60);
 
         return back()->withErrors([
             'email' => 'The provided credentials do not match our records.',

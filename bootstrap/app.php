@@ -37,6 +37,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             \App\Http\Middleware\SetCurrentTenant::class,
             \App\Http\Middleware\SetUserTimezone::class,
+            \App\Http\Middleware\SecurityHeaders::class,
         ]);
         $middleware->api(prepend: [
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,

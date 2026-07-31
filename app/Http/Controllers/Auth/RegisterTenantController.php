@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Tenancy\TenantProvisioner;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rules\Password;
 
 class RegisterTenantController extends Controller
 {
@@ -23,7 +24,7 @@ class RegisterTenantController extends Controller
             'first_name' => 'required|string|max:80',
             'last_name' => 'required|string|max:80',
             'email' => 'required|email|max:150|unique:users,email',
-            'password' => 'required|string|min:8|confirmed',
+            'password' => ['required', 'confirmed', Password::min(8)->letters()->numbers()->symbols()],
         ], [
             'email.unique' => 'That email is already registered. Try logging in instead.',
         ]);
