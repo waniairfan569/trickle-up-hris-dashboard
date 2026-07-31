@@ -20,6 +20,35 @@
         <div class="rounded-xl bg-rose-50 p-4 border border-rose-200 text-sm text-rose-700 dark:bg-rose-500/10 dark:border-rose-500/20"><ul class="list-disc pl-5">@foreach($errors->all() as $e)<li>{{ $e }}</li>@endforeach</ul></div>
     @endif
 
+    <!-- Change password -->
+    <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 dark:bg-slate-800 dark:border-slate-700">
+        <div class="flex items-start gap-3 mb-4">
+            <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-500/10"><i data-lucide="key-round" class="h-5 w-5"></i></span>
+            <div>
+                <h2 class="text-sm font-bold text-slate-800 dark:text-white">Change password</h2>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Use at least 8 characters with letters, numbers and a symbol.</p>
+            </div>
+        </div>
+        <form method="POST" action="{{ route('password.update') }}" class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            @csrf
+            <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Current password</label>
+                <input type="password" name="current_password" required autocomplete="current-password" class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">New password</label>
+                <input type="password" name="password" required autocomplete="new-password" class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Confirm new</label>
+                <input type="password" name="password_confirmation" required autocomplete="new-password" class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+            </div>
+            <div class="sm:col-span-3">
+                <button type="submit" class="rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-bold text-slate-900 hover:bg-brand-700">Update password</button>
+            </div>
+        </form>
+    </div>
+
     <!-- Active sessions -->
     <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm dark:bg-slate-800 dark:border-slate-700">
         <div class="px-5 py-4 border-b border-slate-100 dark:border-slate-700/60">
