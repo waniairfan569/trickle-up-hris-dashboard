@@ -79,35 +79,37 @@
             </div>
             <div>
                 <template x-for="(week, wi) in monthMatrix()" :key="wi">
-                    <div class="grid grid-cols-7">
-                        <template x-for="cell in week" :key="cell.key">
-                            <button type="button" @click="selectDay(cell.key)"
-                                    class="relative min-h-[92px] border-b border-r border-slate-100 p-1.5 text-left transition hover:bg-slate-50 dark:border-slate-700/60 dark:hover:bg-slate-700/30"
-                                    :class="[
-                                        cell.inMonth ? '' : 'bg-slate-50/40 dark:bg-slate-900/30',
-                                        cell.leaves.length ? 'bg-brand-50/50 dark:bg-brand-500/5' : '',
-                                        selected === cell.key ? 'ring-2 ring-inset ring-brand-500' : ''
-                                    ]">
-                                <div class="flex items-center justify-between">
+                    <div class="relative">
+                        {{-- Day cells (background + click target + day number) --}}
+                        <div class="grid grid-cols-7">
+                            <template x-for="cell in week" :key="cell.key">
+                                <button type="button" @click="selectDay(cell.key)"
+                                        class="relative min-h-[116px] border-b border-r border-slate-100 p-1.5 text-left transition hover:bg-slate-50 dark:border-slate-700/60 dark:hover:bg-slate-700/30"
+                                        :class="[
+                                            cell.inMonth ? '' : 'bg-slate-50/40 dark:bg-slate-900/30',
+                                            cell.leaves.length ? 'bg-brand-50/40 dark:bg-brand-500/5' : '',
+                                            selected === cell.key ? 'ring-2 ring-inset ring-brand-500' : ''
+                                        ]">
                                     <span class="inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold"
                                           :class="cell.isToday ? 'bg-brand-600 text-slate-900' : (cell.inMonth ? 'text-slate-700 dark:text-slate-300' : 'text-slate-300 dark:text-slate-600')"
                                           x-text="cell.day"></span>
-                                    <span x-show="cell.leaves.length" class="h-1.5 w-1.5 rounded-full bg-brand-500"></span>
+                                    <span x-show="cell.leaves.length > 4" class="absolute bottom-1 left-2 text-[10px] font-bold text-slate-400"
+                                          x-text="'+' + (cell.leaves.length - 4) + ' more'"></span>
+                                </button>
+                            </template>
+                        </div>
+                        {{-- Continuous leave bars: one bar per leave, spanning its days --}}
+                        <div class="pointer-events-none absolute inset-x-0 top-8 grid grid-cols-7" style="grid-auto-rows:17px;row-gap:3px;">
+                            <template x-for="bar in weekBars(week)" :key="bar.key">
+                                <div class="mx-1 flex items-center overflow-hidden px-1.5 text-[10px] font-semibold"
+                                     :class="[colorFor(bar.leave.name).chip, bar.continuesLeft ? 'rounded-l-none' : 'rounded-l-md', bar.continuesRight ? 'rounded-r-none' : 'rounded-r-md']"
+                                     :style="`grid-column:${bar.startCol} / ${bar.endCol};grid-row:${bar.lane + 1};height:15px;`"
+                                     :title="bar.leave.name + ' · ' + bar.leave.policy">
+                                    <span class="h-1.5 w-1.5 rounded-full shrink-0 mr-1" :class="colorFor(bar.leave.name).dot" x-show="!bar.continuesLeft"></span>
+                                    <span class="truncate" x-show="!bar.continuesLeft" x-text="bar.leave.name"></span>
                                 </div>
-                                {{-- initials chips --}}
-                                <div class="mt-1 space-y-0.5" x-show="cell.leaves.length">
-                                    <template x-for="lv in cell.leaves.slice(0,3)" :key="lv.id">
-                                        <div class="flex items-center gap-1 rounded px-1 py-0.5 text-[10px] font-semibold truncate"
-                                             :class="colorFor(lv.name).chip">
-                                            <span class="h-1.5 w-1.5 rounded-full shrink-0" :class="colorFor(lv.name).dot"></span>
-                                            <span class="truncate" x-text="lv.name"></span>
-                                        </div>
-                                    </template>
-                                    <div x-show="cell.leaves.length > 3" class="px-1 text-[10px] font-bold text-slate-400"
-                                         x-text="'+' + (cell.leaves.length - 3) + ' more'"></div>
-                                </div>
-                            </button>
-                        </template>
+                            </template>
+                        </div>
                     </div>
                 </template>
             </div>
@@ -282,6 +284,38 @@
 
             leavesOn(key) {
                 return this.filtered.filter(l => l.start <= key && key <= l.end);
+            },
+
+            // Continuous bars for a week: each leave becomes ONE bar spanning the
+            // days it covers within this week (clamped to the week), packed into
+            // lanes so they don't overlap. Up to 4 lanes; the rest show as
+            // "+N more" on the day cells.
+            weekBars(week) {
+                const wStart = week[0].key, wEnd = week[6].key;
+                const list = this.filtered
+                    .filter(l => !(l.end < wStart || l.start > wEnd))
+                    .slice()
+                    .sort((a, b) => a.start.localeCompare(b.start) || b.end.localeCompare(a.end) || a.name.localeCompare(b.name));
+                const laneEnd = [];   // laneEnd[lane] = grid-column where that lane is next free
+                const bars = [];
+                const MAX = 4;
+                for (const l of list) {
+                    const sIdx = l.start <= wStart ? 0 : week.findIndex(d => d.key === l.start);
+                    const eIdx = l.end >= wEnd ? 6 : week.findIndex(d => d.key === l.end);
+                    if (sIdx < 0 || eIdx < 0) continue;
+                    const startCol = sIdx + 1, endCol = eIdx + 2;   // grid-column end is exclusive
+                    let lane = 0;
+                    while (lane < laneEnd.length && laneEnd[lane] > startCol) lane++;
+                    if (lane >= MAX) continue;                       // overflow -> "+N more" on the cell
+                    laneEnd[lane] = endCol;
+                    bars.push({
+                        key: l.id + ':' + startCol + ':' + lane,
+                        leave: l, startCol, endCol, lane,
+                        continuesLeft: l.start < wStart,
+                        continuesRight: l.end > wEnd,
+                    });
+                }
+                return bars;
             },
 
             monthMatrix() {

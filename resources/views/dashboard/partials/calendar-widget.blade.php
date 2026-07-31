@@ -87,7 +87,7 @@
         <div x-show="tab === 'celebrations'">
             <template x-if="todaysCelebrations().length === 0"><p class="text-xs font-semibold text-slate-400 text-center mt-10">No celebrations on this day</p></template>
             <div class="space-y-3">
-                <template x-for="c in todaysCelebrations()" :key="c.name + c.type + c.date">
+                <template x-for="c in todaysCelebrations()" :key="c.name + c.type + (c.md || c.date || '')">
                     <div class="flex items-center gap-3">
                         <template x-if="c.avatar"><img :src="c.avatar" class="h-9 w-9 rounded-xl object-cover ring-1 ring-slate-100 dark:ring-slate-700"></template>
                         <template x-if="!c.avatar"><div class="h-9 w-9 rounded-xl bg-gradient-to-br from-brand-400 to-indigo-500 flex items-center justify-center text-white text-[11px] font-bold" x-text="c.initials"></div></template>
@@ -155,7 +155,20 @@
             celebrations: window.__celebrations || [],
             events: window.__events || [],
             holidays: window.__holidays || [],
-            todaysCelebrations() { return this.celebrations.filter(e => e.date === this.current); },
+            todaysCelebrations() {
+                const cur = this.current, md = cur.slice(5), yr = parseInt(cur.slice(0, 4), 10);
+                const out = [];
+                this.celebrations.forEach(e => {
+                    if (e.type === 'new_joiner') { if (e.date === cur) out.push(e); return; }
+                    if (e.md !== md) return;                              // birthday / anniversary recur on month-day
+                    if (e.type === 'anniversary') {
+                        const years = yr - (e.year || yr);
+                        if (years < 1) return;
+                        out.push({ ...e, label: years + ' year' + (years > 1 ? 's' : '') + ' at the company' });
+                    } else { out.push(e); }
+                });
+                return out;
+            },
             todaysHolidays() { return this.holidays.filter(h => h.date === this.current); },
             // Show events still running or upcoming (end >= today), one row each.
             upcomingEvents() { return this.events.filter(e => this.eventEnd(e) >= this.current); },

@@ -154,29 +154,8 @@ class DashboardController extends Controller
      */
     protected function upcomingCelebrations()
     {
-        $today = today();
-        $windowStart = $today->copy()->subDays(31);
-        $windowEnd = $today->copy()->addDays(60);
-
         $people = \App\Models\User::where('account_status', '!=', 'deactivated')
             ->get(['id', 'first_name', 'last_name', 'avatar_url', 'date_of_birth', 'hire_date', 'joined_at']);
-
-        // Find the occurrence of a month/day that falls inside the window (this year, ±1).
-        $occurrence = function ($month, $day) use ($today, $windowStart, $windowEnd) {
-            foreach ([$today->year - 1, $today->year, $today->year + 1] as $yr) {
-                try {
-                    $occ = \Carbon\Carbon::create($yr, (int) $month, (int) $day)->startOfDay();
-                } catch (\Throwable $e) {
-                    continue;
-                }
-                if ($occ->betweenIncluded($windowStart, $windowEnd)) {
-                    return $occ;
-                }
-            }
-            return null;
-        };
-
-        $items = collect();
 
         // Safely parse a possibly-malformed date value; null if unparseable.
         $safeParse = function ($value) {
@@ -190,30 +169,25 @@ class DashboardController extends Controller
             }
         };
 
+        // Birthdays and anniversaries RECUR every year, so we send the month-day
+        // ("md") and let the calendar match it against whatever date is shown —
+        // that way every birthday appears on its date no matter how far the user
+        // navigates. New-joiner is a one-off, so it keeps its exact date.
+        $items = collect();
         foreach ($people as $p) {
             $name = trim($p->first_name . ' ' . $p->last_name) ?: 'Employee';
             $base = ['name' => $name, 'initials' => $p->initials, 'avatar' => $p->avatar_url];
 
             if ($dob = $safeParse($p->date_of_birth)) {
-                if ($occ = $occurrence($dob->month, $dob->day)) {
-                    $items->push(array_merge($base, ['date' => $occ->toDateString(), 'type' => 'birthday', 'label' => 'Birthday']));
-                }
+                $items->push(array_merge($base, ['type' => 'birthday', 'md' => $dob->format('m-d'), 'label' => 'Birthday']));
             }
 
             if ($s = $safeParse($p->hire_date ?? $p->joined_at)) {
-                if ($occ = $occurrence($s->month, $s->day)) {
-                    $years = $occ->year - $s->year;
-                    if ($years >= 1) {
-                        $items->push(array_merge($base, ['date' => $occ->toDateString(), 'type' => 'anniversary', 'label' => $years . ' year' . ($years > 1 ? 's' : '') . ' at the company']));
-                    }
-                }
-                // New joiner — the actual join date, when it falls in the window.
-                if ($s->betweenIncluded($windowStart, $windowEnd)) {
-                    $items->push(array_merge($base, ['date' => $s->toDateString(), 'type' => 'new_joiner', 'label' => 'Joined the team']));
-                }
+                $items->push(array_merge($base, ['type' => 'anniversary', 'md' => $s->format('m-d'), 'year' => (int) $s->year, 'label' => 'Work anniversary']));
+                $items->push(array_merge($base, ['type' => 'new_joiner', 'date' => $s->toDateString(), 'label' => 'Joined the team']));
             }
         }
 
-        return $items->sortBy('date')->values();
+        return $items->values();
     }
 }
