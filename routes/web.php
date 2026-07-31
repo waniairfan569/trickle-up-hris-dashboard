@@ -488,6 +488,7 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
         Route::resource('shifts', ShiftController::class)->except(['create', 'edit', 'show']);
         Route::post('shifts/{shift}/set-default', [ShiftController::class, 'setDefault'])->name('shifts.set-default');
         Route::post('shifts/{shift}/assign-all', [ShiftController::class, 'assignToAll'])->name('shifts.assign-all');
+        Route::post('shifts/{shift}/assign-selected', [ShiftController::class, 'assignToSelected'])->name('shifts.assign-selected');
         
         Route::post('employees/{employee}/shifts/assign-single', [ShiftAssignmentController::class, 'assignSingle'])->name('employees.shifts.assign.single');
         Route::post('employees/{employee}/shifts/assign-recurring', [ShiftAssignmentController::class, 'assignRecurring'])->name('employees.shifts.assign.recurring');

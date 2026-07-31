@@ -129,6 +129,9 @@
                             </form>
                         @endif
 
+                        <button type="button" @click="openAssign({{ $shift->id }}, {{ Illuminate\Support\Js::from($shift->name) }})"
+                                class="text-slate-700 hover:text-brand-600 border border-slate-300 hover:border-brand-400 bg-white px-2 py-1 text-sm font-medium rounded">Assign to some</button>
+
                         <form action="{{ route('shifts.assign-all', $shift) }}" method="POST" onsubmit="return confirm('This will assign this shift to all employees without a current shift. Continue?');">
                             @csrf
                             <button type="submit" class="text-white bg-slate-800 hover:bg-slate-900 px-2 py-1 text-sm font-medium rounded shadow-sm">Assign to all</button>
@@ -268,6 +271,55 @@
             </div>
         </div>
     </div>
+
+    <!-- Assign to specific employees modal -->
+    <div x-show="assignOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-slate-900/50" @click="assignOpen = false"></div>
+        <div class="relative flex w-full max-w-lg max-h-[85vh] flex-col rounded-2xl bg-white shadow-xl dark:bg-slate-800">
+            <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4 dark:border-slate-700/60">
+                <h2 class="text-base font-extrabold text-slate-900 dark:text-white">Assign “<span x-text="assignShiftName"></span>” to employees</h2>
+                <button type="button" @click="assignOpen = false" class="text-slate-400 hover:text-slate-700"><i data-lucide="x" class="h-5 w-5"></i></button>
+            </div>
+            <form :action="`/shifts/${assignShiftId}/assign-selected`" method="POST" class="flex min-h-0 flex-1 flex-col">
+                @csrf
+                <template x-for="uid in selectedUsers" :key="uid"><input type="hidden" name="user_ids[]" :value="uid"></template>
+
+                <div class="border-b border-slate-100 p-4 dark:border-slate-700/60">
+                    <div class="relative">
+                        <i data-lucide="search" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"></i>
+                        <input type="text" x-model="assignSearch" placeholder="Search by name or email…"
+                               class="w-full rounded-xl border border-slate-300 py-2.5 pl-9 pr-3 text-sm focus:border-brand-500 focus:ring-brand-500 dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                    </div>
+                    <div class="mt-2 flex items-center justify-between text-xs">
+                        <span class="font-bold text-slate-500 dark:text-slate-400"><span x-text="selectedUsers.length"></span> selected</span>
+                        <div class="flex gap-3">
+                            <button type="button" @click="selectAllVisible()" class="font-bold text-brand-600 hover:text-brand-700">Select all shown</button>
+                            <button type="button" @click="selectedUsers = []" class="font-bold text-slate-500 hover:text-slate-700">Clear</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="min-h-0 flex-1 overflow-y-auto p-2">
+                    <template x-for="emp in filteredEmployees()" :key="emp.id">
+                        <label class="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-700/40">
+                            <input type="checkbox" :value="emp.id" x-model="selectedUsers" class="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500">
+                            <div class="min-w-0">
+                                <div class="truncate text-sm font-semibold text-slate-800 dark:text-white" x-text="emp.name"></div>
+                                <div class="truncate text-xs text-slate-400" x-text="emp.email"></div>
+                            </div>
+                        </label>
+                    </template>
+                    <div x-show="filteredEmployees().length === 0" class="py-8 text-center text-sm text-slate-400">No employees found.</div>
+                </div>
+
+                <div class="flex items-center justify-end gap-2 border-t border-slate-100 p-4 dark:border-slate-700/60">
+                    <button type="button" @click="assignOpen = false" class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200">Cancel</button>
+                    <button type="submit" :disabled="selectedUsers.length === 0" :class="selectedUsers.length === 0 && 'opacity-50 cursor-not-allowed'"
+                            class="rounded-xl bg-brand-600 px-5 py-2 text-sm font-bold text-slate-900 hover:bg-brand-700">Assign to <span x-text="selectedUsers.length"></span></button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -276,6 +328,31 @@ function shiftManager() {
         showForm: false,
         isEditing: false,
         formAction: '{{ route("shifts.store") }}',
+
+        // --- Assign to specific employees ---
+        employees: @js($employees ?? []),
+        assignOpen: false,
+        assignShiftId: null,
+        assignShiftName: '',
+        assignSearch: '',
+        selectedUsers: [],
+        openAssign(id, name) {
+            this.assignShiftId = id;
+            this.assignShiftName = name;
+            this.selectedUsers = [];
+            this.assignSearch = '';
+            this.assignOpen = true;
+            this.$nextTick(() => window.lucide && lucide.createIcons());
+        },
+        filteredEmployees() {
+            const q = this.assignSearch.trim().toLowerCase();
+            if (!q) return this.employees;
+            return this.employees.filter(e => e.name.toLowerCase().includes(q) || (e.email || '').toLowerCase().includes(q));
+        },
+        selectAllVisible() {
+            this.filteredEmployees().forEach(e => { if (!this.selectedUsers.includes(e.id)) this.selectedUsers.push(e.id); });
+        },
+
         form: {
             name: '',
             start_time: '09:00',

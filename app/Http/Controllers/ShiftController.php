@@ -14,7 +14,17 @@ class ShiftController extends Controller
         $shifts = Shift::withCount('assignments')->get();
         $defaultShift = Shift::getDefault();
 
-        return view('shifts.index', compact('shifts', 'defaultShift'));
+        // Employees available to hand-pick when assigning a shift to some people.
+        $employees = User::where('account_status', '!=', 'deactivated')
+            ->orderBy('first_name')->orderBy('last_name')
+            ->get(['id', 'first_name', 'last_name', 'email'])
+            ->map(fn ($u) => [
+                'id' => $u->id,
+                'name' => trim($u->first_name . ' ' . $u->last_name) ?: 'Employee',
+                'email' => $u->email,
+            ])->values();
+
+        return view('shifts.index', compact('shifts', 'defaultShift', 'employees'));
     }
 
     public function store(Request $request)
@@ -110,5 +120,31 @@ class ShiftController extends Controller
         }
 
         return back()->with('success', "Shift assigned to {$count} employees without an existing shift.");
+    }
+
+    /** Assign this shift to a hand-picked set of employees (replaces their current shift). */
+    public function assignToSelected(Request $request, Shift $shift, ShiftService $shiftService)
+    {
+        $validated = $request->validate([
+            'user_ids' => 'required|array|min:1',
+            'user_ids.*' => 'integer|exists:users,id',
+        ]);
+
+        $users = User::whereIn('id', $validated['user_ids'])
+            ->where('account_status', '!=', 'deactivated')
+            ->get();
+
+        $count = 0;
+        foreach ($users as $user) {
+            $shiftService->assignShift($user, $shift, [
+                'assignment_type' => 'recurring',
+                'recurring_start_date' => now()->toDateString(),
+                'recurring_days' => $shift->working_days ?? ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
+                'notes' => 'Assigned to selected employees via Shift Management',
+            ]);
+            $count++;
+        }
+
+        return back()->with('success', "Shift assigned to {$count} selected employee" . ($count === 1 ? '' : 's') . '.');
     }
 }
