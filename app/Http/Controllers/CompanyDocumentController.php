@@ -407,6 +407,19 @@ class CompanyDocumentController extends Controller
             ? $saved
             : array_merge(app(\App\Services\DocumentTokenService::class)->profileTokens($user), $saved);
 
+        // Hide signature placeholders on the read view so a raw [Employee
+        // Signature] never shows as text — the signing flow is what stamps a
+        // signature; when only reading, the token is blanked out.
+        foreach ([
+            '[Employee Signature]', "[Employee's Signature]", '[Candidate Signature]', '[candidate_signature]',
+            '[Company Signature]', "[Sender's Signature]", "[Sender's signature]", '[Sender Signature]',
+            '[company_signature]', '[Authorised Signature]', '[Authorized Signature]',
+        ] as $sig) {
+            if (!array_key_exists($sig, $tokens)) {
+                $tokens[$sig] = '';
+            }
+        }
+
         // Only offer the fill-in form when acknowledgment is required and the
         // person hasn't acknowledged yet.
         $canFill = $document->requires_acknowledgment && !$ack;

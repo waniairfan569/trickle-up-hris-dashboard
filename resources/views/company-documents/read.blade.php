@@ -231,7 +231,8 @@
                     layer.innerHTML = '';
                     const work = { full: idx.full };
                     for (const f of this.empFields) {
-                        this.matchDraw(idx, work, f.token, (this.fieldValues[f.token] || '').trim(), layer, true);
+                        // Highlight blanks only while filling; on a plain view just hide the token.
+                        this.matchDraw(idx, work, f.token, (this.fieldValues[f.token] || '').trim(), layer, this.canFill);
                     }
                 }
             },
