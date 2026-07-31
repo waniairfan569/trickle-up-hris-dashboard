@@ -397,6 +397,7 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
         Route::get('company-documents/create', [\App\Http\Controllers\CompanyDocumentController::class, 'create'])->name('company-documents.create');
         Route::post('company-documents', [\App\Http\Controllers\CompanyDocumentController::class, 'store'])->name('company-documents.store');
         Route::get('company-documents/{document}/acknowledgments', [\App\Http\Controllers\CompanyDocumentController::class, 'acknowledgments'])->name('company-documents.acknowledgments');
+        Route::get('company-documents/{document}/signing', [\App\Http\Controllers\CompanyDocumentController::class, 'signing'])->name('company-documents.signing');
         Route::get('company-documents/{document}/edit', [\App\Http\Controllers\CompanyDocumentController::class, 'edit'])->name('company-documents.edit');
         Route::get('company-documents/{document}/edit-content', [\App\Http\Controllers\CompanyDocumentController::class, 'editContent'])->name('company-documents.edit-content');
         Route::post('company-documents/{document}/convert', [\App\Http\Controllers\CompanyDocumentController::class, 'convertToPdf'])->name('company-documents.convert');

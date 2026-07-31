@@ -105,12 +105,12 @@
                                         : collect();
                                 @endphp
                                 @if($sentTo->count())
-                                    <div class="flex flex-col gap-0.5 max-w-[170px]">
+                                    <a href="{{ route('company-documents.signing', $doc) }}" title="See who signed / who is pending" class="group flex flex-col gap-0.5 max-w-[180px]">
                                         @foreach($sentTo->take(2) as $nm)
-                                            <span class="truncate text-xs font-semibold text-slate-600 dark:text-slate-300">{{ $nm }}</span>
+                                            <span class="truncate text-xs font-semibold text-slate-600 group-hover:text-brand-600 dark:text-slate-300">{{ $nm }}</span>
                                         @endforeach
-                                        @if($sentTo->count() > 2)<span class="text-[10px] font-bold text-slate-400">+{{ $sentTo->count() - 2 }} more</span>@endif
-                                    </div>
+                                        <span class="text-[10px] font-bold text-brand-600 group-hover:underline">{{ $sentTo->count() > 2 ? '+' . ($sentTo->count() - 2) . ' more · view all' : 'View all' }}</span>
+                                    </a>
                                 @else
                                     <span class="text-slate-300">—</span>
                                 @endif
@@ -138,6 +138,7 @@
                                              :style="style" class="z-[60] overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-xl dark:bg-slate-800 dark:border-slate-700">
                                             @if($doc->requires_signature && $doc->template_id)
                                                 <a href="{{ route('company-documents.send-form', $doc) }}" class="flex items-center gap-2.5 px-3.5 py-2 text-xs font-bold text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-500/10"><i data-lucide="send" class="h-3.5 w-3.5"></i> Send for signature</a>
+                                                <a href="{{ route('company-documents.signing', $doc) }}" class="flex items-center gap-2.5 px-3.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-700"><i data-lucide="list-checks" class="h-3.5 w-3.5"></i> Signing status</a>
                                             @endif
                                             <a href="{{ route('document-library.view', $doc) }}" target="_blank" class="flex items-center gap-2.5 px-3.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-700"><i data-lucide="eye" class="h-3.5 w-3.5"></i> View</a>
                                             <a href="{{ route('document-library.download', $doc) }}" class="flex items-center gap-2.5 px-3.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-700"><i data-lucide="download" class="h-3.5 w-3.5"></i> Download</a>

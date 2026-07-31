@@ -563,6 +563,51 @@ class CompanyDocumentController extends Controller
     }
 
     /** Admin: who has and hasn't acknowledged a document. */
+    /** Per-recipient signing status: who signed, who is still pending. */
+    public function signing(CompanyDocument $document)
+    {
+        abort_unless($document->requires_signature && $document->template_id, 404);
+
+        $document->load([
+            'template.requests' => fn ($q) => $q->latest('id'),
+            'template.requests.subject.department',
+            'template.requests.signers.user',
+        ]);
+
+        $requests = optional($document->template)->requests ?? collect();
+
+        $rows = $requests->map(function ($r) {
+            $total = $r->signers->count();
+            $signed = $r->signers->where('status', 'signed')->count();
+            $tones = [
+                'completed' => ['Signed', 'emerald'],
+                'declined' => ['Declined', 'rose'],
+                'cancelled' => ['Cancelled', 'slate'],
+            ];
+            [$label, $tone] = $tones[$r->status] ?? ["Awaiting · {$signed}/{$total} signed", 'amber'];
+
+            return [
+                'request' => $r,
+                'subject' => $r->subject,
+                'status' => $r->status,
+                'label' => $label,
+                'tone' => $tone,
+                'signed' => $signed,
+                'total' => $total,
+                'sent_at' => $r->created_at,
+            ];
+        });
+
+        $stats = [
+            'total' => $rows->count(),
+            'signed' => $rows->where('status', 'completed')->count(),
+            'declined' => $rows->where('status', 'declined')->count(),
+            'pending' => $rows->whereNotIn('status', ['completed', 'declined', 'cancelled'])->count(),
+        ];
+
+        return view('company-documents.signing', compact('document', 'rows', 'stats'));
+    }
+
     public function acknowledgments(CompanyDocument $document)
     {
         $eligible = $document->eligibleUsers();
