@@ -3,138 +3,133 @@
 @section('content')
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" x-data="shiftManager()">
     <!-- Header -->
-    <div class="flex justify-between items-center mb-6">
+    <div class="mb-6 flex flex-col gap-4 border-b border-slate-200/80 pb-5 sm:flex-row sm:items-center sm:justify-between dark:border-slate-700/60">
         <div>
-            <h1 class="text-2xl font-bold text-slate-800">Shift Management</h1>
-            <p class="text-sm text-slate-500 mt-1">Define work shifts and set the default shift for new employees</p>
+            <h1 class="flex items-center gap-2 text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+                <i data-lucide="calendar-clock" class="h-6 w-6 text-brand-500"></i> Shift Management
+            </h1>
+            <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Define work shifts and set the default shift for new employees.</p>
         </div>
-        <button @click="openCreateForm()" class="bg-brand-600 hover:bg-brand-700 text-white font-bold py-2 px-4 rounded-lg shadow-sm transition">
-            + Create New Shift
+        <button @click="openCreateForm()" class="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-bold text-slate-900 shadow-md shadow-brand-500/20 transition hover:bg-brand-700">
+            <i data-lucide="plus" class="h-4 w-4"></i> Create New Shift
         </button>
     </div>
 
     @if(session('success'))
-        <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-6">
-            {{ session('success') }}
+        <div class="mb-6 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-400">
+            <i data-lucide="check-circle" class="h-5 w-5 shrink-0"></i> {{ session('success') }}
         </div>
     @endif
 
     @if(session('error'))
-        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-6">
-            {{ session('error') }}
+        <div class="mb-6 flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-400">
+            <i data-lucide="alert-triangle" class="h-5 w-5 shrink-0"></i> {{ session('error') }}
         </div>
     @endif
 
     <!-- Default Shift Banner -->
     @if($defaultShift)
-        <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-8 flex items-start">
-            <div class="bg-amber-100 p-2 rounded-lg mr-4">
-                <i data-lucide="star" class="w-6 h-6 text-amber-600"></i>
+        <div class="mb-8 flex items-start gap-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-500/20 dark:bg-amber-500/5">
+            <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400">
+                <i data-lucide="star" class="h-5 w-5"></i>
             </div>
             <div>
-                <h3 class="text-amber-800 font-bold text-lg flex items-center">
+                <h3 class="flex flex-wrap items-center gap-x-2 text-base font-extrabold text-amber-800 dark:text-amber-300">
                     Default shift: {{ $defaultShift->name }}
-                    <span class="ml-2 text-sm font-medium">· {{ substr($defaultShift->start_time, 0, 5) }} – {{ substr($defaultShift->end_time, 0, 5) }}</span>
-                    <span class="ml-2 text-sm font-medium">· {{ implode(', ', $defaultShift->working_days ?? []) }}</span>
+                    <span class="text-sm font-semibold text-amber-700/80 dark:text-amber-300/70">· {{ substr($defaultShift->start_time, 0, 5) }} – {{ substr($defaultShift->end_time, 0, 5) }}</span>
+                    <span class="text-sm font-semibold text-amber-700/80 dark:text-amber-300/70">· {{ implode(', ', $defaultShift->working_days ?? []) }}</span>
                 </h3>
-                <p class="text-amber-700 text-sm mt-1">All new employees are automatically assigned this shift.</p>
+                <p class="mt-0.5 text-sm text-amber-700 dark:text-amber-400/80">All new employees are automatically assigned this shift.</p>
             </div>
         </div>
     @else
-        <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-8 flex items-start">
-            <div class="bg-yellow-100 p-2 rounded-lg mr-4">
-                <i data-lucide="alert-triangle" class="w-6 h-6 text-yellow-600"></i>
+        <div class="mb-8 flex items-start gap-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-500/20 dark:bg-amber-500/5">
+            <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400">
+                <i data-lucide="alert-triangle" class="h-5 w-5"></i>
             </div>
             <div>
-                <h3 class="text-yellow-800 font-bold text-lg">No default shift set</h3>
-                <p class="text-yellow-700 text-sm mt-1">New employees will have no shift until manually assigned.</p>
+                <h3 class="text-base font-extrabold text-amber-800 dark:text-amber-300">No default shift set</h3>
+                <p class="mt-0.5 text-sm text-amber-700 dark:text-amber-400/80">New employees will have no shift until manually assigned.</p>
             </div>
         </div>
     @endif
 
     <!-- Shifts Grid -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+    <div class="mb-12 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
         @foreach($shifts as $shift)
-            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col relative">
-                <!-- Color left border accent -->
-                <div class="absolute left-0 top-0 bottom-0 w-2" style="background-color: {{ $shift->color }}"></div>
-                
-                <div class="p-6 pl-8 flex-grow">
-                    <div class="flex justify-between items-start mb-2">
-                        <h3 class="text-xl font-bold text-slate-800">{{ $shift->name }}</h3>
-                        <div class="flex space-x-1">
+            @php
+                $start = \Carbon\Carbon::parse($shift->start_time);
+                $end = \Carbon\Carbon::parse($shift->end_time);
+                if ($shift->crosses_midnight) $end->addDay();
+                $durationLabel = rtrim(rtrim(number_format($start->diffInMinutes($end) / 60, 1), '0'), '.');
+                $canDelete = !$shift->is_default && $shift->assignments_count == 0;
+            @endphp
+            <div class="group relative flex flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-700 dark:bg-slate-800">
+                <div class="absolute inset-y-0 left-0 w-1.5" style="background-color: {{ $shift->color }}"></div>
+
+                <div class="flex-1 p-5 pl-7">
+                    <div class="flex items-start justify-between gap-2">
+                        <h3 class="text-lg font-extrabold text-slate-900 dark:text-white">{{ $shift->name }}</h3>
+                        <div class="flex flex-wrap justify-end gap-1">
                             @if($shift->is_default)
-                                <span class="bg-amber-100 text-amber-800 text-xs font-bold px-2 py-1 rounded-md flex items-center" title="Default Shift">
-                                    <i data-lucide="star" class="w-3 h-3 mr-1"></i> Default
-                                </span>
+                                <span class="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700 dark:bg-amber-500/15 dark:text-amber-300"><i data-lucide="star" class="h-3 w-3"></i> Default</span>
                             @endif
                             @if($shift->auto_assign_to_new_employees)
-                                <span class="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-1 rounded-md flex items-center" title="Auto Assign">
-                                    <i data-lucide="user-plus" class="w-3 h-3 mr-1"></i> Auto
-                                </span>
+                                <span class="inline-flex items-center gap-1 rounded-full bg-sky-100 px-2 py-0.5 text-[10px] font-bold text-sky-700 dark:bg-sky-500/15 dark:text-sky-300"><i data-lucide="user-plus" class="h-3 w-3"></i> Auto</span>
                             @endif
                         </div>
                     </div>
 
-                    <div class="text-2xl font-light text-slate-700 mb-2">
-                        {{ substr($shift->start_time, 0, 5) }} – {{ substr($shift->end_time, 0, 5) }}
-                        @if($shift->crosses_midnight)
-                            <span class="text-sm text-slate-400 font-medium align-top">⁺¹</span>
-                        @endif
+                    <div class="mt-3 flex items-center gap-2">
+                        <span class="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">{{ substr($shift->start_time, 0, 5) }}</span>
+                        <i data-lucide="arrow-right" class="h-4 w-4 text-slate-300 dark:text-slate-600"></i>
+                        <span class="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">{{ substr($shift->end_time, 0, 5) }}</span>
+                        @if($shift->crosses_midnight)<span class="self-start text-xs font-bold text-slate-400">+1</span>@endif
                     </div>
 
-                    <div class="text-sm text-slate-500 mb-4 space-y-1">
-                        @php
-                            $start = \Carbon\Carbon::parse($shift->start_time);
-                            $end = \Carbon\Carbon::parse($shift->end_time);
-                            if ($shift->crosses_midnight) $end->addDay();
-                            $durationHours = $start->diffInMinutes($end) / 60;
-                        @endphp
-                        <p class="flex items-center">
-                            <i data-lucide="clock" class="w-4 h-4 mr-2 text-slate-400"></i>
-                            {{ rtrim(rtrim(number_format($durationHours, 1), '0'), '.') }} hours 
-                            (includes {{ $shift->break_minutes }} min break)
-                        </p>
-                        <p class="flex items-center">
-                            <i data-lucide="users" class="w-4 h-4 mr-2 text-slate-400"></i>
-                            {{ $shift->assignments_count }} employees on this shift
-                        </p>
+                    <div class="mt-3 flex flex-wrap gap-2">
+                        <span class="inline-flex items-center gap-1.5 rounded-lg bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-600 dark:bg-slate-900/50 dark:text-slate-300">
+                            <i data-lucide="clock" class="h-3.5 w-3.5 text-slate-400"></i> {{ $durationLabel }} hrs · {{ $shift->break_minutes }}m break
+                        </span>
+                        <span class="inline-flex items-center gap-1.5 rounded-lg bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-600 dark:bg-slate-900/50 dark:text-slate-300">
+                            <i data-lucide="users" class="h-3.5 w-3.5 text-slate-400"></i> {{ $shift->assignments_count }} on this shift
+                        </span>
                     </div>
 
-                    <div class="flex flex-wrap gap-1 mt-auto">
+                    <div class="mt-4 flex flex-wrap gap-1">
                         @foreach(['Mon','Tue','Wed','Thu','Fri','Sat','Sun'] as $day)
-                            @if(in_array($day, $shift->working_days ?? []))
-                                <span class="bg-slate-100 text-slate-600 text-xs font-medium px-2 py-1 rounded">{{ $day }}</span>
-                            @endif
+                            @php $on = in_array($day, $shift->working_days ?? []); @endphp
+                            <span class="rounded-md px-2 py-1 text-[11px] font-bold {{ $on ? 'text-white shadow-sm' : 'bg-slate-100 text-slate-400 dark:bg-slate-700/40 dark:text-slate-500' }}" @if($on) style="background-color: {{ $shift->color }}" @endif>{{ $day }}</span>
                         @endforeach
                     </div>
                 </div>
 
-                <div class="bg-slate-50 border-t border-slate-200 p-3 pl-8 flex justify-between items-center">
-                    <div class="flex space-x-2">
-                        <button @click="openEditForm({{ $shift->toJson() }})" class="text-slate-600 hover:text-brand-600 px-2 py-1 text-sm font-medium">Edit</button>
-                        
-                        <form action="{{ route('shifts.destroy', $shift) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this shift?');">
+                <div class="border-t border-slate-100 bg-slate-50/60 px-5 py-3 pl-7 dark:border-slate-700/60 dark:bg-slate-900/30">
+                    <div class="flex gap-2">
+                        <button type="button" @click="openAssign({{ $shift->id }}, {{ Illuminate\Support\Js::from($shift->name) }})"
+                                class="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 transition hover:border-brand-300 hover:text-brand-600 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:text-brand-400">
+                            <i data-lucide="user-check" class="h-3.5 w-3.5"></i> Assign to some
+                        </button>
+                        <form action="{{ route('shifts.assign-all', $shift) }}" method="POST" class="flex-1" onsubmit="return confirm('This will assign this shift to all employees without a current shift. Continue?');">
                             @csrf
-                            @method('DELETE')
-                            <button type="submit" class="{{ ($shift->is_default || $shift->assignments_count > 0) ? 'text-slate-400 cursor-not-allowed' : 'text-red-600 hover:text-red-800' }} px-2 py-1 text-sm font-medium" {{ ($shift->is_default || $shift->assignments_count > 0) ? 'disabled' : '' }}>Delete</button>
+                            <button type="submit" class="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-slate-900 px-3 py-2 text-xs font-bold text-white transition hover:bg-slate-800 dark:bg-brand-600 dark:text-slate-900 dark:hover:bg-brand-700">
+                                <i data-lucide="users" class="h-3.5 w-3.5"></i> Assign to all
+                            </button>
                         </form>
                     </div>
-
-                    <div class="flex space-x-2">
+                    <div class="mt-2.5 flex items-center justify-center gap-4 text-xs font-semibold">
+                        <button type="button" @click="openEditForm({{ $shift->toJson() }})" class="inline-flex items-center gap-1 text-slate-500 transition hover:text-brand-600 dark:text-slate-400"><i data-lucide="pencil" class="h-3 w-3"></i> Edit</button>
                         @if(!$shift->is_default)
                             <form action="{{ route('shifts.set-default', $shift) }}" method="POST">
                                 @csrf
-                                <button type="submit" class="text-slate-600 hover:text-amber-600 px-2 py-1 text-sm font-medium border border-slate-300 hover:border-amber-400 rounded bg-white">Set Default</button>
+                                <button type="submit" class="inline-flex items-center gap-1 text-slate-500 transition hover:text-amber-600 dark:text-slate-400"><i data-lucide="star" class="h-3 w-3"></i> Set default</button>
                             </form>
                         @endif
-
-                        <button type="button" @click="openAssign({{ $shift->id }}, {{ Illuminate\Support\Js::from($shift->name) }})"
-                                class="text-slate-700 hover:text-brand-600 border border-slate-300 hover:border-brand-400 bg-white px-2 py-1 text-sm font-medium rounded">Assign to some</button>
-
-                        <form action="{{ route('shifts.assign-all', $shift) }}" method="POST" onsubmit="return confirm('This will assign this shift to all employees without a current shift. Continue?');">
+                        <form action="{{ route('shifts.destroy', $shift) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this shift?');">
                             @csrf
-                            <button type="submit" class="text-white bg-slate-800 hover:bg-slate-900 px-2 py-1 text-sm font-medium rounded shadow-sm">Assign to all</button>
+                            @method('DELETE')
+                            <button type="submit" {{ $canDelete ? '' : 'disabled' }} title="{{ $canDelete ? 'Delete shift' : 'Can’t delete a default shift or one with employees' }}"
+                                    class="inline-flex items-center gap-1 {{ $canDelete ? 'text-rose-500 hover:text-rose-700' : 'cursor-not-allowed text-slate-300 dark:text-slate-600' }}"><i data-lucide="trash-2" class="h-3 w-3"></i> Delete</button>
                         </form>
                     </div>
                 </div>
