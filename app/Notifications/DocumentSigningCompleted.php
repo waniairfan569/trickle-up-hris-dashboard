@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use App\Models\DocumentRequest;
 use Illuminate\Bus\Queueable;
+use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 class DocumentSigningCompleted extends Notification
@@ -19,7 +20,21 @@ class DocumentSigningCompleted extends Notification
 
     public function via($notifiable)
     {
-        return ['database'];
+        return ['database', 'mail'];
+    }
+
+    public function toMail($notifiable): MailMessage
+    {
+        $name = $this->documentRequest->template->name ?? 'A document';
+        $declined = $this->documentRequest->status === 'declined';
+
+        return (new MailMessage)
+            ->subject(($declined ? '⚠️ Declined: ' : '✅ Fully signed: ') . $name)
+            ->greeting('Hello ' . ($notifiable->first_name ?? '') . ' 👋')
+            ->line($declined
+                ? "“{$name}” was declined."
+                : "“{$name}” has been fully signed by everyone.")
+            ->action('View document', route('documents.show', $this->documentRequest->id));
     }
 
     public function toDatabase($notifiable)

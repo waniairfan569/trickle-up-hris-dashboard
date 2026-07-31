@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use App\Models\DocumentRequest;
 use Illuminate\Bus\Queueable;
+use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 class DocumentSignatureRequested extends Notification
@@ -19,7 +20,22 @@ class DocumentSignatureRequested extends Notification
 
     public function via($notifiable)
     {
-        return ['database'];
+        return ['database', 'mail'];
+    }
+
+    public function toMail($notifiable): MailMessage
+    {
+        $name = $this->documentRequest->template->name ?? 'a document';
+        $sender = optional($this->documentRequest->creator)->full_name;
+
+        $mail = (new MailMessage)
+            ->subject("✍️ Please sign: {$name}")
+            ->greeting('Hello ' . ($notifiable->first_name ?? '') . ' 👋')
+            ->line("You've been requested to sign **{$name}**" . ($sender ? " by {$sender}" : '') . '.')
+            ->action('Review & sign', route('documents.sign', $this->documentRequest->id))
+            ->line('Please review the document and add your signature.');
+
+        return $mail;
     }
 
     public function toDatabase($notifiable)
