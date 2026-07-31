@@ -153,12 +153,10 @@
                     <tr class="bg-slate-50/75 border-b border-slate-100 text-[10px] font-bold uppercase tracking-wider text-slate-450 dark:bg-slate-900/40 dark:border-slate-700/60">
                         <th class="py-4 px-6">Name</th>
                         <th class="py-4 px-6">Department</th>
-                        <th class="py-4 px-6">Job Title</th>
                         <th class="py-4 px-6">Manager</th>
                         @if($auth->isAdmin())
                         <th class="py-4 px-6">RBAC Role</th>
                         <th class="py-4 px-6">Attendance</th>
-                        <th class="py-4 px-6">Status</th>
                         @endif
                         <th class="py-4 px-6 text-right">Actions</th>
                     </tr>
@@ -194,28 +192,29 @@
                         
                         <tr class="hover:bg-slate-50/40 dark:hover:bg-slate-750/30 transition">
                             
-                            <!-- Name -->
+                            <!-- Name (clickable → profile) -->
                             <td class="py-4 px-6">
-                                <div class="flex items-center space-x-3">
+                                <a href="{{ route('employees.profile', $emp->user_id) }}" class="flex items-center space-x-3 group">
                                     @if($emp->user->avatar_url)
-                                        <img src="{{ $emp->user->avatar_url }}" alt="{{ $fullName }}" class="h-9 w-9 rounded-xl object-cover ring-1 ring-slate-100 dark:ring-slate-750">
+                                        <img src="{{ $emp->user->avatar_url }}" alt="{{ $fullName }}" class="h-9 w-9 shrink-0 rounded-xl object-cover ring-1 ring-slate-100 dark:ring-slate-750">
                                     @else
-                                        <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-brand-400 to-indigo-500 font-bold text-white shadow-sm shadow-indigo-500/10">
+                                        <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-400 to-indigo-500 font-bold text-white shadow-sm shadow-indigo-500/10">
                                             {{ $emp->user->initials ?? 'EM' }}
                                         </div>
                                     @endif
-                                    <div>
-                                        <span class="font-bold text-slate-900 dark:text-white block hover:text-brand-600 transition">{{ $fullName }}</span>
-                                        <span class="text-[10px] text-slate-400">{{ $emp->user->email ?? $emp->email }}</span>
+                                    <div class="min-w-0">
+                                        <span class="font-bold text-slate-900 dark:text-white block group-hover:text-brand-600 transition truncate">{{ $fullName }}</span>
+                                        <span class="text-[10px] text-slate-400 block truncate">{{ $emp->user->email ?? $emp->email }}</span>
+                                        <span class="text-[11px] font-medium text-slate-600 dark:text-slate-300 block truncate">{{ $title }}</span>
                                         @if($emp->user->jobLocation)
                                             <span class="mt-1 inline-flex items-center rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600 dark:bg-slate-700 dark:text-slate-300">
                                                 {{ $emp->user->jobLocation->is_remote ? '🏠' : '📍' }} {{ $emp->user->jobLocation->name }}
                                             </span>
                                         @endif
                                     </div>
-                                </div>
+                                </a>
                             </td>
-                            
+
                             <!-- Department -->
                             <td class="py-4 px-6">
                                 @if($emp->department)
@@ -233,11 +232,6 @@
                                 @endif
                             </td>
                             
-                            <!-- Job Title -->
-                            <td class="py-4 px-6 text-slate-650 dark:text-slate-300 font-medium">
-                                {{ $title }}
-                            </td>
-
                             <!-- Manager -->
                             <td class="py-4 px-6">
                                 @if($emp->user->manager)
@@ -285,44 +279,54 @@
                                 </form>
                             </td>
 
-                            <!-- Status -->
-                            <td class="py-4 px-6">
-                                <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold {{ $statusClasses }}">
-                                    @if($acct === 'invited')<span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span>@elseif($acct === 'active')<span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>@endif
-                                    {{ $statusLabel }}
-                                </span>
-                            </td>
                             @endif
                             
-                            <!-- Actions -->
-                            <td class="py-4 px-6 text-right font-medium">
-                                <div class="flex items-center justify-end space-x-2">
-                                    <a href="{{ route('employees.profile', $emp->user_id) }}" class="rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-[10px] font-bold text-slate-700 shadow-sm hover:bg-slate-50 hover:text-brand-600 transition dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-600 dark:hover:text-white">
-                                            View
-                                        </a>
-                                    
-                                    @if($auth->canEdit($emp->user))
-                                        <a href="{{ route('employees.profile.edit', $emp->user_id) }}" class="rounded-xl bg-brand-50 px-2.5 py-1.5 text-[10px] font-bold text-brand-700 hover:bg-brand-100 hover:text-brand-800 transition dark:bg-brand-500/10 dark:text-brand-400 dark:hover:bg-brand-500/20">
-                                            Edit
-                                        </a>
-                                    @endif
-
-                                    @if($auth->isAdmin() && $auth->id !== $emp->user_id)
-                                        <form action="{{ route('employees.deactivate', $emp->user_id) }}" method="POST" class="inline"
-                                              onsubmit="return confirm('Deactivate {{ $fullName }}? They will be moved to Archived and lose access. You can restore them anytime.');">
-                                            @csrf
-                                            <button type="submit" title="Deactivate (archive) employee"
-                                                    class="rounded-xl bg-rose-50 px-2.5 py-1.5 text-[10px] font-bold text-rose-700 hover:bg-rose-100 transition dark:bg-rose-500/10 dark:text-rose-400 dark:hover:bg-rose-500/20">
-                                                Deactivate
-                                            </button>
-                                        </form>
-                                    @endif
+                            <!-- Actions (3-dot menu) -->
+                            <td class="py-4 px-6 text-right">
+                                <div class="inline-block text-left" x-data="{
+                                    open: false, style: '',
+                                    toggle() { this.open = !this.open; if (this.open) this.$nextTick(() => { this.place(); if (window.lucide) lucide.createIcons(); }); },
+                                    place() {
+                                        const r = this.$refs.btn.getBoundingClientRect(), W = 168, H = 140;
+                                        let left = r.right - W; if (left < 8) left = 8;
+                                        let top = (r.bottom + H > window.innerHeight) ? (r.top - H - 4) : (r.bottom + 4);
+                                        this.style = `position:fixed;left:${left}px;top:${top}px;width:${W}px;`;
+                                    }
+                                }">
+                                    <button type="button" x-ref="btn" @click.stop="toggle()" title="Actions"
+                                            class="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition dark:hover:bg-slate-700 dark:hover:text-white">
+                                        <i data-lucide="more-vertical" class="h-4 w-4"></i>
+                                    </button>
+                                    <template x-teleport="body">
+                                        <div x-show="open" x-cloak x-transition.opacity.duration.100ms
+                                             @click.outside="open = false" @keydown.escape.window="open = false"
+                                             :style="style"
+                                             class="z-[60] overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-xl dark:bg-slate-800 dark:border-slate-700">
+                                            <a href="{{ route('employees.profile', $emp->user_id) }}" class="flex items-center gap-2.5 px-3.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-700">
+                                                <i data-lucide="eye" class="h-3.5 w-3.5"></i> View
+                                            </a>
+                                            @if($auth->canEdit($emp->user))
+                                                <a href="{{ route('employees.profile.edit', $emp->user_id) }}" class="flex items-center gap-2.5 px-3.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-700">
+                                                    <i data-lucide="pencil" class="h-3.5 w-3.5"></i> Edit
+                                                </a>
+                                            @endif
+                                            @if($auth->isAdmin() && $auth->id !== $emp->user_id)
+                                                <form action="{{ route('employees.deactivate', $emp->user_id) }}" method="POST"
+                                                      onsubmit="return confirm('Deactivate {{ $fullName }}? They will be moved to Archived and lose access. You can restore them anytime.');">
+                                                    @csrf
+                                                    <button type="submit" class="flex w-full items-center gap-2.5 px-3.5 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-500/10">
+                                                        <i data-lucide="user-x" class="h-3.5 w-3.5"></i> Deactivate
+                                                    </button>
+                                                </form>
+                                            @endif
+                                        </div>
+                                    </template>
                                 </div>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="{{ $auth->isAdmin() ? 8 : 5 }}" class="py-12 text-center">
+                            <td colspan="{{ $auth->isAdmin() ? 6 : 4 }}" class="py-12 text-center">
                                 <div class="flex flex-col items-center justify-center">
                                     <div class="flex h-12 w-12 items-center justify-center rounded-full bg-slate-50 text-slate-400 dark:bg-slate-750/50">
                                         <i data-lucide="users" class="h-6 w-6"></i>
