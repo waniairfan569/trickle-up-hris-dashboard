@@ -16,7 +16,8 @@
      x-data="{
         version: { open: false, id: null, title: '', action: '' },
         openVersion(id, title) { this.version = { open: true, id, title, action: '/company-documents/' + id + '/new-version' }; },
-     }">
+     }"
+     @open-version.window="openVersion($event.detail.id, $event.detail.title)">
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
             <h1 class="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">Company Documents</h1>
@@ -57,9 +58,7 @@
                         <th class="text-left px-5 py-3">Category</th>
                         <th class="text-left px-5 py-3">Access</th>
                         <th class="text-left px-5 py-3">Signing</th>
-                        <th class="text-left px-5 py-3">Ver.</th>
-                        <th class="text-left px-5 py-3">Size</th>
-                        <th class="text-left px-5 py-3">Downloads</th>
+                        <th class="text-left px-5 py-3">Sent to</th>
                         <th class="text-left px-5 py-3">Expires</th>
                         <th class="text-right px-5 py-3">Actions</th>
                     </tr>
@@ -99,29 +98,59 @@
                                     <span class="text-slate-300">—</span>
                                 @endif
                             </td>
-                            <td class="px-5 py-3 text-slate-500">v{{ $doc->version }}</td>
-                            <td class="px-5 py-3 text-slate-500">{{ $doc->file_size_label }}</td>
-                            <td class="px-5 py-3 text-slate-500">{{ $doc->download_count }}</td>
+                            <td class="px-5 py-3">
+                                @php
+                                    $sentTo = $doc->template
+                                        ? $doc->template->requests->map(fn ($r) => optional($r->subject)->full_name)->filter()->unique()->values()
+                                        : collect();
+                                @endphp
+                                @if($sentTo->count())
+                                    <div class="flex flex-col gap-0.5 max-w-[170px]">
+                                        @foreach($sentTo->take(2) as $nm)
+                                            <span class="truncate text-xs font-semibold text-slate-600 dark:text-slate-300">{{ $nm }}</span>
+                                        @endforeach
+                                        @if($sentTo->count() > 2)<span class="text-[10px] font-bold text-slate-400">+{{ $sentTo->count() - 2 }} more</span>@endif
+                                    </div>
+                                @else
+                                    <span class="text-slate-300">—</span>
+                                @endif
+                            </td>
                             <td class="px-5 py-3">
                                 @if($doc->expires_at)
                                     <span class="text-xs font-semibold {{ $doc->is_expired ? 'text-rose-600' : 'text-slate-500' }}">{{ $doc->expires_at->format('d M Y') }}</span>
                                 @else <span class="text-slate-300">—</span> @endif
                             </td>
-                            <td class="px-5 py-3">
-                                <div class="flex items-center justify-end gap-1">
-                                    @if($doc->requires_signature && $doc->template_id)
-                                        <a href="{{ route('company-documents.send-form', $doc) }}" title="Send for signature" class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-500/10"><i data-lucide="send" class="h-4 w-4"></i></a>
-                                    @endif
-                                    <a href="{{ route('document-library.view', $doc) }}" target="_blank" title="View" class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700"><i data-lucide="eye" class="h-4 w-4"></i></a>
-                                    <a href="{{ route('document-library.download', $doc) }}" title="Download" class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700"><i data-lucide="download" class="h-4 w-4"></i></a>
-                                    <button @click="openVersion({{ $doc->id }}, $el.dataset.title)" data-title="{{ $doc->title }}" title="New version" class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700"><i data-lucide="git-branch" class="h-4 w-4"></i></button>
-                                    <a href="{{ route('company-documents.edit', $doc) }}" title="Edit" class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700"><i data-lucide="pencil" class="h-4 w-4"></i></a>
-                                    <form action="{{ route('company-documents.destroy', $doc) }}" method="POST" onsubmit="return confirm('Delete “{{ $doc->title }}”?');">@csrf @method('DELETE')<button title="Delete" class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10"><i data-lucide="trash-2" class="h-4 w-4"></i></button></form>
+                            <td class="px-5 py-3 text-right">
+                                <div class="inline-block text-left" x-data="{
+                                    open: false, style: '',
+                                    toggle() { this.open = !this.open; if (this.open) this.$nextTick(() => { this.place(); if (window.lucide) lucide.createIcons(); }); },
+                                    place() {
+                                        const r = this.$refs.btn.getBoundingClientRect(), W = 184, H = 264;
+                                        let left = r.right - W; if (left < 8) left = 8;
+                                        let top = (r.bottom + H > window.innerHeight) ? (r.top - H - 4) : (r.bottom + 4);
+                                        this.style = `position:fixed;left:${left}px;top:${top}px;width:${W}px;`;
+                                    }
+                                }">
+                                    <button type="button" x-ref="btn" @click.stop="toggle()" title="Actions"
+                                            class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-700 dark:hover:text-white"><i data-lucide="more-vertical" class="h-4 w-4"></i></button>
+                                    <template x-teleport="body">
+                                        <div x-show="open" x-cloak x-transition.opacity.duration.100ms @click.outside="open = false" @keydown.escape.window="open = false"
+                                             :style="style" class="z-[60] overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-xl dark:bg-slate-800 dark:border-slate-700">
+                                            @if($doc->requires_signature && $doc->template_id)
+                                                <a href="{{ route('company-documents.send-form', $doc) }}" class="flex items-center gap-2.5 px-3.5 py-2 text-xs font-bold text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-500/10"><i data-lucide="send" class="h-3.5 w-3.5"></i> Send for signature</a>
+                                            @endif
+                                            <a href="{{ route('document-library.view', $doc) }}" target="_blank" class="flex items-center gap-2.5 px-3.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-700"><i data-lucide="eye" class="h-3.5 w-3.5"></i> View</a>
+                                            <a href="{{ route('document-library.download', $doc) }}" class="flex items-center gap-2.5 px-3.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-700"><i data-lucide="download" class="h-3.5 w-3.5"></i> Download</a>
+                                            <button type="button" @click="open = false; $dispatch('open-version', { id: {{ $doc->id }}, title: {{ Illuminate\Support\Js::from($doc->title) }} })" class="flex w-full items-center gap-2.5 px-3.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-700"><i data-lucide="git-branch" class="h-3.5 w-3.5"></i> New version</button>
+                                            <a href="{{ route('company-documents.edit', $doc) }}" class="flex items-center gap-2.5 px-3.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-700"><i data-lucide="pencil" class="h-3.5 w-3.5"></i> Edit</a>
+                                            <form action="{{ route('company-documents.destroy', $doc) }}" method="POST" onsubmit="return confirm('Delete “{{ $doc->title }}”?');">@csrf @method('DELETE')<button type="submit" class="flex w-full items-center gap-2.5 px-3.5 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10"><i data-lucide="trash-2" class="h-3.5 w-3.5"></i> Delete</button></form>
+                                        </div>
+                                    </template>
                                 </div>
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="9" class="px-5 py-16 text-center">
+                        <tr><td colspan="7" class="px-5 py-16 text-center">
                             <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-50 text-slate-400 dark:bg-slate-700 mb-3 mx-auto"><i data-lucide="folder-open" class="h-7 w-7"></i></div>
                             <p class="text-sm font-bold text-slate-600 dark:text-slate-300">No documents yet</p>
                             <p class="text-xs text-slate-400 mt-1">Upload your first company document.</p>

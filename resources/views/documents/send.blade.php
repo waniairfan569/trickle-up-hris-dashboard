@@ -142,36 +142,40 @@
         </div>
         @endif
 
-        {{-- 4. Send to --}}
+        {{-- 4. Send to (one or more) --}}
         <div class="border-t border-slate-100 dark:border-slate-700/60 pt-5">
-            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Send to employee</label>
-            <input type="hidden" name="employee" :value="employeeId">
+            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Send to employees</label>
+            <template x-for="id in employeeIds" :key="'e' + id"><input type="hidden" name="employee[]" :value="id"></template>
             <div @click.outside="open = false" class="relative">
                 <button type="button" @click="open = !open"
                         class="w-full flex items-center justify-between rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm text-left dark:border-slate-600 dark:bg-slate-900">
-                    <span :class="employeeId ? 'text-slate-700 dark:text-white' : 'text-slate-400'" x-text="label()"></span>
+                    <span :class="employeeIds.length ? 'text-slate-700 dark:text-white' : 'text-slate-400'" x-text="summary()"></span>
                     <i data-lucide="chevron-down" class="h-4 w-4 text-slate-400 transition" :class="open && 'rotate-180'"></i>
                 </button>
                 <div x-show="open" x-cloak x-transition.origin.top
                      class="absolute z-20 mt-1 w-full rounded-xl border border-slate-200 bg-white p-2 shadow-lg dark:bg-slate-800 dark:border-slate-700">
                     <input x-model="q" type="text" placeholder="Search employees…" class="w-full rounded-lg border border-slate-300 text-xs py-1.5 px-2 dark:bg-slate-900 dark:border-slate-600 dark:text-white">
-                    <div class="max-h-60 overflow-y-auto mt-2 space-y-0.5">
+                    <div class="mt-1.5 flex items-center justify-between px-1 text-[11px]">
+                        <span class="font-bold text-slate-500" x-text="employeeIds.length + ' selected'"></span>
+                        <button type="button" x-show="employeeIds.length" @click="employeeIds = []" class="font-bold text-slate-500 hover:text-slate-700">Clear</button>
+                    </div>
+                    <div class="max-h-60 overflow-y-auto mt-1 space-y-0.5">
                         <template x-for="e in employees.filter(o => o.label.toLowerCase().includes(q.toLowerCase()))" :key="e.id">
-                            <button type="button" @click="employeeId = e.id; open = false"
-                                    class="w-full text-left px-2 py-1.5 rounded-lg text-sm hover:bg-slate-50 dark:hover:bg-slate-700/50"
-                                    :class="employeeId === e.id ? 'bg-brand-50 text-brand-700 font-semibold dark:bg-brand-500/10' : 'text-slate-700 dark:text-slate-200'">
+                            <label class="flex w-full cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-700/50">
+                                <input type="checkbox" :value="e.id" x-model="employeeIds" class="rounded border-slate-300 text-brand-600 focus:ring-brand-500">
                                 <span x-text="e.label"></span>
-                            </button>
+                            </label>
                         </template>
                         <p x-show="!employees.length" class="text-xs text-slate-400 px-2 py-1">No eligible employees for this template's scope.</p>
                     </div>
                 </div>
             </div>
+            <p class="text-[11px] text-slate-400 mt-1.5">A separate signature request is created for each person you pick.</p>
         </div>
 
-        <button type="submit" :disabled="!employeeId" :class="!employeeId && 'opacity-50 cursor-not-allowed'"
+        <button type="submit" :disabled="!employeeIds.length" :class="!employeeIds.length && 'opacity-50 cursor-not-allowed'"
                 class="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-bold text-slate-900 shadow-md shadow-brand-500/20 hover:bg-brand-700">
-            <i data-lucide="send" class="h-4 w-4"></i> Send for signature
+            <i data-lucide="send" class="h-4 w-4"></i> <span x-text="employeeIds.length > 1 ? ('Send to ' + employeeIds.length + ' employees') : 'Send for signature'"></span>
         </button>
     </form>
 </div>
@@ -183,10 +187,14 @@
             roleOpts: window.__signerRoleOpts || [],
             empOpts: window.__signerEmpOpts || [],
             signers: (window.__initialSigners || ['role:employee']).map(c => ({ choice: c })),
-            employeeId: '', open: false, q: '',
+            employeeIds: [], open: false, q: '',
             access: @json(old('access_level', $companyDoc->access_level ?? 'company_wide')),
             userSearch: '',
-            label() { const e = this.employees.find(o => o.id === this.employeeId); return e ? e.label : 'Select an employee…'; },
+            summary() {
+                if (!this.employeeIds.length) return 'Select employees…';
+                if (this.employeeIds.length === 1) { const e = this.employees.find(o => o.id === this.employeeIds[0]); return e ? e.label : '1 selected'; }
+                return this.employeeIds.length + ' employees selected';
+            },
             addSigner() { this.signers.push({ choice: 'role:employee' }); },
             removeSigner(i) { if (this.signers.length > 1) this.signers.splice(i, 1); },
         };

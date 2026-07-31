@@ -57,7 +57,10 @@ class DocumentRequestController extends Controller
     public function send(Request $request, DocumentTemplate $documentTemplate)
     {
         abort_unless($documentTemplate->isPdf(), 422, 'Signing is available for PDF templates only.');
-        $request->validate(['employee' => 'required|integer|exists:users,id']);
+        $request->validate([
+            'employee' => 'required|array|min:1',
+            'employee.*' => 'integer|exists:users,id',
+        ]);
 
         // Signers are chosen on this page (after preview) — rebuild them in order.
         if ($request->has('signers')) {
@@ -96,67 +99,89 @@ class DocumentRequestController extends Controller
             }
         }
 
-        $subject = User::findOrFail($request->integer('employee'));
         $documentTemplate->load('signers.employee');
 
         if ($documentTemplate->signers->isEmpty()) {
             return back()->withInput()->withErrors(['signers' => 'Please add at least one signer before sending.']);
         }
 
-        // Resolve each template signer into an actual user.
-        $resolved = [];
-        foreach ($documentTemplate->signers as $s) {
-            if ($s->signer_type === 'employee') {
-                $resolved[] = ['user' => $s->employee, 'role' => 'specific'];
-            } elseif ($s->role === 'employee') {
-                $resolved[] = ['user' => $subject, 'role' => 'employee'];
-            } elseif ($s->role === 'line_manager') {
-                $resolved[] = ['user' => $subject->manager, 'role' => 'line_manager'];
-            } elseif (in_array($s->role, ['hr_admin', 'me_now', 'sender'], true)) {
-                // HR admin / Me (now) / Sender all resolve to the person sending the document.
-                $resolved[] = ['user' => auth()->user(), 'role' => $s->role];
-            }
+        $subjects = User::whereIn('id', $request->input('employee', []))->get();
+        if ($subjects->isEmpty()) {
+            return back()->withErrors(['employee' => 'Pick at least one employee to send to.']);
         }
 
-        foreach ($resolved as $r) {
-            if (!$r['user']) {
-                $what = $r['role'] === 'line_manager'
-                    ? "{$subject->first_name} has no line manager assigned"
-                    : 'a signer could not be resolved';
+        $sentNames = [];
+        $skipped = [];
+        $lastRequest = null;
 
-                return back()->withErrors(['employee' => "Cannot send: {$what}."]);
+        // Each chosen employee gets their OWN signature request (signers resolved
+        // relative to that person).
+        foreach ($subjects as $subject) {
+            $resolved = [];
+            foreach ($documentTemplate->signers as $s) {
+                if ($s->signer_type === 'employee') {
+                    $resolved[] = ['user' => $s->employee, 'role' => 'specific'];
+                } elseif ($s->role === 'employee') {
+                    $resolved[] = ['user' => $subject, 'role' => 'employee'];
+                } elseif ($s->role === 'line_manager') {
+                    $resolved[] = ['user' => $subject->manager, 'role' => 'line_manager'];
+                } elseif (in_array($s->role, ['hr_admin', 'me_now', 'sender'], true)) {
+                    // HR admin / Me (now) / Sender all resolve to the person sending.
+                    $resolved[] = ['user' => auth()->user(), 'role' => $s->role];
+                }
             }
-        }
 
-        $docRequest = DB::transaction(function () use ($documentTemplate, $subject, $resolved, $request) {
-            $docRequest = DocumentRequest::create([
-                'document_template_id' => $documentTemplate->id,
-                'subject_employee_id' => $subject->id,
-                'created_by' => auth()->user()->id,
-                'status' => 'in_progress',
-                'current_position' => 0,
-            ]);
+            // Can't resolve a signer for this person (e.g. no line manager) → skip them.
+            if (collect($resolved)->contains(fn ($r) => empty($r['user']))) {
+                $skipped[] = $subject->full_name;
+                continue;
+            }
 
-            foreach (array_values($resolved) as $i => $r) {
-                $docRequest->signers()->create([
-                    'position' => $i,
-                    'user_id' => $r['user']->id,
-                    'source_role' => $r['role'],
-                    'status' => 'pending',
+            $docRequest = DB::transaction(function () use ($documentTemplate, $subject, $resolved, $request) {
+                $docRequest = DocumentRequest::create([
+                    'document_template_id' => $documentTemplate->id,
+                    'subject_employee_id' => $subject->id,
+                    'created_by' => auth()->user()->id,
+                    'status' => 'in_progress',
+                    'current_position' => 0,
                 ]);
-            }
 
-            $docRequest->logEvent('created', auth()->user(), "Sent to {$subject->full_name}", $request->ip());
+                foreach (array_values($resolved) as $i => $r) {
+                    $docRequest->signers()->create([
+                        'position' => $i,
+                        'user_id' => $r['user']->id,
+                        'source_role' => $r['role'],
+                        'status' => 'pending',
+                    ]);
+                }
 
-            return $docRequest;
-        });
+                $docRequest->logEvent('created', auth()->user(), "Sent to {$subject->full_name}", $request->ip());
 
-        // Notify the first signer.
-        $first = $docRequest->signers()->orderBy('position')->first();
-        $first->user?->notify(new DocumentSignatureRequested($docRequest));
+                return $docRequest;
+            });
 
-        return redirect()->route('documents.show', $docRequest)
-            ->with('success', "“{$documentTemplate->name}” sent to {$subject->full_name} for signature.");
+            $docRequest->signers()->orderBy('position')->first()?->user?->notify(new DocumentSignatureRequested($docRequest));
+            $sentNames[] = $subject->full_name;
+            $lastRequest = $docRequest;
+        }
+
+        if (empty($sentNames)) {
+            return back()->withErrors(['employee' => 'Could not send — ' . implode(', ', $skipped) . ' have no line manager assigned.']);
+        }
+
+        $msg = count($sentNames) === 1
+            ? "“{$documentTemplate->name}” sent to {$sentNames[0]} for signature."
+            : "“{$documentTemplate->name}” sent to " . count($sentNames) . ' employees for signature.';
+        if (!empty($skipped)) {
+            $msg .= ' Skipped ' . implode(', ', $skipped) . ' (no line manager).';
+        }
+
+        // One recipient → open that request; several → back to the documents list.
+        if (count($sentNames) === 1 && $lastRequest) {
+            return redirect()->route('documents.show', $lastRequest)->with('success', $msg);
+        }
+
+        return redirect()->route('company-documents.admin')->with('success', $msg);
     }
 
     /** GET documents/{request} — request detail + audit trail. */

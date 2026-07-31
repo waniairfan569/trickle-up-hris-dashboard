@@ -21,7 +21,7 @@ class CompanyDocumentController extends Controller
 
     public function adminIndex(Request $request)
     {
-        $query = CompanyDocument::with(['category', 'uploader', 'template.requests.signers'])->withCount('acknowledgments')->latest();
+        $query = CompanyDocument::with(['category', 'uploader', 'template.requests.signers', 'template.requests.subject'])->withCount('acknowledgments')->latest();
 
         if ($request->filled('category')) {
             $query->where('category_id', $request->category);
