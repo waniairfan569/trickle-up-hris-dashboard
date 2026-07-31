@@ -14,6 +14,17 @@ class EquipmentRequestedNotification extends Notification
 
     public function __construct(public EquipmentRequest $equipmentRequest) {}
 
+    /**
+     * The work is done (approved / rejected): clear this request's notification
+     * for every admin so it stops showing as unread.
+     */
+    public static function markResolved(int $equipmentRequestId): void
+    {
+        \Illuminate\Notifications\DatabaseNotification::whereNull('read_at')
+            ->where('data->equipment_request_id', $equipmentRequestId)
+            ->update(['read_at' => now()]);
+    }
+
     public function via($notifiable)
     {
         return ['database', 'mail'];
@@ -26,6 +37,7 @@ class EquipmentRequestedNotification extends Notification
         return [
             'type' => 'equipment_requested',
             'urgent' => false,
+            'equipment_request_id' => $this->equipmentRequest->id,
             'title' => "{$name} wants to take equipment home",
             'message' => "{$name} requested to take “{$this->equipmentRequest->equipment_name}” home. Review and approve or decline.",
             'equipment' => $this->equipmentRequest->equipment_name,

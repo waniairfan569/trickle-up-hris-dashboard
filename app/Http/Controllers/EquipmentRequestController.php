@@ -100,6 +100,9 @@ class EquipmentRequestController extends Controller
             'reviewed_at' => now(),
         ]);
 
+        // Work done — clear this request's alert for all admins.
+        EquipmentRequestedNotification::markResolved($equipmentRequest->id);
+
         if ($equipmentRequest->employee) {
             try {
                 $equipmentRequest->employee->notify(new EquipmentRequestReviewedNotification($equipmentRequest));

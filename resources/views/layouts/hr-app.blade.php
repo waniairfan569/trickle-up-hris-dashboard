@@ -245,7 +245,7 @@
                                                 </div>
                                             </div>
                                             <div class="flex-1 min-w-0">
-                                                <a href="{{ $notification->data['url'] ?? route('notifications.index') }}" class="block group">
+                                                <a href="{{ $notification->data['url'] ?? route('notifications.index') }}" class="block group" onclick="window.markNotifRead && window.markNotifRead('{{ $notification->id }}')">
                                                     <p class="text-sm font-semibold {{ $isUrgent ? 'text-rose-700 dark:text-rose-400' : 'text-slate-900 dark:text-white' }} mb-0.5 transition">
                                                         {{ $notification->data['title'] ?? 'Notification' }}
                                                     </p>
@@ -413,6 +413,18 @@
         function saveSeen() { try { localStorage.setItem(KEY, JSON.stringify([...seen].slice(-300))); } catch (e) {} }
         function esc(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
 
+        // Mark a notification read on the server (used when the user clicks it).
+        function markNotifRead(id) {
+            if (!id) return;
+            try {
+                fetch('{{ url('notifications') }}/' + id + '/mark-read', {
+                    method: 'POST', keepalive: true,
+                    headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' }
+                });
+            } catch (e) {}
+        }
+        window.markNotifRead = markNotifRead;
+
         function toast(n) {
             const wrap = document.getElementById('notif-toasts');
             if (!wrap) return;
@@ -420,19 +432,22 @@
             el.href = n.url || '#';
             el.style.cssText = 'display:block;max-width:340px;background:#1a1a24;color:#fff;border-left:4px solid #fcd82f;border-radius:10px;padding:12px 14px;box-shadow:0 10px 30px rgba(0,0,0,.25);text-decoration:none;';
             el.innerHTML = '<div style="font-weight:700;font-size:13px;">' + esc(n.title) + '</div>' + (n.message ? '<div style="font-size:12px;color:#cbd5e1;margin-top:3px;">' + esc(n.message) + '</div>' : '');
+            el.addEventListener('click', function () { markNotifRead(n.id); });
             wrap.appendChild(el);
             setTimeout(function () { el.style.transition = 'opacity .4s'; el.style.opacity = '0'; setTimeout(function () { el.remove(); }, 400); }, 7000);
         }
         function desktop(n) {
             if (('Notification' in window) && Notification.permission === 'granted') {
-                try { const dn = new Notification(n.title, { body: n.message || '' }); dn.onclick = function () { window.focus(); if (n.url) location.href = n.url; }; } catch (e) {}
+                try { const dn = new Notification(n.title, { body: n.message || '' }); dn.onclick = function () { window.focus(); markNotifRead(n.id); if (n.url) location.href = n.url; }; } catch (e) {}
             }
         }
         function handle(items) {
             (items || []).forEach(function (n) {
                 if (!seen.has(n.id)) {
                     seen.add(n.id);
-                    if (!firstEver) { toast(n); desktop(n); }
+                    // One pop-up only: in-app toast when the tab is focused,
+                    // otherwise a desktop notification — never both.
+                    if (!firstEver) { if (document.hidden) { desktop(n); } else { toast(n); } }
                 }
             });
             saveSeen();
@@ -450,8 +465,10 @@
 
         // First load: seed the "seen" set silently so we don't blast existing unread.
         if (firstEver) { poll(); localStorage.setItem(KEY, '[]'); }
-        else { setTimeout(poll, 3000); }
-        setInterval(poll, 45000);
+        else { setTimeout(poll, 2000); }
+        setInterval(poll, 20000);
+        // Poll right away when the tab regains focus, for a snappy pop-up.
+        document.addEventListener('visibilitychange', function () { if (!document.hidden) poll(); });
     })();
     </script>
     @endauth

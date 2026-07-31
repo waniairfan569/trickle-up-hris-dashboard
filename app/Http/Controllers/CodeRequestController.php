@@ -101,6 +101,9 @@ class CodeRequestController extends Controller
             'responded_by' => $request->user()->id,
         ]);
 
+        // Work done — clear the "needs a login code" alert for all admins.
+        CodeRequestedNotification::markResolved($codeRequest->id);
+
         if ($codeRequest->employee) {
             try {
                 $codeRequest->employee->notify(new CodeProvidedNotification($codeRequest));
@@ -129,6 +132,9 @@ class CodeRequestController extends Controller
             'rejection_reason' => trim((string) ($validated['rejection_reason'] ?? '')) ?: null,
             'responded_by' => $request->user()->id,
         ]);
+
+        // Work done — clear the "needs a login code" alert for all admins.
+        CodeRequestedNotification::markResolved($codeRequest->id);
 
         if ($codeRequest->employee) {
             try {

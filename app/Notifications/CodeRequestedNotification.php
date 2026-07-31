@@ -13,6 +13,17 @@ class CodeRequestedNotification extends Notification
 
     public function __construct(public CodeRequest $codeRequest) {}
 
+    /**
+     * The work is done (code sent / rejected): clear this request's "needs a
+     * login code" notification for every admin so it stops showing as unread.
+     */
+    public static function markResolved(int $codeRequestId): void
+    {
+        \Illuminate\Notifications\DatabaseNotification::whereNull('read_at')
+            ->where('data->code_request_id', $codeRequestId)
+            ->update(['read_at' => now()]);
+    }
+
     public function via($notifiable)
     {
         return ['database', 'mail'];
@@ -25,6 +36,7 @@ class CodeRequestedNotification extends Notification
         return [
             'type' => 'code_requested',
             'urgent' => true,
+            'code_request_id' => $this->codeRequest->id,
             'title' => "{$name} needs a login code",
             'message' => "{$name} needs the {$this->codeRequest->tool_name} verification code. Check your email and share it ASAP.",
             'tool' => $this->codeRequest->tool_name,
