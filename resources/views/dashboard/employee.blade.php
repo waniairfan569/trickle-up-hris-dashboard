@@ -1,7 +1,7 @@
 @extends('layouts.hr-app')
 
 @section('title', 'My Dashboard')
-@section('breadcrumb', 'Employee Portal')
+@section('breadcrumb', '')
 
 @section('content')
 @php

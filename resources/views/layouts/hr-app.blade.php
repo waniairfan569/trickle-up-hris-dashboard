@@ -185,11 +185,14 @@
                     <i data-lucide="menu" class="h-6 w-6"></i>
                 </button>
 
-                <!-- Breadcrumb / Section Name -->
-                <div class="flex flex-1 items-center gap-x-2">
+                <!-- Breadcrumb / Section Name (hidden when a page sets none) -->
+                @php $__bc = trim($__env->yieldContent('breadcrumb')); @endphp
+                <div class="flex flex-1 items-center gap-x-2 min-w-0">
                     <span class="text-sm font-medium text-slate-400 dark:text-slate-500 select-none">Workspace</span>
-                    <i data-lucide="chevron-right" class="h-4 w-4 text-slate-300 dark:text-slate-600"></i>
-                    <span class="text-sm font-semibold text-slate-700 dark:text-slate-300">@yield('breadcrumb', 'Core')</span>
+                    @if($__bc !== '')
+                        <i data-lucide="chevron-right" class="h-4 w-4 text-slate-300 dark:text-slate-600 shrink-0"></i>
+                        <span class="text-sm font-semibold text-slate-700 dark:text-slate-300 truncate">{{ $__bc }}</span>
+                    @endif
                 </div>
 
                 <!-- Right Header Actions -->

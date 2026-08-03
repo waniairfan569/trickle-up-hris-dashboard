@@ -1,7 +1,7 @@
 @extends('layouts.hr-app')
 
 @section('title', 'Manager Dashboard')
-@section('breadcrumb', 'Team Management')
+@section('breadcrumb', '')
 
 @section('content')
 @inject('accessService', 'App\Services\EmployeeAccessService')
