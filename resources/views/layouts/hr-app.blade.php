@@ -206,8 +206,8 @@
                         <input type="text" placeholder="Search directory..." class="w-64 rounded-full border border-slate-200 bg-slate-50/50 py-1.5 pl-9 pr-4 text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:border-brand-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-brand-500">
                     </div>
 
-                    <!-- Notification Indicator Dropdown -->
-                    <div x-data="{ open: false }" class="relative">
+                    <!-- Notification Indicator Dropdown (kept last so the bell sits at the far right) -->
+                    <div x-data="{ open: false }" class="relative order-last">
                         <button @click="open = !open" @click.away="open = false" type="button" class="relative rounded-full p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 focus:outline-none dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-700">
                             <i data-lucide="bell" class="h-5 w-5"></i>
                             @if(auth()->user() && auth()->user()->unreadNotifications->count() > 0)
@@ -298,17 +298,11 @@
                                     {{ auth()->user()->initials }}
                                 </div>
                             @endif
-                            <div class="hidden md:flex flex-col text-left">
-                                <span class="text-xs font-semibold text-slate-700 dark:text-slate-200 group-hover:text-brand-600 dark:group-hover:text-brand-400 transition">{{ auth()->user()->full_name }}</span>
-                                <span class="text-[10px] text-slate-400 dark:text-slate-500">{{ auth()->user()->job_title }}</span>
+                            <div class="flex flex-col text-left min-w-0">
+                                <span class="text-xs font-semibold text-slate-700 dark:text-slate-200 group-hover:text-brand-600 dark:group-hover:text-brand-400 transition truncate max-w-[110px] sm:max-w-[220px]">{{ auth()->user()->full_name }}</span>
+                                <span class="text-[10px] font-medium text-slate-400 dark:text-slate-500 truncate max-w-[110px] sm:max-w-[220px]">{{ auth()->user()->job_title ?: ucfirst(auth()->user()->role) }}</span>
                             </div>
                         </a>
-                        <!-- Job title (falls back to the RBAC role when no title is set) -->
-                        @if(auth()->user()->job_title)
-                            <span class="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-bold text-slate-600 dark:bg-slate-700 dark:text-slate-300 max-w-[160px] truncate">{{ auth()->user()->job_title }}</span>
-                        @else
-                            <x-role-badge :role="auth()->user()->role" />
-                        @endif
                     </div>
 
                 </div>
