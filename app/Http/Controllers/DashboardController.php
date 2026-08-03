@@ -188,10 +188,11 @@ class DashboardController extends Controller
             }
         }
 
-        // Probation completions — a one-off milestone on the probation end date
-        // (excluding any that were failed). Shown as its own celebration.
+        // Probation completions — a one-off milestone on the probation end date,
+        // shown only once the review is CONFIRMED (passed), never for a still-
+        // pending/overdue or failed review.
         $probations = \App\Models\Probation::with('employee:id,first_name,last_name,avatar_url')
-            ->where('status', '!=', 'failed')
+            ->where('status', 'passed')
             ->whereNotNull('end_date')
             ->get();
 
