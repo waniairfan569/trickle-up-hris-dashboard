@@ -26,6 +26,9 @@ Schedule::command('events:send-reminders')->dailyAt('18:00');
 // Remind the current signer when an assigned document has gone unsigned for 24+ hours.
 Schedule::command('documents:send-signature-reminders')->hourly()->withoutOverlapping();
 
+// Email the employee + admins when a probation period completes (end date reached).
+Schedule::command('probation:notify-completions')->dailyAt('07:00')->withoutOverlapping();
+
 // Leave-year renewals (encashment + carry forward + fresh balances) — runs any
 // setting whose next_renewal_date is due.
 Schedule::command('leave:process-renewals')->dailyAt('01:00')->withoutOverlapping()->runInBackground();

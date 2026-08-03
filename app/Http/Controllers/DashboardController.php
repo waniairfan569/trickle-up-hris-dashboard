@@ -188,6 +188,29 @@ class DashboardController extends Controller
             }
         }
 
+        // Probation completions — a one-off milestone on the probation end date
+        // (excluding any that were failed). Shown as its own celebration.
+        $probations = \App\Models\Probation::with('employee:id,first_name,last_name,avatar_url')
+            ->where('status', '!=', 'failed')
+            ->whereNotNull('end_date')
+            ->get();
+
+        foreach ($probations as $pr) {
+            $emp = $pr->employee;
+            if (!$emp) {
+                continue;
+            }
+            $name = trim($emp->first_name . ' ' . $emp->last_name) ?: 'Employee';
+            $items->push([
+                'name' => $name,
+                'initials' => $emp->initials,
+                'avatar' => $emp->avatar_url,
+                'type' => 'probation_completed',
+                'date' => \Carbon\Carbon::parse($pr->end_date)->toDateString(),
+                'label' => 'Completed probation successfully',
+            ]);
+        }
+
         return $items->values();
     }
 }

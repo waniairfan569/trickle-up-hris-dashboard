@@ -90,6 +90,14 @@ class ProbationController extends Controller
         $probation->update(['status' => 'passed']);
         $probation->logEvent('passed', $request->input('note'));
 
+        // Celebrate + notify the employee and admins right away (idempotent — the
+        // daily job won't send again for the same probation).
+        try {
+            app(\App\Services\ProbationNotifier::class)->notifyCompletion($probation->fresh());
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
         return back()->with('success', 'Probation confirmed — employee passed.');
     }
 

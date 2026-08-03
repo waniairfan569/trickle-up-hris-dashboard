@@ -160,6 +160,7 @@
                 const out = [];
                 this.celebrations.forEach(e => {
                     if (e.type === 'new_joiner') { if (e.date === cur) out.push(e); return; }
+                    if (e.type === 'probation_completed') { if (e.date === cur) out.push(e); return; }
                     if (e.md !== md) return;                              // birthday / anniversary recur on month-day
                     if (e.type === 'anniversary') {
                         const years = yr - (e.year || yr);
@@ -191,7 +192,7 @@
             monthOf(ds) { return new Date(ds + 'T00:00:00').toLocaleDateString('en-GB', { month: 'short' }); },
             dayOf(ds) { return new Date(ds + 'T00:00:00').getDate(); },
             relDate(ds) { return new Date(ds + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }); },
-            dotColor(type) { return { birthday: 'bg-pink-500', anniversary: 'bg-amber-500', new_joiner: 'bg-emerald-500' }[type] || 'bg-slate-400'; },
+            dotColor(type) { return { birthday: 'bg-pink-500', anniversary: 'bg-amber-500', new_joiner: 'bg-emerald-500', probation_completed: 'bg-violet-500' }[type] || 'bg-slate-400'; },
             dotBg(c) { return { brand: 'bg-brand-500', indigo: 'bg-indigo-500', emerald: 'bg-emerald-500', rose: 'bg-rose-500', sky: 'bg-sky-500' }[c] || 'bg-brand-500'; },
             showPicker: false,
             pickerYear: new Date().getFullYear(),

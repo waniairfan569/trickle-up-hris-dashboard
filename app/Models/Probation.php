@@ -18,6 +18,7 @@ class Probation extends Model
         'end_date',
         'original_end_date',
         'status',
+        'completion_notified_at',
         'note',
         'created_by',
     ];
@@ -26,6 +27,7 @@ class Probation extends Model
         'start_date' => 'date',
         'end_date' => 'date',
         'original_end_date' => 'date',
+        'completion_notified_at' => 'datetime',
     ];
 
     public function employee()
