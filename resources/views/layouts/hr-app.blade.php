@@ -300,8 +300,12 @@
                                 <span class="text-[10px] text-slate-400 dark:text-slate-500">{{ auth()->user()->job_title }}</span>
                             </div>
                         </a>
-                        <!-- Role Badge Component -->
-                        <x-role-badge :role="auth()->user()->role" />
+                        <!-- Job title (falls back to the RBAC role when no title is set) -->
+                        @if(auth()->user()->job_title)
+                            <span class="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-bold text-slate-600 dark:bg-slate-700 dark:text-slate-300 max-w-[160px] truncate">{{ auth()->user()->job_title }}</span>
+                        @else
+                            <x-role-badge :role="auth()->user()->role" />
+                        @endif
                     </div>
 
                 </div>

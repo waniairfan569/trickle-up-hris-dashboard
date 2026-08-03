@@ -19,10 +19,10 @@
 
     <!-- Main Grid -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        
-        <!-- Left Column -->
-        <div class="space-y-4">
-            
+
+        <!-- Left Column (calendar + balances) — shown AFTER the right column on mobile -->
+        <div class="space-y-4 order-last md:order-none">
+
             <!-- Date & Events Widget -->
             <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-6 flex flex-col h-[460px] dark:bg-slate-800 dark:border-slate-700"
                  x-data="celebrationsWidget()">
@@ -414,8 +414,8 @@
 
         </div>
 
-        <!-- Right Column -->
-        <div class="space-y-4">
+        <!-- Right Column (timesheet + code + announcements) — shown FIRST on mobile -->
+        <div class="space-y-4 order-first md:order-none">
 
             <!-- Time Tracking (Simple Header Version) -->
             @php
@@ -426,15 +426,15 @@
             <div class="bg-white rounded-xl shadow-sm border border-slate-100 flex flex-col dark:bg-slate-800 dark:border-slate-700 overflow-hidden">
                 <!-- Top Section -->
                 <div class="p-6">
-                    <div class="flex items-center gap-4">
-                        <a href="{{ route('attendance.my-history') }}" class="text-base font-bold text-teal-800 dark:text-teal-400 hover:text-teal-955 dark:hover:text-teal-300 transition">
+                    <div class="flex flex-wrap items-center gap-x-4 gap-y-3">
+                        <a href="{{ route('attendance.my-history') }}" class="text-base font-bold text-teal-800 dark:text-teal-400 hover:text-teal-955 dark:hover:text-teal-300 transition shrink-0">
                             Timesheet
                         </a>
 
-                        <div class="flex-1 flex items-center gap-3">
+                        <div class="flex-1 flex items-center gap-3 min-w-[200px]">
                             <!-- Timer Pill Container -->
-                            <div class="bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-700/50 rounded-lg px-6 py-2.5 flex items-center justify-center flex-1 h-11">
-                                <span id="live-worked-timer-seconds" class="text-base font-semibold text-slate-800 dark:text-slate-200 tracking-tight">0h 0m 0s</span>
+                            <div class="bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-700/50 rounded-lg px-4 py-2.5 flex items-center justify-center flex-1 h-11">
+                                <span id="live-worked-timer-seconds" class="text-base font-semibold text-slate-800 dark:text-slate-200 tracking-tight whitespace-nowrap tabular-nums">0h 0m 0s</span>
                             </div>
 
                             @if(!$status['clock_in'] || $status['clock_out'])
