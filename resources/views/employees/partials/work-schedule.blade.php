@@ -85,13 +85,12 @@
                 </label>
             </div>
 
-            <!-- Recurring Form -->
-            <form x-show="shiftType === 'recurring'" action="{{ route('employees.shifts.assign.recurring', $employee) }}" method="POST" class="space-y-4">
-                @csrf
+            <!-- Recurring Form (form-attr + teleported shell so it isn't nested in #profile-edit-form) -->
+            <div x-show="shiftType === 'recurring'" class="space-y-4">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-slate-700 mb-1">Select Shift *</label>
-                        <select name="shift_id" required class="w-full border-slate-300 rounded-lg shadow-sm focus:border-brand-500 focus:ring-brand-500">
+                        <select name="shift_id" form="shift-recurring-{{ $employee->id }}" required class="w-full border-slate-300 rounded-lg shadow-sm focus:border-brand-500 focus:ring-brand-500">
                             @foreach($shifts as $s)
                                 <option value="{{ $s->id }}">{{ $s->name }} ({{ substr($s->start_time, 0, 5) }} – {{ substr($s->end_time, 0, 5) }})</option>
                             @endforeach
@@ -99,14 +98,14 @@
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-slate-700 mb-1">Start Date *</label>
-                        <input type="date" name="recurring_start_date" required value="{{ date('Y-m-d') }}" class="w-full border-slate-300 rounded-lg shadow-sm focus:border-brand-500 focus:ring-brand-500">
+                        <input type="date" name="recurring_start_date" form="shift-recurring-{{ $employee->id }}" required value="{{ date('Y-m-d') }}" class="w-full border-slate-300 rounded-lg shadow-sm focus:border-brand-500 focus:ring-brand-500">
                     </div>
                     <div class="md:col-span-2">
                         <label class="block text-sm font-medium text-slate-700 mb-2">Working Days *</label>
                         <div class="flex flex-wrap gap-3">
                             @foreach(['Mon','Tue','Wed','Thu','Fri','Sat','Sun'] as $day)
                                 <label class="inline-flex items-center">
-                                    <input type="checkbox" name="recurring_days[]" value="{{ $day }}" class="rounded border-slate-300 text-brand-600 shadow-sm focus:border-brand-300 focus:ring focus:ring-brand-200 focus:ring-opacity-50" checked>
+                                    <input type="checkbox" name="recurring_days[]" form="shift-recurring-{{ $employee->id }}" value="{{ $day }}" class="rounded border-slate-300 text-brand-600 shadow-sm focus:border-brand-300 focus:ring focus:ring-brand-200 focus:ring-opacity-50" checked>
                                     <span class="ml-2 text-sm text-slate-700">{{ $day }}</span>
                                 </label>
                             @endforeach
@@ -114,17 +113,17 @@
                     </div>
                 </div>
                 <div class="flex justify-end pt-2">
-                    <button type="submit" class="bg-brand-600 hover:bg-brand-700 text-white font-bold py-2 px-6 rounded-lg shadow-sm transition text-sm">Save Recurring Assignment</button>
+                    <button type="submit" form="shift-recurring-{{ $employee->id }}" class="bg-brand-600 hover:bg-brand-700 text-white font-bold py-2 px-6 rounded-lg shadow-sm transition text-sm">Save Recurring Assignment</button>
                 </div>
-            </form>
+            </div>
+            <template x-teleport="body"><form id="shift-recurring-{{ $employee->id }}" action="{{ route('employees.shifts.assign.recurring', $employee) }}" method="POST">@csrf</form></template>
 
             <!-- Single Day Form -->
-            <form x-show="shiftType === 'single'" action="{{ route('employees.shifts.assign.single', $employee) }}" method="POST" class="space-y-4">
-                @csrf
+            <div x-show="shiftType === 'single'" class="space-y-4">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-slate-700 mb-1">Select Shift *</label>
-                        <select name="shift_id" required class="w-full border-slate-300 rounded-lg shadow-sm focus:border-brand-500 focus:ring-brand-500">
+                        <select name="shift_id" form="shift-single-{{ $employee->id }}" required class="w-full border-slate-300 rounded-lg shadow-sm focus:border-brand-500 focus:ring-brand-500">
                             @foreach($shifts as $s)
                                 <option value="{{ $s->id }}">{{ $s->name }} ({{ substr($s->start_time, 0, 5) }} – {{ substr($s->end_time, 0, 5) }})</option>
                             @endforeach
@@ -132,13 +131,14 @@
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-slate-700 mb-1">Specific Date *</label>
-                        <input type="date" name="date" required value="{{ date('Y-m-d') }}" class="w-full border-slate-300 rounded-lg shadow-sm focus:border-brand-500 focus:ring-brand-500">
+                        <input type="date" name="date" form="shift-single-{{ $employee->id }}" required value="{{ date('Y-m-d') }}" class="w-full border-slate-300 rounded-lg shadow-sm focus:border-brand-500 focus:ring-brand-500">
                     </div>
                 </div>
                 <div class="flex justify-end pt-2">
-                    <button type="submit" class="bg-slate-800 hover:bg-slate-900 text-white font-bold py-2 px-6 rounded-lg shadow-sm transition text-sm">Save Single Override</button>
+                    <button type="submit" form="shift-single-{{ $employee->id }}" class="bg-slate-800 hover:bg-slate-900 text-white font-bold py-2 px-6 rounded-lg shadow-sm transition text-sm">Save Single Override</button>
                 </div>
-            </form>
+            </div>
+            <template x-teleport="body"><form id="shift-single-{{ $employee->id }}" action="{{ route('employees.shifts.assign.single', $employee) }}" method="POST">@csrf</form></template>
         </div>
     </div>
 </div>

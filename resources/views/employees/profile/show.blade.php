@@ -772,10 +772,9 @@
                                             <span class="text-[11px] font-semibold text-slate-400">{{ $r->review_type_label }}</span>
                                         </div>
                                         @if($auth->isAdmin() && $r->status === 'upcoming')
-                                            <form action="{{ route('employees.pay-reviews.destroy', [$employee->id, $r->id]) }}" method="POST" onsubmit="return confirm('Remove this upcoming pay review?');">
-                                                @csrf @method('DELETE')
-                                                <button type="submit" title="Remove" class="text-slate-400 hover:text-rose-500"><i data-lucide="trash-2" class="h-4 w-4"></i></button>
-                                            </form>
+                                            {{-- form-attr + teleported shell so it isn't nested inside #profile-edit-form in edit mode --}}
+                                            <button type="submit" form="pr-del-{{ $r->id }}" title="Remove" class="text-slate-400 hover:text-rose-500"><i data-lucide="trash-2" class="h-4 w-4"></i></button>
+                                            <template x-teleport="body"><form id="pr-del-{{ $r->id }}" action="{{ route('employees.pay-reviews.destroy', [$employee->id, $r->id]) }}" method="POST" onsubmit="return confirm('Remove this upcoming pay review?');">@csrf @method('DELETE')</form></template>
                                         @endif
                                     </div>
 
@@ -939,7 +938,8 @@
                         @if($isAdminViewer && $probation->status === 'active')
                             <div class="flex flex-wrap gap-2 pt-1">
                                 <button type="button" @click="extend = true" class="inline-flex items-center gap-1.5 rounded-xl bg-white border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200"><i data-lucide="calendar-plus" class="h-3.5 w-3.5"></i> Extend</button>
-                                <form action="{{ route('employees.probation.confirm', [$employee->id, $probation->id]) }}" method="POST" onsubmit="return confirm('Confirm {{ $employee->first_name }} — probation passed?');">@csrf<button type="submit" class="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-2 text-xs font-bold text-white hover:bg-emerald-700"><i data-lucide="check" class="h-3.5 w-3.5"></i> Confirm</button></form>
+                                <button type="submit" form="prob-confirm-{{ $probation->id }}" class="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-2 text-xs font-bold text-white hover:bg-emerald-700"><i data-lucide="check" class="h-3.5 w-3.5"></i> Confirm</button>
+                                <template x-teleport="body"><form id="prob-confirm-{{ $probation->id }}" action="{{ route('employees.probation.confirm', [$employee->id, $probation->id]) }}" method="POST" onsubmit="return confirm('Confirm {{ $employee->first_name }} — probation passed?');">@csrf</form></template>
                                 <button type="button" @click="fail = true" class="inline-flex items-center gap-1.5 rounded-xl bg-white border border-rose-200 px-3 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 dark:bg-slate-700 dark:border-rose-500/30"><i data-lucide="x-circle" class="h-3.5 w-3.5"></i> Not confirmed</button>
                             </div>
                         @endif
@@ -962,12 +962,14 @@
                         @endif
 
                         @if($isAdminViewer)
-                            <form action="{{ route('employees.probation.destroy', [$employee->id, $probation->id]) }}" method="POST" onsubmit="return confirm('Remove this probation record?');" class="pt-1">@csrf @method('DELETE')<button type="submit" class="text-[11px] font-semibold text-slate-400 hover:text-rose-500">Remove probation record</button></form>
+                            <div class="pt-1"><button type="submit" form="prob-destroy-{{ $probation->id }}" class="text-[11px] font-semibold text-slate-400 hover:text-rose-500">Remove probation record</button></div>
+                            <template x-teleport="body"><form id="prob-destroy-{{ $probation->id }}" action="{{ route('employees.probation.destroy', [$employee->id, $probation->id]) }}" method="POST" onsubmit="return confirm('Remove this probation record?');">@csrf @method('DELETE')</form></template>
                         @endif
                     </div>
 
-                    {{-- Extend modal --}}
+                    {{-- Extend modal (teleported so its form isn't nested in #profile-edit-form) --}}
                     @if($isAdminViewer)
+                        <template x-teleport="body">
                         <div x-show="extend" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4">
                             <div class="absolute inset-0 bg-slate-900/50" @click="extend = false"></div>
                             <div class="relative w-full max-w-md rounded-2xl bg-white shadow-xl dark:bg-slate-800">
@@ -983,7 +985,9 @@
                                 </form>
                             </div>
                         </div>
-                        {{-- Fail modal --}}
+                        </template>
+                        {{-- Fail modal (teleported) --}}
+                        <template x-teleport="body">
                         <div x-show="fail" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4">
                             <div class="absolute inset-0 bg-slate-900/50" @click="fail = false"></div>
                             <div class="relative w-full max-w-md rounded-2xl bg-white shadow-xl dark:bg-slate-800">
@@ -995,6 +999,7 @@
                                 </form>
                             </div>
                         </div>
+                        </template>
                     @endif
                 @else
                     <div class="rounded-xl border border-dashed border-slate-200 dark:border-slate-700 p-5 text-center">
@@ -1002,12 +1007,12 @@
                         @if($isAdminViewer)
                             @php $defStart = $employee->hire_date ? \Carbon\Carbon::parse($employee->hire_date) : now(); @endphp
                             <p class="text-xs text-slate-400 mt-1">Start a 3-month probation (defaults from the hire date).</p>
-                            <form action="{{ route('employees.probation.store', $employee->id) }}" method="POST" class="mt-3 flex flex-wrap items-end justify-center gap-2">
-                                @csrf
-                                <div class="text-left"><label class="block text-[10px] font-bold text-slate-400 uppercase">Start</label><input type="date" name="start_date" value="{{ $defStart->toDateString() }}" class="rounded-lg border-slate-300 text-xs dark:bg-slate-900 dark:border-slate-600 dark:text-white"></div>
-                                <div class="text-left"><label class="block text-[10px] font-bold text-slate-400 uppercase">End</label><input type="date" name="end_date" value="{{ $defStart->copy()->addMonths(3)->toDateString() }}" class="rounded-lg border-slate-300 text-xs dark:bg-slate-900 dark:border-slate-600 dark:text-white"></div>
-                                <button type="submit" class="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-4 py-2 text-xs font-bold text-slate-900 hover:bg-brand-700"><i data-lucide="play" class="h-3.5 w-3.5"></i> Start probation</button>
-                            </form>
+                            <div class="mt-3 flex flex-wrap items-end justify-center gap-2">
+                                <div class="text-left"><label class="block text-[10px] font-bold text-slate-400 uppercase">Start</label><input type="date" name="start_date" form="prob-store-{{ $employee->id }}" value="{{ $defStart->toDateString() }}" class="rounded-lg border-slate-300 text-xs dark:bg-slate-900 dark:border-slate-600 dark:text-white"></div>
+                                <div class="text-left"><label class="block text-[10px] font-bold text-slate-400 uppercase">End</label><input type="date" name="end_date" form="prob-store-{{ $employee->id }}" value="{{ $defStart->copy()->addMonths(3)->toDateString() }}" class="rounded-lg border-slate-300 text-xs dark:bg-slate-900 dark:border-slate-600 dark:text-white"></div>
+                                <button type="submit" form="prob-store-{{ $employee->id }}" class="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-4 py-2 text-xs font-bold text-slate-900 hover:bg-brand-700"><i data-lucide="play" class="h-3.5 w-3.5"></i> Start probation</button>
+                            </div>
+                            <template x-teleport="body"><form id="prob-store-{{ $employee->id }}" action="{{ route('employees.probation.store', $employee->id) }}" method="POST">@csrf</form></template>
                         @else
                             <p class="text-xs text-slate-400 mt-1">No probation period is currently recorded.</p>
                         @endif
