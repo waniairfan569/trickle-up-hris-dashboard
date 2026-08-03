@@ -817,9 +817,11 @@
                 @endif
             </div>
 
-            {{-- Add pay review modal (admin) --}}
+            {{-- Add pay review modal (admin) — teleported to <body> so its form is
+                 never nested inside the profile-edit form (nested forms don't submit). --}}
             @if($auth->isAdmin())
                 <script>window.__payCurrent = @json($cur !== null ? (float) $cur : null);</script>
+                <template x-teleport="body">
                 <div x-show="payReviewOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4">
                     <div class="absolute inset-0 bg-slate-900/50" @click="payReviewOpen = false"></div>
                     <div class="relative w-full max-w-lg rounded-2xl bg-white shadow-xl dark:bg-slate-800 max-h-[90vh] overflow-y-auto"
@@ -898,6 +900,7 @@
                         </form>
                     </div>
                 </div>
+                </template>
             @endif
         @endif
 
