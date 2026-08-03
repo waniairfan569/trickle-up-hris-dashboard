@@ -408,10 +408,15 @@
     (function () {
         const KEY = 'notif_seen_{{ auth()->id() }}';
         const URL = '{{ route('notifications.unread-json') }}';
-        let seen = new Set();
-        try { seen = new Set(JSON.parse(localStorage.getItem(KEY) || '[]')); } catch (e) {}
+        function loadSeen() { try { return new Set(JSON.parse(localStorage.getItem(KEY) || '[]')); } catch (e) { return new Set(); } }
+        let seen = loadSeen();
         const firstEver = !localStorage.getItem(KEY);
         function saveSeen() { try { localStorage.setItem(KEY, JSON.stringify([...seen].slice(-300))); } catch (e) {} }
+        // Keep the "already popped" set in sync across tabs so the same notification
+        // isn't shown twice (once per open tab). Update the moment another tab writes.
+        window.addEventListener('storage', function (e) {
+            if (e.key === KEY && e.newValue) { try { JSON.parse(e.newValue).forEach(function (id) { seen.add(id); }); } catch (err) {} }
+        });
         function esc(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
 
         // Mark a notification read on the server (used when the user clicks it).
@@ -443,6 +448,8 @@
             }
         }
         function handle(items) {
+            // Re-read the shared set first: if another tab already popped this one, skip it here.
+            loadSeen().forEach(function (id) { seen.add(id); });
             (items || []).forEach(function (n) {
                 if (!seen.has(n.id)) {
                     seen.add(n.id);

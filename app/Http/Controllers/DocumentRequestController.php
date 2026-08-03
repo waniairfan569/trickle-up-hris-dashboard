@@ -322,8 +322,10 @@ class DocumentRequestController extends Controller
         $documentRequest->update(['status' => 'completed', 'completed_at' => now()]);
         $documentRequest->logEvent('completed', $user, null, $request->ip());
 
-        // Notify subject + creator that signing is complete.
-        foreach (array_filter([$documentRequest->subject, $documentRequest->creator]) as $person) {
+        // Notify subject + creator that signing is complete (deduped so a
+        // person who is both subject and creator isn't notified twice).
+        $recipients = collect([$documentRequest->subject, $documentRequest->creator])->filter()->unique('id');
+        foreach ($recipients as $person) {
             $person->notify(new DocumentSigningCompleted($documentRequest));
         }
 

@@ -61,6 +61,54 @@ class CodeRequestController extends Controller
         return view('code-requests.my', compact('requests'));
     }
 
+    /** AJAX (poll): the employee's own recent requests — lets a code appear on the dashboard without a refresh. */
+    public function myCodeRequestsJson(Request $request)
+    {
+        $items = CodeRequest::where('employee_id', $request->user()->id)
+            ->with('responder')
+            ->latest()
+            ->take(8)
+            ->get()
+            ->map(fn ($r) => [
+                'id' => $r->id,
+                'tool' => $r->tool_name,
+                'message' => $r->message,
+                'status' => $r->status,
+                'request_number' => $r->request_number,
+                'ago' => optional($r->created_at)->diffForHumans(),
+                'code' => $r->code_provided,
+                'code_note' => $r->code_expires_note,
+                'sent_ago' => optional($r->code_sent_at)->diffForHumans(),
+                'responder' => optional($r->responder)->full_name ?? 'HR',
+                'rejection_reason' => $r->rejection_reason,
+                'fresh' => $r->status === 'code_sent'
+                    && $r->code_sent_at
+                    && $r->code_sent_at->gt(now()->subMinutes(60)),
+            ]);
+
+        return response()->json(['items' => $items]);
+    }
+
+    /** AJAX: employee cancels their own still-pending request. */
+    public function cancel(Request $request, CodeRequest $codeRequest)
+    {
+        abort_unless($codeRequest->employee_id === $request->user()->id, 403);
+
+        if ($codeRequest->status !== 'pending') {
+            return response()->json([
+                'success' => false,
+                'message' => 'This request can no longer be cancelled.',
+            ], 422);
+        }
+
+        $codeRequest->update(['status' => 'cancelled']);
+
+        // Clear the "needs a login code" alert from every admin's bell.
+        CodeRequestedNotification::markResolved($codeRequest->id);
+
+        return response()->json(['success' => true]);
+    }
+
     // ---- Admin --------------------------------------------------------------
 
     /** Admin: the quick-response panel. */

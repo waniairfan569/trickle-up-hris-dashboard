@@ -490,8 +490,14 @@ class TimeOffController extends Controller
         // Two-stage policies ("Manager then HR Admin" / "Manager then Super Admin")
         // — the manager's approval just advances the request to the second stage;
         // it stays pending until that approver signs off.
+        //
+        // A super admin, however, is the ultimate authority: their single click
+        // finalises the request outright rather than parking it for a second
+        // approval by themselves (that was the "approve twice" glitch).
         $type = $timeOffRequest->policy->approval_type;
-        if (in_array($type, ['both', 'manager_super'], true) && $timeOffRequest->approval_stage === 'manager') {
+        if (in_array($type, ['both', 'manager_super'], true)
+            && $timeOffRequest->approval_stage === 'manager'
+            && ! $user->hasRole('super_admin')) {
             $nextStage = $type === 'both' ? 'hr_admin' : 'super_admin';
             $who = $type === 'both' ? 'HR Admin' : 'Super Admin';
             $timeOffRequest->update(['approval_stage' => $nextStage]);

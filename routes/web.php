@@ -95,6 +95,8 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
     // Quick Code Requests — employee asks HR to share a tool login/OTP code.
     Route::post('code-requests', [\App\Http\Controllers\CodeRequestController::class, 'quickRequest'])->name('code-requests.store');
     Route::get('my-codes', [\App\Http\Controllers\CodeRequestController::class, 'myCodeRequests'])->name('code-requests.my');
+    Route::get('my-codes/json', [\App\Http\Controllers\CodeRequestController::class, 'myCodeRequestsJson'])->name('code-requests.my-json');
+    Route::post('code-requests/{codeRequest}/cancel', [\App\Http\Controllers\CodeRequestController::class, 'cancel'])->name('code-requests.cancel');
     Route::middleware('role:super_admin,hr_admin')->group(function () {
         Route::get('admin/code-requests', [\App\Http\Controllers\CodeRequestController::class, 'pendingCodes'])->name('code-requests.pending');
         Route::get('admin/code-requests/json', [\App\Http\Controllers\CodeRequestController::class, 'pendingJson'])->name('code-requests.pending-json');
