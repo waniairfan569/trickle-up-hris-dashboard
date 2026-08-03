@@ -83,6 +83,23 @@ class CodeRequestController extends Controller
         return view('code-requests.pending', compact('pending', 'resolved', 'rejected'));
     }
 
+    /** AJAX (poll): the current pending queue, newest first — powers the live "new request pops in at the top" list. */
+    public function pendingJson(Request $request)
+    {
+        abort_unless($request->user() && $request->user()->isAdmin(), 403);
+
+        $pending = CodeRequest::pending()->with('employee')->latest()->get()->map(fn ($r) => [
+            'id' => $r->id,
+            'employee' => optional($r->employee)->full_name ?? 'Employee',
+            'tool' => $r->tool_name,
+            'message' => $r->message,
+            'request_number' => $r->request_number,
+            'ago' => optional($r->created_at)->diffForHumans(),
+        ]);
+
+        return response()->json(['pending' => $pending]);
+    }
+
     /** AJAX: HR sends the code back to the employee. */
     public function sendCode(Request $request, CodeRequest $codeRequest)
     {

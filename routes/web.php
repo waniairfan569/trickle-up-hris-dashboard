@@ -97,6 +97,7 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
     Route::get('my-codes', [\App\Http\Controllers\CodeRequestController::class, 'myCodeRequests'])->name('code-requests.my');
     Route::middleware('role:super_admin,hr_admin')->group(function () {
         Route::get('admin/code-requests', [\App\Http\Controllers\CodeRequestController::class, 'pendingCodes'])->name('code-requests.pending');
+        Route::get('admin/code-requests/json', [\App\Http\Controllers\CodeRequestController::class, 'pendingJson'])->name('code-requests.pending-json');
         Route::post('admin/code-requests/{codeRequest}/send', [\App\Http\Controllers\CodeRequestController::class, 'sendCode'])->name('code-requests.send');
         Route::post('admin/code-requests/{codeRequest}/reject', [\App\Http\Controllers\CodeRequestController::class, 'rejectCode'])->name('code-requests.reject');
     });
