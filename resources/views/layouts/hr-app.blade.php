@@ -300,7 +300,7 @@
                             @endif
                             <div class="flex flex-col text-left min-w-0">
                                 <span class="text-xs font-semibold text-slate-700 dark:text-slate-200 group-hover:text-brand-600 dark:group-hover:text-brand-400 transition truncate max-w-[110px] sm:max-w-[220px]">{{ auth()->user()->full_name }}</span>
-                                <span class="text-[10px] font-medium text-slate-400 dark:text-slate-500 truncate max-w-[110px] sm:max-w-[220px]">{{ auth()->user()->job_title ?: ucfirst(auth()->user()->role) }}</span>
+                                <span class="text-[10px] font-medium text-slate-400 dark:text-slate-500 truncate max-w-[110px] sm:max-w-[220px]">{{ auth()->user()->job_title ?: \Illuminate\Support\Str::headline(optional(auth()->user()->role)->name ?? '') }}</span>
                             </div>
                         </a>
                     </div>
