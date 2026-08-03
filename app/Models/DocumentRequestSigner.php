@@ -22,11 +22,13 @@ class DocumentRequestSigner extends Model
         'field_values',
         'signed_at',
         'signed_ip',
+        'reminder_sent_at',
     ];
 
     protected $casts = [
         'position' => 'integer',
         'signed_at' => 'datetime',
+        'reminder_sent_at' => 'datetime',
         'field_values' => 'array',
     ];
 

@@ -23,6 +23,9 @@ Schedule::command('attendance:admin-clock-summary')->dailyAt('19:00');
 // Email all employees the day before about events happening tomorrow.
 Schedule::command('events:send-reminders')->dailyAt('18:00');
 
+// Remind the current signer when an assigned document has gone unsigned for 24+ hours.
+Schedule::command('documents:send-signature-reminders')->hourly()->withoutOverlapping();
+
 // Leave-year renewals (encashment + carry forward + fresh balances) — runs any
 // setting whose next_renewal_date is due.
 Schedule::command('leave:process-renewals')->dailyAt('01:00')->withoutOverlapping()->runInBackground();
