@@ -187,10 +187,10 @@
 
                 <!-- Breadcrumb / Section Name (hidden when a page sets none) -->
                 @php $__bc = trim($__env->yieldContent('breadcrumb')); @endphp
-                <div class="flex flex-1 items-center gap-x-2 min-w-0">
-                    <span class="text-sm font-medium text-slate-400 dark:text-slate-500 select-none">Workspace</span>
+                <div class="flex flex-1 flex-col justify-center sm:flex-row sm:items-center gap-x-2 min-w-0 leading-tight">
+                    <span class="text-[11px] sm:text-sm font-medium text-slate-400 dark:text-slate-500 select-none">Workspace</span>
                     @if($__bc !== '')
-                        <i data-lucide="chevron-right" class="h-4 w-4 text-slate-300 dark:text-slate-600 shrink-0"></i>
+                        <i data-lucide="chevron-right" class="hidden sm:block h-4 w-4 text-slate-300 dark:text-slate-600 shrink-0"></i>
                         <span class="text-sm font-semibold text-slate-700 dark:text-slate-300 truncate">{{ $__bc }}</span>
                     @endif
                 </div>
