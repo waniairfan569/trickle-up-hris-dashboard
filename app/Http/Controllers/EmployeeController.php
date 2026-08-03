@@ -465,6 +465,15 @@ class EmployeeController extends Controller
             'phone'           => $user->phone,
         ]);
 
+        // Auto-assign existing policies to the new hire: company acknowledgment
+        // policies (whole-company + their department) and the default leave
+        // policies + opening balances. Never let this block the hire.
+        try {
+            app(\App\Services\EmployeePolicyProvisioner::class)->provisionForNewEmployee($user, $auth);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning("Auto-assign policies failed for {$user->email}: " . $e->getMessage());
+        }
+
         $invitationService = app(\App\Services\InvitationService::class);
         $method = $validated['onboarding_method'] ?? 'invite';
 
