@@ -412,6 +412,40 @@
                 </div>
             </div>
 
+            <!-- Upcoming Time Off Widget (last on mobile) -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-6 flex flex-col h-[314px] dark:bg-slate-800 dark:border-slate-700">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="h-10 w-10 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100/50 dark:border-slate-700/50 flex items-center justify-center text-slate-400">
+                        <i data-lucide="calendar-clock" class="h-5 w-5"></i>
+                    </div>
+                    <h2 class="text-base font-semibold text-slate-800 dark:text-white">Your upcoming time off</h2>
+                </div>
+
+                <div class="bg-slate-50 rounded-xl p-8 flex flex-col items-center justify-center text-center dark:bg-slate-800/50 flex-1">
+                    @if($upcomingTimeOff->isEmpty())
+                        <div class="w-16 h-16 mb-2 relative opacity-60">
+                            <div class="absolute inset-0 flex flex-col gap-2 justify-center items-center">
+                                <div class="w-10 h-2 bg-slate-200 rounded-full flex items-center px-1"></div>
+                                <div class="w-12 h-2 bg-slate-200 rounded-full flex items-center px-1"></div>
+                                <div class="w-8 h-2 bg-slate-200 rounded-full flex items-center px-1"></div>
+                            </div>
+                        </div>
+                        <h3 class="text-sm font-bold text-slate-800 mb-1 dark:text-white">No upcoming time off</h3>
+                        <p class="text-[11px] text-slate-500 max-w-xs">There are no upcoming time-off requests.</p>
+                    @else
+                        <ul class="w-full text-left space-y-3">
+                            @foreach($upcomingTimeOff as $req)
+                                <li class="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                                    <span class="w-2 h-2 rounded-full bg-brand-500"></span>
+                                    {{ \Carbon\Carbon::parse($req->start_date)->format('M d') }} - {{ \Carbon\Carbon::parse($req->end_date)->format('M d, Y') }}
+                                    <span class="text-xs text-slate-400 font-normal">({{ optional($req->policy)->name }})</span>
+                                </li>
+                            @endforeach
+                        </ul>
+                    @endif
+                </div>
+            </div>
+
         </div>
 
         <!-- Right Column (timesheet + code + announcements) — shown FIRST on mobile -->
@@ -645,41 +679,6 @@
 
             <!-- Announcements -->
             @include('partials.announcements')
-
-            <!-- Upcoming Time Off Widget -->
-            <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-6 flex flex-col h-[314px] dark:bg-slate-800 dark:border-slate-700">
-                <div class="flex items-center gap-3 mb-6">
-                    <div class="h-10 w-10 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100/50 dark:border-slate-700/50 flex items-center justify-center text-slate-400">
-                        <i data-lucide="calendar-clock" class="h-5 w-5"></i>
-                    </div>
-                    <h2 class="text-base font-semibold text-slate-800 dark:text-white">Your upcoming time off</h2>
-                </div>
-                
-                <div class="bg-slate-50 rounded-xl p-8 flex flex-col items-center justify-center text-center dark:bg-slate-800/50 flex-1">
-                    @if($upcomingTimeOff->isEmpty())
-                        <div class="w-16 h-16 mb-2 relative opacity-60">
-                            <!-- Faux lines -->
-                            <div class="absolute inset-0 flex flex-col gap-2 justify-center items-center">
-                                <div class="w-10 h-2 bg-slate-200 rounded-full flex items-center px-1"></div>
-                                <div class="w-12 h-2 bg-slate-200 rounded-full flex items-center px-1"></div>
-                                <div class="w-8 h-2 bg-slate-200 rounded-full flex items-center px-1"></div>
-                            </div>
-                        </div>
-                        <h3 class="text-sm font-bold text-slate-800 mb-1 dark:text-white">No upcoming time off</h3>
-                        <p class="text-[11px] text-slate-500 max-w-xs">There are no upcoming time-off requests.</p>
-                    @else
-                        <ul class="w-full text-left space-y-3">
-                            @foreach($upcomingTimeOff as $req)
-                                <li class="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
-                                    <span class="w-2 h-2 rounded-full bg-brand-500"></span>
-                                    {{ \Carbon\Carbon::parse($req->start_date)->format('M d') }} - {{ \Carbon\Carbon::parse($req->end_date)->format('M d, Y') }} 
-                                    <span class="text-xs text-slate-400 font-normal">({{ optional($req->policy)->name }})</span>
-                                </li>
-                            @endforeach
-                        </ul>
-                    @endif
-                </div>
-            </div>
 
         </div>
     </div>
