@@ -702,24 +702,11 @@ class TimeOffController extends Controller
         $monthsOfService = $hireDate->diffInMonths(now());
         
         foreach ($policies as $policy) {
-            $shouldAssign = false;
             $balanceToAdd = $policy->days_per_year;
-            
-            // Maternity → married female; Paternity → married male.
-            // Casual Leave, Annual (planned) Leave and Eid Leave go to everyone.
-            $isMaternity = str_contains($policy->name, 'Maternity');
-            $isPaternity = str_contains($policy->name, 'Paternity');
-            if ($isMaternity || $isPaternity) {
-                $married = strtolower(trim((string) $employee->getFieldValue('marital_status'))) === 'married';
-                $gender = strtolower(trim((string) $employee->getFieldValue('gender')));
-                if ($isMaternity) {
-                    $shouldAssign = $married && $gender === 'female';
-                } else {
-                    $shouldAssign = $married && $gender === 'male';
-                }
-            } else {
-                $shouldAssign = true;
-            }
+
+            // Maternity → married female; Paternity → married male; everything
+            // else applies to everyone (single source of truth on the policy).
+            $shouldAssign = $policy->appliesTo($employee);
 
             if ($shouldAssign) {
                 // Attach the policy if not attached

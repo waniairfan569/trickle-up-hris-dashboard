@@ -90,12 +90,35 @@ class TimeOffPolicy extends Model
     {
         // Try to find the pivot
         $employee = $this->employees()->where('user_id', $user->id)->first();
-        
+
         if ($employee && $employee->pivot->custom_days_per_year !== null) {
             return (float) $employee->pivot->custom_days_per_year;
         }
 
         return (float) $this->days_per_year;
+    }
+
+    /**
+     * Whether this policy's leave applies to the given employee. Maternity leave
+     * is only for married women, Paternity only for married men; every other
+     * policy applies to everyone. (Length-of-service is enforced separately when
+     * the leave is actually requested.)
+     */
+    public function appliesTo(User $employee): bool
+    {
+        $name = strtolower((string) $this->name);
+        $isMaternity = str_contains($name, 'maternity');
+        $isPaternity = str_contains($name, 'paternity');
+
+        if (!$isMaternity && !$isPaternity) {
+            return true;
+        }
+
+        $gf = fn ($k) => method_exists($employee, 'getFieldValue') ? $employee->getFieldValue($k) : null;
+        $married = strtolower(trim((string) $gf('marital_status'))) === 'married';
+        $gender = strtolower(trim((string) $gf('gender')));
+
+        return $isMaternity ? ($married && $gender === 'female') : ($married && $gender === 'male');
     }
 
     public function getRemainingBalance(User $user, int $year)

@@ -203,11 +203,29 @@ class TimeOffPolicyController extends Controller
 
         $balances = \App\Models\TimeOffBalance::where('year', $year)->with(['user', 'policy'])->get();
         $updated = 0;
+        $removed = 0;
 
         foreach ($balances as $b) {
             if (!$b->user || !$b->policy) {
                 continue;
             }
+
+            // Policy the employee can't have (e.g. Maternity for a man). If nothing
+            // has been taken or credited, drop the row entirely; otherwise zero it.
+            if (!$b->policy->appliesTo($b->user)) {
+                $isEmpty = (float) $b->used == 0 && (float) $b->pending == 0
+                    && (float) $b->accrued == 0 && (float) $b->carried_over == 0 && (float) $b->adjusted == 0;
+                if ($isEmpty) {
+                    $b->delete();
+                    $removed++;
+                } elseif ((float) $b->opening_balance != 0.0) {
+                    $b->opening_balance = 0;
+                    $b->save();
+                    $updated++;
+                }
+                continue;
+            }
+
             $allocation = round($renewal->currentAllocationFor($b->user, $b->policy), 2);
             if ((float) $b->opening_balance !== $allocation) {
                 $b->opening_balance = $allocation;
@@ -216,8 +234,12 @@ class TimeOffPolicyController extends Controller
             }
         }
 
-        return redirect()->route('time-off-policies.balances-overview', ['year' => $year])
-            ->with('success', "Recalculated {$updated} balance(s) — pro-rata applied for mid-year joiners.");
+        $msg = "Recalculated {$updated} balance(s) — pro-rata applied for mid-year joiners.";
+        if ($removed > 0) {
+            $msg .= " Removed {$removed} ineligible leave(s) (e.g. maternity for men).";
+        }
+
+        return redirect()->route('time-off-policies.balances-overview', ['year' => $year])->with('success', $msg);
     }
 
     public function balances(TimeOffPolicy $timeOffPolicy)

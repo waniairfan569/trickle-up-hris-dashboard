@@ -32,6 +32,13 @@ class TimeOffBalanceService
         $year = Carbon::now()->year;
 
         foreach ($policies as $policy) {
+            // Don't auto-assign a policy the employee is ineligible for (Maternity
+            // to a man, Paternity to a woman/unmarried). Eligible ones can still be
+            // granted later once gender/marital status is on file.
+            if (!$policy->appliesTo($user)) {
+                continue;
+            }
+
             $policy->employees()->syncWithoutDetaching([
                 $user->id => [
                     'assigned_by' => $assignedBy,

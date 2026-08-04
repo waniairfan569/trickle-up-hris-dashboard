@@ -359,6 +359,12 @@ class LeaveRenewalService
      */
     public function currentAllocationFor(User $employee, TimeOffPolicy $policy, ?LeaveYearSetting $setting = null): float
     {
+        // Maternity/Paternity only apply to married women/men respectively —
+        // an ineligible employee gets no allocation (0), never a wrong one.
+        if (!$policy->appliesTo($employee)) {
+            return 0.0;
+        }
+
         $setting = $setting ?: LeaveYearSetting::where('policy_id', $policy->id)
             ->where('is_active', true)
             ->when($employee->tenant_id, fn ($q) => $q->where('tenant_id', $employee->tenant_id))
