@@ -69,6 +69,7 @@
         || Str::startsWith($routeName, 'company-forms.my-reviews')
         || Str::startsWith($routeName, 'my-policies') || Str::startsWith($routeName, 'policies.')
         || request()->routeIs('equipment.index')
+        || (request()->routeIs('employees.index') && !(auth()->user()->isAdmin() || auth()->user()->isManager()))
         || Str::startsWith($routeName, 'document-library') || Str::startsWith($routeName, 'documents.');
 @endphp
 <div x-data="{ open: {{ $myWorkspaceOpen ? 'true' : 'false' }} }">
@@ -82,6 +83,13 @@
            class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ (Str::startsWith($routeName, 'employees.profile') || request()->is('employees/' . auth()->id() . '/profile*')) ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">
             <i data-lucide="user" class="h-4 w-4 shrink-0"></i><span class="flex-1">My Profile</span>
         </a>
+        {{-- Employees Directory: admins/managers get it under Team Management; show it here for everyone else. --}}
+        @unless(auth()->user()->isAdmin() || auth()->user()->isManager())
+        <a href="{{ route('employees.index') }}"
+           class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ request()->routeIs('employees.index') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">
+            <i data-lucide="users" class="h-4 w-4 shrink-0"></i><span class="flex-1">Employees Directory</span>
+        </a>
+        @endunless
         <a href="{{ route('attendance.my-history') }}"
            class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'attendance.my-history') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">
             <i data-lucide="clock" class="h-4 w-4 shrink-0"></i><span class="flex-1">My Attendance</span>
