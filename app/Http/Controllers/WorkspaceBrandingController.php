@@ -10,7 +10,7 @@ class WorkspaceBrandingController extends Controller
 {
     public function edit(TenantManager $tenants)
     {
-        $tenant = $tenants->get();
+        $tenant = $this->resolveTenant($tenants);
         abort_unless($tenant, 404, 'No active workspace.');
 
         return view('workspace.branding', compact('tenant'));
@@ -18,7 +18,7 @@ class WorkspaceBrandingController extends Controller
 
     public function update(Request $request, TenantManager $tenants)
     {
-        $tenant = $tenants->get();
+        $tenant = $this->resolveTenant($tenants);
         abort_unless($tenant, 404);
 
         $data = $request->validate([

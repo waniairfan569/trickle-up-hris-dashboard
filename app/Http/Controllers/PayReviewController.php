@@ -63,8 +63,15 @@ class PayReviewController extends Controller
         // Keep the employee's current salary in sync with the active review.
         $this->syncCurrentSalary($employee);
 
+        // Let the employee know (in-app + email). Never let a mail hiccup fail the save.
+        try {
+            $employee->notify(new \App\Notifications\PayReviewRecorded($review));
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
         return redirect()->route('employees.profile', $employee->id)
-            ->with('success', 'Pay review recorded.');
+            ->with('success', 'Pay review recorded. The employee has been notified.');
     }
 
     /** Delete a review — only future-dated (Upcoming) records may be removed. */

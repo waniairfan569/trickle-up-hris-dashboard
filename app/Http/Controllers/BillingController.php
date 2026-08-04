@@ -9,7 +9,7 @@ class BillingController extends Controller
 {
     public function index(TenantManager $tenants)
     {
-        $tenant = $tenants->get();
+        $tenant = $this->resolveTenant($tenants);
         abort_unless($tenant, 404, 'No active workspace.');
 
         return view('billing.index', [
@@ -30,7 +30,7 @@ class BillingController extends Controller
      */
     public function subscribe(Request $request, TenantManager $tenants)
     {
-        $tenant = $tenants->get();
+        $tenant = $this->resolveTenant($tenants);
         abort_unless($tenant, 404);
 
         $validated = $request->validate(['plan' => 'required|string']);
