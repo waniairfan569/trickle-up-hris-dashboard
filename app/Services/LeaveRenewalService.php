@@ -351,6 +351,32 @@ class LeaveRenewalService
         );
     }
 
+    /**
+     * The opening allocation for an employee under a policy for the CURRENT leave
+     * year — the exact number the renewal preview shows: pro-rata for a mid-year
+     * joiner (joined after the leave-year start), otherwise their full allowance.
+     * Single source of truth so a stored balance always matches the preview.
+     */
+    public function currentAllocationFor(User $employee, TimeOffPolicy $policy, ?LeaveYearSetting $setting = null): float
+    {
+        $setting = $setting ?: LeaveYearSetting::where('policy_id', $policy->id)
+            ->where('is_active', true)
+            ->when($employee->tenant_id, fn ($q) => $q->where('tenant_id', $employee->tenant_id))
+            ->first();
+
+        if (!$setting || !$setting->pro_rata_enabled) {
+            return (float) $policy->getAllowanceForUser($employee);
+        }
+
+        $startDate = $this->startDateOf($employee);
+
+        if ($startDate && $startDate->gt($setting->currentYearStart())) {
+            return $this->calculateProRataDays((float) $policy->days_per_year, $startDate, $setting);
+        }
+
+        return (float) $policy->getAllowanceForUser($employee);
+    }
+
     /** Monthly salary for the daily-rate calculation. */
     public function getEmployeeMonthlySalary(User $user): float
     {

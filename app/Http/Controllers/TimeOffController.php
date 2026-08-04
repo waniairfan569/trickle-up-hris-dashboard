@@ -735,15 +735,16 @@ class TimeOffController extends Controller
                     ]);
                 }
                 
-                // Set the balance
+                // Opening balance = this year's allocation — pro-rata for a mid-year
+                // joiner (matches the renewal preview), full otherwise. The pivot keeps
+                // the full annual rate above; only the opening allocation is pro-rated.
+                $allocation = app(\App\Services\LeaveRenewalService::class)->currentAllocationFor($employee, $policy);
                 $balance = $this->balanceService->getOrCreateBalance($employee, $policy, $year);
-                // Only update opening balance if it hasn't been set or is zero, or maybe we just override it for this demo.
-                // It's safe to override opening balance here since this is 'default assignment'
-                $balance->update(['opening_balance' => $balanceToAdd]);
+                $balance->update(['opening_balance' => $allocation]);
             }
         }
 
-        return back()->with('success', 'Default leave policies assigned (Maternity → married female, Paternity → married male).');
+        return back()->with('success', 'Default leave policies assigned (pro-rata applied for mid-year joiners).');
     }
 
 }

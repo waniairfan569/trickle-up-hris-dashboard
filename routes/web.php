@@ -427,6 +427,7 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
         // All-employees × all-categories balance overview. MUST be before the
         // resource route so "balances-overview" isn't captured as a policy id.
         Route::get('time-off-policies/balances-overview', [TimeOffPolicyController::class, 'balancesOverview'])->name('time-off-policies.balances-overview');
+        Route::post('time-off-policies/balances/recompute', [TimeOffPolicyController::class, 'recomputeBalances'])->name('time-off-policies.recompute-balances');
         Route::resource('time-off-policies', TimeOffPolicyController::class);
         Route::post('time-off-policies/{policy}/assign', [TimeOffPolicyController::class, 'assign'])->name('time-off-policies.assign');
         Route::post('time-off-policies/{policy}/unassign', [TimeOffPolicyController::class, 'unassign'])->name('time-off-policies.unassign');

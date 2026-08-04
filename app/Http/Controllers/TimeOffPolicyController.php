@@ -191,6 +191,35 @@ class TimeOffPolicyController extends Controller
         return view('time-off-policies.balances-overview', compact('policies', 'employees', 'balances', 'year', 'years'));
     }
 
+    /**
+     * Recompute every employee's OPENING balance for a year to the correct
+     * allocation — pro-rata for mid-year joiners, full otherwise — matching the
+     * renewal preview. Only touches opening_balance; used/pending/accrued/etc stay.
+     */
+    public function recomputeBalances(Request $request)
+    {
+        $year = (int) $request->input('year', Carbon::now()->year);
+        $renewal = app(\App\Services\LeaveRenewalService::class);
+
+        $balances = \App\Models\TimeOffBalance::where('year', $year)->with(['user', 'policy'])->get();
+        $updated = 0;
+
+        foreach ($balances as $b) {
+            if (!$b->user || !$b->policy) {
+                continue;
+            }
+            $allocation = round($renewal->currentAllocationFor($b->user, $b->policy), 2);
+            if ((float) $b->opening_balance !== $allocation) {
+                $b->opening_balance = $allocation;
+                $b->save();
+                $updated++;
+            }
+        }
+
+        return redirect()->route('time-off-policies.balances-overview', ['year' => $year])
+            ->with('success', "Recalculated {$updated} balance(s) — pro-rata applied for mid-year joiners.");
+    }
+
     public function balances(TimeOffPolicy $timeOffPolicy)
     {
         $year = request('year', Carbon::now()->year);

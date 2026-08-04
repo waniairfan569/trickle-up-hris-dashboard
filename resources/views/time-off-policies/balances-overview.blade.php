@@ -26,11 +26,25 @@
                     @endforeach
                 </select>
             </form>
+            <form method="POST" action="{{ route('time-off-policies.recompute-balances') }}"
+                  onsubmit="return confirm('Recalculate every opening balance for {{ $year }} using each policy&#39;s pro-rata rule? Mid-year joiners drop to their pro-rata allocation; used/pending days are untouched.');">
+                @csrf
+                <input type="hidden" name="year" value="{{ $year }}">
+                <button type="submit" class="inline-flex items-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm font-bold text-amber-700 hover:bg-amber-100 dark:bg-amber-500/10 dark:border-amber-500/30 dark:text-amber-400">
+                    <i data-lucide="refresh-cw" class="h-4 w-4"></i> Recalculate
+                </button>
+            </form>
             <a href="{{ route('time-off-policies.index') }}" class="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200">
                 <i data-lucide="settings-2" class="h-4 w-4"></i> Policies
             </a>
         </div>
     </div>
+
+    @if(session('success'))
+        <div class="rounded-xl bg-emerald-50 p-4 border border-emerald-200 text-sm font-medium text-emerald-800 dark:bg-emerald-500/10 dark:border-emerald-500/20 dark:text-emerald-400 flex items-center gap-2">
+            <i data-lucide="check-circle" class="h-5 w-5"></i>{{ session('success') }}
+        </div>
+    @endif
 
     <div class="relative max-w-sm">
         <i data-lucide="search" class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400"></i>
