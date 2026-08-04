@@ -57,19 +57,16 @@ class AttendanceRecord extends Model
 
     /**
      * Grace-period minutes after shift start before a clock-in is counted late.
-     * Configured on the Attendance Report Settings page (0 = late the moment the
-     * shift starts; 5 = late only 5 min after). Memoised per request.
+     * Read live from the Attendance Report Settings page each time (0 = late the
+     * moment the shift starts; 5 = late only 5 min after) — no caching, so an
+     * admin's change to the grace applies immediately to every clock-in.
      */
     public static function lateGraceMinutes(): int
     {
-        static $memo = null;
-        if ($memo !== null) {
-            return $memo;
-        }
         try {
-            return $memo = max(0, (int) (\App\Models\AttendanceReportSettings::getSettings()->late_threshold_minutes ?? 0));
+            return max(0, (int) (\App\Models\AttendanceReportSettings::getSettings()->late_threshold_minutes ?? 0));
         } catch (\Throwable $e) {
-            return $memo = 0;
+            return 0;
         }
     }
 
