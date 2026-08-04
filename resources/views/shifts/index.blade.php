@@ -91,9 +91,17 @@
                         <span class="inline-flex items-center gap-1.5 rounded-lg bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-600 dark:bg-slate-900/50 dark:text-slate-300">
                             <i data-lucide="clock" class="h-3.5 w-3.5 text-slate-400"></i> {{ $durationLabel }} hrs · {{ $shift->break_minutes }}m break
                         </span>
-                        <span class="inline-flex items-center gap-1.5 rounded-lg bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-600 dark:bg-slate-900/50 dark:text-slate-300">
-                            <i data-lucide="users" class="h-3.5 w-3.5 text-slate-400"></i> {{ $shift->assignments_count }} on this shift
-                        </span>
+                        @if($shift->assignments_count > 0)
+                            <a href="{{ route('shifts.employees', $shift->id) }}" title="See who's on this shift"
+                               class="inline-flex items-center gap-1.5 rounded-lg bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-600 hover:bg-brand-50 hover:text-brand-700 transition dark:bg-slate-900/50 dark:text-slate-300 dark:hover:bg-slate-700">
+                                <i data-lucide="users" class="h-3.5 w-3.5 text-slate-400"></i> {{ $shift->assignments_count }} on this shift
+                                <i data-lucide="chevron-right" class="h-3.5 w-3.5"></i>
+                            </a>
+                        @else
+                            <span class="inline-flex items-center gap-1.5 rounded-lg bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-600 dark:bg-slate-900/50 dark:text-slate-300">
+                                <i data-lucide="users" class="h-3.5 w-3.5 text-slate-400"></i> {{ $shift->assignments_count }} on this shift
+                            </span>
+                        @endif
                     </div>
 
                     <div class="mt-4 flex flex-wrap gap-1">

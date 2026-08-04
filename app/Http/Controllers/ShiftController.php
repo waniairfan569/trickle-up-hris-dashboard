@@ -27,6 +27,27 @@ class ShiftController extends Controller
         return view('shifts.index', compact('shifts', 'defaultShift', 'employees'));
     }
 
+    /** Roster: which employees are on a given shift (recurring + single-day overrides). */
+    public function employees(Shift $shift)
+    {
+        $members = $shift->assignments()
+            ->with('user.department')
+            ->get()
+            ->filter(fn ($a) => $a->user)
+            ->groupBy('user_id')
+            ->map(function ($rows) {
+                return [
+                    'user' => $rows->first()->user,
+                    'recurring' => $rows->firstWhere('assignment_type', 'recurring'),
+                    'singles' => $rows->where('assignment_type', 'single')->values(),
+                ];
+            })
+            ->sortBy(fn ($m) => strtolower($m['user']->first_name . ' ' . $m['user']->last_name))
+            ->values();
+
+        return view('shifts.employees', compact('shift', 'members'));
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([

@@ -494,6 +494,7 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
     // Office Locations & Shifts (Admin Only)
     Route::middleware(['role:hr_admin,super_admin'])->group(function () {
         Route::resource('shifts', ShiftController::class)->except(['create', 'edit', 'show']);
+        Route::get('shifts/{shift}/employees', [ShiftController::class, 'employees'])->name('shifts.employees');
         Route::post('shifts/{shift}/set-default', [ShiftController::class, 'setDefault'])->name('shifts.set-default');
         Route::post('shifts/{shift}/assign-all', [ShiftController::class, 'assignToAll'])->name('shifts.assign-all');
         Route::post('shifts/{shift}/assign-selected', [ShiftController::class, 'assignToSelected'])->name('shifts.assign-selected');
