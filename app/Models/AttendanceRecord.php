@@ -79,13 +79,65 @@ class AttendanceRecord extends Model
      * the configured base) PLUS the grace-period minutes. A clock-in at or after
      * this instant is late.
      */
+    /**
+     * The effective shift START time (H:i) for an employee on a given date.
+     * Priority: the shift actually ASSIGNED to them for that day (dynamic, per
+     * employee) → their fixed work schedule → the company-wide default. This is
+     * what makes lateness follow each person's own shift (a 12:30 employee is
+     * only late after 12:30, not after the 09:30 default).
+     */
+    public static function effectiveStartTime(?User $employee, Carbon $date): string
+    {
+        if ($employee) {
+            try {
+                $shift = app(\App\Services\ShiftService::class)->getShiftForUserOnDate($employee, $date->copy());
+                if ($shift && $shift->start_time) {
+                    return Carbon::parse($shift->start_time)->format('H:i');
+                }
+            } catch (\Throwable $e) {
+                // fall through to work schedule / default
+            }
+
+            $sched = method_exists($employee, 'workSchedule') ? $employee->workSchedule : null;
+            if ($sched && $sched->start_time) {
+                return Carbon::parse($sched->start_time)->format('H:i');
+            }
+        }
+
+        return self::lateCutoff();
+    }
+
+    /**
+     * The expected shift END datetime for an employee on a given date (handles
+     * shifts that cross midnight). Assigned shift → work schedule → null.
+     * Drives overtime / early-departure so they track each person's shift.
+     */
+    public static function expectedEndDateTimeFor(?User $employee, Carbon $date): ?Carbon
+    {
+        if (!$employee) {
+            return null;
+        }
+
+        try {
+            $expected = app(\App\Services\ShiftService::class)->getExpectedTimesForUserOnDate($employee, $date->copy());
+            if ($expected && !empty($expected['end'])) {
+                return $expected['end']->copy();
+            }
+        } catch (\Throwable $e) {
+            // fall through to work schedule
+        }
+
+        $sched = method_exists($employee, 'workSchedule') ? $employee->workSchedule : null;
+        if ($sched && $sched->end_time) {
+            return Carbon::parse($date->toDateString() . ' ' . $sched->end_time);
+        }
+
+        return null;
+    }
+
     public static function lateCutoffFor(?User $employee, Carbon $localIn): Carbon
     {
-        $base = self::lateCutoff();
-        $sched = ($employee && method_exists($employee, 'workSchedule')) ? $employee->workSchedule : null;
-        if ($sched && $sched->start_time) {
-            $base = Carbon::parse($sched->start_time)->format('H:i');
-        }
+        $base = self::effectiveStartTime($employee, $localIn);
 
         return Carbon::parse($localIn->toDateString() . ' ' . $base, $localIn->getTimezone())
             ->addMinutes(self::lateGraceMinutes());

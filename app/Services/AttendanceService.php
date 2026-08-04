@@ -174,11 +174,11 @@ class AttendanceService
         $record->total_minutes_worked = max(0, $worked);
 
         $settings = AttendanceSetting::first() ?? new AttendanceSetting();
-        $workSchedule = method_exists($user, 'workSchedule') ? $user->workSchedule : null;
+        // Use the employee's ASSIGNED SHIFT end time for this date (falls back to
+        // their work schedule) so overtime / early-departure track each shift.
+        $expectedEnd = AttendanceRecord::expectedEndDateTimeFor($user, $today);
 
-        if ($workSchedule && $workSchedule->end_time) {
-            $expectedEnd = Carbon::parse($today->format('Y-m-d') . ' ' . $workSchedule->end_time);
-            
+        if ($expectedEnd) {
             $overtimeStart = $expectedEnd->copy()->addMinutes($settings->overtime_threshold_minutes);
             if ($record->clock_out->greaterThan($overtimeStart)) {
                 $record->overtime_minutes = $expectedEnd->diffInMinutes($record->clock_out);

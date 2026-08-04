@@ -116,9 +116,9 @@ class AttendanceManagerController extends Controller
     }
 
     /**
-     * Re-evaluate attendance status against the current late rule (09:30 cutoff)
-     * for a given day — fixes records created before the rule existed, regardless
-     * of source (device or app). Admin only. Defaults to today.
+     * Re-evaluate attendance status against the current late rule (each employee's
+     * assigned shift start + grace) for a given day — fixes records created before
+     * the rule existed, regardless of source (device or app). Admin only. Defaults to today.
      */
     public function recalcLate(Request $request)
     {
@@ -143,7 +143,7 @@ class AttendanceManagerController extends Controller
                 }
             });
 
-        return back()->with('success', "Re-checked {$count} record(s) for " . \Carbon\Carbon::parse($date)->format('d M Y') . " against the 09:30 rule — {$changed} updated.");
+        return back()->with('success', "Re-checked {$count} record(s) for " . \Carbon\Carbon::parse($date)->format('d M Y') . " against each employee's shift late rule — {$changed} updated.");
     }
 
     /** Bulk backfill form — add attendance for many employees on a date. */
