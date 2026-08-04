@@ -12,7 +12,10 @@
             </h1>
             <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Per-policy leave year windows, year-end encashment rules, pro-rata for joiners and automatic renewal.</p>
         </div>
-        <a href="{{ route('leave-year-settings.create') }}" class="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-bold text-slate-900 shadow-md shadow-brand-500/20 hover:bg-brand-700"><i data-lucide="plus" class="h-4 w-4"></i> New setting</a>
+        <div class="flex items-center gap-3">
+            <a href="{{ route('time-off-policies.balances-overview') }}" class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-700"><i data-lucide="table-2" class="h-4 w-4"></i> Leave Balances</a>
+            <a href="{{ route('leave-year-settings.create') }}" class="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-bold text-slate-900 shadow-md shadow-brand-500/20 hover:bg-brand-700"><i data-lucide="plus" class="h-4 w-4"></i> New setting</a>
+        </div>
     </div>
 
     @if(session('success'))<div class="rounded-xl bg-emerald-50 p-4 border border-emerald-200 text-sm text-emerald-800 dark:bg-emerald-500/10 dark:border-emerald-500/20 dark:text-emerald-400 flex items-center gap-2"><i data-lucide="check-circle" class="h-5 w-5"></i>{{ session('success') }}</div>@endif

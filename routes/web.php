@@ -424,6 +424,9 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
         Route::post('events/{event}/restore', [\App\Http\Controllers\EventController::class, 'restore'])->name('events.restore');
         Route::resource('events', \App\Http\Controllers\EventController::class)->only(['index', 'store', 'update', 'destroy']);
 
+        // All-employees × all-categories balance overview. MUST be before the
+        // resource route so "balances-overview" isn't captured as a policy id.
+        Route::get('time-off-policies/balances-overview', [TimeOffPolicyController::class, 'balancesOverview'])->name('time-off-policies.balances-overview');
         Route::resource('time-off-policies', TimeOffPolicyController::class);
         Route::post('time-off-policies/{policy}/assign', [TimeOffPolicyController::class, 'assign'])->name('time-off-policies.assign');
         Route::post('time-off-policies/{policy}/unassign', [TimeOffPolicyController::class, 'unassign'])->name('time-off-policies.unassign');

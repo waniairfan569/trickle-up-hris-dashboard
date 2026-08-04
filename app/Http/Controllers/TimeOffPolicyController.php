@@ -158,6 +158,39 @@ class TimeOffPolicyController extends Controller
         return back()->with('success', 'User unassigned from policy.');
     }
 
+    /**
+     * At-a-glance grid: every employee (rows) × every leave category (columns),
+     * showing remaining / allocated days for the selected year.
+     */
+    public function balancesOverview()
+    {
+        $year = (int) request('year', Carbon::now()->year);
+
+        $policies = TimeOffPolicy::orderBy('name')->get();
+
+        // Anyone who has a balance this year OR is assigned to any policy.
+        $userIds = \App\Models\TimeOffBalance::where('year', $year)->pluck('user_id')
+            ->merge(User::whereHas('timeOffPolicies')->pluck('id'))
+            ->unique();
+
+        $employees = User::whereIn('id', $userIds)
+            ->where('account_status', '!=', 'deactivated')
+            ->orderBy('first_name')->orderBy('last_name')
+            ->get(['id', 'first_name', 'last_name', 'avatar_url', 'job_title']);
+
+        // balances[user_id][policy_id] = TimeOffBalance
+        $balances = \App\Models\TimeOffBalance::where('year', $year)->get()
+            ->groupBy('user_id')
+            ->map(fn ($rows) => $rows->keyBy('policy_id'));
+
+        $years = \App\Models\TimeOffBalance::select('year')->distinct()->orderByDesc('year')->pluck('year');
+        if ($years->isEmpty() || !$years->contains($year)) {
+            $years = $years->push($year)->unique()->sortDesc()->values();
+        }
+
+        return view('time-off-policies.balances-overview', compact('policies', 'employees', 'balances', 'year', 'years'));
+    }
+
     public function balances(TimeOffPolicy $timeOffPolicy)
     {
         $year = request('year', Carbon::now()->year);

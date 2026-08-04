@@ -13,6 +13,10 @@
             </p>
         </div>
         <div class="mt-4 sm:mt-0 flex gap-3">
+            <a href="{{ route('time-off-policies.balances-overview') }}" class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-700 transition duration-150">
+                <i data-lucide="table-2" class="h-4 w-4"></i>
+                Leave Balances
+            </a>
             <a href="{{ route('time-off-policies.create') }}" class="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-bold text-slate-900 shadow-md shadow-brand-500/20 hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 transition duration-150">
                 <i data-lucide="plus" class="h-4 w-4"></i>
                 New Policy
