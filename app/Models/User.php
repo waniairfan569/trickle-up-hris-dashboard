@@ -450,6 +450,41 @@ class User extends Authenticatable
         return $this->belongsTo(WorkSchedule::class, 'work_schedule_id');
     }
 
+    /**
+     * When this employee first started — the EARLIEST valid date across every
+     * source (a stray recent date can never shorten real tenure).
+     */
+    public function serviceStartDate(): ?\Carbon\Carbon
+    {
+        $gf = fn ($k) => method_exists($this, 'getFieldValue') ? $this->getFieldValue($k) : null;
+        $candidates = [$this->hire_date, $gf('hire_date'), $gf('start_date'), $gf('date_of_commencement'), $this->joined_at];
+
+        $start = null;
+        foreach ($candidates as $c) {
+            if ($c === null || $c === '') {
+                continue;
+            }
+            try {
+                $d = \Carbon\Carbon::parse($c);
+            } catch (\Throwable $e) {
+                continue;
+            }
+            if ($start === null || $d->lt($start)) {
+                $start = $d;
+            }
+        }
+
+        return $start;
+    }
+
+    /** Whole months of completed service, or null if no start date is on file. */
+    public function monthsOfService(): ?int
+    {
+        $start = $this->serviceStartDate();
+
+        return $start ? (int) abs($start->diffInMonths(\Carbon\Carbon::today())) : null;
+    }
+
     public function payReviews()
     {
         return $this->hasMany(PayReview::class, 'user_id');

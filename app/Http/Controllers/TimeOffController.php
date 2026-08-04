@@ -151,40 +151,11 @@ class TimeOffController extends Controller
             return "{$label} leave is only available to married employees.";
         }
 
-        // Start of service can live on a column OR a profile field. Different
-        // fields can disagree (e.g. joined_at may hold an unrelated recent date
-        // while hire_date is the real start), so we take the EARLIEST valid date
-        // across every source — service length is measured from when they first
-        // started, and a stray recent date can never shorten tenure.
-        $gf = fn ($k) => method_exists($employee, 'getFieldValue') ? $employee->getFieldValue($k) : null;
-        $candidates = [
-            $employee->hire_date,
-            $gf('hire_date'),
-            $gf('start_date'),
-            $gf('date_of_commencement'),
-            $employee->joined_at,
-        ];
-
-        $start = null;
-        foreach ($candidates as $c) {
-            if ($c === null || $c === '') {
-                continue;
-            }
-            try {
-                $d = Carbon::parse($c);
-            } catch (\Throwable $e) {
-                continue;
-            }
-            if ($start === null || $d->lt($start)) {
-                $start = $d;
-            }
-        }
-
-        if (!$start) {
-            return "{$label} leave requires at least 1 year of service.";
-        }
-
-        if (abs($start->diffInMonths(Carbon::today())) < 12) {
+        // Must have completed the minimum service — the same rule the balance
+        // eligibility (TimeOffPolicy::appliesTo) uses, so "has the leave" and
+        // "may request the leave" never disagree.
+        $months = $employee->monthsOfService();
+        if ($months === null || $months < TimeOffPolicy::PARENTAL_MIN_SERVICE_MONTHS) {
             return "{$label} leave requires at least 1 year of service.";
         }
 

@@ -9,6 +9,8 @@
     .org-scroll { overflow:auto; background:#f4f3ee; border-radius:20px; border:1px solid #e7e5df; }
     .dark .org-scroll { background:#0f172a; border-color:#334155; }
     .org-tree, .org-tree ul { display:flex; justify-content:center; padding-top:18px; position:relative; margin:0; }
+    /* Top-level roots start from the left (each subtree below stays centred under its parent). */
+    .org-tree { justify-content:flex-start; }
     .org-tree li { list-style:none; position:relative; padding:18px 7px 0; display:flex; flex-direction:column; align-items:center; }
     .org-tree li::before, .org-tree li::after { content:''; position:absolute; top:0; right:50%; border-top:2px solid #c9c6bd; width:50%; height:18px; }
     .org-tree li::after { right:auto; left:50%; border-left:2px solid #c9c6bd; }
@@ -74,7 +76,7 @@
 
     <div class="relative">
         <div class="org-scroll" style="height: calc(100vh - 230px); min-height: 520px;">
-            <div class="inline-block min-w-full p-12" :style="`transform: scale(${zoom}); transform-origin: top center; transition: transform .15s ease;`">
+            <div class="inline-block min-w-full p-12" :style="`transform: scale(${zoom}); transform-origin: top left; transition: transform .15s ease;`">
                 @if(count($tree))
                     <ul class="org-tree">
                         @foreach($tree as $node)

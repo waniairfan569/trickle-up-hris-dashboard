@@ -98,11 +98,14 @@ class TimeOffPolicy extends Model
         return (float) $this->days_per_year;
     }
 
+    /** Minimum completed months of service before parental leave is granted. */
+    public const PARENTAL_MIN_SERVICE_MONTHS = 12;
+
     /**
      * Whether this policy's leave applies to the given employee. Maternity leave
-     * is only for married women, Paternity only for married men; every other
-     * policy applies to everyone. (Length-of-service is enforced separately when
-     * the leave is actually requested.)
+     * is only for married women, Paternity only for married men — and both require
+     * at least 1 year (PARENTAL_MIN_SERVICE_MONTHS) of completed service. Every
+     * other policy applies to everyone.
      */
     public function appliesTo(User $employee): bool
     {
@@ -118,7 +121,15 @@ class TimeOffPolicy extends Model
         $married = strtolower(trim((string) $gf('marital_status'))) === 'married';
         $gender = strtolower(trim((string) $gf('gender')));
 
-        return $isMaternity ? ($married && $gender === 'female') : ($married && $gender === 'male');
+        $genderOk = $isMaternity ? ($married && $gender === 'female') : ($married && $gender === 'male');
+        if (!$genderOk) {
+            return false;
+        }
+
+        // Must have completed the minimum service (a brand-new hire is not yet entitled).
+        $months = method_exists($employee, 'monthsOfService') ? $employee->monthsOfService() : null;
+
+        return $months !== null && $months >= self::PARENTAL_MIN_SERVICE_MONTHS;
     }
 
     public function getRemainingBalance(User $user, int $year)
