@@ -424,12 +424,18 @@
 
         <div class="bg-white border border-slate-200/80 rounded-2xl shadow-sm dark:bg-slate-800 dark:border-slate-700 overflow-hidden">
             @php
-                $attRange = in_array(request('att'), ['week', 'month'], true) ? request('att') : 'recent';
+                $attRange = in_array(request('att'), ['week', 'last_week', 'month', 'last_month'], true) ? request('att') : 'recent';
                 $attQ = \App\Models\AttendanceRecord::where('user_id', $employee->id)->where('status', '!=', 'weekend')->orderByDesc('date');
                 if ($attRange === 'week') {
                     $attQ->whereBetween('date', [now()->startOfWeek()->toDateString(), now()->endOfWeek()->toDateString()]);
+                } elseif ($attRange === 'last_week') {
+                    $lw = now()->subWeek();
+                    $attQ->whereBetween('date', [$lw->copy()->startOfWeek()->toDateString(), $lw->copy()->endOfWeek()->toDateString()]);
                 } elseif ($attRange === 'month') {
                     $attQ->whereBetween('date', [now()->startOfMonth()->toDateString(), now()->endOfMonth()->toDateString()]);
+                } elseif ($attRange === 'last_month') {
+                    $lm = now()->subMonthNoOverflow();
+                    $attQ->whereBetween('date', [$lm->copy()->startOfMonth()->toDateString(), $lm->copy()->endOfMonth()->toDateString()]);
                 } else {
                     $attQ->limit(14);
                 }
@@ -437,7 +443,13 @@
                 $tzSvc = app(\App\Services\TimezoneService::class);
                 $canEditAtt = $auth->isAdmin();
                 $cols = $canEditAtt ? 6 : 5;
-                $attTitle = ['recent' => 'Recent Attendance', 'week' => 'Attendance — This Week', 'month' => 'Attendance — ' . now()->format('F Y')][$attRange];
+                $attTitle = [
+                    'recent' => 'Recent Attendance',
+                    'week' => 'This Week · ' . now()->startOfWeek()->format('d M') . ' – ' . now()->endOfWeek()->format('d M Y'),
+                    'last_week' => 'Last Week · ' . now()->subWeek()->startOfWeek()->format('d M') . ' – ' . now()->subWeek()->endOfWeek()->format('d M Y'),
+                    'month' => now()->format('F Y'),
+                    'last_month' => now()->subMonthNoOverflow()->format('F Y'),
+                ][$attRange];
                 $attLink = fn ($r) => request()->fullUrlWithQuery(['att' => $r, 'section' => 'timetracking']) . '#attendance-card';
                 $attPill = fn ($active) => $active
                     ? 'rounded-full bg-brand-500 px-3 py-1 text-[11px] font-bold text-slate-900'
@@ -445,10 +457,12 @@
             @endphp
             <div id="attendance-card" class="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex flex-wrap items-center justify-between gap-3">
                 <h2 class="text-sm font-bold text-slate-800 dark:text-white">{{ $attTitle }}</h2>
-                <div class="flex items-center gap-1.5">
+                <div class="flex flex-wrap items-center gap-1.5">
                     <a href="{{ $attLink('recent') }}" class="{{ $attPill($attRange === 'recent') }}">Recent</a>
                     <a href="{{ $attLink('week') }}" class="{{ $attPill($attRange === 'week') }}">This week</a>
+                    <a href="{{ $attLink('last_week') }}" class="{{ $attPill($attRange === 'last_week') }}">Last week</a>
                     <a href="{{ $attLink('month') }}" class="{{ $attPill($attRange === 'month') }}">This month</a>
+                    <a href="{{ $attLink('last_month') }}" class="{{ $attPill($attRange === 'last_month') }}">Last month</a>
                 </div>
             </div>
             <div class="overflow-x-auto">

@@ -191,7 +191,8 @@
                     <span class="text-[11px] sm:text-sm font-medium text-slate-400 dark:text-slate-500 select-none">Workspace</span>
                     @if($__bc !== '')
                         <i data-lucide="chevron-right" class="hidden sm:block h-4 w-4 text-slate-300 dark:text-slate-600 shrink-0"></i>
-                        <span class="text-sm font-semibold text-slate-700 dark:text-slate-300 truncate">{{ $__bc }}</span>
+                        {{-- yieldContent already HTML-escapes the section string; output raw to avoid double-encoding ">" into "&gt;". --}}
+                        <span class="text-sm font-semibold text-slate-700 dark:text-slate-300 truncate">{!! $__bc !!}</span>
                     @endif
                 </div>
 
