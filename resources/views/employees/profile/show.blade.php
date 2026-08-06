@@ -424,7 +424,21 @@
 
         <div class="bg-white border border-slate-200/80 rounded-2xl shadow-sm dark:bg-slate-800 dark:border-slate-700 overflow-hidden">
             @php
-                $attRange = in_array(request('att'), ['week', 'last_week', 'month', 'last_month'], true) ? request('att') : 'recent';
+                $attRange = in_array(request('att'), ['week', 'last_week', 'month'], true) ? request('att') : 'recent';
+
+                // For the month view, honour an explicit ?m=YYYY-MM so any past
+                // (or future) month can be opened; default to the current month.
+                $selMonth = null;
+                if ($attRange === 'month') {
+                    try {
+                        $selMonth = request('m')
+                            ? \Carbon\Carbon::createFromFormat('Y-m', request('m'))->startOfMonth()
+                            : now()->startOfMonth();
+                    } catch (\Throwable $e) {
+                        $selMonth = now()->startOfMonth();
+                    }
+                }
+
                 $attQ = \App\Models\AttendanceRecord::where('user_id', $employee->id)->where('status', '!=', 'weekend')->orderByDesc('date');
                 if ($attRange === 'week') {
                     $attQ->whereBetween('date', [now()->startOfWeek()->toDateString(), now()->endOfWeek()->toDateString()]);
@@ -432,10 +446,7 @@
                     $lw = now()->subWeek();
                     $attQ->whereBetween('date', [$lw->copy()->startOfWeek()->toDateString(), $lw->copy()->endOfWeek()->toDateString()]);
                 } elseif ($attRange === 'month') {
-                    $attQ->whereBetween('date', [now()->startOfMonth()->toDateString(), now()->endOfMonth()->toDateString()]);
-                } elseif ($attRange === 'last_month') {
-                    $lm = now()->subMonthNoOverflow();
-                    $attQ->whereBetween('date', [$lm->copy()->startOfMonth()->toDateString(), $lm->copy()->endOfMonth()->toDateString()]);
+                    $attQ->whereBetween('date', [$selMonth->copy()->startOfMonth()->toDateString(), $selMonth->copy()->endOfMonth()->toDateString()]);
                 } else {
                     $attQ->limit(14);
                 }
@@ -443,14 +454,15 @@
                 $tzSvc = app(\App\Services\TimezoneService::class);
                 $canEditAtt = $auth->isAdmin();
                 $cols = $canEditAtt ? 6 : 5;
-                $attTitle = [
-                    'recent' => 'Recent Attendance',
+                $attTitle = match ($attRange) {
                     'week' => 'This Week · ' . now()->startOfWeek()->format('d M') . ' – ' . now()->endOfWeek()->format('d M Y'),
                     'last_week' => 'Last Week · ' . now()->subWeek()->startOfWeek()->format('d M') . ' – ' . now()->subWeek()->endOfWeek()->format('d M Y'),
-                    'month' => now()->format('F Y'),
-                    'last_month' => now()->subMonthNoOverflow()->format('F Y'),
-                ][$attRange];
+                    'month' => $selMonth->format('F Y'),
+                    default => 'Recent Attendance',
+                };
                 $attLink = fn ($r) => request()->fullUrlWithQuery(['att' => $r, 'section' => 'timetracking']) . '#attendance-card';
+                $monthLink = fn ($ym) => request()->fullUrlWithQuery(['att' => 'month', 'section' => 'timetracking', 'm' => $ym]) . '#attendance-card';
+                $monthCursor = $selMonth ?? now()->startOfMonth();
                 $attPill = fn ($active) => $active
                     ? 'rounded-full bg-brand-500 px-3 py-1 text-[11px] font-bold text-slate-900'
                     : 'rounded-full bg-slate-100 px-3 py-1 text-[11px] font-bold text-slate-500 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300';
@@ -461,8 +473,14 @@
                     <a href="{{ $attLink('recent') }}" class="{{ $attPill($attRange === 'recent') }}">Recent</a>
                     <a href="{{ $attLink('week') }}" class="{{ $attPill($attRange === 'week') }}">This week</a>
                     <a href="{{ $attLink('last_week') }}" class="{{ $attPill($attRange === 'last_week') }}">Last week</a>
-                    <a href="{{ $attLink('month') }}" class="{{ $attPill($attRange === 'month') }}">This month</a>
-                    <a href="{{ $attLink('last_month') }}" class="{{ $attPill($attRange === 'last_month') }}">Last month</a>
+                    {{-- Month navigator: step or jump to ANY month/year --}}
+                    <div class="inline-flex items-center rounded-full border overflow-hidden {{ $attRange === 'month' ? 'border-brand-400 bg-brand-50 dark:bg-brand-500/10 dark:border-brand-500/40' : 'border-slate-200 dark:border-slate-600' }}">
+                        <a href="{{ $monthLink($monthCursor->copy()->subMonthNoOverflow()->format('Y-m')) }}" title="Previous month" class="flex items-center px-2 py-1.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700"><i data-lucide="chevron-left" class="h-3.5 w-3.5"></i></a>
+                        <input type="month" value="{{ $monthCursor->format('Y-m') }}" max="{{ now()->format('Y-m') }}" title="Pick a month"
+                               onchange="if(this.value) window.location.href='{{ $monthLink('__M__') }}'.replace('__M__', this.value)"
+                               class="w-[7.5rem] border-0 bg-transparent px-1 py-1 text-[11px] font-bold text-slate-600 dark:text-slate-200 focus:outline-none focus:ring-0 cursor-pointer">
+                        <a href="{{ $monthLink($monthCursor->copy()->addMonthNoOverflow()->format('Y-m')) }}" title="Next month" class="flex items-center px-2 py-1.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700"><i data-lucide="chevron-right" class="h-3.5 w-3.5"></i></a>
+                    </div>
                 </div>
             </div>
             <div class="overflow-x-auto">
