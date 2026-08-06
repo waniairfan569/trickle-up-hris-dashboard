@@ -36,7 +36,7 @@
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div class="relative w-full sm:max-w-xs">
             <i data-lucide="search" class="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
-            <input type="text" x-model="search" placeholder="Search documents…" class="w-full rounded-xl border-slate-300 text-sm pl-9 dark:bg-slate-800 dark:border-slate-600 dark:text-white">
+            <input type="text" x-model="search" placeholder="Search documents…" class="w-full rounded-xl border border-slate-300 py-2.5 pl-9 pr-3.5 text-sm shadow-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:bg-slate-800 dark:border-slate-600 dark:text-white">
         </div>
         <div class="flex items-center gap-2 overflow-x-auto pb-1">
             <button @click="cat='all'" :class="cat==='all' ? 'bg-brand-600 text-slate-900' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300'" class="shrink-0 rounded-full px-4 py-1.5 text-sm font-bold">All</button>
