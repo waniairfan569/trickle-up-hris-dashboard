@@ -186,7 +186,10 @@
         @include('partials.announcements')
     </div>
 
-    <!-- 3: Time Off Approval Queue -->
+    <!-- 3 & 4: Approval Queue (left) + Balances (right) — 2-col like the row above -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+
+    <!-- Time Off Approval Queue -->
     <div class="rounded-2xl bg-white border border-slate-200/80 shadow-sm dark:bg-slate-800 dark:border-slate-800">
         <div class="flex items-center justify-between border-b border-slate-100 p-6 dark:border-slate-700">
             <div>
@@ -277,8 +280,10 @@
         </div>
     </div>
 
-    <!-- 4: Your time-off balances (shared card) -->
+    <!-- Your time-off balances (shared card) -->
     @include('dashboard.partials.timeoff-balances-card')
+
+    </div>
 
     <!-- Today's snapshot: stat cards -->
     <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
