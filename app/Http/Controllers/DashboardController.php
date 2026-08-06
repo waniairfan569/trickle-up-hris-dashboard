@@ -34,9 +34,11 @@ class DashboardController extends Controller
         }
 
         // Shared widgets shown on every dashboard (calendar + time-off balances).
+        // Show anything still on the calendar: approved leave AND requests still
+        // awaiting a decision (pending). Rejected/cancelled aren't "upcoming".
         $upcomingTimeOff = \App\Models\TimeOffRequest::where('user_id', $user->id)
-            ->where('start_date', '>=', today())
-            ->where('status', 'approved')
+            ->whereDate('end_date', '>=', today())
+            ->whereIn('status', ['approved', 'pending'])
             ->orderBy('start_date', 'asc')
             ->get();
 
