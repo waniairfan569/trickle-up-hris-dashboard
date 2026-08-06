@@ -153,7 +153,27 @@
     </div>
 
     <!-- My Requests Tab -->
-    <div x-show="activeTab === 'my_requests'" class="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden dark:bg-slate-800 dark:border-slate-700/80">
+    @php
+        $nowRef      = now();
+        $weekStartR  = $nowRef->copy()->startOfWeek();  $weekEndR  = $nowRef->copy()->endOfWeek();
+        $monthStartR = $nowRef->copy()->startOfMonth(); $monthEndR = $nowRef->copy()->endOfMonth();
+        $yearStartR  = $nowRef->copy()->startOfYear();  $yearEndR  = $nowRef->copy()->endOfYear();
+        $overlaps = fn ($r, $s, $e) => $r->start_date->lte($e) && $r->end_date->gte($s);
+        $cntWeek  = $myRequests->filter(fn ($r) => $overlaps($r, $weekStartR, $weekEndR))->count();
+        $cntMonth = $myRequests->filter(fn ($r) => $overlaps($r, $monthStartR, $monthEndR))->count();
+        $cntYear  = $myRequests->filter(fn ($r) => $overlaps($r, $yearStartR, $yearEndR))->count();
+    @endphp
+    <div x-show="activeTab === 'my_requests'" x-data="{ reqFilter: 'all' }" class="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden dark:bg-slate-800 dark:border-slate-700/80">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-6 py-4 border-b border-slate-200/80 dark:border-slate-700/60">
+            <h3 class="text-sm font-bold text-slate-800 dark:text-white">My Requests</h3>
+            <div class="inline-flex rounded-xl border border-slate-200 dark:border-slate-700 p-1 bg-slate-50 dark:bg-slate-900/40 self-start">
+                @foreach(['all' => 'All', 'week' => 'This week', 'month' => 'This month', 'year' => 'This year'] as $key => $label)
+                    <button type="button" @click="reqFilter = '{{ $key }}'"
+                            :class="reqFilter === '{{ $key }}' ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'"
+                            class="px-3 py-1.5 text-xs font-bold rounded-lg transition whitespace-nowrap">{{ $label }}</button>
+                @endforeach
+            </div>
+        </div>
         <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
             <thead class="bg-slate-50 dark:bg-slate-900/50">
                 <tr>
@@ -166,7 +186,12 @@
             </thead>
             <tbody class="bg-white divide-y divide-slate-200 dark:bg-slate-800 dark:divide-slate-700">
                 @forelse($myRequests as $request)
-                    <tr>
+                    @php
+                        $inWeek  = $overlaps($request, $weekStartR, $weekEndR);
+                        $inMonth = $overlaps($request, $monthStartR, $monthEndR);
+                        $inYear  = $overlaps($request, $yearStartR, $yearEndR);
+                    @endphp
+                    <tr x-show="reqFilter === 'all' || (reqFilter === 'week' && {{ $inWeek ? 'true' : 'false' }}) || (reqFilter === 'month' && {{ $inMonth ? 'true' : 'false' }}) || (reqFilter === 'year' && {{ $inYear ? 'true' : 'false' }})">
                         <td class="px-6 py-4 text-sm font-medium text-slate-900 dark:text-white align-top">
                             <div>{{ $request->policy->name }}</div>
                             @if($request->reason)
@@ -209,6 +234,11 @@
                         <td colspan="5" class="px-6 py-12 text-center text-sm text-slate-500 dark:text-slate-400">You have no time-off requests.</td>
                     </tr>
                 @endforelse
+                @if($myRequests->count() > 0)
+                    <tr x-show="(reqFilter === 'week' && {{ $cntWeek }} === 0) || (reqFilter === 'month' && {{ $cntMonth }} === 0) || (reqFilter === 'year' && {{ $cntYear }} === 0)" x-cloak>
+                        <td colspan="5" class="px-6 py-12 text-center text-sm text-slate-500 dark:text-slate-400">No time-off requests in this period.</td>
+                    </tr>
+                @endif
             </tbody>
         </table>
     </div>
