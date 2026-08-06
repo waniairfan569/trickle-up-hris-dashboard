@@ -357,7 +357,7 @@
                                 $pct = $total > 0 ? min(100, max(0, round($remaining / $total * 100))) : 0;
                                 $bar = ['bg-cyan-400', 'bg-amber-400', 'bg-rose-400', 'bg-emerald-400', 'bg-indigo-400'][$index % 5];
                             @endphp
-                            <div class="relative rounded-xl border border-slate-100 dark:border-slate-700 p-4 pl-5 overflow-hidden">
+                            <div class="relative rounded-xl border border-slate-100/80 dark:border-slate-700/60 bg-slate-50/60 dark:bg-slate-900/40 p-4 pl-5 overflow-hidden">
                                 <div class="absolute left-0 top-3 bottom-3 w-1 rounded-r-full {{ $bar }}"></div>
                                 <p class="text-[11px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400 truncate" title="{{ $policyName }}">{{ $displayName }}</p>
                                 <div class="mt-1 flex items-baseline gap-1.5">
@@ -376,38 +376,49 @@
                         @endforeach
                     </div>
                 @endif
-            </div>
 
-            <!-- Upcoming Time Off Widget (last on mobile) -->
-            <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-6 flex flex-col h-[314px] dark:bg-slate-800 dark:border-slate-700">
-                <div class="flex items-center gap-3 mb-6">
-                    <div class="h-10 w-10 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100/50 dark:border-slate-700/50 flex items-center justify-center text-slate-400">
-                        <i data-lucide="calendar-clock" class="h-5 w-5"></i>
-                    </div>
-                    <h2 class="text-base font-semibold text-slate-800 dark:text-white">Your upcoming time off</h2>
-                </div>
-
-                <div class="bg-slate-50 rounded-xl p-8 flex flex-col items-center justify-center text-center dark:bg-slate-800/50 flex-1">
+                <!-- Upcoming time off — merged into the same card, like the reference -->
+                <div class="mt-6 pt-5 border-t border-slate-100 dark:border-slate-700/60">
+                    <h3 class="text-base font-bold text-slate-800 dark:text-white mb-3">Upcoming time off</h3>
                     @if($upcomingTimeOff->isEmpty())
-                        <div class="w-16 h-16 mb-2 relative opacity-60">
-                            <div class="absolute inset-0 flex flex-col gap-2 justify-center items-center">
-                                <div class="w-10 h-2 bg-slate-200 rounded-full flex items-center px-1"></div>
-                                <div class="w-12 h-2 bg-slate-200 rounded-full flex items-center px-1"></div>
-                                <div class="w-8 h-2 bg-slate-200 rounded-full flex items-center px-1"></div>
+                        <div class="rounded-xl bg-slate-50 dark:bg-slate-800/50 py-8 px-6 flex flex-col items-center justify-center text-center">
+                            <div class="w-14 h-14 mb-2 relative opacity-60">
+                                <div class="absolute inset-0 flex flex-col gap-2 justify-center items-center">
+                                    <div class="w-10 h-2 bg-slate-200 dark:bg-slate-600 rounded-full"></div>
+                                    <div class="w-12 h-2 bg-slate-200 dark:bg-slate-600 rounded-full"></div>
+                                    <div class="w-8 h-2 bg-slate-200 dark:bg-slate-600 rounded-full"></div>
+                                </div>
                             </div>
+                            <p class="text-sm font-bold text-slate-800 dark:text-white">No upcoming time off</p>
+                            <p class="text-[11px] text-slate-500 dark:text-slate-400">There are no upcoming time-off requests.</p>
                         </div>
-                        <h3 class="text-sm font-bold text-slate-800 mb-1 dark:text-white">No upcoming time off</h3>
-                        <p class="text-[11px] text-slate-500 max-w-xs">There are no upcoming time-off requests.</p>
                     @else
-                        <ul class="w-full text-left space-y-3">
+                        <div class="space-y-2.5">
                             @foreach($upcomingTimeOff as $req)
-                                <li class="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
-                                    <span class="w-2 h-2 rounded-full bg-brand-500"></span>
-                                    {{ \Carbon\Carbon::parse($req->start_date)->format('M d') }} - {{ \Carbon\Carbon::parse($req->end_date)->format('M d, Y') }}
-                                    <span class="text-xs text-slate-400 font-normal">({{ optional($req->policy)->name }})</span>
-                                </li>
+                                @php
+                                    $uStart = \Carbon\Carbon::parse($req->start_date);
+                                    $uEnd = \Carbon\Carbon::parse($req->end_date);
+                                    $uDays = (float) ($req->days_requested ?? ($uStart->diffInDays($uEnd) + 1));
+                                    $uDates = $uStart->isSameDay($uEnd)
+                                        ? $uStart->format('D, j M')
+                                        : ($uStart->format('D j') . ' – ' . $uEnd->format('D j M'));
+                                    $uStatus = $req->status ?? 'pending';
+                                    $uPill = match ($uStatus) {
+                                        'approved' => 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400',
+                                        'rejected', 'cancelled' => 'bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400',
+                                        default => 'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400',
+                                    };
+                                @endphp
+                                <div class="flex items-center gap-3 rounded-xl border border-slate-100 dark:border-slate-700 p-3">
+                                    <div class="h-9 w-9 shrink-0 rounded-lg bg-slate-50 dark:bg-slate-900/50 flex items-center justify-center text-slate-400"><i data-lucide="calendar-clock" class="h-4 w-4"></i></div>
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-sm font-bold text-slate-800 dark:text-white truncate">{{ optional($req->policy)->name ?? 'Leave' }}</p>
+                                        <p class="text-[11px] text-slate-400">{{ $uDates }} · {{ $uDays + 0 }} {{ \Illuminate\Support\Str::plural('day', $uDays) }}</p>
+                                    </div>
+                                    <span class="shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-bold capitalize {{ $uPill }}">{{ $uStatus }}</span>
+                                </div>
                             @endforeach
-                        </ul>
+                        </div>
                     @endif
                 </div>
             </div>
