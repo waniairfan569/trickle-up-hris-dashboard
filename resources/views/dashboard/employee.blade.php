@@ -357,8 +357,7 @@
                                 $pct = $total > 0 ? min(100, max(0, round($remaining / $total * 100))) : 0;
                                 $bar = ['bg-cyan-400', 'bg-amber-400', 'bg-rose-400', 'bg-emerald-400', 'bg-indigo-400'][$index % 5];
                             @endphp
-                            <div class="relative rounded-xl border border-slate-100/80 dark:border-slate-700/60 bg-slate-50/60 dark:bg-slate-900/40 p-4 pl-5 overflow-hidden">
-                                <div class="absolute left-0 top-3 bottom-3 w-1 rounded-r-full {{ $bar }}"></div>
+                            <div class="rounded-xl border border-slate-100/80 dark:border-slate-700/60 bg-slate-50/60 dark:bg-slate-900/40 p-4">
                                 <p class="text-[11px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400 truncate" title="{{ $policyName }}">{{ $displayName }}</p>
                                 <div class="mt-1 flex items-baseline gap-1.5">
                                     <span class="text-2xl font-extrabold text-slate-900 dark:text-white">@if($isUnpaid)&infin;@else{{ $remaining + 0 }}@endif</span>
