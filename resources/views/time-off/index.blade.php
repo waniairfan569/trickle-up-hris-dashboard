@@ -221,7 +221,9 @@
                        :class="reqFilter === 'pick' ? 'border-brand-300 bg-brand-50 text-brand-700 dark:border-brand-500/40 dark:bg-brand-500/10 dark:text-brand-400' : 'border-slate-200 dark:border-slate-700 text-slate-500 hover:text-slate-700 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/40'">
                     <i data-lucide="calendar-days" class="h-3.5 w-3.5"></i>
                     <span x-text="pickLabel"></span>
-                    <input type="month" class="absolute inset-0 h-full w-full opacity-0 cursor-pointer" @change="setMonth($event.target.value)" :value="pickMonth" title="Pick a month">
+                    <input type="month" class="absolute inset-0 h-full w-full opacity-0 cursor-pointer"
+                           @click="if ($event.target.showPicker) { try { $event.target.showPicker(); } catch (e) {} }"
+                           @change="setMonth($event.target.value)" :value="pickMonth" title="Pick a month">
                 </label>
             </div>
         </div>
