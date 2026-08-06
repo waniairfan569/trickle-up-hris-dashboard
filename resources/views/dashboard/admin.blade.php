@@ -174,8 +174,10 @@
         </div>
     </div>
 
-    <!-- Attendance Clock Widget -->
-    @include('attendance.partials.clock-widget')
+    <!-- Attendance Clock Widget (super admins don't clock in) -->
+    @unless(auth()->user()->hasRole('super_admin'))
+        @include('attendance.partials.clock-widget')
+    @endunless
 
     <!-- Employees waiting for a login code -->
     @include('partials.code-request-hr-banner')
