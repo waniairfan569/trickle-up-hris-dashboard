@@ -94,7 +94,7 @@
     @endif
 
     <!-- Balances Section (same source as the dashboard: the year's balance records) -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         @forelse($timeOffBalances as $balance)
             @php
                 $total = $balance->opening_balance + $balance->accrued + $balance->carried_over + $balance->adjusted;
