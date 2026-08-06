@@ -48,7 +48,38 @@
             }
         }
     </script>
-    
+
+    {{-- Shared button system — ONE source of truth so every button matches.
+         Pill-shaped, consistent padding, driven by the tenant brand colour.
+         Use: <button class="btn-brand">…</button> (primary),
+              .btn-dark (stop/negative, e.g. Clock out), .btn-success (Clock in),
+              .btn-outline (secondary), .btn-danger (destructive).
+         Add .btn-sm / .btn-block for size/width variants. --}}
+    <style type="text/tailwindcss">
+        @layer components {
+            .btn {
+                @apply inline-flex items-center justify-center gap-2 rounded-full px-4 py-2.5 text-sm font-bold leading-none transition disabled:opacity-60 disabled:cursor-not-allowed;
+            }
+            .btn-sm    { @apply px-3 py-2 text-xs gap-1.5; }
+            .btn-block { @apply w-full; }
+            .btn-brand {
+                @apply btn bg-gradient-to-r from-brand-400 to-brand-500 text-slate-900 shadow-sm shadow-brand-500/20 hover:from-brand-500 hover:to-brand-600;
+            }
+            .btn-dark {
+                @apply btn bg-slate-900 text-white hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100;
+            }
+            .btn-success {
+                @apply btn bg-emerald-600 text-white hover:bg-emerald-700;
+            }
+            .btn-danger {
+                @apply btn bg-rose-600 text-white hover:bg-rose-700;
+            }
+            .btn-outline {
+                @apply btn border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700;
+            }
+        }
+    </style>
+
     <!-- Alpine.js 3.x Play CDN -->
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
     

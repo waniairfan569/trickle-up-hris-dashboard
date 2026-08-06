@@ -106,7 +106,7 @@
     </script>
 
     <div class="flex gap-2 mt-5">
-        <a href="{{ route('time-off.create') }}" class="flex-1 bg-brand-600 hover:bg-brand-700 text-slate-900 text-sm font-bold py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition">
+        <a href="{{ route('time-off.create') }}" class="btn-brand btn-block py-3">
             <i data-lucide="calendar-plus" class="h-4 w-4"></i> Request time off
         </a>
     </div>

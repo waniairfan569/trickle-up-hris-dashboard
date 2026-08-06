@@ -335,7 +335,7 @@
                             @if($resetDate)<p class="text-[11px] text-slate-400">Resets {{ $resetDate->format('j F Y') }}</p>@endif
                         </div>
                     </div>
-                    <a href="{{ route('time-off.create') }}" class="inline-flex items-center gap-2 rounded-xl bg-brand-600 hover:bg-brand-700 px-4 py-2.5 text-sm font-bold text-slate-900 transition">
+                    <a href="{{ route('time-off.create') }}" class="btn-brand">
                         <i data-lucide="calendar-plus" class="h-4 w-4"></i> Request time off
                     </a>
                 </div>
@@ -459,13 +459,13 @@
                         </div>
 
                         @if(!$status['clock_in'] || $status['clock_out'])
-                            <button id="btn-clock-in" onclick="attendanceAction('clock-in')" class="bg-green-700 hover:bg-green-800 disabled:bg-slate-400 disabled:cursor-not-allowed text-white text-sm font-semibold h-11 px-6 rounded-lg inline-flex items-center justify-center gap-2 whitespace-nowrap shrink-0 transition">
+                            <button id="btn-clock-in" onclick="attendanceAction('clock-in')" class="btn-success px-6 whitespace-nowrap shrink-0">
                                 <i data-lucide="play" class="h-4 w-4 fill-current"></i>
                                 Clock in
                             </button>
                         @elseif($status['clock_in'] && !$status['clock_out'] && !$status['is_on_break'])
-                            <button id="btn-clock-out" onclick="attendanceAction('clock-out')" class="bg-[#2d3139] hover:bg-[#1f2229] disabled:bg-slate-400 disabled:cursor-not-allowed text-white text-sm font-semibold h-11 px-6 rounded-lg inline-flex items-center justify-center gap-2 whitespace-nowrap shrink-0 transition">
-                                <span class="w-2.5 h-2.5 bg-white rounded-sm"></span>
+                            <button id="btn-clock-out" onclick="attendanceAction('clock-out')" class="btn-dark px-6 whitespace-nowrap shrink-0">
+                                <span class="w-2.5 h-2.5 bg-white dark:bg-slate-900 rounded-sm"></span>
                                 Clock out
                             </button>
                         @endif

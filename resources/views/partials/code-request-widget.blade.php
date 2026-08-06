@@ -43,7 +43,7 @@
     </template>
 
     <div class="flex items-center gap-2 mb-3">
-        <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400"><i data-lucide="key-round" class="h-5 w-5"></i></span>
+        <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400"><i data-lucide="key-round" class="h-5 w-5"></i></span>
         <div>
             <h3 class="text-sm font-bold text-slate-800 dark:text-white">Need a login code?</h3>
             <p class="text-[11px] text-slate-400">Locked out of a company tool? Ask HR to share the code.</p>
@@ -61,7 +61,7 @@
         </div>
         <input type="text" x-model="message" maxlength="255" placeholder="Reason for this request (required)" class="w-full mt-2 rounded-xl border border-slate-300 px-3 py-2 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
         <button type="button" @click="submit()" :disabled="sending || !canSubmit"
-                class="w-full mt-3 inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 px-4 py-3 text-sm font-bold text-slate-900 shadow-sm shadow-amber-500/20 disabled:opacity-60 disabled:cursor-not-allowed transition">
+                class="btn-brand btn-block mt-3 py-3">
             <i data-lucide="send" class="h-4 w-4"></i>
             <span x-text="sending ? 'Sending…' : 'Request code'"></span>
         </button>
