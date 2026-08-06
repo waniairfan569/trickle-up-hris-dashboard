@@ -9,7 +9,7 @@
 @endphp
 
 @section('content')
-<div class="max-w-4xl mx-auto space-y-6" x-data="{ tab: 'pending' }">
+<div class="max-w-7xl mx-auto space-y-6" x-data="{ tab: 'pending' }">
     <div>
         <h1 class="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">My Policies</h1>
         <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Review and acknowledge company policies assigned to you.</p>
