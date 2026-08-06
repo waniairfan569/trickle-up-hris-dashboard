@@ -132,6 +132,10 @@
             <i data-lucide="library" class="h-4 w-4 shrink-0"></i><span class="flex-1">Document Library</span>
             {!! $navBadge($nav['sign'] ?? 0) !!}
         </a>
+        <a href="{{ route('settings.index') }}"
+           class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'settings') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">
+            <i data-lucide="settings" class="h-4 w-4 shrink-0"></i><span class="flex-1">Settings</span>
+        </a>
     </div>
 </div>
 

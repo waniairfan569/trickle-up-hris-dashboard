@@ -107,6 +107,13 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
     // Employee: my leave-encashment history.
     Route::get('my-encashments', [\App\Http\Controllers\LeaveEncashmentController::class, 'myEncashments'])->name('leave-encashments.my');
 
+    // Personal settings (notifications, appearance, security, preferences).
+    Route::get('settings', [\App\Http\Controllers\SettingsController::class, 'index'])->name('settings.index');
+    Route::put('settings/notifications', [\App\Http\Controllers\SettingsController::class, 'updateNotifications'])->name('settings.notifications');
+    Route::put('settings/appearance', [\App\Http\Controllers\SettingsController::class, 'updateAppearance'])->name('settings.appearance');
+    Route::put('settings/password', [\App\Http\Controllers\SettingsController::class, 'updatePassword'])->name('settings.password');
+    Route::put('settings/preferences', [\App\Http\Controllers\SettingsController::class, 'updatePreferences'])->name('settings.preferences');
+
     // Equipment Requests — employee asks to take company equipment home.
     Route::get('equipment', [\App\Http\Controllers\EquipmentRequestController::class, 'index'])->name('equipment.index');
     Route::post('equipment', [\App\Http\Controllers\EquipmentRequestController::class, 'store'])->name('equipment.store');

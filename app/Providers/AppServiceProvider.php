@@ -46,6 +46,24 @@ class AppServiceProvider extends ServiceProvider
             \App\Listeners\LogSuccessfulLogin::class
         );
 
+        // Central notification gate: respect each user's per-category channel
+        // preferences (Settings → Notifications). Returning false cancels that
+        // channel for that send. Categories not in the map are never gated.
+        \Illuminate\Support\Facades\Event::listen(
+            \Illuminate\Notifications\Events\NotificationSending::class,
+            function (\Illuminate\Notifications\Events\NotificationSending $event) {
+                $category = \App\Support\NotificationCategories::for($event->notification);
+                if (!$category) {
+                    return true; // not an employee-facing, gated category
+                }
+                $notifiable = $event->notifiable;
+                if (!($notifiable instanceof \App\Models\User)) {
+                    return true;
+                }
+                return $notifiable->wantsNotification($category, $event->channel);
+            }
+        );
+
         // Cap the "remember me" cookie at exactly 360 days (Laravel defaults to
         // 5 years). We re-queue Laravel's own recaller cookie value with a
         // 360-day lifetime so the cookie expiry matches the 360-day session.

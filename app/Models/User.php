@@ -63,6 +63,8 @@ class User extends Authenticatable
         'invitation_sent_at', 'invitation_expires_at', 'invitation_accepted_at',
         'must_change_password', 'invited_by', 'attendance_mode', 'is_operator',
         'exclude_from_attendance',
+        // Personal settings:
+        'theme', 'notification_prefs', 'date_format', 'week_start',
     ];
 
     protected $casts = [
@@ -85,7 +87,24 @@ class User extends Authenticatable
         'forms_last_seen_at' => 'datetime',
         'is_operator' => 'boolean',
         'exclude_from_attendance' => 'boolean',
+        'notification_prefs' => 'array',
     ];
+
+    /**
+     * Whether this user wants a given notification category on a given channel
+     * ('mail' or 'database'). Opt-out model: enabled unless explicitly turned
+     * off. Mandatory-email categories can never be silenced on email.
+     */
+    public function wantsNotification(string $category, string $channel): bool
+    {
+        if ($channel === 'mail' && in_array($category, \App\Support\NotificationCategories::MANDATORY_EMAIL, true)) {
+            return true;
+        }
+
+        $prefs = $this->notification_prefs ?? [];
+
+        return (bool) ($prefs[$category][$channel] ?? true);
+    }
 
     /** SaaS platform operator (can manage all tenants). */
     public function isOperator(): bool

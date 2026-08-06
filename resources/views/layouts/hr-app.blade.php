@@ -4,6 +4,15 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+
+    {{-- Apply the user's theme before paint (no flash). 'system' follows the OS. --}}
+    <script>
+        (function () {
+            var t = @json(optional(auth()->user())->theme ?? 'system');
+            var dark = t === 'dark' || (t === 'system' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+            document.documentElement.classList.toggle('dark', dark);
+        })();
+    </script>
     @php $brandName = \App\Tenancy\Brand::name(); $brandLogo = \App\Tenancy\Brand::logo(); $brandColor = \App\Tenancy\Brand::color(); @endphp
     <title>@yield('title', 'Dashboard') · {{ $brandName }}</title>
     <link rel="icon" type="image/png" href="{{ $brandLogo }}">
