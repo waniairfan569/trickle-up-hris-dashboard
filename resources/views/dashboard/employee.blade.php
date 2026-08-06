@@ -422,7 +422,18 @@
                 $sessions = $status['sessions'] ?? [];
                 $currentIn = count($sessions) ? end($sessions)['in'] : $status['clock_in'];
             @endphp
-            @php $goalPct = min(100, max(0, round(($status['worked_seconds'] ?? 0) / 28800 * 100))); @endphp
+            @php
+                // Daily goal = the employee's ASSIGNED SHIFT length for today (e.g. 09:30–18:00 = 8h 30m),
+                // not a fixed 8h. Falls back to 8h when no shift is assigned.
+                $expectedShift = app(\App\Services\ShiftService::class)->getExpectedTimesForUserOnDate($auth, today());
+                $goalSeconds = ($expectedShift && !empty($expectedShift['start']) && !empty($expectedShift['end']))
+                    ? max(1, (int) $expectedShift['start']->diffInSeconds($expectedShift['end']))
+                    : 28800;
+                $goalH = intdiv($goalSeconds, 3600);
+                $goalM = intdiv($goalSeconds % 3600, 60);
+                $goalLabel = $goalM > 0 ? ($goalH . 'h ' . $goalM . 'm') : ($goalH . 'h');
+                $goalPct = min(100, max(0, round(($status['worked_seconds'] ?? 0) / $goalSeconds * 100)));
+            @endphp
             <div class="bg-white rounded-xl shadow-sm border border-slate-100 dark:bg-slate-800 dark:border-slate-700 overflow-hidden">
                 <div class="p-6">
                     <div class="flex items-center justify-between gap-4">
@@ -461,12 +472,7 @@
                                     <span class="h-1.5 w-1.5 rounded-full {{ $isClockedIn ? 'bg-emerald-500' : 'bg-slate-300' }}"></span>
                                     {{ $isClockedIn ? 'Ongoing since' : ($status['clock_out'] ? 'Worked from' : 'Since') }} {{ $currentIn }}
                                 </span>
-                                <span class="flex items-center gap-3">
-                                    @if(($status['total_break_minutes'] ?? 0) > 0)
-                                        <span class="inline-flex items-center gap-1"><i data-lucide="coffee" class="h-3 w-3"></i> {{ $status['total_break_minutes'] }}m break</span>
-                                    @endif
-                                    <span><span id="worked-goal-pct">{{ $goalPct }}</span>% of 8h goal</span>
-                                </span>
+                                <span class="font-semibold text-slate-500 dark:text-slate-400"><span id="worked-goal-pct">{{ $goalPct }}</span>% of {{ $goalLabel }} goal</span>
                             </div>
                         </div>
                     @endif
@@ -482,6 +488,7 @@
             <!-- Reusing the full script logic for clock-in/out -->
             <script>
                 let workedSeconds = {{ $status['worked_seconds'] ?? 0 }};
+                const goalSeconds = {{ $goalSeconds ?? 28800 }};
                 const isClockedIn = {{ ($status['clock_in'] && !$status['clock_out'] && !$status['is_on_break']) ? 'true' : 'false' }};
                 
                 function formatWorkedTime(totalSeconds) {
@@ -505,7 +512,7 @@
 
                 // Progress toward an 8-hour (28,800s) day.
                 function updateGoalProgress() {
-                    const pct = Math.min(100, Math.max(0, Math.round(workedSeconds / 28800 * 100)));
+                    const pct = Math.min(100, Math.max(0, Math.round(workedSeconds / goalSeconds * 100)));
                     if (workedProgressEl) workedProgressEl.style.width = pct + '%';
                     if (workedGoalPctEl) workedGoalPctEl.innerText = pct;
                 }
