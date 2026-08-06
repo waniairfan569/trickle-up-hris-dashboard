@@ -182,6 +182,47 @@
     <!-- Employees waiting for a login code -->
     @include('partials.code-request-hr-banner')
 
+    <!-- Today's snapshot: stat cards -->
+    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        @foreach($statCards as $c)
+            <div class="relative rounded-2xl bg-white border border-slate-200/80 p-6 shadow-sm hover:-translate-y-1 hover:shadow-md transition duration-200 dark:bg-slate-800 dark:border-slate-800">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-bold uppercase tracking-wider text-slate-400">{{ $c['label'] }}</p>
+                        <h3 class="mt-2 text-3xl font-extrabold text-slate-900 tracking-tight dark:text-white">{{ $c['value'] }}</h3>
+                    </div>
+                    <div class="flex h-12 w-12 items-center justify-center rounded-xl {{ $c['bg'] }} {{ $c['text'] }} shadow-inner">
+                        <i data-lucide="{{ $c['icon'] }}" class="h-6 w-6"></i>
+                    </div>
+                </div>
+                <div class="mt-4 flex items-center gap-2">
+                    @if(!empty($c['action']))
+                        <span class="inline-flex items-center rounded-full bg-rose-50 px-2 py-0.5 text-xs font-medium text-rose-700 dark:bg-rose-500/10 dark:text-rose-400 animate-pulse">Action Required</span>
+                    @endif
+                    <span class="text-xs text-slate-400">{{ $c['sub'] }}</span>
+                </div>
+
+                @if(!empty($c['people']))
+                    <div class="mt-3 flex flex-wrap gap-1" x-data="{ open: false }">
+                        @foreach(array_slice($c['people'], 0, 3) as $nm)
+                            <span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600 dark:bg-slate-700 dark:text-slate-300">{{ $nm }}</span>
+                        @endforeach
+                        @if(count($c['people']) > 3)
+                            <div class="relative">
+                                <button type="button" @click="open = !open" @click.outside="open = false" class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-500 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300">+{{ count($c['people']) - 3 }} more</button>
+                                <div x-show="open" x-cloak x-transition class="absolute z-30 bottom-full mb-1 left-0 w-44 rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl dark:bg-slate-800 dark:border-slate-700 max-h-48 overflow-y-auto">
+                                    @foreach($c['people'] as $nm)
+                                        <p class="px-2 py-1 text-[11px] text-slate-600 dark:text-slate-300 truncate">{{ $nm }}</p>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endif
+                    </div>
+                @endif
+            </div>
+        @endforeach
+    </div>
+
     {{-- Left column: Calendar + Approval Queue · Right column: Announcements + Balances.
          Two independent columns so cards stack tightly with no row-alignment gap. --}}
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
@@ -290,47 +331,6 @@
     </div>{{-- /RIGHT COLUMN --}}
 
     </div>{{-- /grid --}}
-
-    <!-- Today's snapshot: stat cards -->
-    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-        @foreach($statCards as $c)
-            <div class="relative rounded-2xl bg-white border border-slate-200/80 p-6 shadow-sm hover:-translate-y-1 hover:shadow-md transition duration-200 dark:bg-slate-800 dark:border-slate-800">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-xs font-bold uppercase tracking-wider text-slate-400">{{ $c['label'] }}</p>
-                        <h3 class="mt-2 text-3xl font-extrabold text-slate-900 tracking-tight dark:text-white">{{ $c['value'] }}</h3>
-                    </div>
-                    <div class="flex h-12 w-12 items-center justify-center rounded-xl {{ $c['bg'] }} {{ $c['text'] }} shadow-inner">
-                        <i data-lucide="{{ $c['icon'] }}" class="h-6 w-6"></i>
-                    </div>
-                </div>
-                <div class="mt-4 flex items-center gap-2">
-                    @if(!empty($c['action']))
-                        <span class="inline-flex items-center rounded-full bg-rose-50 px-2 py-0.5 text-xs font-medium text-rose-700 dark:bg-rose-500/10 dark:text-rose-400 animate-pulse">Action Required</span>
-                    @endif
-                    <span class="text-xs text-slate-400">{{ $c['sub'] }}</span>
-                </div>
-
-                @if(!empty($c['people']))
-                    <div class="mt-3 flex flex-wrap gap-1" x-data="{ open: false }">
-                        @foreach(array_slice($c['people'], 0, 3) as $nm)
-                            <span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600 dark:bg-slate-700 dark:text-slate-300">{{ $nm }}</span>
-                        @endforeach
-                        @if(count($c['people']) > 3)
-                            <div class="relative">
-                                <button type="button" @click="open = !open" @click.outside="open = false" class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-500 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300">+{{ count($c['people']) - 3 }} more</button>
-                                <div x-show="open" x-cloak x-transition class="absolute z-30 bottom-full mb-1 left-0 w-44 rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl dark:bg-slate-800 dark:border-slate-700 max-h-48 overflow-y-auto">
-                                    @foreach($c['people'] as $nm)
-                                        <p class="px-2 py-1 text-[11px] text-slate-600 dark:text-slate-300 truncate">{{ $nm }}</p>
-                                    @endforeach
-                                </div>
-                            </div>
-                        @endif
-                    </div>
-                @endif
-            </div>
-        @endforeach
-    </div>
 
     <!-- Recent activity + security notice -->
     <div class="grid grid-cols-1 gap-8 lg:grid-cols-3">
