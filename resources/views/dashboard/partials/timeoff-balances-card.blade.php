@@ -62,21 +62,9 @@
     @endif
 
     {{-- Upcoming time off — merged into the same card --}}
+    @if(($upcomingTimeOff ?? collect())->isNotEmpty())
     <div class="mt-6 pt-5 border-t border-slate-100 dark:border-slate-700/60">
         <h3 class="text-base font-bold text-slate-800 dark:text-white mb-3">Upcoming time off</h3>
-        @if(($upcomingTimeOff ?? collect())->isEmpty())
-            <div class="rounded-xl bg-slate-50 dark:bg-slate-800/50 py-8 px-6 flex flex-col items-center justify-center text-center">
-                <div class="w-14 h-14 mb-2 relative opacity-60">
-                    <div class="absolute inset-0 flex flex-col gap-2 justify-center items-center">
-                        <div class="w-10 h-2 bg-slate-200 dark:bg-slate-600 rounded-full"></div>
-                        <div class="w-12 h-2 bg-slate-200 dark:bg-slate-600 rounded-full"></div>
-                        <div class="w-8 h-2 bg-slate-200 dark:bg-slate-600 rounded-full"></div>
-                    </div>
-                </div>
-                <p class="text-sm font-bold text-slate-800 dark:text-white">No upcoming time off</p>
-                <p class="text-[11px] text-slate-500 dark:text-slate-400">There are no upcoming time-off requests.</p>
-            </div>
-        @else
             <div class="space-y-2.5">
                 @foreach($upcomingTimeOff as $req)
                     @php
@@ -103,6 +91,6 @@
                     </div>
                 @endforeach
             </div>
-        @endif
     </div>
+    @endif
 </div>
