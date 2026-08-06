@@ -136,7 +136,7 @@
                     </span>
                 </template>
             </div>
-            <button type="submit" class="inline-flex justify-center rounded-xl bg-brand-600 px-6 py-3 text-sm font-bold text-slate-900 shadow-md hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 transition">
+            <button type="submit" class="btn-brand">
                 Submit Request
             </button>
         </div>

@@ -101,7 +101,7 @@
         </div>
 
         <div class="flex justify-end">
-            <button type="submit" class="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-6 py-2.5 text-sm font-bold text-slate-900 shadow-md shadow-brand-500/20 hover:bg-brand-700"><i data-lucide="save" class="h-4 w-4"></i> Save settings</button>
+            <button type="submit" class="btn-brand"><i data-lucide="save" class="h-4 w-4"></i> Save settings</button>
         </div>
     </form>
 
@@ -113,12 +113,12 @@
             <form action="{{ route('attendance-reports.send-manual') }}" method="POST" class="flex items-end gap-2" onsubmit="return confirm('Send the report now to all configured recipients?');">
                 @csrf
                 <div class="flex-1"><label class="block text-[11px] font-bold text-slate-400 uppercase mb-1">Date</label><input type="date" name="date" value="{{ now()->toDateString() }}" max="{{ now()->toDateString() }}" required class="w-full rounded-xl border-slate-300 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white"></div>
-                <button type="submit" class="inline-flex items-center gap-1.5 rounded-xl bg-slate-800 px-4 py-2.5 text-sm font-bold text-white hover:bg-slate-900 dark:bg-slate-700"><i data-lucide="send" class="h-4 w-4"></i> Send now</button>
+                <button type="submit" class="btn-dark"><i data-lucide="send" class="h-4 w-4"></i> Send now</button>
             </form>
         </div>
         <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 dark:bg-slate-800 dark:border-slate-700 flex flex-col justify-between">
             <div><h2 class="text-sm font-bold text-slate-800 dark:text-white mb-1">Preview</h2><p class="text-xs text-slate-400 mb-3">See today's report exactly as it will be emailed.</p></div>
-            <a href="{{ route('attendance-reports.preview') }}" target="_blank" class="inline-flex items-center justify-center gap-2 rounded-xl bg-white border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200"><i data-lucide="eye" class="h-4 w-4"></i> Preview today's report</a>
+            <a href="{{ route('attendance-reports.preview') }}" target="_blank" class="btn-outline"><i data-lucide="eye" class="h-4 w-4"></i> Preview today's report</a>
         </div>
     </div>
 

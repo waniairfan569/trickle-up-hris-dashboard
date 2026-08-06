@@ -98,8 +98,8 @@
                 </div>
 
                 <div class="flex justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-700">
-                    <a href="{{ route('time-off.index') }}" class="rounded-xl bg-white px-4 py-2 text-sm font-bold text-slate-700 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700 dark:hover:bg-slate-700">Cancel</a>
-                    <button type="submit" class="rounded-xl bg-brand-600 px-6 py-2 text-sm font-bold text-slate-900 shadow-sm hover:bg-brand-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 transition">
+                    <a href="{{ route('time-off.index') }}" class="btn-outline">Cancel</a>
+                    <button type="submit" class="btn-brand">
                         Submit Request
                     </button>
                 </div>

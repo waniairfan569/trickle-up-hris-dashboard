@@ -51,7 +51,7 @@
 
         <div class="flex items-center justify-between gap-2 pt-2 border-t border-slate-100 dark:border-slate-700/60">
             <a href="{{ route('attendance.live') }}" class="text-sm font-semibold text-slate-500 hover:text-slate-800">Back to Live Board</a>
-            <button type="submit" class="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-6 py-2.5 text-sm font-bold text-slate-900 hover:bg-brand-700"><i data-lucide="check" class="h-4 w-4"></i> Add attendance</button>
+            <button type="submit" class="btn-brand"><i data-lucide="check" class="h-4 w-4"></i> Add attendance</button>
         </div>
     </form>
 

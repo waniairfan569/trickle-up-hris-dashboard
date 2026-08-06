@@ -136,7 +136,7 @@
                                             <p class="text-xs text-slate-400">Times are in {{ $record->employee->first_name }}'s timezone. Clock-in at or after {{ \App\Models\AttendanceRecord::lateCutoffLabel() }} is marked late.</p>
                                             <div class="flex justify-end gap-2 pt-2">
                                                 <button type="button" @click="open = false" class="px-4 py-2 text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg">Cancel</button>
-                                                <button type="submit" class="px-4 py-2 text-sm font-semibold text-white bg-brand-600 hover:bg-brand-700 rounded-lg">Save</button>
+                                                <button type="submit" class="btn-brand">Save</button>
                                             </div>
                                         </form>
                                     </div>

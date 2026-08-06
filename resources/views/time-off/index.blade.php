@@ -31,7 +31,7 @@
                     remaining(){ const p=this.policy(); return p?p.remaining:0; },
                     after(){ const p=this.policy(); return p?(Math.round((p.remaining-this.workingDays())*100)/100):0; } }">
                 <button type="button" @click="open=true" title="Leave balance calculator"
-                        class="inline-flex items-center justify-center rounded-xl bg-white px-4 py-2 text-sm font-bold text-slate-700 shadow-sm border border-slate-300 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-600 dark:hover:bg-slate-700 transition">
+                        class="btn-outline">
                     <i data-lucide="calculator" class="h-4 w-4 mr-2"></i> Calculator
                 </button>
 
@@ -74,10 +74,10 @@
                 </div>
             </div>
 
-            <a href="{{ route('time-off.team-calendar') }}" class="inline-flex items-center justify-center rounded-xl bg-white px-4 py-2 text-sm font-bold text-slate-700 shadow-sm border border-slate-300 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-600 dark:hover:bg-slate-700 transition">
+            <a href="{{ route('time-off.team-calendar') }}" class="btn-outline">
                 <i data-lucide="calendar" class="h-4 w-4 mr-2"></i> Team Calendar
             </a>
-            <a href="{{ route('time-off.create') }}" class="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-bold text-slate-900 shadow-md shadow-brand-500/20 hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 transition duration-150">
+            <a href="{{ route('time-off.create') }}" class="btn-brand">
                 <i data-lucide="plus" class="h-4 w-4"></i>
                 Request Time Off
             </a>
@@ -273,11 +273,11 @@
                     @if($canDecide)
                         <form action="{{ route('time-off.approve', $request) }}" method="POST">
                             @csrf
-                            <button type="submit" class="w-full justify-center inline-flex items-center rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white shadow-sm hover:bg-emerald-700 transition">
+                            <button type="submit" class="btn-success btn-block">
                                 <i data-lucide="check" class="h-4 w-4 mr-1"></i> Approve
                             </button>
                         </form>
-                        <button @click="showReject = !showReject" class="w-full justify-center inline-flex items-center rounded-xl bg-white px-4 py-2 text-sm font-bold text-slate-700 shadow-sm border border-slate-300 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-600 dark:hover:bg-slate-700 transition">
+                        <button @click="showReject = !showReject" class="btn-outline btn-block">
                             <i data-lucide="x" class="h-4 w-4 mr-1"></i> Reject
                         </button>
                     @else
@@ -295,7 +295,7 @@
                         <textarea name="rejection_note" required rows="2" class="w-full rounded-xl border-rose-300 shadow-sm focus:border-rose-500 focus:ring-rose-500 sm:text-sm dark:bg-slate-900 dark:border-rose-500/30 dark:text-white mb-3" placeholder="Please provide a reason for rejecting this request..."></textarea>
                         <div class="flex justify-end gap-2">
                             <button type="button" @click="showReject = false" class="px-3 py-1.5 text-sm font-medium text-slate-600 hover:text-slate-900 dark:text-slate-400">Cancel</button>
-                            <button type="submit" class="px-3 py-1.5 bg-rose-600 text-white text-sm font-bold rounded-lg hover:bg-rose-700 shadow-sm">Confirm Reject</button>
+                            <button type="submit" class="btn-danger btn-sm">Confirm Reject</button>
                         </div>
                     </form>
                 </div>

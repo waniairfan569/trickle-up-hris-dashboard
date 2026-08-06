@@ -62,7 +62,7 @@
                                 <!-- Approve Form -->
                                 <form action="{{ route('attendance.corrections.approve', $c) }}" method="POST" class="inline-block">
                                     @csrf
-                                    <button type="submit" class="text-sm font-semibold text-white bg-green-600 hover:bg-green-700 px-3 py-1.5 rounded-lg shadow-sm transition">
+                                    <button type="submit" class="btn-success btn-sm">
                                         Approve
                                     </button>
                                 </form>
@@ -111,7 +111,7 @@
             </div>
             <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end space-x-3">
                 <button type="button" onclick="closeRejectModal()" class="px-4 py-2 text-sm font-semibold text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition">Cancel</button>
-                <button type="submit" class="px-4 py-2 text-sm font-semibold text-white bg-red-600 rounded-lg hover:bg-red-700 shadow-sm transition">Reject Request</button>
+                <button type="submit" class="btn-danger">Reject Request</button>
             </div>
         </form>
     </div>

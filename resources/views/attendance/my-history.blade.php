@@ -205,7 +205,7 @@
             </div>
             <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end space-x-3">
                 <button type="button" onclick="closeCorrectionModal()" class="px-4 py-2 text-sm font-semibold text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition">Cancel</button>
-                <button type="submit" class="px-4 py-2 text-sm font-semibold text-slate-900 bg-brand-600 rounded-lg hover:bg-brand-700 transition">Submit Request</button>
+                <button type="submit" class="btn-brand">Submit Request</button>
             </div>
         </form>
     </div>

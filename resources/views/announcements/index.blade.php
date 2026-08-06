@@ -31,7 +31,7 @@
                 <label class="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
                     <input type="checkbox" name="is_pinned" value="1" class="rounded border-slate-300 text-brand-600"> Pin to top
                 </label>
-                <button type="submit" class="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-bold text-slate-900 hover:bg-brand-700"><i data-lucide="send" class="h-4 w-4"></i> Post</button>
+                <button type="submit" class="btn-brand"><i data-lucide="send" class="h-4 w-4"></i> Post</button>
             </div>
         </form>
     </div>
@@ -68,8 +68,8 @@
                     <div class="flex items-center justify-between">
                         <label class="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300"><input type="checkbox" name="is_pinned" value="1" @checked($a->is_pinned) class="rounded border-slate-300 text-brand-600"> Pin to top</label>
                         <div class="flex gap-2">
-                            <button type="button" @click="edit = false" class="rounded-xl bg-slate-100 px-4 py-2 text-sm font-bold text-slate-600 dark:bg-slate-700">Cancel</button>
-                            <button type="submit" class="rounded-xl bg-brand-600 px-4 py-2 text-sm font-bold text-slate-900 hover:bg-brand-700">Save</button>
+                            <button type="button" @click="edit = false" class="btn-outline">Cancel</button>
+                            <button type="submit" class="btn-brand">Save</button>
                         </div>
                     </div>
                 </form>

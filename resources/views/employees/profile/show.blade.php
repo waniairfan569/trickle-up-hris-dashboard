@@ -137,7 +137,7 @@
                         </form>
                     @endif
                     @endif
-                    <a href="{{ route('employees.profile', ['employee' => $employee->id, 'edit' => 1]) }}" class="inline-flex items-center gap-x-1.5 rounded-xl bg-brand-600 px-4 py-2.5 text-xs font-bold text-slate-900 shadow-md shadow-brand-500/20 hover:bg-brand-700 transition duration-150">
+                    <a href="{{ route('employees.profile', ['employee' => $employee->id, 'edit' => 1]) }}" class="btn-brand btn-sm">
                         <i data-lucide="edit-3" class="h-4 w-4"></i>
                         <span>Edit Profile</span>
                     </a>
@@ -284,7 +284,7 @@
                     </div>
                     <p class="text-[11px] text-slate-400">Maternity / Paternity require the employee to be married with 1+ year of service. The request is filed on their behalf and sent for approval.</p>
                     <div class="flex justify-end">
-                        <button type="submit" class="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-bold text-slate-900 hover:bg-brand-700"><i data-lucide="calendar-plus" class="h-4 w-4"></i> Submit for approval</button>
+                        <button type="submit" class="btn-brand"><i data-lucide="calendar-plus" class="h-4 w-4"></i> Submit for approval</button>
                     </div>
                 </form>
             </div>
@@ -293,7 +293,7 @@
         <div class="bg-white border border-slate-200/80 rounded-2xl shadow-sm dark:bg-slate-800 dark:border-slate-700 overflow-hidden">
             <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
                 <h2 class="text-sm font-bold text-slate-800 dark:text-white">Time-Off Balances</h2>
-                @if($isSelf)<a href="{{ route('time-off.create') }}" class="inline-flex items-center gap-1.5 bg-brand-600 hover:bg-brand-700 text-slate-900 text-xs font-bold py-2 px-4 rounded-lg transition"><i data-lucide="plus" class="h-3.5 w-3.5"></i> Request Time Off</a>@endif
+                @if($isSelf)<a href="{{ route('time-off.create') }}" class="btn-brand btn-sm"><i data-lucide="plus" class="h-3.5 w-3.5"></i> Request Time Off</a>@endif
             </div>
             <div class="p-6">
                 @php $empBalances = \App\Models\TimeOffBalance::where('user_id',$employee->id)->with('policy')->whereHas('policy')->get(); @endphp
@@ -388,7 +388,7 @@
                         <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Clock out</label>
                         <input type="time" name="clock_out" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
                     </div>
-                    <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-bold text-slate-900 hover:bg-brand-700"><i data-lucide="check" class="h-4 w-4"></i> Save</button>
+                    <button type="submit" class="btn-brand"><i data-lucide="check" class="h-4 w-4"></i> Save</button>
                 </form>
             </div>
 
@@ -523,7 +523,7 @@
                                                 <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Clock out</label>
                                                 <input type="time" name="clock_out" value="{{ $coVal }}" class="rounded-xl border border-slate-300 px-3 py-2 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
                                             </div>
-                                            <button type="submit" class="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-4 py-2 text-sm font-bold text-slate-900 hover:bg-brand-700"><i data-lucide="check" class="h-4 w-4"></i> Save</button>
+                                            <button type="submit" class="btn-brand"><i data-lucide="check" class="h-4 w-4"></i> Save</button>
                                             <button type="button" @click="edit=false" class="inline-flex items-center gap-1.5 rounded-xl bg-slate-100 px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-200">Cancel</button>
                                             <span class="text-[11px] text-slate-400">{{ \Carbon\Carbon::parse($att->date)->format('D, d M Y') }} · times in {{ $employee->first_name }}'s timezone · leave Clock in blank to mark Absent</span>
                                         </form>
@@ -584,7 +584,7 @@
                             </div>
                             <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold {{ $esBadge[$req->status] ?? 'bg-slate-100 text-slate-600' }}">{{ $esLabel[$req->status] ?? ucfirst($req->status) }}</span>
                             @if($awaitingMe)
-                                <a href="{{ route('documents.sign', $req) }}" class="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-3 py-1.5 text-xs font-bold text-slate-900 hover:bg-brand-700"><i data-lucide="pen-tool" class="h-3.5 w-3.5"></i> Sign</a>
+                                <a href="{{ route('documents.sign', $req) }}" class="btn-brand btn-sm"><i data-lucide="pen-tool" class="h-3.5 w-3.5"></i> Sign</a>
                             @else
                                 <a href="{{ route('documents.show', $req) }}" title="View" class="inline-flex h-8 w-8 items-center justify-center rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-700"><i data-lucide="eye" class="h-4 w-4"></i></a>
                             @endif
@@ -597,7 +597,7 @@
                     <p class="text-sm font-bold text-slate-600 dark:text-slate-300">No signature documents yet</p>
                     <p class="text-xs text-slate-400 mt-1">Documents sent for signature will appear here.</p>
                     @if($auth->isAdmin())
-                        <a href="{{ route('company-documents.admin') }}" class="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-4 py-2 text-xs font-bold text-slate-900 hover:bg-brand-700">
+                        <a href="{{ route('company-documents.admin') }}" class="mt-4 btn-brand btn-sm">
                             <i data-lucide="send" class="h-3.5 w-3.5"></i> Send for signature
                         </a>
                     @endif
@@ -616,7 +616,7 @@
                             <input type="text" x-model="fileSearch" placeholder="Search files…"
                                    class="rounded-xl border-slate-300 pl-8 pr-3 py-1.5 text-xs dark:bg-slate-900 dark:border-slate-600 dark:text-white w-44">
                         </div>
-                        <button @click="uploadOpen = true" type="button" class="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-4 py-2 text-xs font-bold text-slate-900 shadow-md shadow-brand-500/20 hover:bg-brand-700 shrink-0">
+                        <button @click="uploadOpen = true" type="button" class="btn-brand btn-sm shrink-0">
                             <i data-lucide="upload" class="h-3.5 w-3.5"></i> Upload
                         </button>
                     </div>
@@ -646,7 +646,7 @@
                 <div class="flex flex-col items-center justify-center py-12 text-center">
                     <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 dark:bg-slate-700 mb-3"><i data-lucide="folder-open" class="h-7 w-7 text-slate-400"></i></div>
                     <p class="text-sm font-bold text-slate-600 dark:text-slate-300">No uploaded files yet</p>
-                    <button @click="uploadOpen = true" type="button" class="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-bold text-slate-900 shadow-md shadow-brand-500/20 hover:bg-brand-700">
+                    <button @click="uploadOpen = true" type="button" class="mt-4 btn-brand">
                         <i data-lucide="upload" class="h-4 w-4"></i> Upload
                     </button>
                 </div>
@@ -688,8 +688,8 @@
                         </div>
                     </div>
                     <div class="flex items-center justify-end gap-2 px-6 py-4 border-t border-slate-100 dark:border-slate-700/60">
-                        <button type="button" @click="uploadOpen = false" class="rounded-xl bg-white border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200">Cancel</button>
-                        <button type="submit" class="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-bold text-slate-900 shadow-md shadow-brand-500/20 hover:bg-brand-700">
+                        <button type="button" @click="uploadOpen = false" class="btn-outline">Cancel</button>
+                        <button type="submit" class="btn-brand">
                             <i data-lucide="upload" class="h-4 w-4"></i> Upload
                         </button>
                     </div>
@@ -779,7 +779,7 @@
                         <p class="text-xs text-slate-400 mt-0.5">Salary timeline. Amounts are shown only when “Show sensitive data” is on.</p>
                     </div>
                     @if($auth->isAdmin())
-                        <button type="button" @click="payReviewOpen = true" class="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-4 py-2 text-xs font-bold text-slate-900 shadow-md shadow-brand-500/20 hover:bg-brand-700">
+                        <button type="button" @click="payReviewOpen = true" class="btn-brand btn-sm">
                             <i data-lucide="plus" class="h-3.5 w-3.5"></i> Add pay review
                         </button>
                     @endif
@@ -925,8 +925,8 @@
                                 <input type="hidden" name="currency" value="{{ $curCode }}">
                             </div>
                             <div class="flex items-center justify-end gap-2 px-6 py-4 border-t border-slate-100 dark:border-slate-700/60">
-                                <button type="button" @click="payReviewOpen = false" class="rounded-xl bg-white border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200">Cancel</button>
-                                <button type="submit" class="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-bold text-slate-900 shadow-md shadow-brand-500/20 hover:bg-brand-700"><i data-lucide="check" class="h-4 w-4"></i> Save pay review</button>
+                                <button type="button" @click="payReviewOpen = false" class="btn-outline">Cancel</button>
+                                <button type="submit" class="btn-brand"><i data-lucide="check" class="h-4 w-4"></i> Save pay review</button>
                             </div>
                         </form>
                     </div>
@@ -970,7 +970,7 @@
                         @if($isAdminViewer && $probation->status === 'active')
                             <div class="flex flex-wrap gap-2 pt-1">
                                 <button type="button" @click="extend = true" class="inline-flex items-center gap-1.5 rounded-xl bg-white border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200"><i data-lucide="calendar-plus" class="h-3.5 w-3.5"></i> Extend</button>
-                                <button type="submit" form="prob-confirm-{{ $probation->id }}" class="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-2 text-xs font-bold text-white hover:bg-emerald-700"><i data-lucide="check" class="h-3.5 w-3.5"></i> Confirm</button>
+                                <button type="submit" form="prob-confirm-{{ $probation->id }}" class="btn-success btn-sm"><i data-lucide="check" class="h-3.5 w-3.5"></i> Confirm</button>
                                 <template x-teleport="body"><form id="prob-confirm-{{ $probation->id }}" action="{{ route('employees.probation.confirm', [$employee->id, $probation->id]) }}" method="POST" onsubmit="return confirm('Confirm {{ $employee->first_name }} — probation passed?');">@csrf</form></template>
                                 <button type="button" @click="fail = true" class="inline-flex items-center gap-1.5 rounded-xl bg-white border border-rose-200 px-3 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 dark:bg-slate-700 dark:border-rose-500/30"><i data-lucide="x-circle" class="h-3.5 w-3.5"></i> Not confirmed</button>
                             </div>
@@ -1013,7 +1013,7 @@
                                         <div><label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">New end date <span class="text-rose-500">*</span></label><input type="date" name="new_end_date" required min="{{ $probation->end_date->copy()->addDay()->toDateString() }}" value="{{ $probation->end_date->copy()->addMonths(1)->toDateString() }}" class="w-full rounded-xl border-slate-300 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white"></div>
                                         <div><label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Reason <span class="text-rose-500">*</span></label><textarea name="reason" required rows="2" maxlength="1000" placeholder="e.g. Needs more time to meet performance targets" class="w-full rounded-xl border-slate-300 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white resize-none"></textarea></div>
                                     </div>
-                                    <div class="flex items-center justify-end gap-2 px-6 py-4 border-t border-slate-100 dark:border-slate-700/60"><button type="button" @click="extend = false" class="rounded-xl bg-white border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200">Cancel</button><button type="submit" class="rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-bold text-slate-900 hover:bg-brand-700">Extend</button></div>
+                                    <div class="flex items-center justify-end gap-2 px-6 py-4 border-t border-slate-100 dark:border-slate-700/60"><button type="button" @click="extend = false" class="btn-outline">Cancel</button><button type="submit" class="btn-brand">Extend</button></div>
                                 </form>
                             </div>
                         </div>
@@ -1027,7 +1027,7 @@
                                     @csrf
                                     <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-700/60"><h2 class="text-lg font-extrabold text-slate-900 dark:text-white">Mark not confirmed</h2><button type="button" @click="fail = false" class="text-slate-400 hover:text-slate-700"><i data-lucide="x" class="h-5 w-5"></i></button></div>
                                     <div class="p-6 space-y-4"><div><label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Reason <span class="text-rose-500">*</span></label><textarea name="reason" required rows="3" maxlength="1000" class="w-full rounded-xl border-slate-300 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white resize-none"></textarea></div></div>
-                                    <div class="flex items-center justify-end gap-2 px-6 py-4 border-t border-slate-100 dark:border-slate-700/60"><button type="button" @click="fail = false" class="rounded-xl bg-white border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200">Cancel</button><button type="submit" class="rounded-xl bg-rose-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-rose-700">Mark not confirmed</button></div>
+                                    <div class="flex items-center justify-end gap-2 px-6 py-4 border-t border-slate-100 dark:border-slate-700/60"><button type="button" @click="fail = false" class="btn-outline">Cancel</button><button type="submit" class="btn-danger">Mark not confirmed</button></div>
                                 </form>
                             </div>
                         </div>
@@ -1042,7 +1042,7 @@
                             <div class="mt-3 flex flex-wrap items-end justify-center gap-2">
                                 <div class="text-left"><label class="block text-[10px] font-bold text-slate-400 uppercase">Start</label><input type="date" name="start_date" form="prob-store-{{ $employee->id }}" value="{{ $defStart->toDateString() }}" class="rounded-lg border-slate-300 text-xs dark:bg-slate-900 dark:border-slate-600 dark:text-white"></div>
                                 <div class="text-left"><label class="block text-[10px] font-bold text-slate-400 uppercase">End</label><input type="date" name="end_date" form="prob-store-{{ $employee->id }}" value="{{ $defStart->copy()->addMonths(3)->toDateString() }}" class="rounded-lg border-slate-300 text-xs dark:bg-slate-900 dark:border-slate-600 dark:text-white"></div>
-                                <button type="submit" form="prob-store-{{ $employee->id }}" class="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-4 py-2 text-xs font-bold text-slate-900 hover:bg-brand-700"><i data-lucide="play" class="h-3.5 w-3.5"></i> Start probation</button>
+                                <button type="submit" form="prob-store-{{ $employee->id }}" class="btn-brand btn-sm"><i data-lucide="play" class="h-3.5 w-3.5"></i> Start probation</button>
                             </div>
                             <template x-teleport="body"><form id="prob-store-{{ $employee->id }}" action="{{ route('employees.probation.store', $employee->id) }}" method="POST">@csrf</form></template>
                         @else
@@ -1078,9 +1078,9 @@
     @if($editing)
         <div class="flex items-center justify-end gap-3 border-t border-slate-200 pt-6 dark:border-slate-800">
             <a href="{{ route('employees.profile',$employee->id) }}" id="cancel-edit-btn"
-               class="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300">Cancel</a>
+               class="btn-outline btn-sm">Cancel</a>
             <button type="submit" form="profile-edit-form"
-                    class="inline-flex items-center justify-center gap-1.5 rounded-xl bg-brand-600 px-5 py-2.5 text-xs font-bold text-slate-900 shadow-md hover:bg-brand-700 transition">
+                    class="btn-brand btn-sm">
                 <i data-lucide="save" class="h-4 w-4"></i><span>Save Profile Changes</span>
             </button>
         </div>
