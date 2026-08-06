@@ -63,7 +63,7 @@
     <!-- Calendar + Time-off balances (shared across dashboards) -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         @include('dashboard.partials.calendar-widget')
-        @include('dashboard.partials.timeoff-balances')
+        @include('dashboard.partials.timeoff-balances-card')
     </div>
 
     <!-- Team Overview & Presence Indicator -->
