@@ -35,8 +35,14 @@
         ->where('attendance_mode', 'remote')->count();
 
     // Absent = active, not present, not on leave — but ONLY on a working day for
-    // that employee (weekends / non-working days per their schedule are off, not
-    // absent). Default schedule is Mon–Fri when none is assigned.
+    // that employee AND only once their shift has actually STARTED. Someone whose
+    // shift begins at 13:30 is NOT "absent" at 11:00 — their working day hasn't
+    // begun yet. Today's assigned shift drives the working-day + start-time check;
+    // we fall back to their work schedule / weekday when no shift is assigned.
+    $shiftSvc = app(\App\Services\ShiftService::class);
+    $tzSvc = app(\App\Services\TimezoneService::class);
+    $todayDate = today();
+
     $absentUserIds = \App\Models\User::active()
         ->whereIn('id', $realEmployeeIds->all())
         ->whereNotIn('id', $attendanceHiddenIds->all())
@@ -44,7 +50,24 @@
         ->whereNotIn('id', $onLeaveIds->all())
         ->with('workSchedule')
         ->get()
-        ->filter(fn ($u) => $u->workSchedule ? $u->workSchedule->isWorkingDay(today()) : !today()->isWeekend())
+        ->filter(function ($u) use ($shiftSvc, $tzSvc, $todayDate) {
+            $shift = $shiftSvc->getShiftForUserOnDate($u, $todayDate->copy());
+            if ($shift) {
+                $startStr = $shift->start_time;               // has a shift today
+            } else {
+                $isWorkingDay = $u->workSchedule ? $u->workSchedule->isWorkingDay($todayDate) : !$todayDate->isWeekend();
+                if (!$isWorkingDay) {
+                    return false;                             // off today
+                }
+                $startStr = optional($u->workSchedule)->start_time ?: (config('attendance.late_after') ?: '09:30');
+            }
+
+            // Not absent until their shift start has passed (in their own timezone).
+            $nowUser = $tzSvc->toUserTime(now(), $u);
+            $start = \Carbon\Carbon::parse($todayDate->toDateString() . ' ' . $startStr, $nowUser->getTimezone());
+
+            return $nowUser->greaterThanOrEqualTo($start);
+        })
         ->pluck('id');
     $absentToday = $absentUserIds->count();
 
