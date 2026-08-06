@@ -10,7 +10,14 @@
         (function () {
             var t = @json(optional(auth()->user())->theme ?? 'system');
             var dark = t === 'dark' || (t === 'system' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
-            document.documentElement.classList.toggle('dark', dark);
+            var el = document.documentElement;
+            el.classList.toggle('dark', dark);
+            // Paint the base colours INLINE right now, before the Tailwind CDN has
+            // generated the dark: utilities — otherwise the page flashes white
+            // ("half white") until the CDN finishes. color-scheme also darkens
+            // native form controls and scrollbars.
+            el.style.backgroundColor = dark ? '#0f172a' : '#f8fafc';
+            el.style.colorScheme = dark ? 'dark' : 'light';
         })();
     </script>
     @php $brandName = \App\Tenancy\Brand::name(); $brandLogo = \App\Tenancy\Brand::logo(); $brandColor = \App\Tenancy\Brand::color(); @endphp

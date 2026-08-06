@@ -95,7 +95,7 @@
 
             {{-- ── APPEARANCE ─────────────────────────────────────── --}}
             <div x-show="tab === 'appearance'" x-cloak class="bg-white rounded-2xl border border-slate-200/80 shadow-sm dark:bg-slate-800 dark:border-slate-700">
-                <form method="POST" action="{{ route('settings.appearance') }}" x-data="{ theme: '{{ $user->theme ?? 'system' }}', apply(t){ const d = t==='dark' || (t==='system' && matchMedia('(prefers-color-scheme: dark)').matches); document.documentElement.classList.toggle('dark', d); } }">
+                <form method="POST" action="{{ route('settings.appearance') }}" x-data="{ theme: '{{ $user->theme ?? 'system' }}', apply(t){ const d = t==='dark' || (t==='system' && matchMedia('(prefers-color-scheme: dark)').matches); const el = document.documentElement; el.classList.toggle('dark', d); el.style.backgroundColor = d ? '#0f172a' : '#f8fafc'; el.style.colorScheme = d ? 'dark' : 'light'; } }">
                     @csrf @method('PUT')
                     <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-700/60">
                         <h2 class="text-base font-bold text-slate-800 dark:text-white">Appearance</h2>
