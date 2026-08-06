@@ -51,15 +51,18 @@
                 <!-- Date Header -->
                 <div class="flex items-center justify-between mb-3">
                     <div class="flex items-center gap-3 text-slate-700 font-semibold dark:text-slate-200 relative" @click.away="showPicker = false">
-                        <div class="h-10 w-10 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100/50 dark:border-slate-700/50 flex items-center justify-center text-slate-400">
+                        <div class="h-10 w-10 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-100/60 dark:border-amber-500/20 flex items-center justify-center text-amber-500">
                             <i data-lucide="calendar" class="h-5 w-5"></i>
                         </div>
-                        
-                        <div class="flex items-center gap-1.5 cursor-pointer select-none" @click="showPicker = !showPicker; if (showPicker) initPicker()">
-                            <span class="text-base" x-text="displayDate()"></span>
-                            <svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-                            </svg>
+
+                        <div>
+                            <div class="flex items-center gap-1.5 cursor-pointer select-none" @click="showPicker = !showPicker; if (showPicker) initPicker()">
+                                <span class="text-sm font-bold text-slate-800 dark:text-white" x-text="displayDate()"></span>
+                                <svg class="h-3.5 w-3.5 text-slate-400" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </div>
+                            <p class="text-[11px] font-semibold text-teal-600 dark:text-teal-400">Your day at a glance</p>
                         </div>
 
                         <!-- Custom Calendar Dropdown -->
@@ -114,9 +117,9 @@
                             </div>
                         </div>
                     </div>
-                    <div class="flex items-center gap-2 text-slate-400">
-                        <button @click="shift(-1)" class="hover:text-slate-600 transition"><i data-lucide="arrow-left" class="h-4 w-4"></i></button>
-                        <button @click="shift(1)" class="hover:text-slate-600 transition"><i data-lucide="arrow-right" class="h-4 w-4"></i></button>
+                    <div class="flex items-center gap-1.5">
+                        <button @click="shift(-1)" class="h-8 w-8 rounded-full border border-slate-200 dark:border-slate-600 flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-50 dark:hover:text-white dark:hover:bg-slate-700 transition"><i data-lucide="arrow-left" class="h-4 w-4"></i></button>
+                        <button @click="shift(1)" class="h-8 w-8 rounded-full border border-slate-200 dark:border-slate-600 flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-50 dark:hover:text-white dark:hover:bg-slate-700 transition"><i data-lucide="arrow-right" class="h-4 w-4"></i></button>
                     </div>
                 </div>
 
@@ -127,7 +130,7 @@
                                 class="text-sm pb-2 -mb-px border-b-2 flex items-center gap-1.5 transition"
                                 :class="tab === t.key ? 'font-semibold text-slate-800 border-slate-800 dark:text-white dark:border-white' : 'font-medium text-slate-400 border-transparent hover:text-slate-600'">
                             <span x-text="t.label"></span>
-                            <span class="bg-slate-100 text-slate-500 text-[10px] px-1.5 py-0.5 rounded-md dark:bg-slate-700 dark:text-slate-300" x-text="count(t.key)"></span>
+                            <span class="text-[10px] px-1.5 py-0.5 rounded-md font-bold" :class="tab === t.key ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400' : 'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-300'" x-text="count(t.key)"></span>
                         </button>
                     </template>
                 </div>
@@ -137,15 +140,15 @@
                     <!-- Celebrations -->
                     <div x-show="tab === 'celebrations'">
                         <template x-if="todaysCelebrations().length === 0"><p class="text-xs font-semibold text-slate-400 text-center mt-10">No celebrations on this day</p></template>
-                        <div class="space-y-3">
+                        <div class="space-y-2.5">
                             <template x-for="c in todaysCelebrations()" :key="c.name + c.type + (c.md || c.date || '')">
-                                <div class="flex items-center gap-3">
-                                    <template x-if="c.avatar"><img :src="c.avatar" class="h-9 w-9 rounded-xl object-cover ring-1 ring-slate-100 dark:ring-slate-700"></template>
-                                    <template x-if="!c.avatar"><div class="h-9 w-9 rounded-xl bg-gradient-to-br from-brand-400 to-indigo-500 flex items-center justify-center text-white text-[11px] font-bold" x-text="c.initials"></div></template>
+                                <div class="relative flex items-center gap-3 rounded-xl bg-slate-50 dark:bg-slate-900/40 pl-4 pr-3 py-2.5 overflow-hidden">
+                                    <div class="absolute left-0 top-2.5 bottom-2.5 w-1 rounded-r-full" :class="dotColor(c.type)"></div>
                                     <div class="flex-1 min-w-0">
                                         <p class="text-sm font-bold text-slate-800 dark:text-white truncate" x-text="c.name"></p>
-                                        <p class="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5"><span class="h-1.5 w-1.5 rounded-full flex-shrink-0" :class="dotColor(c.type)"></span><span class="truncate" x-text="c.label"></span></p>
+                                        <p class="text-xs text-slate-500 dark:text-slate-400 truncate" x-text="c.label"></p>
                                     </div>
+                                    <span class="shrink-0 rounded-full border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-2.5 py-0.5 text-[10px] font-bold text-slate-500 dark:text-slate-300" x-text="dayPill()"></span>
                                 </div>
                             </template>
                         </div>
@@ -242,6 +245,11 @@
                         },
                         shift(days) { const d = new Date(this.current + 'T00:00:00'); d.setDate(d.getDate() + days); const y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, '0'), da = String(d.getDate()).padStart(2, '0'); this.current = `${y}-${m}-${da}`; },
                         displayDate() { return new Date(this.current + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }); },
+                        dayPill() {
+                            const d = new Date(this.current + 'T00:00:00'), t = new Date();
+                            const isToday = d.getFullYear() === t.getFullYear() && d.getMonth() === t.getMonth() && d.getDate() === t.getDate();
+                            return isToday ? 'Today' : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+                        },
                         monthOf(ds) { return new Date(ds + 'T00:00:00').toLocaleDateString('en-GB', { month: 'short' }); },
                         dayOf(ds) { return new Date(ds + 'T00:00:00').getDate(); },
                         relDate(ds) { return new Date(ds + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }); },
