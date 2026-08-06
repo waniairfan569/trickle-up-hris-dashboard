@@ -229,7 +229,6 @@
 
     <!-- LEFT COLUMN -->
     <div class="space-y-6">
-        @include('dashboard.partials.calendar-widget')
 
     <!-- Time Off Approval Queue -->
     <div class="rounded-2xl bg-white border border-slate-200/80 shadow-sm dark:bg-slate-800 dark:border-slate-800">
@@ -321,6 +320,8 @@
             @endif
         </div>
     </div>
+
+        @include('dashboard.partials.calendar-widget')
 
     </div>{{-- /LEFT COLUMN --}}
 
