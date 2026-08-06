@@ -4,7 +4,7 @@
 @section('breadcrumb', 'Document Library')
 
 @section('content')
-<div class="max-w-6xl mx-auto space-y-6"
+<div class="space-y-6"
      x-data="{ search: '', cat: 'all' }">
     <div>
         <h1 class="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">Document Library</h1>

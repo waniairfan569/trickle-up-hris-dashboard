@@ -20,7 +20,7 @@
 @endphp
 
 @section('content')
-<div class="max-w-7xl mx-auto space-y-6" x-data="{ tab: '{{ session('tab', 'notifications') }}' }">
+<div class="space-y-6" x-data="{ tab: '{{ session('tab', 'notifications') }}' }">
     <div>
         <h1 class="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">Settings</h1>
         <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Manage your notifications, appearance, security and preferences.</p>

@@ -5,7 +5,7 @@
 
 @section('content')
 @php $isTimeOffAdmin = auth()->user()->hasRole('hr_admin') || auth()->user()->hasRole('super_admin'); @endphp
-<div class="max-w-7xl mx-auto space-y-8" x-data="{ activeTab: '{{ $isTimeOffAdmin ? 'all_requests' : 'my_requests' }}' }">
+<div class="space-y-8" x-data="{ activeTab: '{{ $isTimeOffAdmin ? 'all_requests' : 'my_requests' }}' }">
     <div class="sm:flex sm:items-center sm:justify-between border-b border-slate-200/80 pb-5 dark:border-slate-700/60">
         <div>
             <h2 class="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">Time-Off</h2>

@@ -18,7 +18,7 @@
     .policy-content ol{list-style:decimal;padding-left:1.5rem;margin:.5rem 0}
     .policy-content a{color:#2563eb;text-decoration:underline}
 </style>
-<div class="max-w-7xl mx-auto space-y-6" x-data="{ tab: 'pending' }">
+<div class="space-y-6" x-data="{ tab: 'pending' }">
     <div>
         <h1 class="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">My Policies</h1>
         <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Review and acknowledge company policies assigned to you.</p>
