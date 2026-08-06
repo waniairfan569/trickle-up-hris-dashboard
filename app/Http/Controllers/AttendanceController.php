@@ -174,7 +174,19 @@ class AttendanceController extends Controller
             ->keyBy(fn ($r) => Carbon::parse($r->date)->toDateString());
         $weekTotalMinutes = (int) $weekRecords->sum('total_minutes_worked');
 
-        return view('attendance.my-history', compact('records', 'date', 'summary', 'weekStart', 'weekDays', 'weekRecords', 'weekTotalMinutes'));
+        // Full-month records keyed by date — powers the month calendar grid.
+        $monthRecords = AttendanceRecord::forUser($user)
+            ->whereMonth('date', $month)
+            ->whereYear('date', $year)
+            ->get()
+            ->keyBy(fn ($r) => Carbon::parse($r->date)->toDateString());
+
+        // Today's record (may fall outside the viewed month) — powers the "Today" tab.
+        $todayRecord = AttendanceRecord::forUser($user)
+            ->whereDate('date', Carbon::today()->toDateString())
+            ->first();
+
+        return view('attendance.my-history', compact('records', 'date', 'summary', 'weekStart', 'weekDays', 'weekRecords', 'weekTotalMinutes', 'monthRecords', 'todayRecord'));
     }
 
     public function submitCorrection(Request $request)
