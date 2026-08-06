@@ -159,19 +159,70 @@
         $monthStartR = $nowRef->copy()->startOfMonth(); $monthEndR = $nowRef->copy()->endOfMonth();
         $yearStartR  = $nowRef->copy()->startOfYear();  $yearEndR  = $nowRef->copy()->endOfYear();
         $overlaps = fn ($r, $s, $e) => $r->start_date->lte($e) && $r->end_date->gte($s);
-        $cntWeek  = $myRequests->filter(fn ($r) => $overlaps($r, $weekStartR, $weekEndR))->count();
-        $cntMonth = $myRequests->filter(fn ($r) => $overlaps($r, $monthStartR, $monthEndR))->count();
-        $cntYear  = $myRequests->filter(fn ($r) => $overlaps($r, $yearStartR, $yearEndR))->count();
+        // Each request as plain data for the client-side filter: start/end + which
+        // preset periods it overlaps. Order matches the @forelse loop below.
+        $rowsForJs = $myRequests->map(fn ($r) => [
+            's' => $r->start_date->toDateString(),
+            'e' => $r->end_date->toDateString(),
+            'w' => $overlaps($r, $weekStartR, $weekEndR),
+            'm' => $overlaps($r, $monthStartR, $monthEndR),
+            'y' => $overlaps($r, $yearStartR, $yearEndR),
+        ])->values();
     @endphp
-    <div x-show="activeTab === 'my_requests'" x-data="{ reqFilter: 'all' }" class="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden dark:bg-slate-800 dark:border-slate-700/80">
+    <script>
+        function myRequestsFilter() {
+            return {
+                reqFilter: 'all',
+                pickMonth: '',
+                pickEnd: '',
+                rows: @json($rowsForJs),
+                get pickLabel() {
+                    if (!this.pickMonth) return 'Pick month';
+                    const [y, m] = this.pickMonth.split('-').map(Number);
+                    return new Date(y, m - 1, 1).toLocaleString('en-US', { month: 'short' }) + ' ' + y;
+                },
+                setMonth(v) {
+                    this.pickMonth = v || '';
+                    if (this.pickMonth) {
+                        const [y, m] = this.pickMonth.split('-').map(Number);
+                        const last = new Date(y, m, 0).getDate();
+                        this.pickEnd = this.pickMonth + '-' + String(last).padStart(2, '0');
+                        this.reqFilter = 'pick';
+                    } else {
+                        this.pickEnd = '';
+                        this.reqFilter = 'all';
+                    }
+                },
+                preset(key) { this.reqFilter = key; this.pickMonth = ''; this.pickEnd = ''; },
+                matches(r) {
+                    if (this.reqFilter === 'pick')  return this.pickMonth !== '' && r.s <= this.pickEnd && r.e >= this.pickMonth + '-01';
+                    if (this.reqFilter === 'week')  return r.w;
+                    if (this.reqFilter === 'month') return r.m;
+                    if (this.reqFilter === 'year')  return r.y;
+                    return true; // 'all'
+                },
+                get anyVisible() { return this.rows.some(r => this.matches(r)); },
+            };
+        }
+    </script>
+    <div x-show="activeTab === 'my_requests'" x-data="myRequestsFilter()" class="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden dark:bg-slate-800 dark:border-slate-700/80">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-6 py-4 border-b border-slate-200/80 dark:border-slate-700/60">
             <h3 class="text-sm font-bold text-slate-800 dark:text-white">My Requests</h3>
-            <div class="inline-flex rounded-xl border border-slate-200 dark:border-slate-700 p-1 bg-slate-50 dark:bg-slate-900/40 self-start">
-                @foreach(['all' => 'All', 'week' => 'This week', 'month' => 'This month', 'year' => 'This year'] as $key => $label)
-                    <button type="button" @click="reqFilter = '{{ $key }}'"
-                            :class="reqFilter === '{{ $key }}' ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'"
-                            class="px-3 py-1.5 text-xs font-bold rounded-lg transition whitespace-nowrap">{{ $label }}</button>
-                @endforeach
+            <div class="flex flex-wrap items-center gap-2 self-start">
+                <div class="inline-flex rounded-xl border border-slate-200 dark:border-slate-700 p-1 bg-slate-50 dark:bg-slate-900/40">
+                    @foreach(['all' => 'All', 'week' => 'This week', 'month' => 'This month', 'year' => 'This year'] as $key => $label)
+                        <button type="button" @click="preset('{{ $key }}')"
+                                :class="reqFilter === '{{ $key }}' ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'"
+                                class="px-3 py-1.5 text-xs font-bold rounded-lg transition whitespace-nowrap">{{ $label }}</button>
+                    @endforeach
+                </div>
+                {{-- Pick any specific month --}}
+                <label class="relative inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold cursor-pointer transition whitespace-nowrap"
+                       :class="reqFilter === 'pick' ? 'border-brand-300 bg-brand-50 text-brand-700 dark:border-brand-500/40 dark:bg-brand-500/10 dark:text-brand-400' : 'border-slate-200 dark:border-slate-700 text-slate-500 hover:text-slate-700 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/40'">
+                    <i data-lucide="calendar-days" class="h-3.5 w-3.5"></i>
+                    <span x-text="pickLabel"></span>
+                    <input type="month" class="absolute inset-0 h-full w-full opacity-0 cursor-pointer" @change="setMonth($event.target.value)" :value="pickMonth" title="Pick a month">
+                </label>
             </div>
         </div>
         <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
@@ -186,12 +237,7 @@
             </thead>
             <tbody class="bg-white divide-y divide-slate-200 dark:bg-slate-800 dark:divide-slate-700">
                 @forelse($myRequests as $request)
-                    @php
-                        $inWeek  = $overlaps($request, $weekStartR, $weekEndR);
-                        $inMonth = $overlaps($request, $monthStartR, $monthEndR);
-                        $inYear  = $overlaps($request, $yearStartR, $yearEndR);
-                    @endphp
-                    <tr x-show="reqFilter === 'all' || (reqFilter === 'week' && {{ $inWeek ? 'true' : 'false' }}) || (reqFilter === 'month' && {{ $inMonth ? 'true' : 'false' }}) || (reqFilter === 'year' && {{ $inYear ? 'true' : 'false' }})">
+                    <tr x-show="matches(rows[{{ $loop->index }}])">
                         <td class="px-6 py-4 text-sm font-medium text-slate-900 dark:text-white align-top">
                             <div>{{ $request->policy->name }}</div>
                             @if($request->reason)
@@ -235,8 +281,8 @@
                     </tr>
                 @endforelse
                 @if($myRequests->count() > 0)
-                    <tr x-show="(reqFilter === 'week' && {{ $cntWeek }} === 0) || (reqFilter === 'month' && {{ $cntMonth }} === 0) || (reqFilter === 'year' && {{ $cntYear }} === 0)" x-cloak>
-                        <td colspan="5" class="px-6 py-12 text-center text-sm text-slate-500 dark:text-slate-400">No time-off requests in this period.</td>
+                    <tr x-show="!anyVisible" x-cloak>
+                        <td colspan="5" class="px-6 py-12 text-center text-sm text-slate-500 dark:text-slate-400">No time-off requests match this filter.</td>
                     </tr>
                 @endif
             </tbody>
