@@ -218,7 +218,7 @@
 
                 <!-- Breadcrumb / Section Name (hidden when a page sets none) -->
                 @php $__bc = trim($__env->yieldContent('breadcrumb')); @endphp
-                <div class="flex flex-1 flex-col justify-center sm:flex-row sm:items-center gap-x-2 min-w-0 leading-tight">
+                <div class="flex flex-1 flex-col justify-center sm:flex-row sm:items-center sm:justify-start gap-x-2 min-w-0 leading-tight">
                     <span class="text-[11px] sm:text-sm font-medium text-slate-400 dark:text-slate-500 select-none">Workspace</span>
                     @if($__bc !== '')
                         <i data-lucide="chevron-right" class="hidden sm:block h-4 w-4 text-slate-300 dark:text-slate-600 shrink-0"></i>
