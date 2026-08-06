@@ -180,14 +180,13 @@
     <!-- Employees waiting for a login code -->
     @include('partials.code-request-hr-banner')
 
-    <!-- 1 & 2: Calendar (left) + Announcements (right) -->
+    {{-- Left column: Calendar + Approval Queue · Right column: Announcements + Balances.
+         Two independent columns so cards stack tightly with no row-alignment gap. --}}
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-        @include('dashboard.partials.calendar-widget')
-        @include('partials.announcements')
-    </div>
 
-    <!-- 3 & 4: Approval Queue (left) + Balances (right) — 2-col like the row above -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+    <!-- LEFT COLUMN -->
+    <div class="space-y-6">
+        @include('dashboard.partials.calendar-widget')
 
     <!-- Time Off Approval Queue -->
     <div class="rounded-2xl bg-white border border-slate-200/80 shadow-sm dark:bg-slate-800 dark:border-slate-800">
@@ -280,10 +279,15 @@
         </div>
     </div>
 
-    <!-- Your time-off balances (shared card) -->
-    @include('dashboard.partials.timeoff-balances-card')
+    </div>{{-- /LEFT COLUMN --}}
 
-    </div>
+    <!-- RIGHT COLUMN -->
+    <div class="space-y-6">
+        @include('partials.announcements')
+        @include('dashboard.partials.timeoff-balances-card')
+    </div>{{-- /RIGHT COLUMN --}}
+
+    </div>{{-- /grid --}}
 
     <!-- Today's snapshot: stat cards -->
     <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
