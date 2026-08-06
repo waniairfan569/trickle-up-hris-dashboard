@@ -6,15 +6,37 @@
 @section('content')
 @php
     $auth = auth()->user();
-    
+    $status = app(\App\Services\AttendanceService::class)->getTodayStatus($auth);
+    $isClockedIn = ($status['clock_in'] ?? null) && !($status['clock_out'] ?? null);
 
+    // Real "needs attention" signals for this employee (documents to sign + own pending leave).
+    $signCount = \App\Models\DocumentRequest::where('status', 'in_progress')
+        ->whereHas('signers', fn ($s) => $s->where('user_id', $auth->id)->where('status', 'pending'))
+        ->with('signers')->get()->filter(fn ($r) => $r->isAwaiting($auth))->count();
+    $pendingLeaveCount = \App\Models\TimeOffRequest::where('user_id', $auth->id)->where('status', 'pending')->count();
+    $attention = $signCount + $pendingLeaveCount;
+
+    // When the leave balances renew (earliest active leave-year setting).
+    $resetDate = null;
+    try {
+        $rd = \App\Models\LeaveYearSetting::where('is_active', true)->whereNotNull('next_renewal_date')->orderBy('next_renewal_date')->value('next_renewal_date');
+        $resetDate = $rd ? \Carbon\Carbon::parse($rd) : null;
+    } catch (\Throwable $e) {}
 @endphp
 
 <div class="mx-auto space-y-6 pb-12">
-    
+
     <!-- Greeting -->
-    <div>
-        <h1 class="text-2xl font-semibold text-slate-800 dark:text-white tracking-tight">Hello {{ $auth->first_name }}!</h1>
+    <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Hello {{ $auth->first_name }}</h1>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+                {{ $isClockedIn ? "You're clocked in" : 'Welcome back' }}@if($attention > 0) and <span class="font-semibold text-slate-700 dark:text-slate-300">{{ $attention }}</span> {{ \Illuminate\Support\Str::plural('thing', $attention) }} need your attention today.@else — here's your day at a glance.@endif
+            </p>
+        </div>
+        <span class="inline-flex items-center gap-2 self-start rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-600 shadow-sm dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300">
+            <i data-lucide="calendar" class="h-3.5 w-3.5 text-slate-400"></i> {{ now()->format('l, j F Y') }}
+        </span>
     </div>
 
     <!-- Main Grid -->
@@ -294,122 +316,58 @@
             </div>
 
             <!-- Time-off Balances Widget -->
-            <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-6 flex flex-col dark:bg-slate-800 dark:border-slate-700">
-                <div class="flex items-center gap-3 mb-6">
-                    <div class="h-10 w-10 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100/50 dark:border-slate-700/50 flex items-center justify-center text-slate-400">
-                        <i data-lucide="calendar-check" class="h-5 w-5"></i>
+            <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-6 dark:bg-slate-800 dark:border-slate-700">
+                <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
+                    <div class="flex items-center gap-3">
+                        <div class="h-10 w-10 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100/50 dark:border-slate-700/50 flex items-center justify-center text-slate-400">
+                            <i data-lucide="calendar-check" class="h-5 w-5"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-base font-semibold text-slate-800 dark:text-white">Your time-off balances</h2>
+                            @if($resetDate)<p class="text-[11px] text-slate-400">Resets {{ $resetDate->format('j F Y') }}</p>@endif
+                        </div>
                     </div>
-                    <h2 class="text-base font-semibold text-slate-800 dark:text-white">Your time-off balances</h2>
-                </div>
-                
-                <div x-data="balanceSlider({{ $timeOffBalances->count() }})" class="relative">
-                    <!-- Left Arrow -->
-                    <button type="button" @click="scrollPrev()" x-show="active > 0" class="absolute -left-2 top-[56px] -translate-y-1/2 z-10 p-1.5 bg-slate-50 dark:bg-slate-700 border border-slate-100 dark:border-slate-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-600 transition flex items-center justify-center shadow-sm">
-                        <i data-lucide="chevron-left" class="h-4 w-4 text-slate-600 dark:text-slate-200"></i>
-                    </button>
-
-                    <div x-ref="slider" @scroll.debounce.50ms="onScroll()" class="flex gap-4 overflow-x-auto no-scrollbar snap-x snap-mandatory pb-1 scroll-smooth">
-                        @forelse($timeOffBalances as $index => $b)
-                            @php
-                                $total = $b->opening_balance + $b->accrued + $b->adjusted + $b->carried_over;
-                                $remaining = max(0, $total - $b->used - $b->pending);
-                                $policyName = optional($b->policy)->name ?? 'Unpaid Leave';
-
-                                if (stripos($policyName, 'Annual') !== false) {
-                                    $displayName = 'Planned Leaves';
-                                } elseif (stripos($policyName, 'Casual') !== false) {
-                                    $displayName = 'Unplanned Leaves';
-                                } else {
-                                    $displayName = $policyName;
-                                }
-
-                                $color = ['bg-cyan-300', 'bg-amber-300', 'bg-rose-300', 'bg-emerald-300', 'bg-indigo-300'][$index % 5];
-                                $leaveUnit = optional(auth()->user()->company)->leave_unit ?? 'days';
-                                $isUnpaid = !$b->policy || !$b->policy->is_paid;
-                            @endphp
-                            <div class="snap-start flex-shrink-0 w-[calc(50%-8px)] min-w-[190px] border border-slate-100 rounded-xl p-4 flex flex-col justify-between h-28 relative overflow-hidden dark:border-slate-700 bg-white dark:bg-slate-800">
-                                <div class="absolute left-3 top-3 bottom-3 w-1 rounded-full {{ $color }}"></div>
-                                <h3 class="text-sm font-semibold text-slate-700 dark:text-slate-200 pl-2 truncate" title="{{ $policyName }}">{{ $displayName }}</h3>
-                                <div class="pl-2">
-                                    <span class="text-2xl font-bold text-slate-800 dark:text-white">
-                                        @if($isUnpaid)
-                                            &infin;
-                                        @else
-                                            {{ floatval($remaining) }}
-                                        @endif
-                                    </span>
-                                    <span class="text-[11px] text-slate-500 font-medium">{{ $leaveUnit === 'hours' ? 'hours available' : 'days available' }}</span>
-                                </div>
-                            </div>
-                        @empty
-                            <div class="text-sm text-slate-500">No time-off balances found.</div>
-                        @endforelse
-                    </div>
-
-                    <!-- Right Arrow -->
-                    <button type="button" @click="scrollNext()" x-show="active < count - 2" class="absolute -right-2 top-[56px] -translate-y-1/2 z-10 p-1.5 bg-slate-50 dark:bg-slate-700 border border-slate-100 dark:border-slate-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-600 transition flex items-center justify-center shadow-sm">
-                        <i data-lucide="chevron-right" class="h-4 w-4 text-slate-600 dark:text-slate-200"></i>
-                    </button>
-
-                    <!-- Navigation dots -->
-                    <div x-show="count > 1" class="flex justify-center gap-1.5 mt-4 mb-1">
-                        <template x-for="i in count" :key="i">
-                            <button type="button" @click="goTo(i - 1)" :aria-label="'Go to slide ' + i"
-                                    :class="active === (i - 1) ? 'bg-slate-800 dark:bg-slate-100 w-4' : 'bg-slate-300 dark:bg-slate-600 w-1.5 hover:bg-slate-400'"
-                                    class="h-1.5 rounded-full transition-all duration-200"></button>
-                        </template>
-                    </div>
-                </div>
-
-                <style>
-                    .no-scrollbar::-webkit-scrollbar { display: none; }
-                    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-                </style>
-                <script>
-                    function balanceSlider(count) {
-                        return {
-                            count: count,
-                            active: 0,
-                            onScroll() {
-                                const s = this.$refs.slider;
-                                if (!s.children.length) return;
-                                const base = s.children[0].offsetLeft;
-                                let best = 0, bestDist = Infinity;
-                                Array.from(s.children).forEach((c, i) => {
-                                    const dist = Math.abs((c.offsetLeft - base) - s.scrollLeft);
-                                    if (dist < bestDist) { bestDist = dist; best = i; }
-                                });
-                                this.active = best;
-                            },
-                            goTo(i) {
-                                const s = this.$refs.slider;
-                                const c = s.children[i];
-                                if (c) s.scrollTo({ left: c.offsetLeft - s.children[0].offsetLeft, behavior: 'smooth' });
-                            },
-                            scrollNext() {
-                                if (this.active < this.count - 1) {
-                                    this.goTo(this.active + 1);
-                                }
-                            },
-                            scrollPrev() {
-                                if (this.active > 0) {
-                                    this.goTo(this.active - 1);
-                                }
-                            }
-                        };
-                    }
-                </script>
-
-
-                <div class="flex gap-2 mt-5">
-                    <a href="{{ route('time-off.create') }}" class="flex-1 bg-brand-600 hover:bg-brand-700 text-slate-900 text-sm font-bold py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition">
-                        <i data-lucide="calendar-plus" class="h-4 w-4"></i>
-                        Request time off
+                    <a href="{{ route('time-off.create') }}" class="inline-flex items-center gap-2 rounded-xl bg-brand-600 hover:bg-brand-700 px-4 py-2.5 text-sm font-bold text-slate-900 transition">
+                        <i data-lucide="calendar-plus" class="h-4 w-4"></i> Request time off
                     </a>
-                    <button class="p-3 border border-slate-200 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition dark:border-slate-600 dark:hover:bg-slate-700">
-                        <i data-lucide="calculator" class="h-5 w-5"></i>
-                    </button>
                 </div>
+
+                @if($timeOffBalances->isEmpty())
+                    <p class="text-sm text-slate-500 dark:text-slate-400">No time-off balances found.</p>
+                @else
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        @foreach($timeOffBalances as $index => $b)
+                            @php
+                                $total = (float) ($b->opening_balance + $b->accrued + $b->adjusted + $b->carried_over);
+                                $used = (float) $b->used;
+                                $remaining = max(0, $total - $used - (float) $b->pending);
+                                $policyName = optional($b->policy)->name ?? 'Unpaid Leave';
+                                $displayName = stripos($policyName, 'Annual') !== false ? 'Planned Leaves'
+                                    : (stripos($policyName, 'Casual') !== false ? 'Unplanned Leaves' : $policyName);
+                                $isUnpaid = !$b->policy || !$b->policy->is_paid;
+                                $unit = optional($auth->company)->leave_unit ?? 'days';
+                                $pct = $total > 0 ? min(100, max(0, round($remaining / $total * 100))) : 0;
+                                $bar = ['bg-cyan-400', 'bg-amber-400', 'bg-rose-400', 'bg-emerald-400', 'bg-indigo-400'][$index % 5];
+                            @endphp
+                            <div class="relative rounded-xl border border-slate-100 dark:border-slate-700 p-4 pl-5 overflow-hidden">
+                                <div class="absolute left-0 top-3 bottom-3 w-1 rounded-r-full {{ $bar }}"></div>
+                                <p class="text-[11px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400 truncate" title="{{ $policyName }}">{{ $displayName }}</p>
+                                <div class="mt-1 flex items-baseline gap-1.5">
+                                    <span class="text-2xl font-extrabold text-slate-900 dark:text-white">@if($isUnpaid)&infin;@else{{ $remaining + 0 }}@endif</span>
+                                    @unless($isUnpaid)<span class="text-[11px] font-medium text-slate-400">of {{ $total + 0 }} {{ $unit }}</span>@endunless
+                                </div>
+                                @unless($isUnpaid)
+                                    <div class="mt-2.5 h-1.5 rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden">
+                                        <div class="h-full rounded-full {{ $bar }}" style="width: {{ $pct }}%"></div>
+                                    </div>
+                                    <p class="mt-1.5 text-[11px] text-slate-400">{{ $used + 0 }} used</p>
+                                @else
+                                    <p class="mt-2.5 text-[11px] text-slate-400">Unlimited</p>
+                                @endunless
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
             </div>
 
             <!-- Upcoming Time Off Widget (last on mobile) -->
@@ -451,53 +409,63 @@
         <!-- Right Column (timesheet + code + announcements) — shown FIRST on mobile -->
         <div class="space-y-4 order-first md:order-none">
 
-            <!-- Time Tracking (Simple Header Version) -->
+            <!-- Time Tracking -->
             @php
-                $status = app(\App\Services\AttendanceService::class)->getTodayStatus(auth()->user());
                 $sessions = $status['sessions'] ?? [];
                 $currentIn = count($sessions) ? end($sessions)['in'] : $status['clock_in'];
             @endphp
-            <div class="bg-white rounded-xl shadow-sm border border-slate-100 flex flex-col dark:bg-slate-800 dark:border-slate-700 overflow-hidden">
-                <!-- Top Section -->
+            @php $goalPct = min(100, max(0, round(($status['worked_seconds'] ?? 0) / 28800 * 100))); @endphp
+            <div class="bg-white rounded-xl shadow-sm border border-slate-100 dark:bg-slate-800 dark:border-slate-700 overflow-hidden">
                 <div class="p-6">
-                    <div class="flex flex-wrap items-center gap-x-4 gap-y-3">
-                        <a href="{{ route('attendance.my-history') }}" class="text-base font-bold text-teal-800 dark:text-teal-400 hover:text-teal-955 dark:hover:text-teal-300 transition shrink-0">
-                            Timesheet
-                        </a>
-
-                        <div class="flex-1 flex items-center gap-3 min-w-[200px]">
-                            <!-- Timer Pill Container -->
-                            <div class="bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-700/50 rounded-lg px-4 py-2.5 flex items-center justify-center flex-1 h-11">
-                                <span id="live-worked-timer-seconds" class="text-base font-semibold text-slate-800 dark:text-slate-200 tracking-tight whitespace-nowrap tabular-nums">0h 0m 0s</span>
+                    <div class="flex items-center justify-between gap-4">
+                        <div class="flex items-center gap-3 min-w-0">
+                            <a href="{{ route('attendance.my-history') }}" title="View my attendance" class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-700/50 text-slate-400 hover:text-brand-600 transition">
+                                <i data-lucide="timer" class="h-5 w-5"></i>
+                            </a>
+                            <div class="min-w-0">
+                                <p class="text-[11px] font-bold uppercase tracking-wider text-teal-700 dark:text-teal-400">Timesheet</p>
+                                <span id="live-worked-timer-seconds" class="block text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight tabular-nums whitespace-nowrap">0h 0m 0s</span>
                             </div>
-
-                            @if(!$status['clock_in'] || $status['clock_out'])
-                                <button id="btn-clock-in" onclick="attendanceAction('clock-in')" class="bg-green-700 hover:bg-green-800 disabled:bg-slate-400 disabled:cursor-not-allowed text-white text-sm font-semibold h-11 px-6 rounded-lg inline-flex items-center justify-center gap-2 whitespace-nowrap shrink-0 transition">
-                                    <i data-lucide="play" class="h-4 w-4 fill-current"></i>
-                                    Clock in
-                                </button>
-                            @elseif($status['clock_in'] && !$status['clock_out'] && !$status['is_on_break'])
-                                <button id="btn-clock-out" onclick="attendanceAction('clock-out')" class="bg-[#2d3139] hover:bg-[#1f2229] disabled:bg-slate-400 disabled:cursor-not-allowed text-white text-sm font-semibold h-11 px-6 rounded-lg inline-flex items-center justify-center gap-2 whitespace-nowrap shrink-0 transition">
-                                    <span class="w-2.5 h-2.5 bg-white rounded-sm"></span>
-                                    Clock out
-                                </button>
-                            @endif
                         </div>
-                    </div>
-                    
-                    <div id="geofence-status" class="hidden text-[10px] font-medium py-1 px-2 rounded mt-3"></div>
-                </div>
 
-                <!-- Footer Section -->
-                @if($status['clock_in'] && !$status['clock_out'] && !$status['is_on_break'])
-                    <div class="px-6 py-4 border-t border-slate-100 dark:border-slate-700/60 bg-slate-50/50 dark:bg-slate-800/50 text-sm font-medium text-slate-500">
-                        Today &middot; <span id="live-worked-timer" class="font-bold text-slate-700 dark:text-slate-200">0h 0m</span> in total: <span class="text-slate-600 dark:text-slate-400 font-semibold">{{ $currentIn }} – Ongoing</span>
+                        @if(!$status['clock_in'] || $status['clock_out'])
+                            <button id="btn-clock-in" onclick="attendanceAction('clock-in')" class="bg-green-700 hover:bg-green-800 disabled:bg-slate-400 disabled:cursor-not-allowed text-white text-sm font-semibold h-11 px-6 rounded-lg inline-flex items-center justify-center gap-2 whitespace-nowrap shrink-0 transition">
+                                <i data-lucide="play" class="h-4 w-4 fill-current"></i>
+                                Clock in
+                            </button>
+                        @elseif($status['clock_in'] && !$status['clock_out'] && !$status['is_on_break'])
+                            <button id="btn-clock-out" onclick="attendanceAction('clock-out')" class="bg-[#2d3139] hover:bg-[#1f2229] disabled:bg-slate-400 disabled:cursor-not-allowed text-white text-sm font-semibold h-11 px-6 rounded-lg inline-flex items-center justify-center gap-2 whitespace-nowrap shrink-0 transition">
+                                <span class="w-2.5 h-2.5 bg-white rounded-sm"></span>
+                                Clock out
+                            </button>
+                        @endif
                     </div>
-                @elseif($status['clock_out'])
-                    <div class="px-6 py-4 border-t border-slate-100 dark:border-slate-700/60 bg-slate-50/50 dark:bg-slate-800/50 text-sm font-medium text-slate-500">
-                        Today &middot; <span id="completed-worked-timer" class="font-bold text-slate-700 dark:text-slate-200">0h 0m</span> in total: <span class="text-slate-600 dark:text-slate-400 font-semibold">{{ $currentIn }} – Completed</span>
-                    </div>
-                @endif
+
+                    <div id="geofence-status" class="hidden text-[10px] font-medium py-1 px-2 rounded mt-3"></div>
+
+                    @if($status['clock_in'])
+                        <div class="mt-4">
+                            <div class="h-2 rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden">
+                                <div id="worked-progress" class="h-full rounded-full bg-brand-500 transition-all duration-500" style="width: {{ $goalPct }}%"></div>
+                            </div>
+                            <div class="mt-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-[11px] font-medium text-slate-400">
+                                <span class="inline-flex items-center gap-1.5">
+                                    <span class="h-1.5 w-1.5 rounded-full {{ $isClockedIn ? 'bg-emerald-500' : 'bg-slate-300' }}"></span>
+                                    {{ $isClockedIn ? 'Ongoing since' : ($status['clock_out'] ? 'Worked from' : 'Since') }} {{ $currentIn }}
+                                </span>
+                                <span class="flex items-center gap-3">
+                                    @if(($status['total_break_minutes'] ?? 0) > 0)
+                                        <span class="inline-flex items-center gap-1"><i data-lucide="coffee" class="h-3 w-3"></i> {{ $status['total_break_minutes'] }}m break</span>
+                                    @endif
+                                    <span><span id="worked-goal-pct">{{ $goalPct }}</span>% of 8h goal</span>
+                                </span>
+                            </div>
+                        </div>
+                    @endif
+
+                    {{-- kept (hidden) so the timer JS element lookups stay valid --}}
+                    <span id="live-worked-timer" class="hidden"></span><span id="completed-worked-timer" class="hidden"></span>
+                </div>
             </div>
 
             <!-- Quick login-code request (below the timesheet) -->
@@ -524,16 +492,27 @@
                 const liveTimerEl = document.getElementById('live-worked-timer');
                 const completedTimerEl = document.getElementById('completed-worked-timer');
                 const liveTimerSecondsEl = document.getElementById('live-worked-timer-seconds');
+                const workedProgressEl = document.getElementById('worked-progress');
+                const workedGoalPctEl = document.getElementById('worked-goal-pct');
+
+                // Progress toward an 8-hour (28,800s) day.
+                function updateGoalProgress() {
+                    const pct = Math.min(100, Math.max(0, Math.round(workedSeconds / 28800 * 100)));
+                    if (workedProgressEl) workedProgressEl.style.width = pct + '%';
+                    if (workedGoalPctEl) workedGoalPctEl.innerText = pct;
+                }
 
                 if (liveTimerSecondsEl) liveTimerSecondsEl.innerText = formatWorkedTimeWithSeconds(workedSeconds);
                 if (liveTimerEl) liveTimerEl.innerText = formatWorkedTime(workedSeconds);
                 if (completedTimerEl) completedTimerEl.innerText = formatWorkedTime(workedSeconds);
+                updateGoalProgress();
 
                 function updateClock() {
                     if (isClockedIn) {
                         workedSeconds++;
                         if (liveTimerSecondsEl) liveTimerSecondsEl.innerText = formatWorkedTimeWithSeconds(workedSeconds);
                         if (liveTimerEl) liveTimerEl.innerText = formatWorkedTime(workedSeconds);
+                        updateGoalProgress();
                     }
                 }
                 setInterval(updateClock, 1000);
