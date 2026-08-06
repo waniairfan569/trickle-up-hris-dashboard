@@ -96,7 +96,7 @@
         ['label' => 'Absences', 'value' => $absentToday, 'sub' => 'Absent today', 'icon' => 'user-x', 'bg' => 'bg-rose-50 dark:bg-rose-500/10', 'text' => 'text-rose-600 dark:text-rose-400', 'people' => $namesFor($absentUserIds)],
         ['label' => 'Pending Approvals', 'value' => $pendingApprovals, 'sub' => 'Time off queue', 'icon' => 'clock', 'bg' => 'bg-rose-50 dark:bg-rose-500/10', 'text' => 'text-rose-600 dark:text-rose-400', 'action' => $pendingApprovals > 0, 'people' => $pendingNames],
     ];
-    
+
     // Live Pending requests
     $pendingRequests = \App\Models\TimeOffRequest::where('status', 'pending')
         ->with(['employee.department', 'policy'])
@@ -142,14 +142,14 @@
 @endphp
 
 <div class="space-y-8">
-    
+
     <!-- Welcome Header & Quick Actions -->
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
             <h1 class="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">Workspace Overview</h1>
             <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Real-time workspace overview, access controls, and pending administrative tasks.</p>
         </div>
-        
+
         <!-- Quick Actions Bar -->
         <div class="flex flex-wrap items-center gap-3">
             @can('manage-employees')
@@ -180,16 +180,107 @@
     <!-- Employees waiting for a login code -->
     @include('partials.code-request-hr-banner')
 
-    <!-- Announcements -->
-    @include('partials.announcements')
-
-    <!-- Calendar + Time-off balances (shared across dashboards) -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <!-- 1 & 2: Calendar (left) + Announcements (right) -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
         @include('dashboard.partials.calendar-widget')
-        @include('dashboard.partials.timeoff-balances-card')
+        @include('partials.announcements')
     </div>
 
-    <!-- Stats Cards Grid -->
+    <!-- 3: Time Off Approval Queue -->
+    <div class="rounded-2xl bg-white border border-slate-200/80 shadow-sm dark:bg-slate-800 dark:border-slate-800">
+        <div class="flex items-center justify-between border-b border-slate-100 p-6 dark:border-slate-700">
+            <div>
+                <h2 class="text-lg font-bold text-slate-900 dark:text-white">Time Off Approval Queue</h2>
+                <p class="text-xs text-slate-400 mt-0.5">Approve or reject pending time off requests from scoped reporting structures.</p>
+            </div>
+            <a href="{{ route('time-off.index') }}" class="text-xs font-semibold text-brand-600 hover:text-brand-700 transition dark:text-brand-400">View All</a>
+        </div>
+
+        <div class="p-6">
+            @if($pendingRequests->isEmpty())
+                <div class="flex flex-col items-center justify-center py-10 text-center">
+                    <div class="flex h-14 w-14 items-center justify-center rounded-full bg-slate-50 text-slate-400 dark:bg-slate-700/50 dark:text-slate-500">
+                        <i data-lucide="check-square" class="h-7 w-7"></i>
+                    </div>
+                    <h3 class="mt-4 text-sm font-bold text-slate-800 dark:text-slate-200">Inbox is empty</h3>
+                    <p class="mt-1 text-xs text-slate-400 max-w-xs">There are no pending time-off requests waiting for your approval today.</p>
+                </div>
+            @else
+                <div class="divide-y divide-slate-100 dark:divide-slate-700/60 -my-4">
+                    @foreach($pendingRequests as $req)
+                        <div class="flex flex-col gap-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+                            <div class="flex items-center space-x-3">
+                                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-slate-100 to-slate-200 text-sm font-bold text-slate-700 dark:from-slate-700 dark:to-slate-600 dark:text-slate-200">
+                                    {{ $req->employee->initials ?? 'EM' }}
+                                </div>
+                                <div class="min-w-0">
+                                    <h4 class="text-sm font-bold text-slate-950 dark:text-white">{{ $req->employee->full_name ?? 'Unknown' }}</h4>
+                                    <p class="text-[11px] text-slate-400">
+                                        {{ $req->employee->department->name ?? 'Core' }} &bull; {{ $req->policy->name ?? 'Time Off' }}
+                                    </p>
+                                    @if($req->reason)
+                                        <p class="text-[11px] text-slate-600 dark:text-slate-300 mt-0.5 italic max-w-xs truncate" title="{{ $req->reason }}">
+                                            <i data-lucide="message-square-text" class="h-3 w-3 inline -mt-0.5 text-slate-400"></i> {{ $req->reason }}
+                                        </p>
+                                    @endif
+                                </div>
+                            </div>
+
+                            <div class="flex items-center gap-4 pl-13 sm:pl-0">
+                                <div class="text-left sm:text-right">
+                                    <span class="text-sm font-extrabold text-slate-900 dark:text-white">{{ (float) $req->days_requested }} {{ \Illuminate\Support\Str::plural('day', (float) $req->days_requested) }}</span>
+                                    <p class="text-[10px] text-slate-400 font-medium">
+                                        {{ $req->start_date->format('M d') }} - {{ $req->end_date->format('M d') }}
+                                    </p>
+                                </div>
+
+                                <!-- Inline Action Forms -->
+                                <div class="flex items-center gap-1.5" x-data="{ openReject: false }">
+                                    <!-- Approve Form -->
+                                    <form action="{{ route('time-off.approve', $req->id) }}" method="POST">
+                                        @csrf
+                                        <button type="submit" class="rounded-xl bg-emerald-50 px-3 py-1.5 text-[11px] font-bold text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800 transition dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20">
+                                            Approve
+                                        </button>
+                                    </form>
+
+                                    <!-- Reject Trigger -->
+                                    <button @click="openReject = true" class="rounded-xl bg-rose-50 px-3 py-1.5 text-[11px] font-bold text-rose-700 hover:bg-rose-100 hover:text-rose-850 transition dark:bg-rose-500/10 dark:text-rose-450 dark:hover:bg-rose-500/20">
+                                        Reject
+                                    </button>
+
+                                    <!-- Rejection Modal (inline overlay modal) -->
+                                    <template x-if="openReject">
+                                        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+                                            <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl border border-slate-200 dark:bg-slate-800 dark:border-slate-700" @click.away="openReject = false">
+                                                <h3 class="text-sm font-bold text-slate-900 dark:text-white">Reject Leave Request</h3>
+                                                <p class="text-xs text-slate-400 mt-1">Please provide a brief reason for rejecting {{ $req->employee->first_name ?? 'Employee' }}'s request.</p>
+
+                                                <form action="{{ route('time-off.reject', $req->id) }}" method="POST" class="mt-4">
+                                                    @csrf
+                                                    <textarea name="rejection_note" required rows="3" placeholder="Rejection notes..." class="w-full text-xs border border-slate-200 bg-slate-50/50 rounded-xl p-2.5 focus:border-brand-500 focus:outline-none focus:bg-white dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"></textarea>
+
+                                                    <div class="mt-4 flex justify-end gap-2">
+                                                        <button type="button" @click="openReject = false" class="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-bold text-slate-700 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200">Cancel</button>
+                                                        <button type="submit" class="rounded-xl bg-rose-600 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-rose-700">Confirm Reject</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            @endif
+        </div>
+    </div>
+
+    <!-- 4: Your time-off balances (shared card) -->
+    @include('dashboard.partials.timeoff-balances-card')
+
+    <!-- Today's snapshot: stat cards -->
     <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
         @foreach($statCards as $c)
             <div class="relative rounded-2xl bg-white border border-slate-200/80 p-6 shadow-sm hover:-translate-y-1 hover:shadow-md transition duration-200 dark:bg-slate-800 dark:border-slate-800">
@@ -230,112 +321,11 @@
         @endforeach
     </div>
 
-    <!-- Main Grid Dashboard Content -->
+    <!-- Recent activity + security notice -->
     <div class="grid grid-cols-1 gap-8 lg:grid-cols-3">
-        
-        <!-- Left 2 Columns: Leave requests approvals queue -->
-        <div class="lg:col-span-2 space-y-6">
-            <div class="rounded-2xl bg-white border border-slate-200/80 shadow-sm dark:bg-slate-800 dark:border-slate-800">
-                <div class="flex items-center justify-between border-b border-slate-100 p-6 dark:border-slate-700">
-                    <div>
-                        <h2 class="text-lg font-bold text-slate-900 dark:text-white">Time Off Approval Queue</h2>
-                        <p class="text-xs text-slate-400 mt-0.5">Approve or reject pending time off requests from scoped reporting structures.</p>
-                    </div>
-                    <a href="{{ route('time-off.index') }}" class="text-xs font-semibold text-brand-600 hover:text-brand-700 transition dark:text-brand-400">View All</a>
-                </div>
 
-                <div class="p-6">
-                    @if($pendingRequests->isEmpty())
-                        <div class="flex flex-col items-center justify-center py-10 text-center">
-                            <div class="flex h-14 w-14 items-center justify-center rounded-full bg-slate-50 text-slate-400 dark:bg-slate-700/50 dark:text-slate-500">
-                                <i data-lucide="check-square" class="h-7 w-7"></i>
-                            </div>
-                            <h3 class="mt-4 text-sm font-bold text-slate-800 dark:text-slate-200">Inbox is empty</h3>
-                            <p class="mt-1 text-xs text-slate-400 max-w-xs">There are no pending time-off requests waiting for your approval today.</p>
-                        </div>
-                    @else
-                        <div class="divide-y divide-slate-100 dark:divide-slate-700/60 -my-4">
-                            @foreach($pendingRequests as $req)
-                                <div class="flex flex-col gap-4 py-4 sm:flex-row sm:items-center sm:justify-between">
-                                    <div class="flex items-center space-x-3">
-                                        <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-slate-100 to-slate-200 text-sm font-bold text-slate-700 dark:from-slate-700 dark:to-slate-600 dark:text-slate-200">
-                                            {{ $req->employee->initials ?? 'EM' }}
-                                        </div>
-                                        <div class="min-w-0">
-                                            <h4 class="text-sm font-bold text-slate-950 dark:text-white">{{ $req->employee->full_name ?? 'Unknown' }}</h4>
-                                            <p class="text-[11px] text-slate-400">
-                                                {{ $req->employee->department->name ?? 'Core' }} &bull; {{ $req->policy->name ?? 'Time Off' }}
-                                            </p>
-                                            @if($req->reason)
-                                                <p class="text-[11px] text-slate-600 dark:text-slate-300 mt-0.5 italic max-w-xs truncate" title="{{ $req->reason }}">
-                                                    <i data-lucide="message-square-text" class="h-3 w-3 inline -mt-0.5 text-slate-400"></i> {{ $req->reason }}
-                                                </p>
-                                            @endif
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="flex items-center gap-4 pl-13 sm:pl-0">
-                                        <div class="text-left sm:text-right">
-                                            <span class="text-sm font-extrabold text-slate-900 dark:text-white">{{ (float) $req->days_requested }} {{ \Illuminate\Support\Str::plural('day', (float) $req->days_requested) }}</span>
-                                            <p class="text-[10px] text-slate-400 font-medium">
-                                                {{ $req->start_date->format('M d') }} - {{ $req->end_date->format('M d') }}
-                                            </p>
-                                        </div>
-                                        
-                                        <!-- Inline Action Forms -->
-                                        <div class="flex items-center gap-1.5" x-data="{ openReject: false }">
-                                            <!-- Approve Form -->
-                                            <form action="{{ route('time-off.approve', $req->id) }}" method="POST">
-                                                @csrf
-                                                <button type="submit" class="rounded-xl bg-emerald-50 px-3 py-1.5 text-[11px] font-bold text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800 transition dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20">
-                                                    Approve
-                                                </button>
-                                            </form>
-                                            
-                                            <!-- Reject Trigger -->
-                                            <button @click="openReject = true" class="rounded-xl bg-rose-50 px-3 py-1.5 text-[11px] font-bold text-rose-700 hover:bg-rose-100 hover:text-rose-850 transition dark:bg-rose-500/10 dark:text-rose-450 dark:hover:bg-rose-500/20">
-                                                Reject
-                                            </button>
-
-                                            <!-- Rejection Modal (inline overlay modal) -->
-                                            <template x-if="openReject">
-                                                <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-                                                    <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl border border-slate-200 dark:bg-slate-800 dark:border-slate-700" @click.away="openReject = false">
-                                                        <h3 class="text-sm font-bold text-slate-900 dark:text-white">Reject Leave Request</h3>
-                                                        <p class="text-xs text-slate-400 mt-1">Please provide a brief reason for rejecting {{ $req->employee->first_name ?? 'Employee' }}'s request.</p>
-                                                        
-                                                        <form action="{{ route('time-off.reject', $req->id) }}" method="POST" class="mt-4">
-                                                            @csrf
-                                                            <textarea name="rejection_note" required rows="3" placeholder="Rejection notes..." class="w-full text-xs border border-slate-200 bg-slate-50/50 rounded-xl p-2.5 focus:border-brand-500 focus:outline-none focus:bg-white dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"></textarea>
-                                                            
-                                                            <div class="mt-4 flex justify-end gap-2">
-                                                                <button type="button" @click="openReject = false" class="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-bold text-slate-700 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200">Cancel</button>
-                                                                <button type="submit" class="rounded-xl bg-rose-600 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-rose-700">Confirm Reject</button>
-                                                            </div>
-                                                        </form>
-                                                    </div>
-                                                </div>
-                                            </template>
-                                        </div>
-                                    </div>
-                                </div>
-                            @endforeach
-                        </div>
-                    @endif
-                </div>
-            </div>
-            
-            <!-- Quick System Audit Info -->
-            <div class="rounded-2xl bg-white border border-slate-200/80 shadow-sm p-6 dark:bg-slate-800 dark:border-slate-800">
-                <h3 class="text-sm font-bold text-slate-900 dark:text-white">Security & Audit Notice</h3>
-                <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-                    This admin console is tracked by the Trickle Hub audit compliance logs. All creations, permission modifications, salary accesses, and manual adjustments of leave balances require a valid justification which is saved recursive-wide on SQLite structures. Refer to the <span class="font-semibold text-brand-600 dark:text-brand-400">IT Compliance Handbook</span> for details.
-                </p>
-            </div>
-        </div>
-
-        <!-- Right 1 Column: System Activity Feed -->
-        <div class="space-y-6">
+        <!-- System Activity Feed (2 cols) -->
+        <div class="lg:col-span-2">
             <div class="rounded-2xl bg-white border border-slate-200/80 shadow-sm dark:bg-slate-800 dark:border-slate-800">
                 <div class="flex items-center justify-between border-b border-slate-100 p-6 dark:border-slate-700">
                     <div>
@@ -352,7 +342,7 @@
                                 @if(!$loop->last)
                                     <span class="absolute top-5 left-5 -ml-px h-full w-0.5 bg-slate-200 dark:bg-slate-700" aria-hidden="true"></span>
                                 @endif
-                                
+
                                 <div class="relative flex items-start space-x-3">
                                     <!-- Dynamic activity icon color -->
                                     @php
@@ -376,7 +366,7 @@
                                     <div class="relative flex h-10 w-10 items-center justify-center rounded-xl font-bold shadow-sm {{ $iconColor }}">
                                         <i data-lucide="{{ $icon }}" class="h-5 w-5"></i>
                                     </div>
-                                    
+
                                     <div class="min-w-0 flex-1 py-1.5">
                                         <div class="text-xs font-semibold text-slate-800 dark:text-slate-200">
                                             {{ $act->action }}
@@ -393,6 +383,16 @@
                         @endforeach
                     </ul>
                 </div>
+            </div>
+        </div>
+
+        <!-- Security & Audit Notice (1 col) -->
+        <div>
+            <div class="rounded-2xl bg-white border border-slate-200/80 shadow-sm p-6 dark:bg-slate-800 dark:border-slate-800">
+                <h3 class="text-sm font-bold text-slate-900 dark:text-white">Security & Audit Notice</h3>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                    This admin console is tracked by the Trickle Hub audit compliance logs. All creations, permission modifications, salary accesses, and manual adjustments of leave balances require a valid justification which is saved recursive-wide on SQLite structures. Refer to the <span class="font-semibold text-brand-600 dark:text-brand-400">IT Compliance Handbook</span> for details.
+                </p>
             </div>
         </div>
 
