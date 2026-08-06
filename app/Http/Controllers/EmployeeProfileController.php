@@ -120,6 +120,8 @@ class EmployeeProfileController extends Controller
             $fields = array_merge($fields, $request->file('fields'));
         }
 
+        $emailConflict = null;
+
         foreach ($fields as $key => $value) {
             $field = ProfileField::where('key', $key)->first();
             
@@ -157,6 +159,30 @@ class EmployeeProfileController extends Controller
                 $parts = preg_split('/\s+/', trim($value), 2);
                 $employee->update(['first_name' => $parts[0], 'last_name' => $parts[1] ?? '']);
             }
+
+            // "Work email" is the account's login address and the one shown in the
+            // profile header (users.email). It's stored as a profile-field value too,
+            // so without this they drift: the field would change but the header/login
+            // would keep the old address. Mirror it into users.email (+ the legacy
+            // employees row) so everything stays in agreement — unless another
+            // account already uses that address.
+            if ($key === 'work_email' && is_string($value)) {
+                $newEmail = trim($value);
+                if (filter_var($newEmail, FILTER_VALIDATE_EMAIL)
+                    && strcasecmp($newEmail, (string) $employee->email) !== 0) {
+                    $taken = \App\Models\User::where('email', $newEmail)
+                        ->where('id', '!=', $employee->id)->exists()
+                        || \App\Models\Employee::where('email', $newEmail)
+                            ->where('user_id', '!=', $employee->id)->exists();
+                    if ($taken) {
+                        $emailConflict = $newEmail;
+                    } else {
+                        $employee->update(['email' => $newEmail]);
+                        \App\Models\Employee::where('user_id', $employee->id)
+                            ->update(['email' => $newEmail]);
+                    }
+                }
+            }
         }
 
         // Additional managers (admin only — the manager field is admin-editable).
@@ -177,7 +203,13 @@ class EmployeeProfileController extends Controller
             ->update(['department_id' => $employee->department_id]);
 
         // Bug #3 Fix: Redirect to view mode after save (not back to ?edit=1)
-        return redirect()->route('employees.profile', $employee->id)
+        $redirect = redirect()->route('employees.profile', $employee->id)
             ->with('success', 'Profile updated successfully.');
+
+        if ($emailConflict) {
+            $redirect->with('warning', "The work email was saved, but the sign-in address and header couldn't be changed to \"{$emailConflict}\" because another account already uses it.");
+        }
+
+        return $redirect;
     }
 }
