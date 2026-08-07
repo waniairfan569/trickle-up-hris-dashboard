@@ -71,30 +71,33 @@
         ->pluck('id');
     $absentToday = $absentUserIds->count();
 
-    // Who's in each category (names shown on the cards).
+    // Who's in each category — name + avatar + initials for the avatar stack & popup.
     $plannedUserIds = $leaveToday->reject($isUnplanned)->pluck('user_id')->unique();
     $unplannedUserIds = $leaveToday->filter($isUnplanned)->pluck('user_id')->unique();
     $lateUserIds = $todayRecs->where('status', 'late')->pluck('user_id')->unique();
-    $remoteNames = \App\Models\User::active()
+    $asPerson = fn ($u) => ['name' => $u->full_name, 'avatar' => $u->avatar_url, 'initials' => $u->initials];
+
+    $remotePeople = \App\Models\User::active()
         ->whereIn('id', $realEmployeeIds->all())
         ->where('attendance_mode', 'remote')
-        ->get(['id', 'first_name', 'last_name'])
-        ->map(fn ($u) => trim($u->first_name . ' ' . $u->last_name))->filter()->values()->all();
-    $pendingNames = \App\Models\TimeOffRequest::where('status', 'pending')->with('employee')->get()
-        ->map(fn ($r) => optional($r->employee)->full_name)->filter()->unique()->values()->all();
+        ->get()
+        ->map($asPerson)->values()->all();
+    $pendingPeople = \App\Models\TimeOffRequest::where('status', 'pending')->with('employee')->get()
+        ->map(fn ($r) => $r->employee ? $asPerson($r->employee) : null)
+        ->filter()->unique('name')->values()->all();
 
     $namedIds = collect()->merge($plannedUserIds)->merge($unplannedUserIds)->merge($lateUserIds)->merge($absentUserIds)->unique();
-    $nameMap = \App\Models\User::whereIn('id', $namedIds->all())->get(['id', 'first_name', 'last_name'])
-        ->mapWithKeys(fn ($u) => [$u->id => trim($u->first_name . ' ' . $u->last_name)]);
-    $namesFor = fn ($ids) => collect($ids)->map(fn ($id) => $nameMap[$id] ?? null)->filter()->values()->all();
+    $peopleMap = \App\Models\User::whereIn('id', $namedIds->all())->get()
+        ->mapWithKeys(fn ($u) => [$u->id => $asPerson($u)]);
+    $peopleFor = fn ($ids) => collect($ids)->map(fn ($id) => $peopleMap[$id] ?? null)->filter()->values()->all();
 
     $statCards = [
-        ['label' => 'Planned Leaves', 'value' => $plannedLeave, 'sub' => 'On planned leave today', 'icon' => 'palmtree', 'bg' => 'bg-indigo-50 dark:bg-indigo-500/10', 'text' => 'text-indigo-600 dark:text-indigo-400', 'people' => $namesFor($plannedUserIds)],
-        ['label' => 'Unplanned Leaves', 'value' => $unplannedLeave, 'sub' => 'On unplanned leave today', 'icon' => 'plane-takeoff', 'bg' => 'bg-sky-50 dark:bg-sky-500/10', 'text' => 'text-sky-600 dark:text-sky-400', 'people' => $namesFor($unplannedUserIds)],
-        ['label' => 'Working Remotely', 'value' => $workingRemotely, 'sub' => 'Remote employees', 'icon' => 'laptop', 'bg' => 'bg-emerald-50 dark:bg-emerald-500/10', 'text' => 'text-emerald-600 dark:text-emerald-400', 'people' => $remoteNames],
-        ['label' => 'Lateness', 'value' => $lateToday, 'sub' => 'Late arrivals today', 'icon' => 'alarm-clock', 'bg' => 'bg-amber-50 dark:bg-amber-500/10', 'text' => 'text-amber-600 dark:text-amber-400', 'people' => $namesFor($lateUserIds)],
-        ['label' => 'Absences', 'value' => $absentToday, 'sub' => 'Absent today', 'icon' => 'user-x', 'bg' => 'bg-rose-50 dark:bg-rose-500/10', 'text' => 'text-rose-600 dark:text-rose-400', 'people' => $namesFor($absentUserIds)],
-        ['label' => 'Pending Approvals', 'value' => $pendingApprovals, 'sub' => 'Time off queue', 'icon' => 'clock', 'bg' => 'bg-rose-50 dark:bg-rose-500/10', 'text' => 'text-rose-600 dark:text-rose-400', 'action' => $pendingApprovals > 0, 'people' => $pendingNames],
+        ['label' => 'Planned Leaves', 'value' => $plannedLeave, 'sub' => 'On planned leave today', 'icon' => 'palmtree', 'bg' => 'bg-indigo-50 dark:bg-indigo-500/10', 'text' => 'text-indigo-600 dark:text-indigo-400', 'people' => $peopleFor($plannedUserIds)],
+        ['label' => 'Unplanned Leaves', 'value' => $unplannedLeave, 'sub' => 'On unplanned leave today', 'icon' => 'plane-takeoff', 'bg' => 'bg-sky-50 dark:bg-sky-500/10', 'text' => 'text-sky-600 dark:text-sky-400', 'people' => $peopleFor($unplannedUserIds)],
+        ['label' => 'Working Remotely', 'value' => $workingRemotely, 'sub' => 'Remote employees', 'icon' => 'laptop', 'bg' => 'bg-emerald-50 dark:bg-emerald-500/10', 'text' => 'text-emerald-600 dark:text-emerald-400', 'people' => $remotePeople],
+        ['label' => 'Lateness', 'value' => $lateToday, 'sub' => 'Late arrivals today', 'icon' => 'alarm-clock', 'bg' => 'bg-amber-50 dark:bg-amber-500/10', 'text' => 'text-amber-600 dark:text-amber-400', 'people' => $peopleFor($lateUserIds)],
+        ['label' => 'Absences', 'value' => $absentToday, 'sub' => 'Absent today', 'icon' => 'user-x', 'bg' => 'bg-rose-50 dark:bg-rose-500/10', 'text' => 'text-rose-600 dark:text-rose-400', 'people' => $peopleFor($absentUserIds)],
+        ['label' => 'Pending Approvals', 'value' => $pendingApprovals, 'sub' => 'Time off queue', 'icon' => 'clock', 'bg' => 'bg-rose-50 dark:bg-rose-500/10', 'text' => 'text-rose-600 dark:text-rose-400', 'action' => $pendingApprovals > 0, 'people' => $pendingPeople],
     ];
 
     // Live Pending requests
@@ -182,42 +185,76 @@
     <!-- Employees waiting for a login code -->
     @include('partials.code-request-hr-banner')
 
-    <!-- Today's snapshot: stat cards -->
-    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+    <!-- Today's snapshot: stat cards (compact — icon left, label above number, avatar stack) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         @foreach($statCards as $c)
-            <div class="relative rounded-2xl bg-white border border-slate-200/80 p-6 shadow-sm hover:-translate-y-1 hover:shadow-md transition duration-200 dark:bg-slate-800 dark:border-slate-800">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-xs font-bold uppercase tracking-wider text-slate-400">{{ $c['label'] }}</p>
-                        <h3 class="mt-2 text-3xl font-extrabold text-slate-900 tracking-tight dark:text-white">{{ $c['value'] }}</h3>
-                    </div>
-                    <div class="flex h-12 w-12 items-center justify-center rounded-xl {{ $c['bg'] }} {{ $c['text'] }} shadow-inner">
-                        <i data-lucide="{{ $c['icon'] }}" class="h-6 w-6"></i>
+            <div x-data="{ open: false }" class="rounded-2xl bg-white border border-slate-200/80 p-4 sm:p-5 shadow-sm hover:shadow-md transition dark:bg-slate-800 dark:border-slate-800">
+                {{-- icon on the left · label above the number --}}
+                <div class="flex items-center gap-3">
+                    <span class="h-11 w-11 shrink-0 grid place-items-center rounded-xl {{ $c['bg'] }} {{ $c['text'] }}">
+                        <i data-lucide="{{ $c['icon'] }}" class="h-5 w-5"></i>
+                    </span>
+                    <div class="min-w-0">
+                        <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400 truncate">{{ $c['label'] }}</p>
+                        <h3 class="text-2xl font-extrabold text-slate-900 dark:text-white leading-none mt-0.5">{{ $c['value'] }}</h3>
                     </div>
                 </div>
-                <div class="mt-4 flex items-center gap-2">
+
+                <div class="mt-2.5 flex items-center gap-2 min-w-0">
                     @if(!empty($c['action']))
-                        <span class="inline-flex items-center rounded-full bg-rose-50 px-2 py-0.5 text-xs font-medium text-rose-700 dark:bg-rose-500/10 dark:text-rose-400 animate-pulse">Action Required</span>
+                        <span class="shrink-0 inline-flex items-center rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-bold text-rose-700 dark:bg-rose-500/10 dark:text-rose-400 animate-pulse">Action</span>
                     @endif
-                    <span class="text-xs text-slate-400">{{ $c['sub'] }}</span>
+                    <span class="text-[11px] text-slate-400 truncate">{{ $c['sub'] }}</span>
                 </div>
 
                 @if(!empty($c['people']))
-                    <div class="mt-3 flex flex-wrap gap-1" x-data="{ open: false }">
-                        @foreach(array_slice($c['people'], 0, 3) as $nm)
-                            <span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600 dark:bg-slate-700 dark:text-slate-300">{{ $nm }}</span>
-                        @endforeach
-                        @if(count($c['people']) > 3)
-                            <div class="relative">
-                                <button type="button" @click="open = !open" @click.outside="open = false" class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-500 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300">+{{ count($c['people']) - 3 }} more</button>
-                                <div x-show="open" x-cloak x-transition class="absolute z-30 bottom-full mb-1 left-0 w-44 rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl dark:bg-slate-800 dark:border-slate-700 max-h-48 overflow-y-auto">
-                                    @foreach($c['people'] as $nm)
-                                        <p class="px-2 py-1 text-[11px] text-slate-600 dark:text-slate-300 truncate">{{ $nm }}</p>
+                    {{-- overlapping avatars + chevron → opens the popup --}}
+                    <button type="button" @click="open = true" class="group mt-3 flex w-full items-center justify-between rounded-lg -mx-1 px-1 py-1 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition">
+                        <div class="flex items-center -space-x-2">
+                            @foreach(array_slice($c['people'], 0, 4) as $person)
+                                @if(!empty($person['avatar']))
+                                    <img src="{{ $person['avatar'] }}" alt="{{ $person['name'] }}" title="{{ $person['name'] }}" class="h-7 w-7 rounded-full object-cover ring-2 ring-white dark:ring-slate-800 bg-slate-100">
+                                @else
+                                    <span title="{{ $person['name'] }}" class="h-7 w-7 grid place-items-center rounded-full ring-2 ring-white dark:ring-slate-800 bg-gradient-to-br from-slate-200 to-slate-300 dark:from-slate-600 dark:to-slate-700 text-[9px] font-bold text-slate-600 dark:text-slate-200">{{ $person['initials'] }}</span>
+                                @endif
+                            @endforeach
+                            @if(count($c['people']) > 4)
+                                <span class="h-7 w-7 grid place-items-center rounded-full ring-2 ring-white dark:ring-slate-800 bg-slate-100 dark:bg-slate-700 text-[10px] font-bold text-slate-500 dark:text-slate-300">+{{ count($c['people']) - 4 }}</span>
+                            @endif
+                        </div>
+                        <i data-lucide="chevron-right" class="h-4 w-4 text-slate-300 group-hover:text-slate-500 transition"></i>
+                    </button>
+
+                    {{-- Popup: full list with avatars + names --}}
+                    <template x-teleport="body">
+                        <div x-show="open" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4" @keydown.escape.window="open = false">
+                            <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" @click="open = false"></div>
+                            <div class="relative w-full max-w-sm max-h-[80vh] overflow-y-auto rounded-2xl bg-white dark:bg-slate-800 shadow-xl">
+                                <div class="sticky top-0 z-10 flex items-center justify-between gap-3 px-5 py-4 border-b border-slate-100 dark:border-slate-700/60 bg-white dark:bg-slate-800">
+                                    <div class="flex items-center gap-2.5 min-w-0">
+                                        <span class="h-9 w-9 shrink-0 grid place-items-center rounded-xl {{ $c['bg'] }} {{ $c['text'] }}"><i data-lucide="{{ $c['icon'] }}" class="h-4 w-4"></i></span>
+                                        <div class="min-w-0">
+                                            <p class="text-sm font-bold text-slate-900 dark:text-white truncate">{{ $c['label'] }}</p>
+                                            <p class="text-[11px] text-slate-400">{{ count($c['people']) }} {{ \Illuminate\Support\Str::plural('person', count($c['people'])) }}</p>
+                                        </div>
+                                    </div>
+                                    <button type="button" @click="open = false" class="shrink-0 text-slate-400 hover:text-slate-600"><i data-lucide="x" class="h-5 w-5"></i></button>
+                                </div>
+                                <div class="p-2">
+                                    @foreach($c['people'] as $person)
+                                        <div class="flex items-center gap-3 rounded-xl px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-700/40">
+                                            @if(!empty($person['avatar']))
+                                                <img src="{{ $person['avatar'] }}" alt="{{ $person['name'] }}" class="h-9 w-9 rounded-full object-cover bg-slate-100 shrink-0">
+                                            @else
+                                                <span class="h-9 w-9 shrink-0 grid place-items-center rounded-full bg-gradient-to-br from-slate-200 to-slate-300 dark:from-slate-600 dark:to-slate-700 text-[11px] font-bold text-slate-600 dark:text-slate-200">{{ $person['initials'] }}</span>
+                                            @endif
+                                            <span class="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">{{ $person['name'] }}</span>
+                                        </div>
                                     @endforeach
                                 </div>
                             </div>
-                        @endif
-                    </div>
+                        </div>
+                    </template>
                 @endif
             </div>
         @endforeach
