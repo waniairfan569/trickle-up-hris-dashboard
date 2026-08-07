@@ -74,12 +74,39 @@ class AttendanceReportService
         // Non-working days (per the employee's schedule, else the company-wide
         // working-days setting) are off, not absent.
         $reportSettings = AttendanceReportSettings::getSettings();
+        $shiftSvc = app(\App\Services\ShiftService::class);
+        $tzSvc = app(\App\Services\TimezoneService::class);
+        $now = Carbon::now();
+
+        // Someone with no attendance record is "absent" ONLY on a working day AND
+        // once their shift/schedule start time has actually passed. An employee whose
+        // shift begins at 13:30 is NOT absent when the report runs at 10:00 — their
+        // working day hasn't started yet. Today's assigned shift drives both the
+        // working-day and the start-time check; we fall back to the work schedule /
+        // company working-days setting when no shift is assigned. (For past dates the
+        // start time is long gone, so genuine no-shows still count as absent.)
         $noRecordUsers = $activeUsers
             ->whereNotIn('id', $presentIds)
             ->whereNotIn('id', $onLeaveUserIds->all())
-            ->filter(fn ($u) => (method_exists($u, 'workSchedule') && $u->workSchedule)
-                ? $u->workSchedule->isWorkingDay($date)
-                : $reportSettings->isWorkingDay($date));
+            ->filter(function ($u) use ($shiftSvc, $tzSvc, $reportSettings, $date, $now) {
+                $shift = $shiftSvc->getShiftForUserOnDate($u, $date->copy());
+                if ($shift) {
+                    $startStr = $shift->start_time;               // has a shift today → working day
+                } else {
+                    $isWorkingDay = (method_exists($u, 'workSchedule') && $u->workSchedule)
+                        ? $u->workSchedule->isWorkingDay($date)
+                        : $reportSettings->isWorkingDay($date);
+                    if (!$isWorkingDay) {
+                        return false;                             // off today → not absent
+                    }
+                    $startStr = optional($u->workSchedule)->start_time ?: (config('attendance.late_after') ?: '09:30');
+                }
+
+                // Not absent until their shift start has passed (in their own timezone).
+                $nowUser = $tzSvc->toUserTime($now, $u);
+                $start = Carbon::parse($date->toDateString() . ' ' . $startStr, $nowUser->getTimezone());
+                return $nowUser->greaterThanOrEqualTo($start);
+            });
 
         $absentRecords = $records->where('status', 'absent')
             ->filter(fn ($r) => !$onLeaveUserIds->contains($r->user_id));
