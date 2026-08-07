@@ -196,15 +196,15 @@
                     </span>
                     <div class="min-w-0">
                         <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400 truncate">{{ $c['label'] }}</p>
-                        <h3 class="text-2xl font-extrabold text-slate-900 dark:text-white leading-none mt-0.5">{{ $c['value'] }}</h3>
+                        {{-- number with the sub text inline next to it --}}
+                        <div class="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 min-w-0">
+                            <h3 class="text-2xl font-extrabold text-slate-900 dark:text-white leading-none">{{ $c['value'] }}</h3>
+                            @if(!empty($c['action']))
+                                <span class="self-center inline-flex items-center rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-bold text-rose-700 dark:bg-rose-500/10 dark:text-rose-400 animate-pulse">Action</span>
+                            @endif
+                            <span class="text-[11px] text-slate-400 truncate">{{ $c['sub'] }}</span>
+                        </div>
                     </div>
-                </div>
-
-                <div class="mt-2.5 flex items-center gap-2 min-w-0">
-                    @if(!empty($c['action']))
-                        <span class="shrink-0 inline-flex items-center rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-bold text-rose-700 dark:bg-rose-500/10 dark:text-rose-400 animate-pulse">Action</span>
-                    @endif
-                    <span class="text-[11px] text-slate-400 truncate">{{ $c['sub'] }}</span>
                 </div>
 
                 @if(!empty($c['people']))
