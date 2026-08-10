@@ -283,7 +283,61 @@ class AttendanceManagerController extends Controller
             ->where('exclude_from_attendance', false)->get();
         $onLeavePeople = $this->onLeavePeople($user);
 
-        return view('attendance.team-history', compact('records', 'departments', 'teamMembers', 'onLeavePeople'));
+        // --- Calendar (month matrix) — built only for the calendar view ---
+        $view = $request->get('view') === 'calendar' ? 'calendar' : 'list';
+        $calMonth = null;
+        $calDays = collect();
+        $calEmployees = collect();
+        $calMatrix = [];
+        if ($view === 'calendar') {
+            try {
+                $calMonth = $request->filled('month')
+                    ? Carbon::createFromFormat('Y-m', $request->month)->startOfMonth()
+                    : Carbon::now()->startOfMonth();
+            } catch (\Throwable $e) {
+                $calMonth = Carbon::now()->startOfMonth();
+            }
+            $monthStart = $calMonth->copy()->startOfMonth();
+            $monthEnd = $calMonth->copy()->endOfMonth();
+            $calDays = collect(range(0, $monthEnd->day - 1))->map(fn ($i) => $monthStart->copy()->addDays($i));
+
+            $calEmployees = ($user->isAdmin() ? User::query() : User::whereIn('id', $user->teamMemberIds()->all()))
+                ->where('exclude_from_attendance', false)
+                ->whereNotIn('id', User::attendanceHiddenIds())
+                ->when($request->filled('employee_id'), fn ($q) => $q->where('id', $request->employee_id))
+                ->when($request->filled('department_id'), fn ($q) => $q->where('department_id', $request->department_id))
+                ->orderBy('first_name')->orderBy('last_name')
+                ->get(['id', 'first_name', 'last_name', 'avatar_url']);
+
+            $empIds = $calEmployees->pluck('id')->all();
+
+            // Recorded statuses this month → matrix[user_id][Y-m-d] = status
+            AttendanceRecord::whereBetween('date', [$monthStart->toDateString(), $monthEnd->toDateString()])
+                ->whereIn('user_id', $empIds)
+                ->get(['user_id', 'date', 'status'])
+                ->each(function ($rec) use (&$calMatrix) {
+                    $calMatrix[$rec->user_id][Carbon::parse($rec->date)->toDateString()] = $rec->status;
+                });
+
+            // Approved leave → fill any blank day as "on_leave"
+            TimeOffRequest::where('status', 'approved')
+                ->whereIn('user_id', $empIds)
+                ->whereDate('start_date', '<=', $monthEnd->toDateString())
+                ->whereDate('end_date', '>=', $monthStart->toDateString())
+                ->get(['user_id', 'start_date', 'end_date'])
+                ->each(function ($lv) use (&$calMatrix, $monthStart, $monthEnd) {
+                    $s = Carbon::parse($lv->start_date)->max($monthStart);
+                    $e = Carbon::parse($lv->end_date)->min($monthEnd);
+                    for ($dd = $s->copy(); $dd->lte($e); $dd->addDay()) {
+                        $ds = $dd->toDateString();
+                        if (empty($calMatrix[$lv->user_id][$ds])) {
+                            $calMatrix[$lv->user_id][$ds] = 'on_leave';
+                        }
+                    }
+                });
+        }
+
+        return view('attendance.team-history', compact('records', 'departments', 'teamMembers', 'onLeavePeople', 'view', 'calMonth', 'calDays', 'calEmployees', 'calMatrix'));
     }
 
     /** Export the (filtered) team attendance history as CSV. */
