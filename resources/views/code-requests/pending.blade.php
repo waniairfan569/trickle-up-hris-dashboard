@@ -45,10 +45,10 @@
 
                 {{-- Decline reason (revealed) --}}
                 <div x-show="showReject" x-cloak x-transition class="mt-2 flex flex-col sm:flex-row gap-2">
-                    <input type="text" x-model="reason" placeholder="Reason (optional — shown to the employee)"
+                    <input type="text" x-model="reason" maxlength="255" placeholder="Reason (required — shown to the employee)"
                            class="flex-1 rounded-xl border border-rose-200 px-3.5 py-2.5 text-xs dark:bg-slate-900 dark:border-rose-500/30 dark:text-white">
-                    <button type="button" @click="reject()" :disabled="rejecting"
-                            class="inline-flex items-center justify-center gap-1.5 rounded-xl bg-rose-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-rose-700 disabled:opacity-50">
+                    <button type="button" @click="reject()" :disabled="rejecting || !reason.trim()"
+                            class="inline-flex items-center justify-center gap-1.5 rounded-xl bg-rose-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-rose-700 disabled:opacity-50 disabled:cursor-not-allowed">
                         <i data-lucide="ban" class="h-4 w-4"></i><span x-text="rejecting ? 'Declining…' : 'Confirm decline'"></span>
                     </button>
                 </div>
@@ -85,18 +85,30 @@
                 <i data-lucide="chevron-down" class="h-4 w-4 transition-transform" :class="open ? 'rotate-180' : ''"></i>
             </button>
             <div x-show="open" x-cloak class="border-t border-slate-100 dark:border-slate-700/60">
+                <div class="flex items-center justify-end gap-2 px-5 py-2 border-b border-slate-50 dark:border-slate-700/40">
+                    <span class="text-[11px] font-bold uppercase tracking-wide text-slate-400">Sort</span>
+                    <select onchange="if(this.value)window.location=this.value" class="rounded-lg border border-slate-300 py-1 pl-2 pr-7 text-[11px] font-bold text-slate-600 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:bg-slate-900 dark:border-slate-600 dark:text-slate-200">
+                        @foreach(['newest' => 'Newest first', 'oldest' => 'Oldest first', 'employee' => 'Employee A–Z', 'tool' => 'Tool A–Z'] as $val => $lbl)
+                            <option value="{{ request()->fullUrlWithQuery(['sort' => $val, 'sent' => 1]) }}" @selected($sort === $val)>{{ $lbl }}</option>
+                        @endforeach
+                    </select>
+                </div>
                 <div class="divide-y divide-slate-100 dark:divide-slate-700/60">
                     @foreach($resolved as $req)
                         <div class="flex items-center justify-between gap-3 px-5 py-2.5 text-xs">
                             <span class="font-bold text-slate-700 dark:text-slate-200 min-w-0 truncate">{{ optional($req->employee)->full_name ?? 'Employee' }} · {{ $req->tool_name }}</span>
                             <div x-data="revealCode({{ $req->id }})" class="flex items-center gap-1.5 shrink-0">
                                 @if($req->hasCode())
-                                    <span class="font-mono font-bold text-slate-500 dark:text-slate-300 break-all max-w-[160px] truncate" x-text="display"></span>
+                                    @php $vt = $req->valueType(); @endphp
+                                    @if($vt)<span class="inline-flex items-center rounded-md bg-slate-100 px-1.5 py-0.5 text-[9px] font-bold text-slate-500 dark:bg-slate-700 dark:text-slate-300">{{ $vt }}</span>@endif
+                                    <span class="font-mono font-bold text-slate-500 dark:text-slate-300 break-all max-w-[150px] truncate" x-text="display"></span>
                                     <button type="button" @click="toggle()" class="text-slate-400 hover:text-slate-600" :title="shown ? 'Hide' : 'Reveal'">
                                         <i data-lucide="eye" class="h-3.5 w-3.5" x-show="!shown"></i>
                                         <i data-lucide="eye-off" class="h-3.5 w-3.5" x-show="shown" x-cloak></i>
                                     </button>
                                     <button type="button" @click="copy()" class="text-slate-400 hover:text-brand-600" :title="copied ? 'Copied!' : 'Copy'"><i data-lucide="copy" class="h-3.5 w-3.5"></i></button>
+                                    <button type="button" @click="resend()" class="text-slate-400 hover:text-emerald-600" title="Resend to employee"><i data-lucide="send" class="h-3.5 w-3.5"></i></button>
+                                    <span x-show="resendMsg" x-cloak x-text="resendMsg" class="text-[10px] font-bold text-emerald-600 dark:text-emerald-400"></span>
                                 @else
                                     <span class="text-slate-300 dark:text-slate-600 italic">cleared</span>
                                 @endif
@@ -122,12 +134,22 @@
             <div x-show="open" x-cloak class="border-t border-slate-100 dark:border-slate-700/60">
                 <div class="divide-y divide-slate-100 dark:divide-slate-700/60">
                     @foreach($rejected as $req)
-                        <div class="px-5 py-2.5 text-xs">
+                        <div class="px-5 py-2.5 text-xs" x-data="declineRow({{ $req->id }}, @js($req->rejection_reason ?? ''))">
                             <div class="flex items-center justify-between gap-3">
                                 <span class="font-bold text-slate-700 dark:text-slate-200 truncate">{{ optional($req->employee)->full_name ?? 'Employee' }} · {{ $req->tool_name }}</span>
                                 <span class="text-slate-400 shrink-0" title="{{ $req->updated_at->format('D, d M Y · H:i') }}">{{ $req->updated_at->diffForHumans() }} · by {{ optional($req->responder)->full_name ?? 'HR' }}</span>
                             </div>
-                            @if($req->rejection_reason)<p class="text-slate-500 dark:text-slate-400 mt-0.5 italic">Reason: {{ $req->rejection_reason }}</p>@endif
+                            <div class="mt-0.5">
+                                <p x-show="!editing" class="text-slate-500 dark:text-slate-400 italic">
+                                    <span x-text="reason ? ('Reason: ' + reason) : 'No reason recorded'" :class="reason ? '' : 'text-slate-300 dark:text-slate-600'"></span>
+                                    <button type="button" @click="editing = true" class="not-italic font-bold text-brand-600 hover:text-brand-700 ml-1">Edit</button>
+                                </p>
+                                <div x-show="editing" x-cloak class="flex items-start gap-1.5 mt-1">
+                                    <input type="text" x-model="draft" maxlength="255" placeholder="Reason for declining…" class="flex-1 rounded-lg border border-slate-300 py-1 px-2 text-xs dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                                    <button type="button" @click="save()" :disabled="saving || !draft.trim()" class="btn-brand btn-sm">Save</button>
+                                    <button type="button" @click="editing = false; draft = reason" class="btn-outline btn-sm">Cancel</button>
+                                </div>
+                            </div>
                         </div>
                     @endforeach
                 </div>
@@ -160,6 +182,32 @@
             async copy() {
                 await this.fetchVal();
                 try { await navigator.clipboard.writeText(this.value || ''); this.copied = true; setTimeout(() => this.copied = false, 1200); } catch (e) {}
+            },
+            resendMsg: '',
+            async resend() {
+                try {
+                    const r = await fetch(`{{ url('admin/code-requests') }}/${this.id}/resend`, { method: 'POST', headers: { Accept: 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' }, credentials: 'same-origin' });
+                    const d = await r.json();
+                    this.resendMsg = d.success ? 'Resent ✓' : (d.message || 'Failed');
+                } catch (e) { this.resendMsg = 'Network error'; }
+                setTimeout(() => this.resendMsg = '', 2800);
+            },
+        };
+    }
+
+    // Inline editing of a decline reason.
+    function declineRow(id, reason) {
+        return {
+            id, reason: reason || '', draft: reason || '', editing: false, saving: false,
+            async save() {
+                if (!this.draft.trim()) return;
+                this.saving = true;
+                try {
+                    const r = await fetch(`{{ url('admin/code-requests') }}/${this.id}/reason`, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' }, credentials: 'same-origin', body: JSON.stringify({ rejection_reason: this.draft.trim() }) });
+                    const d = await r.json();
+                    if (d.success) { this.reason = d.reason; this.editing = false; }
+                } catch (e) {}
+                this.saving = false;
             },
         };
     }
@@ -237,10 +285,10 @@
                 </button>
             </div>
             <div x-show="showReject" x-cloak x-transition class="mt-2 flex flex-col sm:flex-row gap-2">
-                <input type="text" x-model="reason" placeholder="Reason (optional — shown to the employee)"
+                <input type="text" x-model="reason" maxlength="255" placeholder="Reason (required — shown to the employee)"
                        class="flex-1 rounded-xl border border-rose-200 px-3.5 py-2.5 text-xs dark:bg-slate-900 dark:border-rose-500/30 dark:text-white">
-                <button type="button" @click="reject()" :disabled="rejecting"
-                        class="inline-flex items-center justify-center gap-1.5 rounded-xl bg-rose-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-rose-700 disabled:opacity-50">
+                <button type="button" @click="reject()" :disabled="rejecting || !reason.trim()"
+                        class="inline-flex items-center justify-center gap-1.5 rounded-xl bg-rose-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-rose-700 disabled:opacity-50 disabled:cursor-not-allowed">
                     <i data-lucide="ban" class="h-4 w-4"></i><span x-text="rejecting ? 'Declining…' : 'Confirm decline'"></span>
                 </button>
             </div>

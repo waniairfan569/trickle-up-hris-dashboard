@@ -130,10 +130,14 @@ class CodeRequestController extends Controller
             }
         };
 
+        $sort = in_array($request->get('sort'), ['newest', 'oldest', 'employee', 'tool'], true) ? $request->get('sort') : 'newest';
         $resolved = CodeRequest::where('status', 'code_sent')
             ->with(['employee', 'responder'])
             ->tap($applySearch)
-            ->latest('code_sent_at')
+            ->when($sort === 'oldest', fn ($q) => $q->oldest('code_sent_at'))
+            ->when($sort === 'tool', fn ($q) => $q->orderBy('tool_name'))
+            ->when($sort === 'employee', fn ($q) => $q->orderBy(User::select('first_name')->whereColumn('users.id', 'code_requests.employee_id')))
+            ->when(!in_array($sort, ['oldest', 'tool', 'employee'], true), fn ($q) => $q->latest('code_sent_at'))
             ->paginate(20, ['*'], 'sent')
             ->withQueryString();
         $rejected = CodeRequest::where('status', 'rejected')
@@ -143,7 +147,7 @@ class CodeRequestController extends Controller
             ->paginate(15, ['*'], 'declined')
             ->withQueryString();
 
-        return view('code-requests.pending', compact('pending', 'resolved', 'rejected', 'search'));
+        return view('code-requests.pending', compact('pending', 'resolved', 'rejected', 'search', 'sort'));
     }
 
     /** Admin reveals a single stored code on demand (kept out of the page HTML). */
@@ -177,7 +181,7 @@ class CodeRequestController extends Controller
         abort_unless($request->user() && $request->user()->isAdmin(), 403);
 
         $validated = $request->validate([
-            'code_provided' => 'required|string|max:100',
+            'code_provided' => 'required|string|max:500',
             'code_expires_note' => 'nullable|string|max:100',
         ]);
 
@@ -212,12 +216,14 @@ class CodeRequestController extends Controller
         abort_unless($request->user() && $request->user()->isAdmin(), 403);
 
         $validated = $request->validate([
-            'rejection_reason' => 'nullable|string|max:255',
+            'rejection_reason' => 'required|string|max:255',
+        ], [
+            'rejection_reason.required' => 'Please give the employee a brief reason for declining.',
         ]);
 
         $codeRequest->update([
             'status' => 'rejected',
-            'rejection_reason' => trim((string) ($validated['rejection_reason'] ?? '')) ?: null,
+            'rejection_reason' => trim($validated['rejection_reason']),
             'responded_by' => $request->user()->id,
         ]);
 
@@ -236,5 +242,44 @@ class CodeRequestController extends Controller
             'success' => true,
             'message' => 'Declined ' . (optional($codeRequest->employee)->full_name ?? 'the request') . '.',
         ]);
+    }
+
+    /** Re-notify the employee with the code that was already sent (if not yet purged). */
+    public function resendCode(Request $request, CodeRequest $codeRequest)
+    {
+        abort_unless($request->user() && $request->user()->isAdmin(), 403);
+
+        if (!$codeRequest->hasCode()) {
+            return response()->json(['success' => false, 'message' => 'That code was cleared for security and can no longer be resent — send a new one.'], 422);
+        }
+
+        if ($codeRequest->employee) {
+            try {
+                $codeRequest->employee->notify(new CodeProvidedNotification($codeRequest));
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Resent to ' . (optional($codeRequest->employee)->full_name ?? 'employee') . '.',
+        ]);
+    }
+
+    /** Edit the decline reason on an already-declined request. */
+    public function updateRejection(Request $request, CodeRequest $codeRequest)
+    {
+        abort_unless($request->user() && $request->user()->isAdmin(), 403);
+
+        $validated = $request->validate([
+            'rejection_reason' => 'required|string|max:255',
+        ], [
+            'rejection_reason.required' => 'A reason is required.',
+        ]);
+
+        $codeRequest->update(['rejection_reason' => trim($validated['rejection_reason'])]);
+
+        return response()->json(['success' => true, 'reason' => $codeRequest->rejection_reason]);
     }
 }

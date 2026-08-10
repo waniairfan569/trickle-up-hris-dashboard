@@ -48,6 +48,28 @@ class CodeRequest extends Model
         return filled($this->getRawOriginal('code_provided'));
     }
 
+    /** Classify the stored value for a UI label (Email / Login / OTP / Note / Code) — the value itself is never exposed by this. */
+    public function valueType(): ?string
+    {
+        $v = trim((string) $this->code_provided);
+        if ($v === '') {
+            return null;
+        }
+        if (filter_var($v, FILTER_VALIDATE_EMAIL)) {
+            return 'Email';
+        }
+        if (str_contains($v, '@')) {
+            return 'Login'; // email + password/token combo
+        }
+        if (preg_match('/^\d{4,8}$/', $v)) {
+            return 'OTP';
+        }
+        if (str_contains($v, ' ') || strlen($v) > 40) {
+            return 'Note';
+        }
+        return 'Code';
+    }
+
     public function employee()
     {
         return $this->belongsTo(User::class, 'employee_id');
