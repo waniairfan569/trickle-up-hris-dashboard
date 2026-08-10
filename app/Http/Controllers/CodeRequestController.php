@@ -117,18 +117,41 @@ class CodeRequestController extends Controller
         abort_unless($request->user() && $request->user()->isAdmin(), 403);
 
         $pending = CodeRequest::pending()->with('employee')->oldest()->get();
+
+        // Full, paginated history (no more silent 30-item cap). Optional search by
+        // employee name or tool.
+        $search = trim((string) $request->get('q', ''));
+        $applySearch = function ($query) use ($search) {
+            if ($search !== '') {
+                $query->where(function ($q) use ($search) {
+                    $q->where('tool_name', 'like', "%{$search}%")
+                        ->orWhereHas('employee', fn ($e) => $e->where('first_name', 'like', "%{$search}%")->orWhere('last_name', 'like', "%{$search}%"));
+                });
+            }
+        };
+
         $resolved = CodeRequest::where('status', 'code_sent')
             ->with(['employee', 'responder'])
+            ->tap($applySearch)
             ->latest('code_sent_at')
-            ->take(30)
-            ->get();
+            ->paginate(20, ['*'], 'sent')
+            ->withQueryString();
         $rejected = CodeRequest::where('status', 'rejected')
             ->with(['employee', 'responder'])
+            ->tap($applySearch)
             ->latest('updated_at')
-            ->take(30)
-            ->get();
+            ->paginate(15, ['*'], 'declined')
+            ->withQueryString();
 
-        return view('code-requests.pending', compact('pending', 'resolved', 'rejected'));
+        return view('code-requests.pending', compact('pending', 'resolved', 'rejected', 'search'));
+    }
+
+    /** Admin reveals a single stored code on demand (kept out of the page HTML). */
+    public function revealCode(Request $request, CodeRequest $codeRequest)
+    {
+        abort_unless($request->user() && $request->user()->isAdmin(), 403);
+
+        return response()->json(['value' => $codeRequest->code_provided]);
     }
 
     /** AJAX (poll): the current pending queue, newest first — powers the live "new request pops in at the top" list. */

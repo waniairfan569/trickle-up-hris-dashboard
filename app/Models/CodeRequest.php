@@ -28,6 +28,8 @@ class CodeRequest extends Model
 
     protected $casts = [
         'code_sent_at' => 'datetime',
+        // Encrypted at rest; revealed only on explicit admin request (never rendered in bulk).
+        'code_provided' => \App\Casts\TolerantEncrypted::class,
     ];
 
     protected static function booted(): void
@@ -38,6 +40,12 @@ class CodeRequest extends Model
                 $model->request_number = 'CR-' . str_pad((string) $next, 3, '0', STR_PAD_LEFT);
             }
         });
+    }
+
+    /** Whether a code value is stored (checks the raw column, no decryption). */
+    public function hasCode(): bool
+    {
+        return filled($this->getRawOriginal('code_provided'));
     }
 
     public function employee()

@@ -50,3 +50,6 @@ Schedule::call(function () {
     }
     app(\App\Services\AttendanceReportService::class)->sendDailyReport(\Carbon\Carbon::today());
 })->everyMinute()->name('daily-attendance-report')->withoutOverlapping();
+
+// Redact one-time login codes a week after they were sent (privacy / least retention).
+Schedule::command('code-requests:purge-codes')->dailyAt('03:30')->withoutOverlapping();

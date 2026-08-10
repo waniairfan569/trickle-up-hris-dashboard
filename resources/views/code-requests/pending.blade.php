@@ -65,48 +65,105 @@
         @endforelse
     </div>
 
-    {{-- Resolved (collapsible) --}}
-    @if($resolved->count())
-        <div x-data="{ open: false }" class="bg-white rounded-2xl border border-slate-200/80 shadow-sm dark:bg-slate-800 dark:border-slate-700">
+    {{-- History search (by employee or tool) --}}
+    @if($resolved->total() || $rejected->total() || $search !== '')
+        <form method="GET" class="flex flex-wrap items-center gap-2">
+            <div class="relative flex-1 min-w-[200px] max-w-sm">
+                <i data-lucide="search" class="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                <input type="text" name="q" value="{{ $search }}" placeholder="Search history by employee or tool…" class="w-full rounded-xl border border-slate-300 py-2 pl-9 pr-3 text-sm shadow-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+            </div>
+            <button type="submit" class="btn-dark btn-sm">Search</button>
+            @if($search !== '')<a href="{{ route('code-requests.pending') }}" class="btn-outline btn-sm">Clear</a>@endif
+        </form>
+    @endif
+
+    {{-- Recently sent — paginated; codes are hidden until an admin reveals one --}}
+    @if($resolved->total())
+        <div x-data="{ open: {{ request()->has('sent') || $search !== '' ? 'true' : 'false' }} }" class="bg-white rounded-2xl border border-slate-200/80 shadow-sm dark:bg-slate-800 dark:border-slate-700">
             <button type="button" @click="open = !open" class="w-full flex items-center justify-between px-5 py-3 text-sm font-bold text-slate-700 dark:text-slate-200">
-                <span>Recently sent ({{ $resolved->count() }})</span>
+                <span>Recently sent ({{ $resolved->total() }})</span>
                 <i data-lucide="chevron-down" class="h-4 w-4 transition-transform" :class="open ? 'rotate-180' : ''"></i>
             </button>
-            <div x-show="open" x-cloak class="divide-y divide-slate-100 dark:divide-slate-700/60 border-t border-slate-100 dark:border-slate-700/60">
-                @foreach($resolved as $req)
-                    <div class="flex items-center justify-between gap-3 px-5 py-2.5 text-xs">
-                        <span class="font-bold text-slate-700 dark:text-slate-200">{{ optional($req->employee)->full_name ?? 'Employee' }} · {{ $req->tool_name }}</span>
-                        <span class="font-mono font-bold text-slate-500">{{ $req->code_provided }}</span>
-                        <span class="text-slate-400">{{ optional($req->code_sent_at)->diffForHumans() }} · by {{ optional($req->responder)->full_name ?? 'HR' }}</span>
-                    </div>
-                @endforeach
+            <div x-show="open" x-cloak class="border-t border-slate-100 dark:border-slate-700/60">
+                <div class="divide-y divide-slate-100 dark:divide-slate-700/60">
+                    @foreach($resolved as $req)
+                        <div class="flex items-center justify-between gap-3 px-5 py-2.5 text-xs">
+                            <span class="font-bold text-slate-700 dark:text-slate-200 min-w-0 truncate">{{ optional($req->employee)->full_name ?? 'Employee' }} · {{ $req->tool_name }}</span>
+                            <div x-data="revealCode({{ $req->id }})" class="flex items-center gap-1.5 shrink-0">
+                                @if($req->hasCode())
+                                    <span class="font-mono font-bold text-slate-500 dark:text-slate-300 break-all max-w-[160px] truncate" x-text="display"></span>
+                                    <button type="button" @click="toggle()" class="text-slate-400 hover:text-slate-600" :title="shown ? 'Hide' : 'Reveal'">
+                                        <i data-lucide="eye" class="h-3.5 w-3.5" x-show="!shown"></i>
+                                        <i data-lucide="eye-off" class="h-3.5 w-3.5" x-show="shown" x-cloak></i>
+                                    </button>
+                                    <button type="button" @click="copy()" class="text-slate-400 hover:text-brand-600" :title="copied ? 'Copied!' : 'Copy'"><i data-lucide="copy" class="h-3.5 w-3.5"></i></button>
+                                @else
+                                    <span class="text-slate-300 dark:text-slate-600 italic">cleared</span>
+                                @endif
+                            </div>
+                            <span class="text-slate-400 shrink-0" title="{{ optional($req->code_sent_at)->format('D, d M Y · H:i') }}">{{ optional($req->code_sent_at)->diffForHumans() }} · by {{ optional($req->responder)->full_name ?? 'HR' }}</span>
+                        </div>
+                    @endforeach
+                </div>
+                @if($resolved->hasPages())
+                    <div class="px-5 py-3 border-t border-slate-100 dark:border-slate-700/60">{{ $resolved->links() }}</div>
+                @endif
             </div>
         </div>
     @endif
 
-    {{-- Declined (collapsible) --}}
-    @if(($rejected ?? collect())->count())
-        <div x-data="{ open: false }" class="bg-white rounded-2xl border border-slate-200/80 shadow-sm dark:bg-slate-800 dark:border-slate-700">
+    {{-- Recently declined — paginated --}}
+    @if($rejected->total())
+        <div x-data="{ open: {{ request()->has('declined') ? 'true' : 'false' }} }" class="bg-white rounded-2xl border border-slate-200/80 shadow-sm dark:bg-slate-800 dark:border-slate-700">
             <button type="button" @click="open = !open" class="w-full flex items-center justify-between px-5 py-3 text-sm font-bold text-slate-700 dark:text-slate-200">
-                <span class="inline-flex items-center gap-1.5"><i data-lucide="ban" class="h-4 w-4 text-rose-500"></i> Recently declined ({{ $rejected->count() }})</span>
+                <span class="inline-flex items-center gap-1.5"><i data-lucide="ban" class="h-4 w-4 text-rose-500"></i> Recently declined ({{ $rejected->total() }})</span>
                 <i data-lucide="chevron-down" class="h-4 w-4 transition-transform" :class="open ? 'rotate-180' : ''"></i>
             </button>
-            <div x-show="open" x-cloak class="divide-y divide-slate-100 dark:divide-slate-700/60 border-t border-slate-100 dark:border-slate-700/60">
-                @foreach($rejected as $req)
-                    <div class="px-5 py-2.5 text-xs">
-                        <div class="flex items-center justify-between gap-3">
-                            <span class="font-bold text-slate-700 dark:text-slate-200">{{ optional($req->employee)->full_name ?? 'Employee' }} · {{ $req->tool_name }}</span>
-                            <span class="text-slate-400">{{ $req->updated_at->diffForHumans() }} · by {{ optional($req->responder)->full_name ?? 'HR' }}</span>
+            <div x-show="open" x-cloak class="border-t border-slate-100 dark:border-slate-700/60">
+                <div class="divide-y divide-slate-100 dark:divide-slate-700/60">
+                    @foreach($rejected as $req)
+                        <div class="px-5 py-2.5 text-xs">
+                            <div class="flex items-center justify-between gap-3">
+                                <span class="font-bold text-slate-700 dark:text-slate-200 truncate">{{ optional($req->employee)->full_name ?? 'Employee' }} · {{ $req->tool_name }}</span>
+                                <span class="text-slate-400 shrink-0" title="{{ $req->updated_at->format('D, d M Y · H:i') }}">{{ $req->updated_at->diffForHumans() }} · by {{ optional($req->responder)->full_name ?? 'HR' }}</span>
+                            </div>
+                            @if($req->rejection_reason)<p class="text-slate-500 dark:text-slate-400 mt-0.5 italic">Reason: {{ $req->rejection_reason }}</p>@endif
                         </div>
-                        @if($req->rejection_reason)<p class="text-slate-500 dark:text-slate-400 mt-0.5 italic">Reason: {{ $req->rejection_reason }}</p>@endif
-                    </div>
-                @endforeach
+                    @endforeach
+                </div>
+                @if($rejected->hasPages())
+                    <div class="px-5 py-3 border-t border-slate-100 dark:border-slate-700/60">{{ $rejected->links() }}</div>
+                @endif
             </div>
         </div>
     @endif
 </div>
 
 <script>
+    // Reveals a stored code on demand (fetched from an admin-only endpoint, so
+    // codes are never present in the page HTML on load).
+    function revealCode(id) {
+        return {
+            id, shown: false, value: null, loading: false, copied: false,
+            get display() { return this.loading ? '…' : (this.shown ? (this.value || '—') : '••••••'); },
+            async fetchVal() {
+                if (this.value !== null) return;
+                this.loading = true;
+                try {
+                    const r = await fetch(`{{ url('admin/code-requests') }}/${this.id}/reveal`, { headers: { Accept: 'application/json' }, credentials: 'same-origin' });
+                    const d = await r.json();
+                    this.value = d.value ?? '';
+                } catch (e) { this.value = ''; }
+                this.loading = false;
+            },
+            async toggle() { if (!this.shown) await this.fetchVal(); this.shown = !this.shown; },
+            async copy() {
+                await this.fetchVal();
+                try { await navigator.clipboard.writeText(this.value || ''); this.copied = true; setTimeout(() => this.copied = false, 1200); } catch (e) {}
+            },
+        };
+    }
+
     function codeCard(id) {
         return {
             code: '', note: '', reason: '', sending: false, rejecting: false,
