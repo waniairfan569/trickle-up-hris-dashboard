@@ -124,6 +124,7 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
         Route::get('admin/equipment', [\App\Http\Controllers\EquipmentRequestController::class, 'adminIndex'])->name('equipment.admin');
         Route::post('admin/equipment/{equipmentRequest}/approve', [\App\Http\Controllers\EquipmentRequestController::class, 'approve'])->name('equipment.approve');
         Route::post('admin/equipment/{equipmentRequest}/reject', [\App\Http\Controllers\EquipmentRequestController::class, 'reject'])->name('equipment.reject');
+        Route::delete('admin/equipment/{equipmentRequest}', [\App\Http\Controllers\EquipmentRequestController::class, 'destroy'])->name('equipment.destroy');
     });
 
     // Org Chart — visual reporting hierarchy (all authenticated users)

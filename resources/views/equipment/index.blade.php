@@ -27,11 +27,21 @@
         <form method="POST" action="{{ route('equipment.store') }}" class="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 dark:bg-slate-800 dark:border-slate-700 flex flex-col h-full">
             @csrf
             <div class="space-y-4 flex-1">
-                <div>
+                <div x-data="{ type: @js(old('equipment_type', '')) }">
                     <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Equipment <span class="text-rose-500">*</span></label>
-                    <input type="text" name="equipment_name" value="{{ old('equipment_name') }}" required maxlength="150"
-                           placeholder="e.g. Dell Latitude laptop, 27&quot; monitor, headset"
-                           class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm shadow-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                    <select name="equipment_type" x-model="type" required
+                            class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm shadow-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                        <option value="" disabled {{ old('equipment_type') ? '' : 'selected' }}>Select equipment…</option>
+                        @foreach(config('equipment.items', []) as $item)
+                            <option value="{{ $item }}" {{ old('equipment_type') === $item ? 'selected' : '' }}>{{ $item }}</option>
+                        @endforeach
+                        <option value="Other" {{ old('equipment_type') === 'Other' ? 'selected' : '' }}>Other…</option>
+                    </select>
+                    <input type="text" name="equipment_details" value="{{ old('equipment_details') }}" maxlength="150"
+                           x-bind:required="type === 'Other'"
+                           x-bind:placeholder="type === 'Other' ? 'Name the equipment' : 'Model / details (optional) — e.g. Dell Latitude 7420'"
+                           placeholder="Model / details (optional) — e.g. Dell Latitude 7420"
+                           class="mt-2 w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm shadow-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:bg-slate-900 dark:border-slate-600 dark:text-white">
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Reason for taking it home <span class="text-rose-500">*</span></label>

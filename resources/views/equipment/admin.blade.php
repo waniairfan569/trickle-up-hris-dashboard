@@ -47,6 +47,14 @@
                             class="inline-flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-bold text-rose-700 hover:bg-rose-100 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-400">
                         <i data-lucide="x" class="h-4 w-4"></i> Decline
                     </button>
+                    <form method="POST" action="{{ route('equipment.destroy', $req->id) }}" class="ml-auto"
+                          onsubmit="return confirm('Delete this request permanently? The employee is not notified. Use this only for test or junk entries.')">
+                        @csrf @method('DELETE')
+                        <button type="submit" title="Delete (test/junk only)"
+                                class="inline-flex items-center gap-1.5 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10">
+                            <i data-lucide="trash-2" class="h-4 w-4"></i>
+                        </button>
+                    </form>
                 </div>
 
                 {{-- Decline reason (revealed) --}}
@@ -117,6 +125,7 @@
                             </th>
                             <th class="px-5 py-2.5 font-bold">By</th>
                             <th class="px-5 py-2.5 font-bold">Note</th>
+                            <th class="px-5 py-2.5 font-bold text-right"><span class="sr-only">Actions</span></th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100 dark:divide-slate-700/60">
@@ -137,6 +146,16 @@
                                 </td>
                                 <td class="px-5 py-3 whitespace-nowrap text-slate-500 dark:text-slate-400">{{ $by !== '' ? $by : '—' }}</td>
                                 <td class="px-5 py-3 text-slate-500 dark:text-slate-400 max-w-[18rem] truncate" title="{{ $req->review_note }}">{{ $req->review_note ?: '—' }}</td>
+                                <td class="px-5 py-3 text-right">
+                                    <form method="POST" action="{{ route('equipment.destroy', $req->id) }}"
+                                          onsubmit="return confirm('Delete this record permanently? Use this only for test or duplicate entries.')">
+                                        @csrf @method('DELETE')
+                                        <button type="submit" title="Delete (test/duplicate only)"
+                                                class="inline-flex items-center rounded-lg px-2 py-1.5 text-slate-300 hover:text-rose-600 hover:bg-rose-50 dark:text-slate-500 dark:hover:bg-rose-500/10">
+                                            <i data-lucide="trash-2" class="h-4 w-4"></i>
+                                        </button>
+                                    </form>
+                                </td>
                             </tr>
                         @endforeach
                     </tbody>

@@ -27,18 +27,45 @@ class EquipmentRequestController extends Controller
     /** Employee: submit a request to take equipment home. */
     public function store(Request $request)
     {
+        $items = config('equipment.items', []);
+
         $validated = $request->validate([
-            'equipment_name' => 'required|string|max:150',
+            'equipment_type' => 'required|string|max:100',
+            'equipment_details' => 'nullable|string|max:150',
             'reason' => 'required|string|max:1000',
             'expected_return_date' => 'nullable|date|after_or_equal:today',
         ], [
-            'equipment_name.required' => 'Please name the equipment you want to take home.',
+            'equipment_type.required' => 'Please choose which equipment you want to take home.',
             'reason.required' => 'Please explain why you need to take it home.',
         ]);
 
+        $type = trim($validated['equipment_type']);
+        $details = trim((string) ($validated['equipment_details'] ?? ''));
+
+        // A listed item may carry an optional model/detail; "Other" (or anything
+        // off-list) must be spelled out. Build one tidy, consistent name.
+        $isOther = strcasecmp($type, 'Other') === 0 || !in_array($type, $items, true);
+        if ($isOther && $details === '') {
+            return back()->withInput()->withErrors(['equipment_details' => 'Please name the equipment you want to take home.']);
+        }
+        $equipmentName = $isOther
+            ? $details
+            : ($details !== '' ? "{$type} — {$details}" : $type);
+
+        // Guard against accidental double-submits: the same item already pending
+        // for this employee within the last few minutes.
+        $dupe = EquipmentRequest::where('user_id', $request->user()->id)
+            ->where('status', 'pending')
+            ->where('equipment_name', $equipmentName)
+            ->where('created_at', '>=', now()->subMinutes(10))
+            ->exists();
+        if ($dupe) {
+            return back()->with('success', 'You already have that request pending — no need to send it again.');
+        }
+
         $equipmentRequest = EquipmentRequest::create([
             'user_id' => $request->user()->id,
-            'equipment_name' => trim($validated['equipment_name']),
+            'equipment_name' => $equipmentName,
             'reason' => trim($validated['reason']),
             'expected_return_date' => $validated['expected_return_date'] ?? null,
             'status' => 'pending',
@@ -136,6 +163,21 @@ class EquipmentRequestController extends Controller
         $verb = $status === 'approved' ? 'approved' : 'declined';
 
         return back()->with('success', "Request {$verb} — " . (optional($equipmentRequest->employee)->full_name ?? 'employee') . ' has been notified.');
+    }
+
+    /** Admin: permanently remove a request (e.g. test data or a duplicate). */
+    public function destroy(Request $request, EquipmentRequest $equipmentRequest)
+    {
+        abort_unless($request->user() && $request->user()->isAdmin(), 403);
+
+        // If it was still pending, clear its "needs review" alert from the bells.
+        if ($equipmentRequest->status === 'pending') {
+            EquipmentRequestedNotification::markResolved($equipmentRequest->id);
+        }
+
+        $equipmentRequest->delete();
+
+        return back()->with('success', 'Request deleted.');
     }
 
     /** Active HR / super admins to notify. */
