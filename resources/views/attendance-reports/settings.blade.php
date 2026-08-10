@@ -47,7 +47,34 @@
                 <div>
                     <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Send time</label>
                     <input type="time" name="send_time" value="{{ \Carbon\Carbon::parse($settings->send_time)->format('H:i') }}" required class="w-full rounded-xl border-slate-300 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
-                    <p class="text-[11px] text-slate-400 mt-1">Email sent at this time every working day.</p>
+                    <p class="text-[11px] text-slate-400 mt-1">Email sent at this local time every working day.</p>
+                </div>
+                @php
+                    $tzOptions = [
+                        'Europe/London'      => 'United Kingdom — London (GMT/BST)',
+                        'UTC'                => 'UTC',
+                        'Europe/Dublin'      => 'Ireland — Dublin',
+                        'Asia/Karachi'       => 'Pakistan — Karachi',
+                        'Asia/Dubai'         => 'UAE — Dubai',
+                        'Asia/Kolkata'       => 'India — Kolkata',
+                        'America/New_York'   => 'US Eastern — New York',
+                        'America/Chicago'    => 'US Central — Chicago',
+                        'America/Los_Angeles'=> 'US Pacific — Los Angeles',
+                        'Australia/Sydney'   => 'Australia — Sydney',
+                    ];
+                    $currentTz = $settings->timezone ?: 'Europe/London';
+                    if (!array_key_exists($currentTz, $tzOptions)) {
+                        $tzOptions = [$currentTz => $currentTz] + $tzOptions;
+                    }
+                @endphp
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Timezone</label>
+                    <select name="timezone" required class="w-full rounded-xl border-slate-300 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                        @foreach($tzOptions as $val => $lbl)
+                            <option value="{{ $val }}" @selected($currentTz === $val)>{{ $lbl }}</option>
+                        @endforeach
+                    </select>
+                    <p class="text-[11px] text-slate-400 mt-1">Send time is read in this zone — daylight saving is handled automatically.</p>
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Working days</label>

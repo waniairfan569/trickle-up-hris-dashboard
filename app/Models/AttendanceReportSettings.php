@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class AttendanceReportSettings extends Model
 {
     protected $fillable = [
-        'company_entity_id', 'is_enabled', 'send_time', 'working_days',
+        'company_entity_id', 'is_enabled', 'send_time', 'timezone', 'working_days',
         'send_to_super_admin', 'send_to_hr_admin', 'send_to_managers', 'additional_emails',
         'include_late', 'include_absent', 'include_early_departure', 'include_overtime',
         'include_on_leave', 'include_full_table', 'attach_excel', 'late_threshold_minutes',
@@ -38,10 +38,29 @@ class AttendanceReportSettings extends Model
         return static::firstOrCreate([], [
             'is_enabled' => true,
             'send_time' => '10:00:00',
+            'timezone' => 'Europe/London',
             'working_days' => ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
             'additional_emails' => [],
             'report_subject_template' => 'Daily Attendance Report — {{date}}',
         ]);
+    }
+
+    /** The zone the send_time is interpreted in (defaults to UK). */
+    public function effectiveTimezone(): string
+    {
+        return $this->timezone ?: 'Europe/London';
+    }
+
+    /** "Now" in the report's configured timezone. */
+    public function nowInZone(): Carbon
+    {
+        return Carbon::now($this->effectiveTimezone());
+    }
+
+    /** "Today" (calendar date) in the report's configured timezone. */
+    public function todayInZone(): Carbon
+    {
+        return Carbon::today($this->effectiveTimezone());
     }
 
     public function isWorkingDay(Carbon $date): bool
@@ -53,6 +72,6 @@ class AttendanceReportSettings extends Model
 
     public function getSendTimeCarbon(Carbon $date): Carbon
     {
-        return Carbon::parse($date->toDateString() . ' ' . ($this->send_time ?: '22:00:00'));
+        return Carbon::parse($date->toDateString() . ' ' . ($this->send_time ?: '22:00:00'), $this->effectiveTimezone());
     }
 }

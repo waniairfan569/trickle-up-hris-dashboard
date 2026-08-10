@@ -28,6 +28,7 @@ class AttendanceReportController extends Controller
     {
         $validated = $request->validate([
             'send_time' => 'required|date_format:H:i',
+            'timezone' => 'required|timezone',
             'working_days' => 'nullable|array',
             'working_days.*' => 'string|in:Mon,Tue,Wed,Thu,Fri,Sat,Sun',
             'late_threshold_minutes' => 'required|integer|min:0|max:60',
@@ -43,6 +44,7 @@ class AttendanceReportController extends Controller
         AttendanceReportSettings::getSettings()->update([
             'is_enabled' => $request->boolean('is_enabled'),
             'send_time' => $validated['send_time'] . ':00',
+            'timezone' => $validated['timezone'],
             'working_days' => $validated['working_days'] ?? [],
             'send_to_super_admin' => $request->boolean('send_to_super_admin'),
             'send_to_hr_admin' => $request->boolean('send_to_hr_admin'),

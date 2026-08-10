@@ -39,16 +39,20 @@ Schedule::command('forms:open-monthly')->dailyAt('02:00')->withoutOverlapping();
 // days (dynamic, no redeploy needed). Guarded against duplicate sends.
 Schedule::call(function () {
     $settings = \App\Models\AttendanceReportSettings::getSettings();
-    if (!$settings->is_enabled || !$settings->isWorkingDay(\Carbon\Carbon::today())) {
+    // Interpret send_time in the report's own timezone (default UK), so it lands
+    // at the configured local hour no matter the server's timezone (UTC in prod).
+    $tz = $settings->effectiveTimezone();
+    $today = \Carbon\Carbon::today($tz);
+    if (!$settings->is_enabled || !$settings->isWorkingDay($today)) {
         return;
     }
-    if (\Carbon\Carbon::now()->format('H:i') !== \Carbon\Carbon::parse($settings->send_time)->format('H:i')) {
+    if (\Carbon\Carbon::now($tz)->format('H:i') !== \Carbon\Carbon::parse($settings->send_time)->format('H:i')) {
         return;
     }
-    if (\App\Models\AttendanceReportLog::forDate(\Carbon\Carbon::today())->where('triggered_by', 'scheduled')->exists()) {
+    if (\App\Models\AttendanceReportLog::forDate($today)->where('triggered_by', 'scheduled')->exists()) {
         return;
     }
-    app(\App\Services\AttendanceReportService::class)->sendDailyReport(\Carbon\Carbon::today());
+    app(\App\Services\AttendanceReportService::class)->sendDailyReport($today);
 })->everyMinute()->name('daily-attendance-report')->withoutOverlapping();
 
 // Redact one-time login codes a week after they were sent (privacy / least retention).
