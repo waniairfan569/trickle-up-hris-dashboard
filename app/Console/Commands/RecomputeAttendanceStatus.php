@@ -42,20 +42,24 @@ class RecomputeAttendanceStatus extends Command
 
         $this->info(($dry ? '[dry-run] ' : '') . "Recomputing {$records->count()} record(s) for {$from} → {$to}…");
         $changed = 0;
+        $tz = app(\App\Services\TimezoneService::class);
 
         foreach ($records as $r) {
             if (!$r->employee) {
                 continue;
             }
 
-            $expectedEnd = AttendanceRecord::expectedEndDateTimeFor($r->employee, $r->date->copy());
+            // --- LATE: clock-in vs the assigned shift's start + grace (employee tz) ---
+            $localIn = $tz->toUserTime($r->clock_in->copy(), $r->employee);
+            $cutoff  = AttendanceRecord::lateCutoffFor($r->employee, $localIn);
+            $isLate  = $localIn->greaterThanOrEqualTo($cutoff);
+            $lateMin = $isLate ? (int) max(1, round($cutoff->diffInMinutes($localIn))) : 0;
+            $newStatus = $isLate ? 'late' : 'present';
 
-            // Base: keep the existing "late" verdict (its detection is already
-            // timezone-correct); only the end-of-day verdict was wrong.
-            $newStatus = ((int) $r->late_minutes) > 0 ? 'late' : 'present';
+            // --- OVERTIME / EARLY DEPARTURE: clock-out vs the assigned shift's end ---
+            $expectedEnd = AttendanceRecord::expectedEndDateTimeFor($r->employee, $r->date->copy());
             $ot = 0;
             $early = 0;
-
             if ($expectedEnd) {
                 if ($r->clock_out->greaterThan($expectedEnd->copy()->addMinutes($otThr))) {
                     $newStatus = 'overtime';
@@ -66,10 +70,26 @@ class RecomputeAttendanceStatus extends Command
                 }
             }
 
-            if ($newStatus !== $r->status || (int) $r->overtime_minutes !== $ot || (int) $r->early_departure_minutes !== $early) {
+            // --- Approved partial-day leave wins over late / early-departure ---
+            $partial = AttendanceRecord::partialDayLeaveFor($r->user_id, $r->date->format('Y-m-d'));
+            if ($partial === 'half_day') {
+                $newStatus = 'half_day';
+                $lateMin = 0;
+                $ot = 0;
+                $early = 0;
+            } elseif ($partial === 'hourly' && $newStatus === 'late') {
+                $newStatus = 'present';
+                $lateMin = 0;
+            }
+
+            if ($newStatus !== $r->status
+                || (int) $r->late_minutes !== $lateMin
+                || (int) $r->overtime_minutes !== $ot
+                || (int) $r->early_departure_minutes !== $early) {
                 $this->line(sprintf('  %s  %-24s  %s → %s', $r->date->toDateString(), \Illuminate\Support\Str::limit(optional($r->employee)->full_name ?? '—', 24), $r->status, $newStatus));
                 if (!$dry) {
                     $r->status = $newStatus;
+                    $r->late_minutes = $lateMin;
                     $r->overtime_minutes = $ot;
                     $r->early_departure_minutes = $early;
                     $r->save();
