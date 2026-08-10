@@ -14,11 +14,21 @@
             </p>
         </div>
         @php
-            $calcPolicies = $timeOffBalances->map(fn($b) => [
-                'id' => $b->policy_id,
-                'name' => optional($b->policy)->name,
-                'remaining' => (float) max(0, ($b->opening_balance + $b->accrued + $b->carried_over + $b->adjusted) - $b->used - $b->pending),
-            ])->values();
+            // Leave types for the calculator. Prefer the viewer's own balances
+            // (real "remaining" figures); if they hold none (e.g. an admin who
+            // isn't enrolled in any policy) fall back to the active policies so
+            // the dropdown is never empty and the tool still works.
+            $calcPolicies = $timeOffBalances->isNotEmpty()
+                ? $timeOffBalances->map(fn($b) => [
+                    'id' => $b->policy_id,
+                    'name' => optional($b->policy)->name,
+                    'remaining' => (float) max(0, ($b->opening_balance + $b->accrued + $b->carried_over + $b->adjusted) - $b->used - $b->pending),
+                ])->values()
+                : $allPolicies->map(fn($p) => [
+                    'id' => $p->id,
+                    'name' => $p->name,
+                    'remaining' => 0.0,
+                ])->values();
         @endphp
         <style>[x-cloak]{display:none!important}</style>
         <script>window.__calcPolicies = @json($calcPolicies);</script>
@@ -269,7 +279,8 @@
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                             @if($request->status === 'pending')
-                                <form action="{{ route('time-off.destroy', $request) }}" method="POST" class="inline">
+                                <form action="{{ route('time-off.destroy', $request) }}" method="POST" class="inline"
+                                      onsubmit="return confirm('Cancel this time-off request?')">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300">Cancel</button>
@@ -429,7 +440,8 @@
                         </td>
                         <td class="px-6 py-4 text-sm text-slate-500 dark:text-slate-400 align-top">
                             <div class="font-medium text-slate-700 dark:text-slate-300">{{ $request->policy->name }}</div>
-                            @if(in_array($request->status, ['pending', 'approved']))
+                            @if($request->status === 'pending')
+                                {{-- Open request: quick reclassify while triaging. --}}
                                 <form action="{{ route('time-off.change-policy', $request) }}" method="POST" class="mt-1.5 inline-block">
                                     @csrf
                                     <select name="policy_id" title="Move this leave to another category" data-current="{{ $request->policy_id }}"
@@ -440,16 +452,41 @@
                                         @endforeach
                                     </select>
                                 </form>
+                            @elseif($request->status === 'approved')
+                                {{-- Decided record: reclassifying is deliberate — hidden behind a toggle
+                                     so a stray click can't reassign a historical leave. --}}
+                                <div x-data="{ editType: false }" class="mt-1">
+                                    <button type="button" x-show="!editType" @click="editType = true"
+                                            class="inline-flex items-center gap-1 text-xs font-semibold text-slate-400 hover:text-brand-600 dark:hover:text-brand-400">
+                                        <i data-lucide="pencil" class="h-3 w-3"></i> Change type
+                                    </button>
+                                    <form x-show="editType" x-cloak action="{{ route('time-off.change-policy', $request) }}" method="POST" class="inline-flex items-center gap-1">
+                                        @csrf
+                                        <select name="policy_id" title="Reclassify this approved leave" data-current="{{ $request->policy_id }}"
+                                                onchange="if (this.value !== this.dataset.current && confirm('Reclassify this APPROVED leave to “' + this.options[this.selectedIndex].text + '”? Balances will be adjusted.')) { this.form.submit(); } else { this.value = this.dataset.current; }"
+                                                class="text-xs rounded-lg border border-slate-200 py-1 pl-2 pr-6 font-semibold text-slate-600 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:bg-slate-900 dark:border-slate-600 dark:text-slate-300">
+                                            @foreach($movePolicies as $p)
+                                                <option value="{{ $p->id }}" {{ $p->id == $request->policy_id ? 'selected' : '' }}>{{ $p->name }}</option>
+                                            @endforeach
+                                        </select>
+                                        <button type="button" @click="editType = false" class="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">Cancel</button>
+                                    </form>
+                                </div>
                             @endif
                             @if($request->reason)
                                 <div class="text-xs text-slate-500 italic mt-1 max-w-[240px] line-clamp-2 dark:text-slate-400" title="{{ $request->reason }}">“{{ $request->reason }}”</div>
                             @endif
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">
-                            {{ $request->start_date->format('M d, Y') }} - {{ $request->end_date->format('M d, Y') }}
+                            {{ $request->start_date->format('M d, Y') }}@if($request->start_date != $request->end_date) - {{ $request->end_date->format('M d, Y') }}@endif
+                            @if($request->duration_type === 'hourly')
+                                <span class="text-xs bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-md ml-2 dark:bg-indigo-500/10 dark:text-indigo-300">{{ $request->time_range }}</span>
+                            @elseif($request->is_half_day)
+                                <span class="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md ml-2 dark:bg-slate-700 dark:text-slate-300">Half Day ({{ ucfirst($request->half_day_period) }})</span>
+                            @endif
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">
-                            {{ (float) $request->days_requested }}
+                            {{ $request->duration_label }}
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold {{ $request->status_color }}">
@@ -472,7 +509,8 @@
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                             @if(in_array($request->status, ['pending', 'approved']))
-                                <form action="{{ route('time-off.destroy', $request) }}" method="POST" class="inline">
+                                <form action="{{ route('time-off.destroy', $request) }}" method="POST" class="inline"
+                                      onsubmit="return confirm('Cancel this {{ $request->status }} request?@if($request->status === 'approved') The reserved balance is refunded and any on-leave days in this period revert to their prior status — including days already in the past.@endif')">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300">Cancel</button>

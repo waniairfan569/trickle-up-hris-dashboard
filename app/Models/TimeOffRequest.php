@@ -158,8 +158,21 @@ class TimeOffRequest extends Model
         $trim = fn ($n) => rtrim(rtrim(number_format((float) $n, 2, '.', ''), '0'), '.');
 
         if ($this->duration_type === 'hourly') {
-            $h = $trim($this->hours_requested);
-            return $h . ' hour' . (((float) $this->hours_requested) === 1.0 ? '' : 's');
+            // Show a readable "3 hours" / "1h 30m" / "45 min" instead of an
+            // obscure fraction-of-a-day decimal.
+            $mins = (int) round((float) $this->hours_requested * 60);
+            if ($mins <= 0) {
+                return '0 min';
+            }
+            $h = intdiv($mins, 60);
+            $m = $mins % 60;
+            if ($h && $m) {
+                return $h . 'h ' . $m . 'm';
+            }
+            if ($h) {
+                return $h . ' hour' . ($h === 1 ? '' : 's');
+            }
+            return $m . ' min';
         }
         if ($this->duration_type === 'half_day' || $this->is_half_day) {
             return 'Half day' . ($this->half_day_period ? ' (' . ucfirst($this->half_day_period) . ')' : '');

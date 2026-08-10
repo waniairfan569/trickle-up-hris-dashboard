@@ -51,8 +51,8 @@
                 </div>
 
                 {{-- Year --}}
-                <select x-model.number="year" @change="setYear(year)" class="h-9 rounded-lg border border-slate-200 bg-white px-2 text-xs font-bold text-slate-600 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-300">
-                    <template x-for="y in years" :key="y"><option :value="y" x-text="y"></option></template>
+                <select @change="setYear($event.target.value)" class="h-9 rounded-lg border border-slate-200 bg-white px-2 text-xs font-bold text-slate-600 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-300">
+                    <template x-for="y in years" :key="y"><option :value="y" :selected="y === year" x-text="y"></option></template>
                 </select>
 
                 {{-- Status filter --}}
@@ -260,7 +260,13 @@
             view: 'month',
             cursor: new Date(today.getFullYear(), today.getMonth(), today.getDate()),
             year: today.getFullYear(),
-            years: Array.from(yearSet).sort((a, b) => a - b),
+            // Always include the currently-selected year so the dropdown can
+            // never show a value that isn't one of its own options.
+            get years() {
+                const s = new Set(yearSet);
+                s.add(this.year);
+                return Array.from(s).sort((a, b) => a - b);
+            },
             statusFilter: 'all',
             search: '',
             selected: null,
@@ -398,8 +404,10 @@
                 this.selected = this.todayKey;
             },
             setYear(y) {
-                this.cursor = new Date(parseInt(y), this.cursor.getMonth(), this.view === 'month' ? 1 : this.cursor.getDate());
+                this.year = parseInt(y);
+                this.cursor = new Date(this.year, this.cursor.getMonth(), this.view === 'month' ? 1 : this.cursor.getDate());
                 this.selected = null;
+                this.$nextTick(() => window.lucide && window.lucide.createIcons());
             },
             selectDay(key) {
                 this.selected = (this.selected === key) ? null : key;
