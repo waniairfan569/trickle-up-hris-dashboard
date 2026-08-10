@@ -64,13 +64,31 @@ class EquipmentRequestController extends Controller
         abort_unless($request->user() && $request->user()->isAdmin(), 403);
 
         $pending = EquipmentRequest::pending()->with('employee')->oldest()->get();
+
+        // Full, paginated decision history (no more silent 50-item cap). Optional
+        // search by employee name or equipment.
+        $search = trim((string) $request->get('q', ''));
+        $applySearch = function ($query) use ($search) {
+            if ($search !== '') {
+                $query->where(function ($q) use ($search) {
+                    $q->where('equipment_name', 'like', "%{$search}%")
+                        ->orWhereHas('employee', fn ($e) => $e->where('first_name', 'like', "%{$search}%")->orWhere('last_name', 'like', "%{$search}%"));
+                });
+            }
+        };
+
+        $sort = in_array($request->get('sort'), ['newest', 'oldest', 'employee', 'equipment'], true) ? $request->get('sort') : 'newest';
         $decided = EquipmentRequest::whereIn('status', ['approved', 'rejected'])
             ->with(['employee', 'reviewer'])
-            ->latest('reviewed_at')
-            ->take(50)
-            ->get();
+            ->tap($applySearch)
+            ->when($sort === 'oldest', fn ($q) => $q->oldest('reviewed_at'))
+            ->when($sort === 'equipment', fn ($q) => $q->orderBy('equipment_name'))
+            ->when($sort === 'employee', fn ($q) => $q->orderBy(User::select('first_name')->whereColumn('users.id', 'equipment_requests.user_id')))
+            ->when(!in_array($sort, ['oldest', 'equipment', 'employee'], true), fn ($q) => $q->latest('reviewed_at'))
+            ->paginate(20, ['*'], 'decided')
+            ->withQueryString();
 
-        return view('equipment.admin', compact('pending', 'decided'));
+        return view('equipment.admin', compact('pending', 'decided', 'search', 'sort'));
     }
 
     /** Admin: approve a request. */
@@ -89,8 +107,12 @@ class EquipmentRequestController extends Controller
     {
         abort_unless($request->user() && $request->user()->isAdmin(), 403);
 
+        // A decline must always carry a reason for the employee; a note on an
+        // approval stays optional.
         $validated = $request->validate([
-            'review_note' => 'nullable|string|max:255',
+            'review_note' => ($status === 'rejected' ? 'required' : 'nullable') . '|string|max:255',
+        ], [
+            'review_note.required' => 'Please give the employee a brief reason for declining.',
         ]);
 
         $equipmentRequest->update([

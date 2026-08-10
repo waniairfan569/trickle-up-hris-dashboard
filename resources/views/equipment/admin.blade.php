@@ -17,11 +17,14 @@
     @if(session('success'))
         <div class="rounded-xl bg-emerald-50 p-4 border border-emerald-200 text-sm text-emerald-800 dark:bg-emerald-500/10 dark:border-emerald-500/20 dark:text-emerald-400 flex items-center gap-2"><i data-lucide="check-circle" class="h-5 w-5"></i>{{ session('success') }}</div>
     @endif
+    @if($errors->any())
+        <div class="rounded-xl bg-rose-50 p-4 border border-rose-200 text-sm text-rose-700 dark:bg-rose-500/10 dark:border-rose-500/20"><ul class="list-disc pl-5">@foreach($errors->all() as $e)<li>{{ $e }}</li>@endforeach</ul></div>
+    @endif
 
     {{-- Pending --}}
     <div class="space-y-3">
         @forelse($pending as $req)
-            <div class="bg-white rounded-2xl border border-amber-200 shadow-sm p-5 dark:bg-slate-800 dark:border-amber-500/30" x-data="{ showReject: false }">
+            <div class="bg-white rounded-2xl border border-amber-200 shadow-sm p-5 dark:bg-slate-800 dark:border-amber-500/30" x-data="{ showReject: false, reason: '' }">
                 <div class="flex items-start justify-between gap-3">
                     <div class="min-w-0">
                         <p class="text-sm font-extrabold text-slate-900 dark:text-white">
@@ -49,9 +52,10 @@
                 {{-- Decline reason (revealed) --}}
                 <form method="POST" action="{{ route('equipment.reject', $req->id) }}" x-show="showReject" x-cloak x-transition class="mt-2 flex flex-col sm:flex-row gap-2">
                     @csrf
-                    <input type="text" name="review_note" maxlength="255" placeholder="Reason (optional — shown to the employee)"
+                    <input type="text" name="review_note" x-model="reason" required maxlength="255" placeholder="Reason (required — shown to the employee)"
                            class="flex-1 rounded-xl border border-rose-200 px-3.5 py-2.5 text-xs dark:bg-slate-900 dark:border-rose-500/30 dark:text-white">
-                    <button type="submit" class="inline-flex items-center justify-center gap-1.5 rounded-xl bg-rose-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-rose-700">
+                    <button type="submit" :disabled="!reason.trim()"
+                            class="inline-flex items-center justify-center gap-1.5 rounded-xl bg-rose-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-rose-700 disabled:opacity-50 disabled:cursor-not-allowed">
                         <i data-lucide="ban" class="h-4 w-4"></i> Confirm decline
                     </button>
                 </form>
@@ -78,25 +82,73 @@
         @endforelse
     </div>
 
-    {{-- Decided (collapsible) --}}
-    @if($decided->count())
-        <div x-data="{ open: false }" class="bg-white rounded-2xl border border-slate-200/80 shadow-sm dark:bg-slate-800 dark:border-slate-700">
-            <button type="button" @click="open = !open" class="w-full flex items-center justify-between px-5 py-3 text-sm font-bold text-slate-700 dark:text-slate-200">
-                <span>Recently decided ({{ $decided->count() }})</span>
-                <i data-lucide="chevron-down" class="h-4 w-4 transition-transform" :class="open ? 'rotate-180' : ''"></i>
-            </button>
-            <div x-show="open" x-cloak class="divide-y divide-slate-100 dark:divide-slate-700/60 border-t border-slate-100 dark:border-slate-700/60">
-                @foreach($decided as $req)
-                    <div class="px-5 py-3 text-xs">
-                        <div class="flex items-center justify-between gap-3">
-                            <span class="font-bold text-slate-700 dark:text-slate-200">{{ optional($req->employee)->full_name ?? 'Employee' }} · {{ $req->equipment_name }}</span>
-                            <span class="inline-flex items-center rounded-full px-2 py-0.5 font-bold {{ $req->status === 'approved' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400' : 'bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400' }}">{{ ucfirst($req->status) }}</span>
-                        </div>
-                        <p class="text-slate-400 mt-0.5">{{ $req->reviewed_at ? $req->reviewed_at->diffForHumans() : '' }} · by {{ optional($req->reviewer)->full_name ?? 'Admin' }}@if($req->review_note) · “{{ $req->review_note }}”@endif</p>
-                    </div>
-                @endforeach
-            </div>
+    {{-- Decision history — searchable, sortable, paginated --}}
+    @php $dateToggle = $sort === 'newest' ? 'oldest' : 'newest'; @endphp
+    <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm dark:bg-slate-800 dark:border-slate-700 overflow-hidden">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-5 py-4 border-b border-slate-100 dark:border-slate-700/60">
+            <h2 class="text-sm font-bold text-slate-700 dark:text-slate-200">Decision history</h2>
+            <form method="GET" action="{{ route('equipment.admin') }}" class="flex items-center gap-2">
+                @if($sort !== 'newest')<input type="hidden" name="sort" value="{{ $sort }}">@endif
+                <div class="relative">
+                    <i data-lucide="search" class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400"></i>
+                    <input type="search" name="q" value="{{ $search }}" placeholder="Search employee or equipment…"
+                           class="w-full sm:w-64 rounded-xl border border-slate-300 pl-9 pr-3 py-2 text-xs shadow-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                </div>
+                @if($search !== '')
+                    <a href="{{ route('equipment.admin', $sort !== 'newest' ? ['sort' => $sort] : []) }}" class="text-xs font-semibold text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">Clear</a>
+                @endif
+            </form>
         </div>
-    @endif
+
+        @if($decided->total())
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs">
+                    <thead class="bg-slate-50 text-[11px] uppercase tracking-wider text-slate-400 dark:bg-slate-900/40">
+                        <tr>
+                            <th class="px-5 py-2.5 font-bold">
+                                <a href="{{ request()->fullUrlWithQuery(['sort' => 'employee', 'decided' => 1]) }}" class="inline-flex items-center gap-1 hover:text-slate-600 dark:hover:text-slate-200 {{ $sort === 'employee' ? 'text-slate-600 dark:text-slate-200' : '' }}">Employee @if($sort === 'employee')<i data-lucide="chevron-down" class="h-3 w-3"></i>@endif</a>
+                            </th>
+                            <th class="px-5 py-2.5 font-bold">
+                                <a href="{{ request()->fullUrlWithQuery(['sort' => 'equipment', 'decided' => 1]) }}" class="inline-flex items-center gap-1 hover:text-slate-600 dark:hover:text-slate-200 {{ $sort === 'equipment' ? 'text-slate-600 dark:text-slate-200' : '' }}">Equipment @if($sort === 'equipment')<i data-lucide="chevron-down" class="h-3 w-3"></i>@endif</a>
+                            </th>
+                            <th class="px-5 py-2.5 font-bold">Status</th>
+                            <th class="px-5 py-2.5 font-bold">
+                                <a href="{{ request()->fullUrlWithQuery(['sort' => $dateToggle, 'decided' => 1]) }}" class="inline-flex items-center gap-1 hover:text-slate-600 dark:hover:text-slate-200 {{ in_array($sort, ['newest', 'oldest'], true) ? 'text-slate-600 dark:text-slate-200' : '' }}">Decided <i data-lucide="chevron-{{ $sort === 'oldest' ? 'up' : 'down' }}" class="h-3 w-3"></i></a>
+                            </th>
+                            <th class="px-5 py-2.5 font-bold">By</th>
+                            <th class="px-5 py-2.5 font-bold">Note</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 dark:divide-slate-700/60">
+                        @foreach($decided as $req)
+                            @php $by = trim((string) optional($req->reviewer)->full_name); @endphp
+                            <tr class="hover:bg-slate-50/60 dark:hover:bg-slate-900/30">
+                                <td class="px-5 py-3 font-bold text-slate-700 dark:text-slate-200 whitespace-nowrap">{{ optional($req->employee)->full_name ?? 'Employee' }}</td>
+                                <td class="px-5 py-3 text-slate-600 dark:text-slate-300 max-w-[16rem] truncate" title="{{ $req->equipment_name }}">{{ $req->equipment_name }}</td>
+                                <td class="px-5 py-3">
+                                    <span class="inline-flex items-center rounded-full px-2 py-0.5 font-bold {{ $req->status === 'approved' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400' : 'bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400' }}">{{ ucfirst($req->status) }}</span>
+                                </td>
+                                <td class="px-5 py-3 whitespace-nowrap text-slate-500 dark:text-slate-400">
+                                    @if($req->reviewed_at)
+                                        <span title="{{ $req->reviewed_at->format('l, d M Y · H:i') }}">{{ $req->reviewed_at->format('d M Y') }} <span class="text-slate-400">· {{ $req->reviewed_at->format('g:i A') }}</span></span>
+                                    @else
+                                        <span class="text-slate-300">—</span>
+                                    @endif
+                                </td>
+                                <td class="px-5 py-3 whitespace-nowrap text-slate-500 dark:text-slate-400">{{ $by !== '' ? $by : '—' }}</td>
+                                <td class="px-5 py-3 text-slate-500 dark:text-slate-400 max-w-[18rem] truncate" title="{{ $req->review_note }}">{{ $req->review_note ?: '—' }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+            <div class="px-5 py-3 border-t border-slate-100 dark:border-slate-700/60">{{ $decided->links() }}</div>
+        @else
+            <div class="py-12 text-center">
+                <p class="text-sm font-bold text-slate-600 dark:text-slate-300">{{ $search !== '' ? 'No matches' : 'No decisions yet' }}</p>
+                <p class="text-xs text-slate-400 mt-1">{{ $search !== '' ? 'Try a different name or equipment.' : 'Approved and declined requests will appear here.' }}</p>
+            </div>
+        @endif
+    </div>
 </div>
 @endsection
