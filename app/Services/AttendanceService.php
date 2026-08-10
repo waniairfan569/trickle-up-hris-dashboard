@@ -406,49 +406,10 @@ class AttendanceService
             $record->edited_by = $approver->id;
             $record->edited_at = now();
 
-            // Recalculate logic
-            $total_break_minutes = BreakRecord::where('attendance_record_id', $record->id)->sum('duration_minutes') ?? 0;
-            if ($record->clock_in && $record->clock_out) {
-                $record->total_minutes_worked = max(0, $record->clock_in->diffInMinutes($record->clock_out) - $total_break_minutes);
-                $record->status = 'present'; // Simplistic recalculation
-                
-                $settings = AttendanceSetting::first() ?? new AttendanceSetting();
-                $workSchedule = method_exists($record->employee, 'workSchedule') ? $record->employee->workSchedule : null;
-                // Schedule times are the employee's local wall-clock — label them
-                // as such so comparisons against the (canonical) record times
-                // compare true instants.
-                $schedTz = app(\App\Services\TimezoneService::class)->getEffectiveTimezone($record->employee);
-
-                if ($workSchedule && $workSchedule->start_time) {
-                    $expectedStart = Carbon::parse($record->date->format('Y-m-d') . ' ' . $workSchedule->start_time, $schedTz);
-                    if ($record->clock_in->greaterThan($expectedStart->copy()->addMinutes($settings->grace_period_minutes))) {
-                        $record->late_minutes = $expectedStart->diffInMinutes($record->clock_in);
-                        $record->status = 'late';
-                    }
-                }
-
-                if ($workSchedule && $workSchedule->end_time) {
-                    $expectedEnd = Carbon::parse($record->date->format('Y-m-d') . ' ' . $workSchedule->end_time, $schedTz);
-                    if ($record->clock_out->greaterThan($expectedEnd->copy()->addMinutes($settings->overtime_threshold_minutes))) {
-                        $record->overtime_minutes = $expectedEnd->diffInMinutes($record->clock_out);
-                        $record->status = 'overtime';
-                    } elseif ($record->clock_out->lessThan($expectedEnd->copy()->subMinutes($settings->early_departure_threshold_minutes))) {
-                        $record->early_departure_minutes = $record->clock_out->diffInMinutes($expectedEnd);
-                        $record->status = 'early_departure';
-                    }
-                }
-
-                // Approved half-day/hourly leave wins over late/early-departure —
-                // arriving late or leaving early IS the leave.
-                $partialLeave = AttendanceRecord::partialDayLeaveFor($record->user_id, $record->date->format('Y-m-d'));
-                if ($partialLeave === 'half_day') {
-                    $record->status = 'half_day';
-                    $record->late_minutes = 0;
-                } elseif ($partialLeave === 'hourly' && $record->status === 'late') {
-                    $record->status = 'present';
-                    $record->late_minutes = 0;
-                }
-            }
+            // Derive status/late/early-departure/overtime the SAME shift-aware way
+            // as a live clock-out — not a bespoke work-schedule calc that ignored
+            // the employee's assigned shift.
+            $record->recalculate();
 
             $record->save();
 

@@ -199,10 +199,18 @@ class AttendanceRecord extends Model
     }
 
     /**
-     * Recompute status, late_minutes and total_minutes_worked from the current
-     * clock_in / clock_out (used after an admin edits the times, or on clock-out).
-     * An employee whose clock-in — in their own timezone — is after the late
-     * cutoff is marked "late". Leave / holiday / weekend records are left alone.
+     * Recompute status + minutes from the current clock_in / clock_out. This is
+     * the SINGLE source of truth for deriving a record's status, so it must stay
+     * in step with AttendanceService::clockOut():
+     *   - late      — clock-in (in the employee's own timezone) after the shift
+     *                 start + grace cutoff;
+     *   - overtime / early_departure — clock-out vs the employee's ASSIGNED SHIFT
+     *                 end for that date (shift-aware, falls back to work schedule),
+     *                 not a generic company schedule;
+     *   - present / absent otherwise.
+     * Everything is recomputed from scratch (minutes reset first) so correcting a
+     * clock-out clears a stale early-departure/overtime. Leave / holiday / weekend
+     * records are left untouched. Used on clock-out AND after any admin edit.
      */
     public function recalculate(): void
     {
@@ -215,6 +223,8 @@ class AttendanceRecord extends Model
             $this->status = 'absent';
             $this->late_minutes = 0;
             $this->total_minutes_worked = 0;
+            $this->overtime_minutes = 0;
+            $this->early_departure_minutes = 0;
             return;
         }
 
@@ -236,15 +246,34 @@ class AttendanceRecord extends Model
             $this->status = 'late';
         } else {
             $this->late_minutes = 0;
-            // On time: clear a previous "late"/"absent" (or a brand-new record's
-            // empty status) but keep overtime/early-departure.
-            if (!$this->status || in_array($this->status, ['absent', 'late', 'missing_clock_out', 'half_day'], true)) {
-                $this->status = 'present';
+            $this->status = 'present';
+        }
+
+        // Overtime / early-departure vs the employee's ASSIGNED SHIFT end for this
+        // date (shift-aware — the same source clock-out uses). Recomputed from
+        // zero so a corrected time clears any stale value; overrides late/present.
+        $this->overtime_minutes = 0;
+        $this->early_departure_minutes = 0;
+        if ($this->clock_out) {
+            $settings = \App\Models\AttendanceSetting::first() ?? new \App\Models\AttendanceSetting();
+            $expectedEnd = self::expectedEndDateTimeFor($this->employee, Carbon::parse($this->date));
+            if ($expectedEnd) {
+                $overtimeStart = $expectedEnd->copy()->addMinutes((int) $settings->overtime_threshold_minutes);
+                if ($this->clock_out->greaterThan($overtimeStart)) {
+                    $this->overtime_minutes = (int) $expectedEnd->diffInMinutes($this->clock_out);
+                    $this->status = 'overtime';
+                } else {
+                    $earlyDeparture = $expectedEnd->copy()->subMinutes((int) $settings->early_departure_threshold_minutes);
+                    if ($this->clock_out->lessThan($earlyDeparture)) {
+                        $this->early_departure_minutes = (int) $this->clock_out->diffInMinutes($expectedEnd);
+                        $this->status = 'early_departure';
+                    }
+                }
             }
         }
 
-        // Approved partial-day leave overrides lateness: a half-day shows as
-        // "half_day", an hourly leave just isn't late.
+        // Approved partial-day leave overrides late/early-departure: a half-day
+        // shows as "half_day", an hourly leave just isn't late.
         $partial = self::partialDayLeaveFor((int) $this->user_id, Carbon::parse($this->date)->toDateString());
         if ($partial === 'half_day') {
             $this->status = 'half_day';
