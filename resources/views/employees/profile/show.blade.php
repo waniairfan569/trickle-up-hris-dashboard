@@ -378,7 +378,7 @@
                     @csrf
                     <div>
                         <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Date</label>
-                        <input type="date" name="date" required class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                        <input type="date" name="date" id="att-add-date" required class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Clock in</label>
@@ -467,14 +467,49 @@
                     ? 'rounded-full bg-brand-500 px-3 py-1 text-[11px] font-bold text-slate-900'
                     : 'rounded-full bg-slate-100 px-3 py-1 text-[11px] font-bold text-slate-500 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300';
             @endphp
+            @php
+                $attView = request('av') === 'calendar' ? 'calendar' : 'list';
+                $viewLink = fn ($v) => request()->fullUrlWithQuery(['av' => $v, 'section' => 'timetracking']) . '#attendance-card';
+                if ($attView === 'calendar') {
+                    $attTitle = $monthCursor->format('F Y');
+                }
+                // Shared status → colour classes (used by the calendar tiles + legend).
+                $statusChip = fn ($s) => match ($s) {
+                    'present'           => 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400',
+                    'absent'            => 'bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-400',
+                    'late'              => 'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400',
+                    'early_departure'   => 'bg-yellow-50 text-yellow-700 dark:bg-yellow-500/10 dark:text-yellow-400',
+                    'overtime'          => 'bg-purple-50 text-purple-700 dark:bg-purple-500/10 dark:text-purple-400',
+                    'half_day'          => 'bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400',
+                    'on_leave'          => 'bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400',
+                    'missing_clock_out' => 'bg-orange-50 text-orange-700 dark:bg-orange-500/10 dark:text-orange-400',
+                    default             => 'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-300',
+                };
+                if ($attView === 'calendar') {
+                    $calStart = $monthCursor->copy()->startOfMonth();
+                    $calEnd   = $monthCursor->copy()->endOfMonth();
+                    $calByDate = \App\Models\AttendanceRecord::where('user_id', $employee->id)
+                        ->whereBetween('date', [$calStart->toDateString(), $calEnd->toDateString()])
+                        ->get()->keyBy(fn ($r) => \Carbon\Carbon::parse($r->date)->toDateString());
+                    $gridStart = $calStart->copy()->startOfWeek(\Carbon\Carbon::SUNDAY);
+                    $gridEnd   = $calEnd->copy()->endOfWeek(\Carbon\Carbon::SATURDAY);
+                }
+            @endphp
             <div id="attendance-card" class="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex flex-wrap items-center justify-between gap-3">
                 <h2 class="text-sm font-bold text-slate-800 dark:text-white">{{ $attTitle }}</h2>
                 <div class="flex flex-wrap items-center gap-1.5">
-                    <a href="{{ $attLink('recent') }}" class="{{ $attPill($attRange === 'recent') }}">Recent</a>
-                    <a href="{{ $attLink('week') }}" class="{{ $attPill($attRange === 'week') }}">This week</a>
-                    <a href="{{ $attLink('last_week') }}" class="{{ $attPill($attRange === 'last_week') }}">Last week</a>
+                    {{-- List / Calendar view toggle --}}
+                    <div class="inline-flex items-center rounded-full bg-slate-100 dark:bg-slate-700 p-0.5 mr-1">
+                        <a href="{{ $viewLink('list') }}" class="rounded-full px-3 py-1 text-[11px] font-bold {{ $attView === 'list' ? 'bg-white text-slate-800 shadow-sm dark:bg-slate-800 dark:text-white' : 'text-slate-500 dark:text-slate-300' }}">List</a>
+                        <a href="{{ $viewLink('calendar') }}" class="rounded-full px-3 py-1 text-[11px] font-bold {{ $attView === 'calendar' ? 'bg-white text-slate-800 shadow-sm dark:bg-slate-800 dark:text-white' : 'text-slate-500 dark:text-slate-300' }}">Calendar</a>
+                    </div>
+                    @if($attView === 'list')
+                        <a href="{{ $attLink('recent') }}" class="{{ $attPill($attRange === 'recent') }}">Recent</a>
+                        <a href="{{ $attLink('week') }}" class="{{ $attPill($attRange === 'week') }}">This week</a>
+                        <a href="{{ $attLink('last_week') }}" class="{{ $attPill($attRange === 'last_week') }}">Last week</a>
+                    @endif
                     {{-- Month navigator: step or jump to ANY month/year --}}
-                    <div class="inline-flex items-center rounded-full border overflow-hidden {{ $attRange === 'month' ? 'border-brand-400 bg-brand-50 dark:bg-brand-500/10 dark:border-brand-500/40' : 'border-slate-200 dark:border-slate-600' }}">
+                    <div class="inline-flex items-center rounded-full border overflow-hidden {{ ($attRange === 'month' || $attView === 'calendar') ? 'border-brand-400 bg-brand-50 dark:bg-brand-500/10 dark:border-brand-500/40' : 'border-slate-200 dark:border-slate-600' }}">
                         <a href="{{ $monthLink($monthCursor->copy()->subMonthNoOverflow()->format('Y-m')) }}" title="Previous month" class="flex items-center px-2 py-1.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700"><i data-lucide="chevron-left" class="h-3.5 w-3.5"></i></a>
                         <input type="month" value="{{ $monthCursor->format('Y-m') }}" max="{{ now()->format('Y-m') }}" title="Pick a month"
                                onchange="if(this.value) window.location.href='{{ $monthLink('__M__') }}'.replace('__M__', this.value)"
@@ -483,6 +518,51 @@
                     </div>
                 </div>
             </div>
+
+            @if($attView === 'calendar')
+                {{-- Month calendar — one tile per day, colour-coded by status. --}}
+                <div class="p-4">
+                    <div class="grid grid-cols-7 text-center text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-1">
+                        @foreach(['Sun','Mon','Tue','Wed','Thu','Fri','Sat'] as $dn)<div class="py-1">{{ $dn }}</div>@endforeach
+                    </div>
+                    <div class="grid grid-cols-7 gap-1">
+                        @php $day = $gridStart->copy(); @endphp
+                        @while($day->lte($gridEnd))
+                            @php
+                                $ds = $day->toDateString();
+                                $inMonth = $day->month === $monthCursor->month;
+                                $rec = $calByDate[$ds] ?? null;
+                                $st = $rec->status ?? null;
+                                $show = $inMonth && $rec && $st !== 'weekend';
+                                $ci = $rec && $rec->clock_in ? $tzSvc->formatForUser($rec->clock_in, $employee, 'g:i A') : null;
+                                $co = $rec && $rec->clock_out ? $tzSvc->formatForUser($rec->clock_out, $employee, 'g:i A') : null;
+                                $isToday = $day->isToday();
+                            @endphp
+                            <div class="min-h-[86px] rounded-xl border p-1.5 {{ $inMonth ? 'border-slate-100 bg-white dark:border-slate-700 dark:bg-slate-800' : 'border-transparent bg-slate-50/60 dark:bg-slate-900/30' }}">
+                                <div class="flex items-center justify-between">
+                                    <span class="inline-flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-bold {{ $isToday ? 'bg-brand-500 text-slate-900' : ($inMonth ? 'text-slate-600 dark:text-slate-300' : 'text-slate-300 dark:text-slate-600') }}">{{ $day->day }}</span>
+                                    @if($canEditAtt && $inMonth && !$day->isFuture())
+                                        <button type="button" title="Add / edit this day"
+                                                onclick="var d=document.getElementById('att-add-date'); if(d){d.value='{{ $ds }}'; d.scrollIntoView({behavior:'smooth',block:'center'}); try{d.focus();}catch(e){}}"
+                                                class="text-slate-300 hover:text-brand-600 dark:hover:text-brand-400"><i data-lucide="pencil" class="h-3 w-3"></i></button>
+                                    @endif
+                                </div>
+                                @if($show)
+                                    <span class="mt-1 inline-flex items-center rounded-md px-1.5 py-0.5 text-[9px] font-bold capitalize {{ $statusChip($st) }}">{{ str_replace('_',' ',$st) }}</span>
+                                    @if($ci)<div class="mt-1 text-[10px] leading-tight text-slate-500 dark:text-slate-400">{{ $ci }}@if($co) – {{ $co }}@endif</div>@endif
+                                @endif
+                            </div>
+                            @php $day->addDay(); @endphp
+                        @endwhile
+                    </div>
+                    <div class="mt-3 flex flex-wrap items-center gap-1.5">
+                        @foreach(['present'=>'Present','late'=>'Late','early_departure'=>'Early','overtime'=>'Overtime','half_day'=>'Half day','on_leave'=>'On leave','absent'=>'Absent'] as $k => $lbl)
+                            <span class="inline-flex items-center rounded px-1.5 py-0.5 text-[9px] font-bold {{ $statusChip($k) }}">{{ $lbl }}</span>
+                        @endforeach
+                        @if($canEditAtt)<span class="text-[10px] text-slate-400">· click a day’s pencil to add/edit it above</span>@endif
+                    </div>
+                </div>
+            @else
             <div class="overflow-x-auto">
                 <table class="w-full text-left">
                     <thead class="bg-slate-50 dark:bg-slate-900/40 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100 dark:border-slate-700">
@@ -538,6 +618,7 @@
                     @endforelse
                 </table>
             </div>
+            @endif
         </div>
     </div>
 
