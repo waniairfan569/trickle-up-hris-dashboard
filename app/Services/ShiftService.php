@@ -59,15 +59,21 @@ class ShiftService
     public function getExpectedTimesForUserOnDate(User $user, Carbon $date): ?array
     {
         $shift = $this->getShiftForUserOnDate($user, $date);
-        
+
         if (!$shift) {
             return null;
         }
 
-        $expectedStart = Carbon::parse($date->toDateString() . ' ' . $shift->start_time);
-        
-        $expectedEnd = Carbon::parse($date->toDateString() . ' ' . $shift->end_time);
-        
+        // Shift start/end are wall-clock times in the EMPLOYEE's timezone. Parse them
+        // in that timezone so the resulting instants line up with the (canonically
+        // stored) clock-in/out — otherwise on a UTC server an 18:00 finish is read as
+        // 18:00 UTC and every on-time clock-out looks like an early departure.
+        $tz = app(\App\Services\TimezoneService::class)->getEffectiveTimezone($user);
+
+        $expectedStart = Carbon::parse($date->toDateString() . ' ' . $shift->start_time, $tz);
+
+        $expectedEnd = Carbon::parse($date->toDateString() . ' ' . $shift->end_time, $tz);
+
         // If the shift crosses midnight (e.g. 22:00 to 06:00), the end time is on the next day
         if ($shift->crosses_midnight) {
             $expectedEnd->addDay();

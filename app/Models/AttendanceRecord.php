@@ -126,7 +126,9 @@ class AttendanceRecord extends Model
 
         $sched = method_exists($employee, 'workSchedule') ? $employee->workSchedule : null;
         if ($sched && $sched->end_time) {
-            return Carbon::parse($date->toDateString() . ' ' . $sched->end_time);
+            // Parse in the employee's timezone so the instant matches the stored clock-out.
+            $tz = app(\App\Services\TimezoneService::class)->getEffectiveTimezone($employee);
+            return Carbon::parse($date->toDateString() . ' ' . $sched->end_time, $tz);
         }
 
         return null;
