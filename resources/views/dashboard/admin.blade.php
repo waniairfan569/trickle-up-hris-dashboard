@@ -295,7 +295,7 @@
                                     {{ $req->employee->initials ?? 'EM' }}
                                 </div>
                                 <div class="min-w-0">
-                                    <h4 class="text-sm font-bold text-slate-950 dark:text-white">{{ $req->employee->full_name ?? 'Unknown' }}</h4>
+                                    <h4 class="text-sm font-bold text-slate-950 dark:text-white truncate">{{ $req->employee->full_name ?? 'Unknown' }}</h4>
                                     <p class="text-[11px] text-slate-400">
                                         {{ $req->employee->department->name ?? 'Core' }} &bull; {{ $req->policy->name ?? 'Time Off' }}
                                     </p>
@@ -307,11 +307,11 @@
                                 </div>
                             </div>
 
-                            <div class="flex items-center gap-4 pl-13 sm:pl-0">
-                                <div class="text-left sm:text-right">
-                                    <span class="text-sm font-extrabold text-slate-900 dark:text-white">{{ (float) $req->days_requested }} {{ \Illuminate\Support\Str::plural('day', (float) $req->days_requested) }}</span>
+                            <div class="flex items-center gap-4 pl-13 sm:pl-0 shrink-0">
+                                <div class="text-left sm:text-right whitespace-nowrap">
+                                    <span class="text-sm font-extrabold text-slate-900 dark:text-white">{{ $req->duration_label }}</span>
                                     <p class="text-[10px] text-slate-400 font-medium">
-                                        {{ $req->start_date->format('M d') }} - {{ $req->end_date->format('M d') }}
+                                        {{ $req->start_date->format('M d') }}@if($req->start_date->ne($req->end_date)) – {{ $req->end_date->format('M d') }}@endif
                                     </p>
                                 </div>
 
