@@ -169,7 +169,11 @@
                             $fullName = $emp->user->last_name
                                 ? trim($emp->user->last_name . ', ' . $emp->user->first_name)
                                 : ($emp->user->full_name ?? 'Unknown');
-                            $title = $emp->job_title ?? 'Employee';
+                            // Prefer the employee record's title, fall back to the user's (the two
+                            // copies can drift). "Employee" is the auto-created placeholder for a
+                            // person with no title, so treat it — and blanks — as "not set".
+                            $rawTitle = $emp->job_title ?: ($emp->user->job_title ?? null);
+                            $title = ($rawTitle && strcasecmp(trim($rawTitle), 'Employee') !== 0) ? $rawTitle : null;
                             $deptName = $emp->department->name ?? 'Unassigned';
                             $roleSlug = $emp->user->role->slug ?? 'employee';
 
@@ -205,7 +209,11 @@
                                     <div class="min-w-0">
                                         <span class="font-bold text-slate-900 dark:text-white block group-hover:text-brand-600 transition truncate">{{ $fullName }}</span>
                                         <span class="text-[10px] text-slate-400 block truncate">{{ $emp->user->email ?? $emp->email }}</span>
-                                        <span class="text-[11px] font-medium text-slate-600 dark:text-slate-300 block truncate">{{ $title }}</span>
+                                        @if($title)
+                                            <span class="text-[11px] font-medium text-slate-600 dark:text-slate-300 block truncate">{{ $title }}</span>
+                                        @else
+                                            <span class="text-[11px] italic text-slate-400 block truncate">No job title set</span>
+                                        @endif
                                         @if($emp->user->jobLocation)
                                             <span class="mt-1 inline-flex items-center rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600 dark:bg-slate-700 dark:text-slate-300">
                                                 {{ $emp->user->jobLocation->is_remote ? '🏠' : '📍' }} {{ $emp->user->jobLocation->name }}
