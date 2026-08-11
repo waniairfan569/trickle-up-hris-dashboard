@@ -196,11 +196,18 @@ class EmployeeProfileController extends Controller
             $employee->additionalManagers()->sync($additionalManagerIds);
         }
 
-        // Keep the Employee row's department in sync with the profile: the
-        // directory reads employees.department_id, but the profile writes
-        // users.department_id — mirror it so both always agree.
+        // Keep the Employee row's denormalised copies in sync with the profile:
+        // the directory reads employees.{first_name,last_name,job_title,
+        // department_id} for display + sort + search, but the profile writes the
+        // users.* columns — mirror them so the two can never drift (which is what
+        // made a profile-set job title still read as "Employee" in the directory).
         \App\Models\Employee::where('user_id', $employee->id)
-            ->update(['department_id' => $employee->department_id]);
+            ->update([
+                'department_id' => $employee->department_id,
+                'first_name'    => $employee->first_name,
+                'last_name'     => $employee->last_name,
+                'job_title'     => $employee->job_title,
+            ]);
 
         // Bug #3 Fix: Redirect to view mode after save (not back to ?edit=1)
         $redirect = redirect()->route('employees.profile', $employee->id)
