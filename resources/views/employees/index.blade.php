@@ -169,11 +169,15 @@
                             $fullName = $emp->user->last_name
                                 ? trim($emp->user->last_name . ', ' . $emp->user->first_name)
                                 : ($emp->user->full_name ?? 'Unknown');
-                            // Prefer the employee record's title, fall back to the user's (the two
-                            // copies can drift). "Employee" is the auto-created placeholder for a
-                            // person with no title, so treat it — and blanks — as "not set".
-                            $rawTitle = $emp->job_title ?: ($emp->user->job_title ?? null);
-                            $title = ($rawTitle && strcasecmp(trim($rawTitle), 'Employee') !== 0) ? $rawTitle : null;
+                            // job_title lives in two places that drift: users.job_title (the source
+                            // of truth the profile edits) and the denormalised employees.job_title
+                            // copy, which is often the literal "Employee" placeholder. Normalise
+                            // each (blank OR "Employee" => unset), then prefer the user's title.
+                            $normTitle = function ($v) {
+                                $v = trim((string) $v);
+                                return ($v !== '' && strcasecmp($v, 'Employee') !== 0) ? $v : null;
+                            };
+                            $title = $normTitle($emp->user->job_title ?? null) ?? $normTitle($emp->job_title);
                             $deptName = $emp->department->name ?? 'Unassigned';
                             $roleSlug = $emp->user->role->slug ?? 'employee';
 
