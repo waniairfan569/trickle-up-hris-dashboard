@@ -85,7 +85,8 @@
                         </thead>
                         <tbody class="divide-y divide-slate-100 dark:divide-slate-700/60">
                             @foreach($events as $event)
-                                <tr x-data="eventRow({ id: {{ $event->id }}, published: {{ $event->is_published ? 'true' : 'false' }}, pinned: {{ $event->is_pinned ? 'true' : 'false' }} })" class="hover:bg-slate-50/60 dark:hover:bg-slate-900/30">
+                                <tr x-data="eventRow({ id: {{ $event->id }}, published: {{ $event->is_published ? 'true' : 'false' }}, pinned: {{ $event->is_pinned ? 'true' : 'false' }} })" class="hover:bg-slate-50/60 dark:hover:bg-slate-900/30"
+                                    x-on:open-event-edit.window="if (String($event.detail.id) === String(id)) { editOpen = true; $nextTick(() => window.lucide && window.lucide.createIcons()); }">
                                     <td class="px-5 py-3">
                                         <div class="flex items-center gap-2 font-bold text-slate-800 dark:text-white">
                                             <span class="h-2.5 w-2.5 rounded-full shrink-0" style="background:{{ $event->color_hex }}"></span>
@@ -307,7 +308,7 @@
                     <button type="button" x-show="!modal.published" @click="publish(modal.id)" class="inline-flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-emerald-700"><i data-lucide="send" class="h-4 w-4"></i> Publish</button>
                     <button type="button" x-show="modal.published" @click="unpublish(modal.id)" class="inline-flex items-center justify-center gap-1.5 rounded-xl bg-amber-50 px-4 py-2.5 text-sm font-bold text-amber-700 hover:bg-amber-100 dark:bg-amber-500/10 dark:text-amber-400"><i data-lucide="eye-off" class="h-4 w-4"></i> Hide</button>
                     <button type="button" @click="pin(modal.id)" class="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200"><i data-lucide="pin" class="h-4 w-4"></i> <span x-text="modal.pinned ? 'Unpin' : 'Pin'"></span></button>
-                    <button type="button" @click="tab='list'; modal.open=false" class="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200"><i data-lucide="pencil" class="h-4 w-4"></i> Edit</button>
+                    <button type="button" @click="editFromCalendar(modal.id)" class="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200"><i data-lucide="pencil" class="h-4 w-4"></i> Edit</button>
                     <form :action="`/events/${modal.id}`" method="POST" class="col-span-2" onsubmit="return confirm('Delete this event?');">@csrf @method('DELETE')<button type="submit" class="w-full inline-flex items-center justify-center gap-1.5 rounded-xl bg-rose-50 px-4 py-2.5 text-sm font-bold text-rose-700 hover:bg-rose-100 dark:bg-rose-500/10 dark:text-rose-400"><i data-lucide="trash-2" class="h-4 w-4"></i> Delete</button></form>
                 </div>
             </div>
@@ -395,6 +396,13 @@
                 this.$nextTick(evRefreshIcons);
             },
             onEventUpdated(detail) { if (this.calendar) this.calendar.refetchEvents(); },
+            // Open the event's edit popup straight from the calendar (reuses the
+            // row's server-prefilled edit modal, which is teleported to <body>).
+            editFromCalendar(id) {
+                this.modal.open = false;
+                window.dispatchEvent(new CustomEvent('open-event-edit', { detail: { id } }));
+                this.$nextTick(evRefreshIcons);
+            },
         };
     }
 </script>
