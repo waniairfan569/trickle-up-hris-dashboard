@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Storage;
 
 class CompanyDocument extends Model
 {
@@ -40,6 +41,36 @@ class CompanyDocument extends Model
     public function template()
     {
         return $this->belongsTo(DocumentTemplate::class, 'template_id');
+    }
+
+    /**
+     * The editable Word source for this document: the file itself while it's
+     * still a Word doc, otherwise the ".source.docx" kept beside the PDF when it
+     * was converted. Null when there's nothing editable (e.g. a natively-uploaded
+     * PDF). This is what lets an admin reopen a sent document, tweak its tokens or
+     * wording, re-convert and send it to someone else.
+     */
+    public function editableWordPath(): ?string
+    {
+        if (in_array($this->file_extension, ['doc', 'docx'], true)
+            && $this->file_path && Storage::exists($this->file_path)) {
+            return $this->file_path;
+        }
+
+        if ($this->file_extension === 'pdf' && $this->file_path) {
+            $source = preg_replace('/\.pdf$/i', '.source.docx', $this->file_path);
+            if ($source !== $this->file_path && Storage::exists($source)) {
+                return $source;
+            }
+        }
+
+        return null;
+    }
+
+    /** Whether this document can be (re)opened in the browser Word editor. */
+    public function isWordEditable(): bool
+    {
+        return $this->editableWordPath() !== null;
     }
 
     /** This document can be sent for e-signature once a template is set up. */

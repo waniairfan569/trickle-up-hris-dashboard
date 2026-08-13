@@ -179,12 +179,21 @@ class CompanyDocumentController extends Controller
      */
     public function editContent(CompanyDocument $document)
     {
-        abort_unless(in_array($document->file_extension, ['doc', 'docx'], true), 404);
+        // Edit the Word source: the file itself while it's still Word, or the
+        // ".source.docx" kept beside the PDF once converted — so a document that
+        // has already been converted (and sent) can be reopened for editing here
+        // instead of being stuck as a PDF.
+        $docx = $document->editableWordPath();
+        abort_unless($docx, 404);
 
+        $service = app(\App\Services\DocumentConversionService::class);
         $htmlPath = $this->editHtmlPath($document);
-        $html = Storage::exists($htmlPath)
+        // A converted (PDF) document reopens fresh from its kept Word source (it
+        // carries the tokens/edits); an in-progress Word edit keeps its cached
+        // HTML so unsaved edits survive a page reload.
+        $html = ($document->file_extension !== 'pdf' && Storage::exists($htmlPath))
             ? Storage::get($htmlPath)
-            : app(\App\Services\DocumentConversionService::class)->toEditableHtml($document->file_path);
+            : $service->toEditableHtml($docx);
 
         if ($html === null) {
             return redirect()->route('company-documents.edit', $document)
@@ -201,7 +210,7 @@ class CompanyDocumentController extends Controller
 
         // Fonts this document needs that the server can't render — the cause of
         // shifted layout in the converted PDF.
-        $missingFonts = app(\App\Services\DocumentConversionService::class)->missingFonts($document->file_path);
+        $missingFonts = $service->missingFonts($docx);
 
         return view('company-documents.edit-content', compact('document', 'html', 'tokenGroups', 'missingFonts'));
     }
@@ -209,14 +218,16 @@ class CompanyDocumentController extends Controller
     /** Convert the (edited) HTML to PDF and continue to field placement. */
     public function convertToPdf(Request $request, CompanyDocument $document)
     {
-        abort_unless(in_array($document->file_extension, ['doc', 'docx'], true), 404);
+        $docx = $document->editableWordPath();
+        abort_unless($docx, 404);
 
         $request->validate(['html' => 'required|string|max:8000000']);
 
-        $target = preg_replace('/\.[^.]+$/', '.pdf', $document->file_path);
-        if ($target === $document->file_path) {
-            $target .= '.pdf';
-        }
+        // The PDF sits beside the Word source, cleanly named (strip .source.docx
+        // / .docx), so re-converting overwrites the same PDF rather than piling up
+        // ".source.pdf"-style names.
+        $base = preg_replace('/(\.source)?\.docx?$/i', '', $docx);
+        $target = ($base !== $docx ? $base : preg_replace('/\.[^.]+$/', '', $docx)) . '.pdf';
 
         $pdfPath = app(\App\Services\DocumentConversionService::class)
             ->htmlToPdf($request->input('html'), $target);
@@ -236,7 +247,10 @@ class CompanyDocumentController extends Controller
      */
     public function convertOriginal(Request $request, CompanyDocument $document)
     {
-        abort_unless(in_array($document->file_extension, ['doc', 'docx'], true), 404);
+        // Word source: the file itself, or the kept ".source.docx" for a document
+        // already converted to PDF (so it can be re-tokenised / reworded).
+        $docx = $document->editableWordPath();
+        abort_unless($docx, 404);
 
         $service = app(\App\Services\DocumentConversionService::class);
 
@@ -249,13 +263,13 @@ class CompanyDocumentController extends Controller
         $tokens = json_decode((string) $request->input('tokens', '[]'), true) ?: [];
         $hadChanges = (is_array($edits) && $edits) || (is_array($tokens) && $tokens);
 
-        $source = $document->file_path;
+        $source = $docx;
         $injected = null;
         if (is_array($edits) && $edits) {
-            $injected = $service->applyEditsToDocx($document->file_path, $edits);
+            $injected = $service->applyEditsToDocx($docx, $edits);
         }
         if (!$injected && is_array($tokens) && $tokens) {
-            $injected = $service->injectTokensIntoDocx($document->file_path, $tokens);
+            $injected = $service->injectTokensIntoDocx($docx, $tokens);
         }
         if ($injected) {
             $source = $injected;
@@ -296,9 +310,21 @@ class CompanyDocumentController extends Controller
     /** Swap the stored Word file for the converted PDF and continue to placement. */
     private function swapToPdf(CompanyDocument $document, string $pdfPath)
     {
-        // Drop the Word file and the edit HTML — only the PDF remains.
+        // Keep the editable Word source beside the PDF so the document can be
+        // reopened and edited later. convertOriginal may already have kept a
+        // richer token-injected source — don't clobber it; otherwise (e.g. the
+        // HTML-editor path, or a first convert) preserve the current .docx.
+        $srcTarget = preg_replace('/\.pdf$/i', '.source.docx', $pdfPath);
+        if (!Storage::exists($srcTarget)
+            && in_array($document->file_extension, ['doc', 'docx'], true)
+            && $document->file_path && Storage::exists($document->file_path)) {
+            Storage::copy($document->file_path, $srcTarget);
+        }
+
+        // Drop the working Word file and the edit HTML — the PDF (and the kept
+        // .source.docx) remain.
         foreach ([$document->file_path, $this->editHtmlPath($document)] as $old) {
-            if ($old && $old !== $pdfPath && Storage::exists($old)) {
+            if ($old && $old !== $pdfPath && $old !== $srcTarget && Storage::exists($old)) {
                 Storage::delete($old);
             }
         }
