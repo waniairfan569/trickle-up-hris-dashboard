@@ -32,6 +32,7 @@ class NotificationCategories
         'LatenessDeductionNotification'        => 'attendance',
         'TimeTrackingReminder'                 => 'attendance',
         'AnnouncementPosted'                   => 'announcements',
+        'EventPublishedNotification'           => 'events',
     ];
 
     /** Category key => [label, description, icon]. Order = display order. */
@@ -45,6 +46,7 @@ class NotificationCategories
         'pay_performance' => ['Pay & performance', 'Pay reviews and probation outcomes.', 'badge-dollar-sign'],
         'attendance'      => ['Attendance', 'Clock-in reminders and lateness warnings.', 'clock'],
         'announcements'   => ['Announcements', 'Company-wide announcements from your team.', 'megaphone'],
+        'events'          => ['Company events', 'New events published to your company calendar.', 'calendar-days'],
     ];
 
     /** Categories whose EMAIL channel can't be disabled (compliance / records). */

@@ -585,6 +585,30 @@
                 }
             </script>
 
+            <!-- Upcoming events -->
+            @if(($upcomingEvents ?? collect())->isNotEmpty())
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 dark:bg-slate-800 dark:border-slate-700/80">
+                    <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-700/60">
+                        <h2 class="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2"><i data-lucide="calendar-days" class="h-4 w-4 text-brand-500"></i> Upcoming events</h2>
+                        <a href="{{ route('events.employee-calendar') }}" class="text-xs font-bold text-brand-600 hover:text-brand-700 dark:text-brand-400">View all →</a>
+                    </div>
+                    <div class="divide-y divide-slate-100 dark:divide-slate-700/60">
+                        @foreach($upcomingEvents as $event)
+                            <div class="flex items-start gap-3 px-6 py-3.5">
+                                <span class="mt-1 h-2.5 w-2.5 rounded-full shrink-0" style="background:{{ $event->color_hex }}"></span>
+                                <div class="min-w-0 flex-1">
+                                    <p class="text-sm font-bold text-slate-800 dark:text-white truncate">@if($event->is_pinned)<i data-lucide="pin" class="h-3 w-3 inline -mt-0.5 text-brand-500"></i> @endif{{ $event->title }}</p>
+                                    <p class="text-xs text-slate-400">
+                                        {{ $event->date->format('D, d M') }}@if($event->is_multi_day) – {{ $event->end_date->format('d M') }}@endif
+                                        @if($event->location) · {{ $event->location }} @endif
+                                    </p>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
+
             <!-- Announcements -->
             @include('partials.announcements')
 

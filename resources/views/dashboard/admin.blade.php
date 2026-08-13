@@ -365,6 +365,25 @@
     <!-- RIGHT COLUMN -->
     <div class="space-y-6">
         @include('partials.announcements')
+
+        {{-- Events summary --}}
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-6 dark:bg-slate-800 dark:border-slate-700/80">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2"><i data-lucide="calendar-days" class="h-4 w-4 text-brand-500"></i> Events</h2>
+                <a href="{{ route('events.index') }}" class="text-xs font-bold text-brand-600 hover:text-brand-700 dark:text-brand-400">Manage events →</a>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div class="rounded-xl bg-slate-50 p-4 dark:bg-slate-900/40">
+                    <div class="text-2xl font-extrabold text-slate-900 dark:text-white">{{ $eventStats['this_month'] ?? 0 }}</div>
+                    <div class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-0.5">This month</div>
+                </div>
+                <div class="rounded-xl bg-amber-50 p-4 dark:bg-amber-500/10">
+                    <div class="text-2xl font-extrabold text-amber-700 dark:text-amber-400">{{ $eventStats['drafts'] ?? 0 }}</div>
+                    <div class="text-[11px] font-semibold text-amber-600 dark:text-amber-400/80 mt-0.5">Drafts (unpublished)</div>
+                </div>
+            </div>
+        </div>
+
         @include('dashboard.partials.timeoff-balances-card')
     </div>{{-- /RIGHT COLUMN --}}
 

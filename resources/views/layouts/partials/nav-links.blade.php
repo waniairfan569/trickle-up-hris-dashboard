@@ -80,6 +80,10 @@
             <i data-lucide="calendar" class="h-4 w-4 shrink-0"></i><span class="flex-1">Time Off Requests</span>
             {!! $navBadge($nav['timeoff']) !!}
         </a>
+        <a href="{{ route('events.employee-calendar') }}"
+           class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ request()->routeIs('events.employee-calendar') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">
+            <i data-lucide="calendar-days" class="h-4 w-4 shrink-0"></i><span class="flex-1">Calendar</span>
+        </a>
         <a href="{{ route('performance.index') }}"
            class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'performance') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">
             <i data-lucide="award" class="h-4 w-4 shrink-0"></i><span class="flex-1">Performance Reviews</span>

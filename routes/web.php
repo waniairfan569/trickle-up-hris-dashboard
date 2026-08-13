@@ -294,6 +294,10 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
     Route::post('policies/{companyPolicy}/acknowledge', [\App\Http\Controllers\PolicyAcknowledgmentController::class, 'acknowledge'])->name('policies.acknowledge');
     Route::get('policies/{companyPolicy}/download', [\App\Http\Controllers\CompanyPolicyController::class, 'download'])->name('policies.download');
 
+    // Company calendar — every authenticated user sees the events published to them.
+    Route::get('calendar', [\App\Http\Controllers\EventController::class, 'employeeCalendar'])->name('events.employee-calendar');
+    Route::get('calendar/data', [\App\Http\Controllers\EventController::class, 'employeeCalendarData'])->name('events.employee-calendar-data');
+
     // Company Documents — employee library (access controlled inside controller)
     Route::get('document-library', [\App\Http\Controllers\CompanyDocumentController::class, 'employeeIndex'])->name('document-library.index');
     Route::get('document-library/{document}/download', [\App\Http\Controllers\CompanyDocumentController::class, 'download'])->name('document-library.download');
@@ -430,7 +434,11 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
             Route::get('preview', [\App\Http\Controllers\AttendanceReportController::class, 'previewReport'])->name('preview');
         });
 
-        // Company Events (admin manage; shown to all on the dashboard)
+        // Company Events (admin manage; published events shown to employees)
+        Route::get('events/calendar-data', [\App\Http\Controllers\EventController::class, 'calendarData'])->name('events.calendar-data');
+        Route::post('events/{event}/publish', [\App\Http\Controllers\EventController::class, 'publish'])->name('events.publish');
+        Route::post('events/{event}/unpublish', [\App\Http\Controllers\EventController::class, 'unpublish'])->name('events.unpublish');
+        Route::post('events/{event}/toggle-pin', [\App\Http\Controllers\EventController::class, 'togglePin'])->name('events.toggle-pin');
         Route::post('events/{event}/archive', [\App\Http\Controllers\EventController::class, 'archive'])->name('events.archive');
         Route::post('events/{event}/restore', [\App\Http\Controllers\EventController::class, 'restore'])->name('events.restore');
         Route::resource('events', \App\Http\Controllers\EventController::class)->only(['index', 'store', 'update', 'destroy']);

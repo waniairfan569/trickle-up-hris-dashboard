@@ -53,12 +53,32 @@ class DashboardController extends Controller
             ->get();
 
         $celebrations = $this->upcomingCelebrations();
-        $events = $this->companyEvents();
+        $events = $this->companyEvents($user);
         $holidays = $this->companyHolidays();
         $outOfOffice = $this->outOfOffice();
         $onLeavePeople = \App\Models\TimeOffRequest::onLeaveToday();
 
-        $shared = compact('upcomingTimeOff', 'outOfOfficeCount', 'outOfOffice', 'timeOffBalances', 'celebrations', 'events', 'holidays', 'onLeavePeople');
+        // Next few published events this user can see (pinned first) — powers the
+        // "Upcoming events" dashboard card.
+        $upcomingEvents = \App\Models\Event::active()->visibleTo($user)
+            ->where(function ($q) {
+                $q->whereDate('date', '>=', today())->orWhereDate('end_date', '>=', today());
+            })
+            ->orderByDesc('is_pinned')->orderBy('date')
+            ->take(3)->get();
+
+        // Admin events summary card.
+        $eventStats = null;
+        if ($user->isAdmin()) {
+            $eventStats = [
+                'this_month' => \App\Models\Event::active()
+                    ->whereBetween('date', [today()->startOfMonth()->toDateString(), today()->endOfMonth()->toDateString()])
+                    ->count(),
+                'drafts' => \App\Models\Event::active()->where('is_published', false)->count(),
+            ];
+        }
+
+        $shared = compact('upcomingTimeOff', 'outOfOfficeCount', 'outOfOffice', 'timeOffBalances', 'celebrations', 'events', 'holidays', 'onLeavePeople', 'upcomingEvents', 'eventStats');
 
         // super_admin/hr_admin → dashboard.admin
         if ($user->isAdmin()) {
@@ -79,12 +99,19 @@ class DashboardController extends Controller
      * start and end dates. A multi-day event is a single ranged row (the client
      * renders "28 Jul – 15 Aug"), not one row per day it covers.
      */
-    protected function companyEvents()
+    protected function companyEvents($user = null)
     {
         $windowStart = today()->copy()->subDays(31);
         $windowEnd = today()->copy()->addDays(180);
 
-        return \App\Models\Event::active()
+        $query = \App\Models\Event::active();
+        // Employees only see events published to them; admins see all active events
+        // (published + drafts) so they can preview what's on the calendar.
+        if ($user && ! $user->isAdmin()) {
+            $query->published()->visibleTo($user);
+        }
+
+        return $query
             ->whereDate('date', '<=', $windowEnd)
             ->where(function ($q) use ($windowStart) {
                 $q->whereDate('date', '>=', $windowStart)
