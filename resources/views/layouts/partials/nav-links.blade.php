@@ -75,10 +75,6 @@
            class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'attendance.my-history') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">
             <i data-lucide="clock" class="h-4 w-4 shrink-0"></i><span class="flex-1">My Attendance</span>
         </a>
-        <a href="{{ route('shifts.my-schedule') }}"
-           class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'shifts.my-schedule') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">
-            <i data-lucide="calendar-clock" class="h-4 w-4 shrink-0"></i><span class="flex-1">My Schedule</span>
-        </a>
         <a href="{{ route('time-off.index') }}"
            class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ (Str::startsWith($routeName, 'time-off') && !Str::contains($routeName, 'policies')) ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">
             <i data-lucide="calendar" class="h-4 w-4 shrink-0"></i><span class="flex-1">Time Off Requests</span>
