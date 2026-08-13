@@ -84,7 +84,8 @@
                         <div class="grid grid-cols-7">
                             <template x-for="cell in week" :key="cell.key">
                                 <button type="button" @click="selectDay(cell.key)"
-                                        class="relative min-h-[116px] border-b border-r border-slate-100 p-1.5 text-left transition hover:bg-slate-50 dark:border-slate-700/60 dark:hover:bg-slate-700/30"
+                                        :style="`min-height:${weekHeight(week)}px`"
+                                        class="relative border-b border-r border-slate-100 p-1.5 text-left transition hover:bg-slate-50 dark:border-slate-700/60 dark:hover:bg-slate-700/30"
                                         :class="[
                                             cell.inMonth ? '' : 'bg-slate-50/40 dark:bg-slate-900/30',
                                             cell.leaves.length ? 'bg-brand-50/40 dark:bg-brand-500/5' : '',
@@ -93,8 +94,8 @@
                                     <span class="inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold"
                                           :class="cell.isToday ? 'bg-brand-600 text-slate-900' : (cell.inMonth ? 'text-slate-700 dark:text-slate-300' : 'text-slate-300 dark:text-slate-600')"
                                           x-text="cell.day"></span>
-                                    <span x-show="cell.leaves.length > 4" class="absolute bottom-1 left-2 text-[10px] font-bold text-slate-400"
-                                          x-text="'+' + (cell.leaves.length - 4) + ' more'"></span>
+                                    <span x-show="cell.leaves.length > maxLanes" class="absolute bottom-1 left-2 text-[10px] font-bold text-slate-400"
+                                          x-text="'+' + (cell.leaves.length - maxLanes) + ' more'"></span>
                                 </button>
                             </template>
                         </div>
@@ -272,6 +273,7 @@
             selected: null,
             todayKey: toKey(today),
             dayNames: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+            maxLanes: 20,   // safety cap on stacked leave bars per week
 
             get filtered() {
                 const q = this.search.trim().toLowerCase();
@@ -292,9 +294,18 @@
                 return this.filtered.filter(l => l.start <= key && key <= l.end);
             },
 
+            // Height a week row needs so its stacked leave bars never overflow onto
+            // the next week's day numbers. Grows with the number of lanes used.
+            weekHeight(week) {
+                const bars = this.weekBars(week);
+                const lanes = bars.length ? Math.max(...bars.map(b => b.lane)) + 1 : 0;
+                return Math.max(116, 32 + lanes * 20 + 12);   // 32 = top offset, 20 = lane (17px + 3px gap)
+            },
+
             // Continuous bars for a week: each leave becomes ONE bar spanning the
             // days it covers within this week (clamped to the week), packed into
-            // lanes so they don't overlap. Up to 4 lanes; the rest show as
+            // lanes so they don't overlap. The row grows to fit them (see
+            // weekHeight); only a huge pile-up beyond maxLanes falls back to
             // "+N more" on the day cells.
             weekBars(week) {
                 const wStart = week[0].key, wEnd = week[6].key;
@@ -304,7 +315,7 @@
                     .sort((a, b) => a.start.localeCompare(b.start) || b.end.localeCompare(a.end) || a.name.localeCompare(b.name));
                 const laneEnd = [];   // laneEnd[lane] = grid-column where that lane is next free
                 const bars = [];
-                const MAX = 4;
+                const MAX = this.maxLanes;
                 for (const l of list) {
                     const sIdx = l.start <= wStart ? 0 : week.findIndex(d => d.key === l.start);
                     const eIdx = l.end >= wEnd ? 6 : week.findIndex(d => d.key === l.end);
