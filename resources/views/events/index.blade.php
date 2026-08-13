@@ -218,7 +218,7 @@
             </div>
             <div>
                 <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Date <span class="text-rose-500">*</span></label>
-                <input type="date" name="date" value="{{ old('date', now()->toDateString()) }}" required class="w-full rounded-xl border-slate-300 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                <input type="date" name="date" id="add-event-date" value="{{ old('date', now()->toDateString()) }}" required class="w-full rounded-xl border-slate-300 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
             </div>
             <div>
                 <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">End date <span class="text-slate-400 normal-case font-medium">(optional)</span></label>
@@ -316,6 +316,26 @@
         </div>
     </div>
 
+    {{-- Day chooser (a date with more than one event) --}}
+    <div x-show="day.open" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-slate-900/50" @click="day.open = false"></div>
+        <div class="relative w-full max-w-sm rounded-2xl bg-white shadow-xl dark:bg-slate-800">
+            <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-700/60">
+                <h3 class="text-sm font-extrabold text-slate-900 dark:text-white" x-text="day.label"></h3>
+                <button type="button" @click="day.open = false" class="text-slate-400 hover:text-slate-700"><i data-lucide="x" class="h-5 w-5"></i></button>
+            </div>
+            <div class="p-2 max-h-[60vh] overflow-y-auto">
+                <template x-for="ev in day.events" :key="ev.id">
+                    <button type="button" @click="openFromDay(ev.id)" class="w-full flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-left hover:bg-slate-50 dark:hover:bg-slate-700/40">
+                        <span class="h-2.5 w-2.5 rounded-full shrink-0" :style="`background:${ev.color}`"></span>
+                        <span class="flex-1 text-sm font-bold text-slate-800 dark:text-white truncate" x-text="ev.title"></span>
+                        <span x-show="!ev.published" class="text-[9px] font-bold text-slate-400 border border-dashed border-slate-300 rounded px-1.5 py-0.5">Draft</span>
+                    </button>
+                </template>
+            </div>
+        </div>
+    </div>
+
     {{-- Toast --}}
     <div x-show="toast" x-cloak x-transition class="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white shadow-lg dark:bg-slate-700">
         <span x-text="toast"></span>
@@ -354,6 +374,7 @@
         return {
             tab: 'calendar', calendar: null, toast: '',
             modal: { open: false, id: null, title: '', dates: '', location: '', description: '', published: false, pinned: false, visibility: 'all', published_at: null, color: '#F5C800' },
+            day: { open: false, label: '', events: [] },
             init() {
                 this.$nextTick(() => this.mountCalendar());
                 this.$watch('tab', v => { if (v === 'calendar' && this.calendar) this.$nextTick(() => this.calendar.updateSize()); });
@@ -375,9 +396,33 @@
                         if (p.is_pinned) { const t = info.el.querySelector('.fc-event-title'); if (t) t.insertAdjacentText('afterbegin', '📌 '); }
                     },
                     eventClick: (info) => { info.jsEvent.preventDefault(); this.openModal(info.event); },
+                    dateClick: (info) => { this.openDay(info.dateStr); },
                 });
                 this.calendar.render();
             },
+            // Clicking a day cell: 1 event on it → open its detail; several → a
+            // chooser; none → jump to Add with the date pre-filled.
+            openDay(dateStr) {
+                if (!this.calendar) return;
+                const onDay = this.calendar.getEvents().filter(ev => {
+                    const s = ev.startStr.slice(0, 10);
+                    const eEx = ev.endStr ? ev.endStr.slice(0, 10) : null;
+                    return eEx ? (dateStr >= s && dateStr < eEx) : (dateStr === s);
+                });
+                if (onDay.length === 1) { this.openModal(onDay[0]); return; }
+                if (onDay.length === 0) {
+                    this.tab = 'add';
+                    this.$nextTick(() => { const d = document.getElementById('add-event-date'); if (d) { d.value = dateStr; d.focus(); } });
+                    return;
+                }
+                this.day = {
+                    open: true,
+                    label: new Date(dateStr).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }),
+                    events: onDay.map(ev => ({ id: ev.id, title: ev.title, color: ev.backgroundColor || '#F5C800', published: !!ev.extendedProps.is_published })),
+                };
+                this.$nextTick(evRefreshIcons);
+            },
+            openFromDay(id) { this.day.open = false; const fc = this.calendar.getEventById(id); if (fc) this.openModal(fc); },
             openModal(ev) {
                 const p = ev.extendedProps;
                 const fmt = d => new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });

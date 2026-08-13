@@ -69,6 +69,25 @@
             <button type="button" @click="modal.open=false" class="absolute top-4 right-4 text-slate-400 hover:text-slate-700"><i data-lucide="x" class="h-5 w-5"></i></button>
         </div>
     </div>
+
+    {{-- Day chooser (a date with more than one event) --}}
+    <div x-show="day.open" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-slate-900/50" @click="day.open = false"></div>
+        <div class="relative w-full max-w-sm rounded-2xl bg-white shadow-xl dark:bg-slate-800">
+            <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-700/60">
+                <h3 class="text-sm font-extrabold text-slate-900 dark:text-white" x-text="day.label"></h3>
+                <button type="button" @click="day.open = false" class="text-slate-400 hover:text-slate-700"><i data-lucide="x" class="h-5 w-5"></i></button>
+            </div>
+            <div class="p-2 max-h-[60vh] overflow-y-auto">
+                <template x-for="ev in day.events" :key="ev.id">
+                    <button type="button" @click="openFromDay(ev.id)" class="w-full flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-left hover:bg-slate-50 dark:hover:bg-slate-700/40">
+                        <span class="h-2.5 w-2.5 rounded-full shrink-0" :style="`background:${ev.color}`"></span>
+                        <span class="flex-1 text-sm font-bold text-slate-800 dark:text-white truncate" x-text="ev.title"></span>
+                    </button>
+                </template>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
@@ -77,6 +96,7 @@
         return {
             calendar: null,
             modal: { open: false, title: '', dates: '', location: '', description: '', color: '#F5C800' },
+            day: { open: false, label: '', events: [] },
             init() { this.$nextTick(() => this.mount()); },
             mount() {
                 const el = document.getElementById('employee-calendar');
@@ -85,18 +105,37 @@
                     initialView: 'dayGridMonth', height: 'auto', firstDay: 1,
                     events: '{{ route('events.employee-calendar-data') }}',
                     headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,dayGridWeek,listMonth' },
-                    eventClick: (info) => {
-                        info.jsEvent.preventDefault();
-                        const p = info.event.extendedProps;
-                        const fmt = d => new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-                        let dates = info.event.start ? fmt(info.event.start) : '';
-                        if (p.end_display) { const ed = fmt(p.end_display); if (ed !== dates) dates += ' – ' + ed; }
-                        this.modal = { open: true, title: info.event.title, dates, location: p.location || '', description: p.description || '', color: info.event.backgroundColor || '#F5C800' };
-                        this.$nextTick(() => window.lucide && window.lucide.createIcons());
-                    },
+                    eventClick: (info) => { info.jsEvent.preventDefault(); this.openEvent(info.event); },
+                    dateClick: (info) => { this.openDay(info.dateStr); },
                 });
                 this.calendar.render();
             },
+            openEvent(ev) {
+                const p = ev.extendedProps;
+                const fmt = d => new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+                let dates = ev.start ? fmt(ev.start) : '';
+                if (p.end_display) { const ed = fmt(p.end_display); if (ed !== dates) dates += ' – ' + ed; }
+                this.modal = { open: true, title: ev.title, dates, location: p.location || '', description: p.description || '', color: ev.backgroundColor || '#F5C800' };
+                this.$nextTick(() => window.lucide && window.lucide.createIcons());
+            },
+            // Clicking a day cell: one event → its detail, several → a chooser.
+            openDay(dateStr) {
+                if (!this.calendar) return;
+                const onDay = this.calendar.getEvents().filter(ev => {
+                    const s = ev.startStr.slice(0, 10);
+                    const eEx = ev.endStr ? ev.endStr.slice(0, 10) : null;
+                    return eEx ? (dateStr >= s && dateStr < eEx) : (dateStr === s);
+                });
+                if (onDay.length === 0) return;
+                if (onDay.length === 1) { this.openEvent(onDay[0]); return; }
+                this.day = {
+                    open: true,
+                    label: new Date(dateStr).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }),
+                    events: onDay.map(ev => ({ id: ev.id, title: ev.title, color: ev.backgroundColor || '#F5C800' })),
+                };
+                this.$nextTick(() => window.lucide && window.lucide.createIcons());
+            },
+            openFromDay(id) { this.day.open = false; const fc = this.calendar.getEventById(id); if (fc) this.openEvent(fc); },
         };
     }
 </script>
