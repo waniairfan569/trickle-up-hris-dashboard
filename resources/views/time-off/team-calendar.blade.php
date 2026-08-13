@@ -91,8 +91,8 @@
                                             cell.leaves.length ? 'bg-brand-50/40 dark:bg-brand-500/5' : '',
                                             selected === cell.key ? 'ring-2 ring-inset ring-brand-500' : ''
                                         ]">
-                                    <span class="inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold"
-                                          :class="cell.isToday ? 'bg-brand-600 text-slate-900' : (cell.inMonth ? 'text-slate-700 dark:text-slate-300' : 'text-slate-300 dark:text-slate-600')"
+                                    <span class="relative z-20 inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold"
+                                          :class="cell.isToday ? 'bg-brand-600 text-slate-900 shadow' : (cell.inMonth ? (cell.leaves.length ? 'bg-white/90 text-slate-700 shadow-sm dark:bg-slate-800/90 dark:text-slate-200' : 'text-slate-700 dark:text-slate-300') : 'text-slate-300 dark:text-slate-600')"
                                           x-text="cell.day"></span>
                                     <span x-show="cell.leaves.length > maxLanes" class="absolute bottom-1 left-2 text-[10px] font-bold text-slate-400"
                                           x-text="'+' + (cell.leaves.length - maxLanes) + ' more'"></span>
