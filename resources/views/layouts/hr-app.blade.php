@@ -245,14 +245,6 @@
 
                 <!-- Right Header Actions -->
                 <div class="flex items-center gap-x-4 lg:gap-x-6">
-                    
-                    <!-- Search Bar placeholder -->
-                    <div class="hidden sm:block relative max-w-xs">
-                        <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                            <i data-lucide="search" class="h-4 w-4 text-slate-400 dark:text-slate-500"></i>
-                        </div>
-                        <input type="text" placeholder="Search directory..." class="w-64 rounded-full border border-slate-200 bg-slate-50/50 py-1.5 pl-9 pr-4 text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:border-brand-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-brand-500">
-                    </div>
 
                     <!-- Notification Indicator Dropdown (kept last so the bell sits at the far right) -->
                     <div x-data="{ open: false }" class="relative order-last">
