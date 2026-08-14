@@ -22,7 +22,7 @@
     .org-tree ul ul::before { content:''; position:absolute; top:0; left:50%; border-left:2px solid #c9c6bd; width:0; height:18px; }
     .dark .org-tree li::before, .dark .org-tree li::after, .dark .org-tree li:last-child::before, .dark .org-tree ul ul::before { border-color:#475569; }
 
-    .org-card { position:relative; width:214px; min-height:120px; background:#fff; border:1px solid #e2e8f0; border-radius:14px; padding:26px 16px 18px; box-shadow:0 1px 3px rgba(15,23,42,.07); text-align:left; }
+    .org-card { position:relative; width:214px; min-height:132px; background:#fff; border:1px solid #e2e8f0; border-radius:14px; padding:26px 16px 18px; box-shadow:0 1px 3px rgba(15,23,42,.07); text-align:left; }
     .org-card.is-open { border-color:#0f172a; box-shadow:0 4px 14px rgba(15,23,42,.12); }
     .org-card.hl { box-shadow:0 0 0 3px #f59e0b; }
     .dark .org-card { background:#1e293b; border-color:#334155; }
@@ -37,17 +37,19 @@
     .org-count { position:absolute; bottom:-13px; left:50%; transform:translateX(-50%); min-width:26px; height:26px; padding:0 8px; display:inline-flex; align-items:center; justify-content:center; border-radius:9999px; font-size:12px; font-weight:700; cursor:pointer; border:none; z-index:1; }
     .org-count.open { background:#0f172a; color:#fff; }
     .org-count.closed { background:#e2e8f0; color:#475569; }
-    .org-also { margin-top:8px; padding-top:7px; border-top:1px dashed #cbd5e1; font-size:11px; color:#64748b; line-height:1.45; }
+    .org-also { margin-top:7px; padding-top:6px; border-top:1px dashed #cbd5e1; font-size:10px; color:#64748b; line-height:1.3; }
     .dark .org-also { border-color:#475569; color:#94a3b8; }
     .org-also-label { display:inline-flex; align-items:center; gap:3px; font-weight:700; color:#6366f1; text-transform:uppercase; letter-spacing:.03em; font-size:9.5px; margin-right:4px; }
     .dark .org-also-label { color:#a5b4fc; }
 
-    /* Department group node — clusters same-department reports of a manager. */
-    .org-dept { width:auto; min-width:160px; max-width:230px; padding:11px 15px; background:#fffbea; border-color:#fde047; }
+    /* Department group node — clusters same-department reports of a manager.
+       Same width & height as person cards, with content vertically centred, so
+       every card in the chart lines up. */
+    .org-dept { width:214px; min-height:132px; display:flex; flex-direction:column; justify-content:center; padding:14px 16px; background:#fffbea; border-color:#fde047; }
     .dark .org-dept { background:#3a2e05; border-color:#a16207; }
     .org-dept-head { display:flex; align-items:center; gap:9px; }
     .org-dept-icon { flex:none; display:flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:9px; background:#fcd82f; color:#1a1a24; }
-    .org-dept-name { font-weight:800; font-size:13px; color:#0f172a; white-space:nowrap; }
+    .org-dept-name { font-weight:800; font-size:13px; color:#0f172a; line-height:1.25; }
     .dark .org-dept-name { color:#fff; }
     .org-dept .org-line { color:#a16207; }
     .dark .org-dept .org-line { color:#fcd82f; }
