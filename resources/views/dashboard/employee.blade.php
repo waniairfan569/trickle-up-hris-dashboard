@@ -154,19 +154,6 @@
                         </div>
                     </div>
 
-                    <!-- Holidays -->
-                    <div x-show="tab === 'holidays'" x-cloak>
-                        <template x-if="todaysHolidays().length === 0"><p class="text-xs font-semibold text-slate-400 text-center mt-10">No holidays on this day</p></template>
-                        <div class="space-y-3">
-                            <template x-for="h in todaysHolidays()" :key="h.name + h.date">
-                                <div class="flex items-center gap-3">
-                                    <div class="h-9 w-9 rounded-xl bg-rose-50 text-rose-500 flex items-center justify-center dark:bg-rose-500/10"><i data-lucide="palmtree" class="h-4 w-4"></i></div>
-                                    <p class="text-sm font-bold text-slate-800 dark:text-white truncate" x-text="h.name"></p>
-                                </div>
-                            </template>
-                        </div>
-                    </div>
-
                     <!-- Events (upcoming from the selected date) -->
                     <div x-show="tab === 'events'" x-cloak>
                         <template x-if="upcomingEvents().length === 0"><p class="text-xs font-semibold text-slate-400 text-center mt-10">No upcoming events</p></template>
@@ -202,7 +189,7 @@
                     return {
                         current: '{{ now()->toDateString() }}',
                         tab: 'celebrations',
-                        tabs: [{ key: 'celebrations', label: 'Celebrations' }, { key: 'holidays', label: 'Holidays' }, { key: 'events', label: 'Events' }],
+                        tabs: [{ key: 'celebrations', label: 'Celebrations' }, { key: 'events', label: 'Events' }],
                         celebrations: window.__celebrations || [],
                         events: window.__events || [],
                         holidays: window.__holidays || [],

@@ -35,9 +35,6 @@
                 <button type="button" @click="oooTab = 'leave'" class="text-sm pb-2 border-b-2 flex items-center gap-1.5" :class="oooTab === 'leave' ? 'font-bold text-slate-800 border-slate-800 dark:text-white dark:border-white' : 'font-medium text-slate-400 border-transparent hover:text-slate-600'">
                     On leave <span class="bg-slate-100 text-slate-500 text-[10px] px-1.5 py-0.5 rounded-md dark:bg-slate-700 dark:text-slate-300" x-text="oooOnDate().length"></span>
                 </button>
-                <button type="button" @click="oooTab = 'holiday'; $nextTick(() => window.lucide && lucide.createIcons())" class="text-sm pb-2 border-b-2 flex items-center gap-1.5" :class="oooTab === 'holiday' ? 'font-bold text-slate-800 border-slate-800 dark:text-white dark:border-white' : 'font-medium text-slate-400 border-transparent hover:text-slate-600'">
-                    On public holiday <span class="bg-slate-100 text-slate-500 text-[10px] px-1.5 py-0.5 rounded-md dark:bg-slate-700 dark:text-slate-300" x-text="todaysHolidays().length"></span>
-                </button>
             </div>
             <div class="relative">
                 <i data-lucide="search" class="h-4 w-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
@@ -59,16 +56,6 @@
                             <p class="text-sm font-bold text-slate-800 dark:text-white truncate" x-text="o.name"></p>
                             <p class="text-xs text-slate-500 dark:text-slate-400" x-text="o.range"></p>
                         </div>
-                    </div>
-                </template>
-            </div>
-            <!-- On public holiday -->
-            <div x-show="oooTab === 'holiday'" x-cloak>
-                <template x-if="todaysHolidays().length === 0"><p class="px-6 py-10 text-center text-sm text-slate-400">No public holiday on this day.</p></template>
-                <template x-for="(h, i) in todaysHolidays()" :key="'hol' + i">
-                    <div class="flex items-center gap-3 px-6 py-3 border-b border-slate-100 last:border-0 dark:border-slate-700/60">
-                        <span class="h-10 w-10 flex-shrink-0 inline-flex items-center justify-center rounded-full bg-rose-50 text-rose-500 dark:bg-rose-500/10"><i data-lucide="palmtree" class="h-5 w-5"></i></span>
-                        <p class="text-sm font-bold text-slate-800 dark:text-white" x-text="h.name"></p>
                     </div>
                 </template>
             </div>
