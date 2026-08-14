@@ -40,6 +40,17 @@ class FeedbackController extends Controller
         return back()->with('success', 'Thanks — your feedback has been sent to HR.');
     }
 
+    /** Employee: their own submissions (full history, all statuses) + a place to add more. */
+    public function mine(Request $request)
+    {
+        $feedback = Feedback::where('user_id', auth()->id())
+            ->with('responder')
+            ->latest()
+            ->paginate(15);
+
+        return view('feedback.mine', compact('feedback'));
+    }
+
     // ---- Admin --------------------------------------------------------------
 
     /** Admin: every submission, filterable by status. */

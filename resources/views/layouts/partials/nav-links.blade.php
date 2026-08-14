@@ -89,6 +89,10 @@
            class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ request()->routeIs('announcements.all') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">
             <i data-lucide="megaphone" class="h-4 w-4 shrink-0"></i><span class="flex-1">Announcements</span>
         </a>
+        <a href="{{ route('feedback.mine') }}"
+           class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ request()->routeIs('feedback.mine') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">
+            <i data-lucide="message-square-heart" class="h-4 w-4 shrink-0"></i><span class="flex-1">Feedback &amp; Suggestions</span>
+        </a>
         @endunless
         <a href="{{ route('my-forms.index') }}"
            class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ (Str::startsWith($routeName, 'my-forms') || Str::startsWith($routeName, 'forms.')) ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">
