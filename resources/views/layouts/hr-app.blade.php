@@ -352,9 +352,6 @@
             <!-- Main Content Grid -->
             <main class="flex-1 py-8 px-4 sm:px-6 lg:px-8">
 
-                {{-- Unread-announcement bar + auto-popup --}}
-                @include('partials.announcement-alert')
-
                 {{-- Impersonation banner --}}
                 @if(session()->has('operator_impersonator_id'))
                     <div class="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-indigo-600 p-4 text-white shadow">

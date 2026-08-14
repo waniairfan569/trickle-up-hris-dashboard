@@ -44,6 +44,9 @@
         <h1 class="text-2xl font-semibold text-slate-800 dark:text-white tracking-tight">Hello {{ auth()->user()->first_name }}!</h1>
     </div>
 
+    <!-- Unread-announcement bar + auto-popup -->
+    @include('partials.announcement-alert')
+
     <!-- Attendance Clock Widget -->
     @include('attendance.partials.clock-widget')
 

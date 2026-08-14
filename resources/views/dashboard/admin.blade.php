@@ -177,6 +177,9 @@
         </div>
     </div>
 
+    <!-- Unread-announcement bar + auto-popup -->
+    @include('partials.announcement-alert')
+
     <!-- Attendance Clock Widget (super admins don't clock in) -->
     @unless(auth()->user()->hasRole('super_admin'))
         @include('attendance.partials.clock-widget')
