@@ -80,7 +80,7 @@
                 @if(count($tree))
                     <ul class="org-tree">
                         @foreach($tree as $node)
-                            @include('org-chart.node', ['node' => $node])
+                            @include('org-chart.node', ['node' => $node, 'depth' => 0])
                         @endforeach
                     </ul>
                 @else

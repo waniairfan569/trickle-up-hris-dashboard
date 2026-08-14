@@ -1,8 +1,14 @@
-@php $nodeType = $node['type'] ?? 'person'; @endphp
+@php
+    $nodeType = $node['type'] ?? 'person';
+    $depth = $depth ?? 0;
+    // Expand the first two levels by default so, on load, Trickle Up -> Board
+    // Directors -> Departments are all visible; deeper teams stay collapsed.
+    $defaultOpen = $depth < 2;
+@endphp
 
 @if($nodeType === 'dept')
     {{-- Department group node: clusters same-department reports of a manager. --}}
-    <li x-data="{ open: false }">
+    <li x-data="{ open: {{ $defaultOpen ? 'true' : 'false' }} }">
         <div class="org-card org-dept" :class="open && {{ count($node['children']) ? 'true' : 'false' }} ? 'is-open' : ''"
              data-name="{{ strtolower($node['name']) }}">
             <div class="org-dept-head">
@@ -26,14 +32,14 @@
                 x-transition:enter-end="opacity-100 translate-y-0"
                 x-cloak>
                 @foreach($node['children'] as $child)
-                    @include('org-chart.node', ['node' => $child])
+                    @include('org-chart.node', ['node' => $child, 'depth' => $depth + 1])
                 @endforeach
             </ul>
         @endif
     </li>
 @else
 @php $jt = trim((string)($node['title'] ?? '')); $showTitle = $jt !== '' && strtolower($jt) !== 'employee'; @endphp
-<li x-data="{ open: false }">
+<li x-data="{ open: {{ $defaultOpen ? 'true' : 'false' }} }">
     <div class="org-card" :class="open && {{ count($node['children']) ? 'true' : 'false' }} ? 'is-open' : ''"
          data-name="{{ strtolower($node['name'] . ' ' . $jt) }}">
         @if(!empty($node['avatar']))
@@ -70,7 +76,7 @@
             x-transition:enter-end="opacity-100 translate-y-0"
             x-cloak>
             @foreach($node['children'] as $child)
-                @include('org-chart.node', ['node' => $child])
+                @include('org-chart.node', ['node' => $child, 'depth' => $depth + 1])
             @endforeach
         </ul>
     @endif
