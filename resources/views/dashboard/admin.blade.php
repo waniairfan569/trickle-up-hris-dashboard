@@ -290,8 +290,8 @@
         @endforeach
     </div>
 
-    {{-- Left column: Approval Queue + Time-off balances + Events summary ·
-         Right column: "Your day at a glance" calendar. --}}
+    {{-- Left column: Approval Queue + Time-off balances + Events + Security notice ·
+         Right column: "Your day at a glance" calendar + Recent System Activity. --}}
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
 
     <!-- LEFT COLUMN -->
@@ -408,21 +408,22 @@
             </div>
         </div>
 
+        {{-- Security & Audit Notice --}}
+        <div class="rounded-2xl bg-white border border-slate-200/80 shadow-sm p-6 dark:bg-slate-800 dark:border-slate-800">
+            <h3 class="text-sm font-bold text-slate-900 dark:text-white">Security &amp; Audit Notice</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                This admin console is tracked by the Trickle Hub audit compliance logs. All creations, permission modifications, salary accesses, and manual adjustments of leave balances require a valid justification which is saved recursive-wide on SQLite structures. Refer to the <span class="font-semibold text-brand-600 dark:text-brand-400">IT Compliance Handbook</span> for details.
+            </p>
+        </div>
+
     </div>{{-- /LEFT COLUMN --}}
 
     <!-- RIGHT COLUMN -->
     <div class="space-y-6">
         @include('dashboard.partials.calendar-widget')
-    </div>{{-- /RIGHT COLUMN --}}
 
-    </div>{{-- /grid --}}
-
-    <!-- Recent activity + security notice -->
-    <div class="grid grid-cols-1 gap-8 lg:grid-cols-3">
-
-        <!-- System Activity Feed (2 cols) -->
-        <div class="lg:col-span-2">
-            <div class="rounded-2xl bg-white border border-slate-200/80 shadow-sm dark:bg-slate-800 dark:border-slate-800">
+        <!-- Recent System Activity (below the calendar, opposite Events) -->
+        <div class="rounded-2xl bg-white border border-slate-200/80 shadow-sm dark:bg-slate-800 dark:border-slate-800">
                 <div class="flex items-center justify-between border-b border-slate-100 p-6 dark:border-slate-700">
                     <div>
                         <h2 class="text-lg font-bold text-slate-900 dark:text-white">Recent System Activity</h2>
@@ -480,19 +481,9 @@
                     </ul>
                 </div>
             </div>
-        </div>
+    </div>{{-- /RIGHT COLUMN --}}
 
-        <!-- Security & Audit Notice (1 col) -->
-        <div>
-            <div class="rounded-2xl bg-white border border-slate-200/80 shadow-sm p-6 dark:bg-slate-800 dark:border-slate-800">
-                <h3 class="text-sm font-bold text-slate-900 dark:text-white">Security & Audit Notice</h3>
-                <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-                    This admin console is tracked by the Trickle Hub audit compliance logs. All creations, permission modifications, salary accesses, and manual adjustments of leave balances require a valid justification which is saved recursive-wide on SQLite structures. Refer to the <span class="font-semibold text-brand-600 dark:text-brand-400">IT Compliance Handbook</span> for details.
-                </p>
-            </div>
-        </div>
-
-    </div>
+    </div>{{-- /grid --}}
 
 </div>
 @endsection
