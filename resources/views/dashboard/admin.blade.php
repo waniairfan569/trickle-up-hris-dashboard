@@ -75,28 +75,51 @@
     $plannedUserIds = $leaveToday->reject($isUnplanned)->pluck('user_id')->unique();
     $unplannedUserIds = $leaveToday->filter($isUnplanned)->pluck('user_id')->unique();
     $lateUserIds = $todayRecs->where('status', 'late')->pluck('user_id')->unique();
-    $asPerson = fn ($u) => ['name' => $u->full_name, 'avatar' => $u->avatar_url, 'initials' => $u->initials];
+    $asPerson = fn ($u) => ['id' => $u->id, 'name' => $u->full_name, 'avatar' => $u->avatar_url, 'initials' => $u->initials];
+
+    // Per-category detail line shown under each name in the popup.
+    $fmtLate = function ($min) {
+        $min = (int) $min;
+        if ($min < 60) return $min . ' min late';
+        $h = intdiv($min, 60); $m = $min % 60;
+        return $m ? "{$h}h {$m}m late" : "{$h}h late";
+    };
+    $leaveRange = function ($r) {
+        $range = $r->start_date->format('d M');
+        if ($r->end_date->gt($r->start_date)) $range .= ' – ' . $r->end_date->format('d M');
+        return $range . ' · ' . $r->duration_label;      // e.g. "18 Aug – 19 Aug · 2 days"
+    };
+    $leaveDetailFor = $leaveToday->groupBy('user_id')->map(fn ($rs) => $leaveRange($rs->first()));
+    $lateDetailFor = $todayRecs->where('status', 'late')->groupBy('user_id')->map(fn ($rs) => $fmtLate($rs->first()->late_minutes));
+    $absentDetailFor = $absentUserIds->mapWithKeys(fn ($id) => [$id => 'Not clocked in today']);
 
     $remotePeople = \App\Models\User::active()
         ->whereIn('id', $realEmployeeIds->all())
         ->where('attendance_mode', 'remote')
         ->get()
-        ->map($asPerson)->values()->all();
-    $pendingPeople = \App\Models\TimeOffRequest::where('status', 'pending')->with('employee')->get()
-        ->map(fn ($r) => $r->employee ? $asPerson($r->employee) : null)
+        ->map(fn ($u) => $asPerson($u) + ['detail' => 'Working remotely'])->values()->all();
+    $pendingPeople = \App\Models\TimeOffRequest::where('status', 'pending')->with(['employee', 'policy'])->get()
+        ->map(fn ($r) => $r->employee ? $asPerson($r->employee) + ['detail' => $leaveRange($r)] : null)
         ->filter()->unique('name')->values()->all();
 
     $namedIds = collect()->merge($plannedUserIds)->merge($unplannedUserIds)->merge($lateUserIds)->merge($absentUserIds)->unique();
     $peopleMap = \App\Models\User::whereIn('id', $namedIds->all())->get()
         ->mapWithKeys(fn ($u) => [$u->id => $asPerson($u)]);
-    $peopleFor = fn ($ids) => collect($ids)->map(fn ($id) => $peopleMap[$id] ?? null)->filter()->values()->all();
+    $peopleFor = function ($ids, $detailMap = null) use ($peopleMap) {
+        return collect($ids)->map(function ($id) use ($peopleMap, $detailMap) {
+            $p = $peopleMap[$id] ?? null;
+            if (! $p) return null;
+            if ($detailMap !== null) $p['detail'] = $detailMap[$id] ?? null;
+            return $p;
+        })->filter()->values()->all();
+    };
 
     $statCards = [
-        ['label' => 'Planned Leaves', 'value' => $plannedLeave, 'sub' => 'On planned leave today', 'icon' => 'palmtree', 'bg' => 'bg-indigo-50 dark:bg-indigo-500/10', 'text' => 'text-indigo-600 dark:text-indigo-400', 'people' => $peopleFor($plannedUserIds)],
-        ['label' => 'Unplanned Leaves', 'value' => $unplannedLeave, 'sub' => 'On unplanned leave today', 'icon' => 'plane-takeoff', 'bg' => 'bg-sky-50 dark:bg-sky-500/10', 'text' => 'text-sky-600 dark:text-sky-400', 'people' => $peopleFor($unplannedUserIds)],
+        ['label' => 'Planned Leaves', 'value' => $plannedLeave, 'sub' => 'On planned leave today', 'icon' => 'palmtree', 'bg' => 'bg-indigo-50 dark:bg-indigo-500/10', 'text' => 'text-indigo-600 dark:text-indigo-400', 'people' => $peopleFor($plannedUserIds, $leaveDetailFor)],
+        ['label' => 'Unplanned Leaves', 'value' => $unplannedLeave, 'sub' => 'On unplanned leave today', 'icon' => 'plane-takeoff', 'bg' => 'bg-sky-50 dark:bg-sky-500/10', 'text' => 'text-sky-600 dark:text-sky-400', 'people' => $peopleFor($unplannedUserIds, $leaveDetailFor)],
         ['label' => 'Working Remotely', 'value' => $workingRemotely, 'sub' => 'Remote employees', 'icon' => 'laptop', 'bg' => 'bg-emerald-50 dark:bg-emerald-500/10', 'text' => 'text-emerald-600 dark:text-emerald-400', 'people' => $remotePeople],
-        ['label' => 'Lateness', 'value' => $lateToday, 'sub' => 'Late arrivals today', 'icon' => 'alarm-clock', 'bg' => 'bg-amber-50 dark:bg-amber-500/10', 'text' => 'text-amber-600 dark:text-amber-400', 'people' => $peopleFor($lateUserIds)],
-        ['label' => 'Absences', 'value' => $absentToday, 'sub' => 'Absent today', 'icon' => 'user-x', 'bg' => 'bg-rose-50 dark:bg-rose-500/10', 'text' => 'text-rose-600 dark:text-rose-400', 'people' => $peopleFor($absentUserIds)],
+        ['label' => 'Lateness', 'value' => $lateToday, 'sub' => 'Late arrivals today', 'icon' => 'alarm-clock', 'bg' => 'bg-amber-50 dark:bg-amber-500/10', 'text' => 'text-amber-600 dark:text-amber-400', 'people' => $peopleFor($lateUserIds, $lateDetailFor)],
+        ['label' => 'Absences', 'value' => $absentToday, 'sub' => 'Absent today', 'icon' => 'user-x', 'bg' => 'bg-rose-50 dark:bg-rose-500/10', 'text' => 'text-rose-600 dark:text-rose-400', 'people' => $peopleFor($absentUserIds, $absentDetailFor)],
         ['label' => 'Pending Approvals', 'value' => $pendingApprovals, 'sub' => 'Time off queue', 'icon' => 'clock', 'bg' => 'bg-rose-50 dark:bg-rose-500/10', 'text' => 'text-rose-600 dark:text-rose-400', 'action' => $pendingApprovals > 0, 'people' => $pendingPeople],
     ];
 
@@ -245,14 +268,18 @@
                                 </div>
                                 <div class="p-2">
                                     @foreach($c['people'] as $person)
-                                        <div class="flex items-center gap-3 rounded-xl px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-700/40">
+                                        <a href="{{ route('employees.profile', $person['id']) }}" class="flex items-center gap-3 rounded-xl px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-700/40 transition">
                                             @if(!empty($person['avatar']))
                                                 <img src="{{ $person['avatar'] }}" alt="{{ $person['name'] }}" class="h-9 w-9 rounded-full object-cover bg-slate-100 shrink-0">
                                             @else
                                                 <span class="h-9 w-9 shrink-0 grid place-items-center rounded-full bg-gradient-to-br from-slate-200 to-slate-300 dark:from-slate-600 dark:to-slate-700 text-[11px] font-bold text-slate-600 dark:text-slate-200">{{ $person['initials'] }}</span>
                                             @endif
-                                            <span class="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">{{ $person['name'] }}</span>
-                                        </div>
+                                            <span class="min-w-0 flex-1">
+                                                <span class="block text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">{{ $person['name'] }}</span>
+                                                @if(!empty($person['detail']))<span class="block text-[11px] text-slate-400 truncate">{{ $person['detail'] }}</span>@endif
+                                            </span>
+                                            <i data-lucide="chevron-right" class="h-4 w-4 text-slate-300 shrink-0"></i>
+                                        </a>
                                     @endforeach
                                 </div>
                             </div>
