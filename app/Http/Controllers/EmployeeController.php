@@ -153,9 +153,36 @@ class EmployeeController extends Controller
             abort(401, 'Unauthenticated.');
         }
 
+        $orgCols = ['id', 'first_name', 'last_name', 'avatar_url', 'job_title', 'department_id', 'manager_id', 'city', 'country'];
+
         $users = \App\Models\User::where('account_status', '!=', 'deactivated')
             ->with('department:id,name')
-            ->get(['id', 'first_name', 'last_name', 'avatar_url', 'job_title', 'department_id', 'manager_id', 'city', 'country']);
+            ->get($orgCols);
+
+        // Walk up the manager chain: pull in any manager these users report to who
+        // falls outside the current (tenant) scope — e.g. the company owner in a
+        // different tenant — so the org chart reaches the very top for EVERYONE,
+        // not only operators. Restricted to the same company, so nothing leaks
+        // across companies.
+        $loaded = $users->pluck('id')->all();
+        for ($hop = 0; $hop < 10; $hop++) {
+            $missing = $users->pluck('manager_id')->filter()->map(fn ($m) => (int) $m)
+                ->reject(fn ($m) => in_array($m, $loaded, true))->unique()->values();
+            if ($missing->isEmpty()) {
+                break;
+            }
+            $ancestors = \App\Models\User::withoutGlobalScope(\App\Tenancy\TenantScope::class)
+                ->whereIn('id', $missing->all())
+                ->where('company_id', $auth->company_id)
+                ->where('account_status', '!=', 'deactivated')
+                ->with('department:id,name')
+                ->get($orgCols);
+            if ($ancestors->isEmpty()) {
+                break;
+            }
+            $users = $users->concat($ancestors);
+            $loaded = $users->pluck('id')->all();
+        }
 
         $ids = $users->pluck('id')->all();
         $byManager = $users->groupBy('manager_id');

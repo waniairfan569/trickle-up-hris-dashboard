@@ -9,8 +9,8 @@
     .org-scroll { overflow:auto; background:#f4f3ee; border-radius:20px; border:1px solid #e7e5df; }
     .dark .org-scroll { background:#0f172a; border-color:#334155; }
     .org-tree, .org-tree ul { display:flex; justify-content:center; padding-top:18px; position:relative; margin:0; }
-    /* Top-level roots start from the left (each subtree below stays centred under its parent). */
-    .org-tree { justify-content:flex-start; }
+    /* Centre the whole tree in the canvas (each subtree also stays centred under its parent). */
+    .org-tree { justify-content:center; }
     .org-tree li { list-style:none; position:relative; padding:18px 7px 0; display:flex; flex-direction:column; align-items:center; }
     .org-tree li::before, .org-tree li::after { content:''; position:absolute; top:0; right:50%; border-top:2px solid #c9c6bd; width:50%; height:18px; }
     .org-tree li::after { right:auto; left:50%; border-left:2px solid #c9c6bd; }
