@@ -31,6 +31,7 @@ class TimeOffPolicy extends Model
         'is_paid',
         'is_active',
         'auto_assign_to_new_employees',
+        'show_on_dashboard',
     ];
 
     protected $casts = [
@@ -45,6 +46,7 @@ class TimeOffPolicy extends Model
         'is_paid' => 'boolean',
         'is_active' => 'boolean',
         'auto_assign_to_new_employees' => 'boolean',
+        'show_on_dashboard' => 'boolean',
     ];
 
     public function entity()

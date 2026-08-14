@@ -57,6 +57,7 @@ class TimeOffPolicyController extends Controller
         $validated['is_paid'] = $request->has('is_paid');
         $validated['is_active'] = $request->has('is_active');
         $validated['auto_assign_to_new_employees'] = $request->has('auto_assign_to_new_employees');
+        $validated['show_on_dashboard'] = $request->has('show_on_dashboard');
 
         if (!$validated['carry_over']) {
             $validated['carry_over_max'] = null;
@@ -100,6 +101,7 @@ class TimeOffPolicyController extends Controller
         $validated['is_paid'] = $request->has('is_paid');
         $validated['is_active'] = $request->has('is_active');
         $validated['auto_assign_to_new_employees'] = $request->has('auto_assign_to_new_employees');
+        $validated['show_on_dashboard'] = $request->has('show_on_dashboard');
 
         if (!$validated['carry_over']) {
             $validated['carry_over_max'] = null;

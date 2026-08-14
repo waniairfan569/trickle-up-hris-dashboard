@@ -50,7 +50,11 @@ class DashboardController extends Controller
         $timeOffBalances = \App\Models\TimeOffBalance::where('user_id', $user->id)
             ->where('year', date('Y'))
             ->with('policy')
-            ->get();
+            ->get()
+            // Only policies the admin chose to surface on the dashboard (a balance
+            // with no policy, or a legacy policy, defaults to shown).
+            ->filter(fn ($b) => optional($b->policy)->show_on_dashboard ?? true)
+            ->values();
 
         $celebrations = $this->upcomingCelebrations();
         $events = $this->companyEvents($user);
