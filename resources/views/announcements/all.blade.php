@@ -4,7 +4,7 @@
 @section('breadcrumb', 'Announcements')
 
 @section('content')
-<div class="max-w-5xl mx-auto space-y-6" x-data="{ open: false, cur: {} }">
+<div class="space-y-6" x-data="{ open: false, cur: {} }">
     <!-- Header -->
     <div class="border-b border-slate-200/80 pb-5 dark:border-slate-700/60">
         <h2 class="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
@@ -14,7 +14,7 @@
     </div>
 
     @if($announcements->count())
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
             @foreach($announcements as $a)
                 @php
                     $preview = \Illuminate\Support\Str::limit(trim(preg_replace('/\s+/', ' ', strip_tags($a->bodyHtml()))), 180);

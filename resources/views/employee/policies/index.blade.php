@@ -18,7 +18,7 @@
     .policy-content ol{list-style:decimal;padding-left:1.5rem;margin:.5rem 0}
     .policy-content a{color:#2563eb;text-decoration:underline}
 </style>
-<div class="space-y-6" x-data="{ tab: 'pending' }">
+<div class="space-y-6" x-data="{ tab: 'all' }">
     <div>
         <h1 class="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">My Policies</h1>
         <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Review and acknowledge company policies assigned to you.</p>
@@ -27,9 +27,9 @@
     @if(session('success'))<div class="rounded-xl bg-emerald-50 p-4 border border-emerald-200 text-sm text-emerald-800 dark:bg-emerald-500/10 dark:border-emerald-500/20 dark:text-emerald-400 flex items-center gap-2"><i data-lucide="check-circle" class="h-5 w-5"></i>{{ session('success') }}</div>@endif
 
     <div class="flex items-center gap-1 border-b border-slate-200 dark:border-slate-700">
+        <button @click="tab = 'all'" :class="tab === 'all' ? 'border-brand-500 text-brand-600 dark:text-brand-400' : 'border-transparent text-slate-400 hover:text-slate-600'" class="border-b-2 px-4 py-2.5 text-sm font-bold transition">All</button>
         <button @click="tab = 'pending'" :class="tab === 'pending' ? 'border-brand-500 text-brand-600 dark:text-brand-400' : 'border-transparent text-slate-400 hover:text-slate-600'" class="border-b-2 px-4 py-2.5 text-sm font-bold transition">To do @if($pendingCount)<span class="ml-1 inline-flex items-center justify-center rounded-full bg-amber-100 text-amber-700 px-1.5 text-[10px]">{{ $pendingCount }}</span>@endif</button>
         <button @click="tab = 'acknowledged'" :class="tab === 'acknowledged' ? 'border-brand-500 text-brand-600 dark:text-brand-400' : 'border-transparent text-slate-400 hover:text-slate-600'" class="border-b-2 px-4 py-2.5 text-sm font-bold transition">Acknowledged</button>
-        <button @click="tab = 'all'" :class="tab === 'all' ? 'border-brand-500 text-brand-600 dark:text-brand-400' : 'border-transparent text-slate-400 hover:text-slate-600'" class="border-b-2 px-4 py-2.5 text-sm font-bold transition">All</button>
     </div>
 
     <div class="space-y-3">
