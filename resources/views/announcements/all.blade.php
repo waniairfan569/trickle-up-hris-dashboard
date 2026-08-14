@@ -47,22 +47,25 @@
         </div>
     @endif
 
-    {{-- Full announcement modal --}}
-    <div x-show="open" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div class="absolute inset-0 bg-slate-900/50" @click="open = false"></div>
-        <div class="relative w-full max-w-lg max-h-[80vh] overflow-y-auto rounded-2xl bg-white shadow-xl dark:bg-slate-800">
-            <div class="flex items-start justify-between gap-3 px-6 pt-5 pb-3 border-b border-slate-100 dark:border-slate-700/60">
-                <h3 class="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
-                    <template x-if="cur.pinned"><i data-lucide="pin" class="h-4 w-4 text-brand-600"></i></template>
-                    <span x-text="cur.title"></span>
-                </h3>
-                <button type="button" @click="open = false" class="text-slate-400 hover:text-slate-700 shrink-0"><i data-lucide="x" class="h-5 w-5"></i></button>
-            </div>
-            <div class="px-6 py-4">
-                <div class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed prose prose-sm max-w-none dark:prose-invert" x-html="cur.body"></div>
-                <p class="text-[11px] text-slate-400 mt-4" x-text="cur.meta"></p>
+    {{-- Full announcement modal (teleported to body so the backdrop always
+         covers the whole viewport, header included). --}}
+    <template x-teleport="body">
+        <div x-show="open" x-cloak class="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" @click="open = false"></div>
+            <div class="relative w-full max-w-lg max-h-[80vh] overflow-y-auto rounded-2xl bg-white shadow-xl dark:bg-slate-800">
+                <div class="flex items-start justify-between gap-3 px-6 pt-5 pb-3 border-b border-slate-100 dark:border-slate-700/60">
+                    <h3 class="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                        <template x-if="cur.pinned"><i data-lucide="pin" class="h-4 w-4 text-brand-600"></i></template>
+                        <span x-text="cur.title"></span>
+                    </h3>
+                    <button type="button" @click="open = false" class="text-slate-400 hover:text-slate-700 shrink-0"><i data-lucide="x" class="h-5 w-5"></i></button>
+                </div>
+                <div class="px-6 py-4">
+                    <div class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed prose prose-sm max-w-none dark:prose-invert" x-html="cur.body"></div>
+                    <p class="text-[11px] text-slate-400 mt-4" x-text="cur.meta"></p>
+                </div>
             </div>
         </div>
-    </div>
+    </template>
 </div>
 @endsection
