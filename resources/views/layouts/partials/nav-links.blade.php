@@ -64,11 +64,11 @@
            class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ (Str::startsWith($routeName, 'employees.profile') || request()->is('employees/' . auth()->id() . '/profile*')) ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">
             <i data-lucide="user" class="h-4 w-4 shrink-0"></i><span class="flex-1">My Profile</span>
         </a>
-        {{-- Employees Directory: admins/managers get it under Team Management; show it here for everyone else. --}}
+        {{-- Employees get the Org Chart here; admins/managers get the full Employees Directory under Team Management. --}}
         @unless(auth()->user()->isAdmin() || auth()->user()->isManager())
-        <a href="{{ route('employees.index') }}"
-           class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ request()->routeIs('employees.index') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">
-            <i data-lucide="users" class="h-4 w-4 shrink-0"></i><span class="flex-1">Employees Directory</span>
+        <a href="{{ route('org-chart') }}"
+           class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ request()->routeIs('org-chart') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">
+            <i data-lucide="network" class="h-4 w-4 shrink-0"></i><span class="flex-1">Org Chart</span>
         </a>
         @endunless
         <a href="{{ route('attendance.my-history') }}"
