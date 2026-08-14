@@ -54,9 +54,12 @@
                         </div>
                     </template>
                 </div>
-                <div class="px-6 py-4 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between gap-2">
-                    <button type="button" @click="dismiss()" class="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-300">Later</button>
-                    <button type="button" @click="acknowledge()" class="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-bold text-slate-900 hover:bg-brand-700"><i data-lucide="check" class="h-4 w-4"></i> Got it — mark all read</button>
+                <div class="px-6 py-4 border-t border-slate-100 dark:border-slate-700/60 flex flex-wrap items-center justify-between gap-2">
+                    <a href="{{ route('announcements.all') }}" class="inline-flex items-center gap-1 text-xs font-bold text-brand-600 hover:text-brand-700 dark:text-brand-400">See all announcements <i data-lucide="arrow-right" class="h-3.5 w-3.5"></i></a>
+                    <div class="flex items-center gap-2">
+                        <button type="button" @click="dismiss()" class="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-300">Later</button>
+                        <button type="button" @click="acknowledge()" class="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-bold text-slate-900 hover:bg-brand-700"><i data-lucide="check" class="h-4 w-4"></i> Got it — mark all read</button>
+                    </div>
                 </div>
             </div>
         </div>
