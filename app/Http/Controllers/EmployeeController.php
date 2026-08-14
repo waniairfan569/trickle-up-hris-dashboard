@@ -293,9 +293,17 @@ class EmployeeController extends Controller
                 return $node;
             }
 
-            $distinctDepts = $reports->pluck('department_id')->map(fn ($d) => (int) $d)->unique();
+            $reportDepts = $reports->pluck('department_id')->map(fn ($d) => (int) $d)->filter()->unique();
+            $mgrDept = (int) $u->department_id;
 
-            if ($groupByDept && $distinctDepts->count() >= 2) {
+            // Group reports under department nodes when they span 2+ departments,
+            // OR when a whole team sits in a single department that isn't the
+            // manager's own (e.g. all of Muhammad's reports are "Pod Ivory") — so
+            // that team's department still shows, consistent with the rest of the chart.
+            $shouldGroup = $groupByDept && $reportDepts->isNotEmpty()
+                && ($reportDepts->count() >= 2 || $reportDepts->first() !== $mgrDept);
+
+            if ($shouldGroup) {
                 $node['children'] = $buildDeptForest($reports, $u->department_id);
             } else {
                 $node['children'] = $reports->map($build)->values()->all();
