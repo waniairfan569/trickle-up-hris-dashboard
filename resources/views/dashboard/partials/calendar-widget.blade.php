@@ -1,5 +1,5 @@
 <!-- Date & Events Widget (Celebrations / Holidays / Events) -->
-<div class="bg-white rounded-xl shadow-sm border border-slate-100 p-6 flex flex-col h-[460px] dark:bg-slate-800 dark:border-slate-700"
+<div class="bg-white rounded-xl shadow-sm border border-slate-100 p-6 flex flex-col h-[360px] dark:bg-slate-800 dark:border-slate-700"
      x-data="celebrationsWidget()">
     <div class="flex items-center justify-between mb-3">
         <div class="flex items-center gap-3 text-slate-700 font-semibold dark:text-slate-200 relative" @click.away="showPicker = false">

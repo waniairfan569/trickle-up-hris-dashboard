@@ -46,7 +46,7 @@
         <div class="space-y-4 order-last md:order-none">
 
             <!-- Date & Events Widget -->
-            <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-6 flex flex-col h-[460px] dark:bg-slate-800 dark:border-slate-700"
+            <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-6 flex flex-col h-[360px] dark:bg-slate-800 dark:border-slate-700"
                  x-data="celebrationsWidget()">
                 <!-- Date Header -->
                 <div class="flex items-center justify-between mb-3">
