@@ -43,13 +43,13 @@
     .dark .org-also-label { color:#a5b4fc; }
 
     /* Department group node — clusters same-department reports of a manager.
-       Same width & height as person cards, with content vertically centred, so
-       every card in the chart lines up. */
-    .org-dept { width:214px; min-height:132px; display:flex; flex-direction:column; justify-content:center; padding:14px 16px; background:#fffbea; border-color:#fde047; }
+       Same 214px width as person cards, but a compact, uniform height (they're
+       just group headers), so all department cards match each other. */
+    .org-dept { width:214px; min-height:76px; display:flex; flex-direction:column; justify-content:center; padding:12px 15px; background:#fffbea; border-color:#fde047; }
     .dark .org-dept { background:#3a2e05; border-color:#a16207; }
     .org-dept-head { display:flex; align-items:center; gap:9px; }
     .org-dept-icon { flex:none; display:flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:9px; background:#fcd82f; color:#1a1a24; }
-    .org-dept-name { font-weight:800; font-size:13px; color:#0f172a; line-height:1.25; }
+    .org-dept-name { font-weight:800; font-size:13px; color:#0f172a; line-height:1.25; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .dark .org-dept-name { color:#fff; }
     .org-dept .org-line { color:#a16207; }
     .dark .org-dept .org-line { color:#fcd82f; }
