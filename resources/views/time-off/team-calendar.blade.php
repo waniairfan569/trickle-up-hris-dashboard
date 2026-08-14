@@ -94,8 +94,10 @@
                                     <span class="relative z-20 inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold"
                                           :class="cell.isToday ? 'bg-brand-600 text-slate-900 shadow' : (cell.inMonth ? (cell.leaves.length ? 'bg-white/90 text-slate-700 shadow-sm dark:bg-slate-800/90 dark:text-slate-200' : 'text-slate-700 dark:text-slate-300') : 'text-slate-300 dark:text-slate-600')"
                                           x-text="cell.day"></span>
-                                    <span x-show="cell.leaves.length > maxLanes" class="absolute bottom-1 left-2 text-[10px] font-bold text-slate-400"
-                                          x-text="'+' + (cell.leaves.length - maxLanes) + ' more'"></span>
+                                    <template x-if="hiddenOn(cell, week) > 0">
+                                        <span class="absolute bottom-1 left-1.5 z-20 rounded-md bg-slate-200/90 px-1.5 py-0.5 text-[10px] font-bold text-slate-600 shadow-sm dark:bg-slate-700 dark:text-slate-200"
+                                              x-text="'+' + hiddenOn(cell, week) + ' more'"></span>
+                                    </template>
                                 </button>
                             </template>
                         </div>
@@ -225,15 +227,30 @@
         <span class="text-slate-400">Each employee has their own colour.</span>
     </div>
 
-    {{-- Hover tooltip: who's off, and from which day to which day --}}
-    <div x-show="hover.id" x-cloak class="pointer-events-none fixed z-[70]" :style="`left:${hover.x + 14}px; top:${hover.y + 14}px`">
-        <div class="rounded-xl bg-slate-900 px-3 py-2 text-white shadow-xl dark:bg-slate-700 max-w-xs">
-            <div class="text-xs font-bold" x-text="hover.name"></div>
-            <div class="text-[11px] text-slate-300" x-text="hover.policy"></div>
-            <div class="mt-1 flex items-center gap-1.5 text-[11px] font-semibold text-slate-100">
-                <i data-lucide="calendar" class="h-3 w-3"></i><span x-text="hover.range"></span>
+    {{-- Hover tooltip: who's off, their leave type, dates, duration and status --}}
+    <div x-show="hover.id" x-cloak class="pointer-events-none fixed z-[70]" :style="`left:${hover.x + 16}px; top:${hover.y + 16}px`">
+        <div class="w-64 overflow-hidden rounded-2xl bg-slate-900 text-white shadow-2xl ring-1 ring-white/10 dark:bg-slate-800">
+            <div class="flex items-center gap-3 px-4 py-3 border-b border-white/10">
+                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[11px] font-extrabold text-white" :class="hover.dot" x-text="hover.initials"></span>
+                <div class="min-w-0">
+                    <div class="text-sm font-extrabold leading-tight truncate" x-text="hover.name"></div>
+                    <div class="text-[11px] text-slate-300 truncate" x-text="hover.policy"></div>
+                </div>
             </div>
-            <div class="mt-0.5 text-[10px] font-bold uppercase tracking-wide" :class="hover.status === 'approved' ? 'text-emerald-400' : 'text-amber-400'" x-text="hover.status"></div>
+            <div class="px-4 py-3 space-y-2">
+                <div class="flex items-center gap-2 text-[13px] font-semibold text-slate-100">
+                    <i data-lucide="calendar" class="h-4 w-4 shrink-0 text-slate-400"></i>
+                    <span x-text="hover.range"></span>
+                </div>
+                <div class="flex items-center justify-between gap-2">
+                    <span class="inline-flex items-center gap-1.5 text-[11px] text-slate-400">
+                        <i data-lucide="clock" class="h-3.5 w-3.5"></i><span x-text="hover.duration"></span>
+                    </span>
+                    <span class="rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide"
+                          :class="hover.status === 'approved' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300'"
+                          x-text="hover.status"></span>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -291,8 +308,8 @@
             selected: null,
             todayKey: toKey(today),
             dayNames: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
-            maxLanes: 20,   // safety cap on stacked leave bars per week
-            hover: { id: null, name: '', policy: '', range: '', status: '', x: 0, y: 0 },
+            maxLanes: 3,    // show at most 3 stacked bars/day; the rest collapse into "+N more"
+            hover: { id: null, name: '', initials: '', dot: '', policy: '', duration: '', range: '', status: '', x: 0, y: 0 },
 
             // Hovering a leave highlights all its segments and shows who's off,
             // from which day to which day.
@@ -301,7 +318,10 @@
                 this.hover = {
                     id: leave.id,
                     name: leave.name,
+                    initials: leave.initials,
+                    dot: this.colorFor(leave.name).dot,
                     policy: leave.policy,
+                    duration: leave.duration,
                     range: leave.start === leave.end ? fmt(leave.start) : (fmt(leave.start) + ' – ' + fmt(leave.end)),
                     status: leave.status,
                     x: e.clientX, y: e.clientY,
@@ -328,12 +348,20 @@
                 return this.filtered.filter(l => l.start <= key && key <= l.end);
             },
 
-            // Height a week row needs so its stacked leave bars never overflow onto
-            // the next week's day numbers. Grows with the number of lanes used.
-            weekHeight(week) {
+            // Uniform, compact rows now that lanes are capped — variable heights
+            // were a big part of the cluttered feel. Room for the capped lanes
+            // plus the "+N more" pill.
+            weekHeight() {
+                return 32 + this.maxLanes * 20 + 22;   // day-number offset + lanes + "+N more"
+            },
+
+            // How many of a day's leaves are hidden behind the "+N more" pill
+            // (not drawn as a bar because lanes are capped). Click the day to see all.
+            hiddenOn(cell, week) {
+                if (cell.leaves.length <= this.maxLanes) return 0;
                 const bars = this.weekBars(week);
-                const lanes = bars.length ? Math.max(...bars.map(b => b.lane)) + 1 : 0;
-                return Math.max(116, 32 + lanes * 20 + 12);   // 32 = top offset, 20 = lane (17px + 3px gap)
+                const visible = bars.reduce((n, b) => n + ((b.leave.start <= cell.key && cell.key <= b.leave.end) ? 1 : 0), 0);
+                return Math.max(0, cell.leaves.length - visible);
             },
 
             // Continuous bars for a week: each leave becomes ONE bar spanning the
