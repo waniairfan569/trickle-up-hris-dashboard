@@ -22,7 +22,10 @@
     .org-tree ul ul::before { content:''; position:absolute; top:0; left:50%; border-left:2px solid #c9c6bd; width:0; height:18px; }
     .dark .org-tree li::before, .dark .org-tree li::after, .dark .org-tree li:last-child::before, .dark .org-tree ul ul::before { border-color:#475569; }
 
-    .org-card { position:relative; width:214px; min-height:146px; background:#fff; border:1px solid #e2e8f0; border-radius:14px; padding:26px 16px 18px; box-shadow:0 1px 3px rgba(15,23,42,.07); text-align:left; }
+    /* Fixed height so every person card in a row matches — even ones with an
+       "Also reports to" section (they sit under different parents, so CSS
+       stretch can't equalise them; a fixed height can). */
+    .org-card { position:relative; width:214px; height:176px; display:flex; flex-direction:column; background:#fff; border:1px solid #e2e8f0; border-radius:14px; padding:26px 16px 18px; box-shadow:0 1px 3px rgba(15,23,42,.07); text-align:left; }
     .org-card.is-open { border-color:#0f172a; box-shadow:0 4px 14px rgba(15,23,42,.12); }
     .org-card.hl { box-shadow:0 0 0 3px #f59e0b; }
     .dark .org-card { background:#1e293b; border-color:#334155; }
@@ -37,7 +40,7 @@
     .org-count { position:absolute; bottom:-13px; left:50%; transform:translateX(-50%); min-width:26px; height:26px; padding:0 8px; display:inline-flex; align-items:center; justify-content:center; border-radius:9999px; font-size:12px; font-weight:700; cursor:pointer; border:none; z-index:1; }
     .org-count.open { background:#0f172a; color:#fff; }
     .org-count.closed { background:#e2e8f0; color:#475569; }
-    .org-also { margin-top:7px; padding-top:6px; border-top:1px dashed #cbd5e1; font-size:10px; color:#64748b; line-height:1.3; }
+    .org-also { margin-top:auto; padding-top:6px; border-top:1px dashed #cbd5e1; font-size:10px; color:#64748b; line-height:1.3; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
     .dark .org-also { border-color:#475569; color:#94a3b8; }
     .org-also-label { display:inline-flex; align-items:center; gap:3px; font-weight:700; color:#6366f1; text-transform:uppercase; letter-spacing:.03em; font-size:9.5px; margin-right:4px; }
     .dark .org-also-label { color:#a5b4fc; }
@@ -45,7 +48,7 @@
     /* Department group node — clusters same-department reports of a manager.
        Same 214px width as person cards, but a compact, uniform height (they're
        just group headers), so all department cards match each other. */
-    .org-dept { width:214px; min-height:76px; display:flex; flex-direction:column; justify-content:center; padding:12px 15px; background:#fffbea; border-color:#fde047; }
+    .org-dept { width:214px; height:auto; min-height:76px; display:flex; flex-direction:column; justify-content:center; padding:12px 15px; background:#fffbea; border-color:#fde047; }
     .dark .org-dept { background:#3a2e05; border-color:#a16207; }
     .org-dept-head { display:flex; align-items:center; gap:9px; }
     .org-dept-icon { flex:none; display:flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:9px; background:#fcd82f; color:#1a1a24; }
@@ -78,7 +81,7 @@
 
     <div class="relative">
         <div class="org-scroll" style="height: calc(100vh - 230px); min-height: 520px;">
-            <div class="inline-block min-w-full p-12" :style="`transform: scale(${zoom}); transform-origin: top left; transition: transform .15s ease;`">
+            <div class="inline-block min-w-full p-12" :style="`transform: scale(${zoom}); transform-origin: top center; transition: transform .15s ease;`">
                 @if(count($tree))
                     <ul class="org-tree">
                         @foreach($tree as $node)
