@@ -364,8 +364,6 @@
 
     <!-- RIGHT COLUMN -->
     <div class="space-y-6">
-        @include('partials.announcements')
-
         {{-- Events summary --}}
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-6 dark:bg-slate-800 dark:border-slate-700/80">
             <div class="flex items-center justify-between mb-4">

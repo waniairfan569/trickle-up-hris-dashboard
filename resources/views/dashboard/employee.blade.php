@@ -596,9 +596,6 @@
                 </div>
             @endif
 
-            <!-- Announcements -->
-            @include('partials.announcements')
-
         </div>
     </div>
 </div>

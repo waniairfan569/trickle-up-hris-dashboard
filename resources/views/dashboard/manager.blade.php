@@ -50,12 +50,9 @@
     <!-- Employees waiting for a login code -->
     @include('partials.code-request-hr-banner')
 
-    <!-- Announcements (main) + personal login-code request (side), balanced -->
+    <!-- Personal login-code request -->
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-3 items-start">
-        <div class="lg:col-span-2">
-            @include('partials.announcements')
-        </div>
-        <div>
+        <div class="lg:col-span-1">
             @include('partials.code-request-widget')
         </div>
     </div>
