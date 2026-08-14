@@ -37,8 +37,8 @@
             <div class="relative w-full max-w-lg rounded-2xl bg-white shadow-2xl dark:bg-slate-800 max-h-[85vh] flex flex-col">
                 <div class="flex items-center justify-between gap-3 px-6 py-4 border-b border-slate-100 dark:border-slate-700/60">
                     <h3 class="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
-                        <i data-lucide="megaphone" class="h-5 w-5 text-brand-500"></i>
-                        New announcement<span x-show="items.length !== 1">s</span> (<span x-text="items.length"></span>)
+                        <i data-lucide="megaphone" class="h-5 w-5 text-brand-500 shrink-0"></i>
+                        <span>New announcement<span x-show="items.length !== 1">s</span> (<span x-text="items.length"></span>)</span>
                     </h3>
                     <button type="button" @click="dismiss()" class="text-slate-400 hover:text-slate-700"><i data-lucide="x" class="h-5 w-5"></i></button>
                 </div>
