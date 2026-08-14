@@ -263,9 +263,8 @@
         @endforeach
     </div>
 
-    {{-- Left column: Approval Queue + Time-off balances · Right column: Events + Calendar.
-         Grouped by theme (time-off left, events/calendar right) so the two columns
-         stack to a similar height with no large row-alignment gap. --}}
+    {{-- Left column: Approval Queue + Time-off balances + Events summary ·
+         Right column: "Your day at a glance" calendar. --}}
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
 
     <!-- LEFT COLUMN -->
@@ -364,10 +363,6 @@
 
         @include('dashboard.partials.timeoff-balances-card')
 
-    </div>{{-- /LEFT COLUMN --}}
-
-    <!-- RIGHT COLUMN -->
-    <div class="space-y-6">
         {{-- Events summary --}}
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-6 dark:bg-slate-800 dark:border-slate-700/80">
             <div class="flex items-center justify-between mb-4">
@@ -386,6 +381,10 @@
             </div>
         </div>
 
+    </div>{{-- /LEFT COLUMN --}}
+
+    <!-- RIGHT COLUMN -->
+    <div class="space-y-6">
         @include('dashboard.partials.calendar-widget')
     </div>{{-- /RIGHT COLUMN --}}
 
