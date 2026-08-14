@@ -18,7 +18,7 @@
         ])->values();
     @endphp
     <style>[x-cloak]{display:none!important}</style>
-    <div x-data="announcementAlert(@js($__annItems))" x-cloak class="mb-6">
+    <div x-data="announcementAlert(@js($__annItems), {{ request()->routeIs('dashboard') ? 'true' : 'false' }})" x-cloak class="mb-6">
         {{-- Slim banner --}}
         <div x-show="items.length" class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 dark:border-brand-500/30 dark:bg-brand-500/10">
             <div class="flex items-center gap-2.5 text-sm font-bold text-slate-800 dark:text-brand-100">
@@ -63,20 +63,17 @@
     </div>
 
     <script>
-        function announcementAlert(items) {
+        function announcementAlert(items, autoOpen) {
             return {
                 items: items || [],
+                autoOpen: !!autoOpen,
                 open: false,
                 csrf: document.querySelector('meta[name=csrf-token]').content,
                 init() {
-                    if (!this.items.length) return;
-                    // Auto-open once per browser session, and again whenever a NEWER
-                    // announcement appears (tracked by the highest id seen).
-                    const maxId = Math.max(...this.items.map(i => i.id));
-                    const seen = parseInt(sessionStorage.getItem('annSeenMax') || '0', 10);
-                    if (maxId > seen) {
+                    // On the dashboard, pop every visit while there are unread ones
+                    // (until the user reads them). Elsewhere, only the bar shows.
+                    if (this.autoOpen && this.items.length) {
                         this.open = true;
-                        sessionStorage.setItem('annSeenMax', String(maxId));
                         this.$nextTick(() => window.lucide && lucide.createIcons());
                     }
                 },
