@@ -322,6 +322,7 @@
 @php
     $pendingCodes = \App\Models\CodeRequest::where('status', 'pending')->count();
     $pendingEquipment = \App\Models\EquipmentRequest::where('status', 'pending')->count();
+    $openFeedback = \App\Models\Feedback::where('status', 'open')->count();
 @endphp
 <div class="mt-6 pt-6 border-t border-slate-850 space-y-1">
     <div class="px-3 mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">Requests</div>
@@ -336,6 +337,12 @@
         <i data-lucide="key-round" class="h-4 w-4 shrink-0"></i>
         <span class="flex-1">Code Requests</span>
         @if($pendingCodes > 0)<span class="inline-flex items-center justify-center rounded-full bg-rose-500 text-white text-[10px] font-bold h-5 min-w-5 px-1">{{ $pendingCodes }}</span>@endif
+    </a>
+    <a href="{{ route('feedback.admin') }}"
+       class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ request()->routeIs('feedback.admin') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">
+        <i data-lucide="message-square-heart" class="h-4 w-4 shrink-0"></i>
+        <span class="flex-1">Feedback &amp; Issues</span>
+        @if($openFeedback > 0)<span class="inline-flex items-center justify-center rounded-full bg-rose-500 text-white text-[10px] font-bold h-5 min-w-5 px-1">{{ $openFeedback }}</span>@endif
     </a>
 </div>
 

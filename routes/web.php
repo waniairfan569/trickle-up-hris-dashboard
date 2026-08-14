@@ -95,6 +95,13 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
         Route::delete('announcements/{announcement}', [\App\Http\Controllers\AnnouncementController::class, 'destroy'])->name('announcements.destroy');
     });
 
+    // Feedback / issue reporting — any user submits; admins review & respond.
+    Route::post('feedback', [\App\Http\Controllers\FeedbackController::class, 'store'])->name('feedback.store');
+    Route::middleware('role:super_admin,hr_admin')->group(function () {
+        Route::get('admin/feedback', [\App\Http\Controllers\FeedbackController::class, 'adminIndex'])->name('feedback.admin');
+        Route::post('admin/feedback/{feedback}/respond', [\App\Http\Controllers\FeedbackController::class, 'respond'])->name('feedback.respond');
+    });
+
     // Quick Code Requests — employee asks HR to share a tool login/OTP code.
     Route::post('code-requests', [\App\Http\Controllers\CodeRequestController::class, 'quickRequest'])->name('code-requests.store');
     Route::get('my-codes', [\App\Http\Controllers\CodeRequestController::class, 'myCodeRequests'])->name('code-requests.my');

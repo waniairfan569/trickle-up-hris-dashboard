@@ -33,6 +33,7 @@ class NotificationCategories
         'TimeTrackingReminder'                 => 'attendance',
         'AnnouncementPosted'                   => 'announcements',
         'EventPublishedNotification'           => 'events',
+        'FeedbackRespondedNotification'        => 'feedback',
     ];
 
     /** Category key => [label, description, icon]. Order = display order. */
@@ -47,6 +48,7 @@ class NotificationCategories
         'attendance'      => ['Attendance', 'Clock-in reminders and lateness warnings.', 'clock'],
         'announcements'   => ['Announcements', 'Company-wide announcements from your team.', 'megaphone'],
         'events'          => ['Company events', 'New events published to your company calendar.', 'calendar-days'],
+        'feedback'        => ['Feedback replies', 'Replies from HR to feedback or issues you raised.', 'message-square-reply'],
     ];
 
     /** Categories whose EMAIL channel can't be disabled (compliance / records). */

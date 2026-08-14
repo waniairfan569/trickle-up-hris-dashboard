@@ -599,6 +599,9 @@
                 </div>
             @endif
 
+            <!-- Feedback & issues -->
+            @include('partials.feedback-card')
+
         </div>
     </div>
 </div>
