@@ -14,11 +14,12 @@ class Announcement extends Model
     use BelongsToTenant;
     use HasFactory;
 
-    protected $fillable = ['title', 'body', 'is_pinned', 'is_active', 'created_by'];
+    protected $fillable = ['title', 'body', 'is_pinned', 'is_active', 'expires_at', 'created_by'];
 
     protected $casts = [
         'is_pinned' => 'boolean',
         'is_active' => 'boolean',
+        'expires_at' => 'date',
     ];
 
     public function creator()
@@ -28,7 +29,21 @@ class Announcement extends Model
 
     public function scopeActive(Builder $query): Builder
     {
-        return $query->where('is_active', true);
+        return $query->where('is_active', true)->notExpired();
+    }
+
+    /** Not past its expiry date (null expiry = never expires). */
+    public function scopeNotExpired(Builder $query): Builder
+    {
+        return $query->where(function ($q) {
+            $q->whereNull('expires_at')->orWhereDate('expires_at', '>=', today());
+        });
+    }
+
+    /** Whether this announcement's expiry date has already passed. */
+    public function isExpired(): bool
+    {
+        return $this->expires_at !== null && $this->expires_at->lt(today());
     }
 
     public function reads()
@@ -36,10 +51,10 @@ class Announcement extends Model
         return $this->hasMany(AnnouncementRead::class);
     }
 
-    /** Active announcements this user hasn't read yet. */
+    /** Active, non-expired announcements this user hasn't read yet. */
     public function scopeUnreadFor(Builder $query, $user): Builder
     {
-        return $query->where('is_active', true)
+        return $query->where('is_active', true)->notExpired()
             ->whereDoesntHave('reads', fn ($r) => $r->where('user_id', $user->id));
     }
 

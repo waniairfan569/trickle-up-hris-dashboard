@@ -40,6 +40,7 @@ class AnnouncementController extends Controller
             'title' => 'required|string|max:200',
             'body' => 'required|string|max:5000',
             'is_pinned' => 'nullable|boolean',
+            'expires_at' => 'nullable|date|after_or_equal:today',
         ]);
 
         $announcement = Announcement::create([
@@ -47,6 +48,7 @@ class AnnouncementController extends Controller
             'body' => $validated['body'],
             'is_pinned' => $request->boolean('is_pinned'),
             'is_active' => true,
+            'expires_at' => $request->filled('expires_at') ? $validated['expires_at'] : null,
             'created_by' => $request->user()->id,
         ]);
         $announcement->setRelation('creator', $request->user());
@@ -92,12 +94,14 @@ class AnnouncementController extends Controller
             'title' => 'required|string|max:200',
             'body' => 'required|string|max:5000',
             'is_pinned' => 'nullable|boolean',
+            'expires_at' => 'nullable|date',
         ]);
 
         $announcement->update([
             'title' => $validated['title'],
             'body' => $validated['body'],
             'is_pinned' => $request->boolean('is_pinned'),
+            'expires_at' => $request->filled('expires_at') ? $validated['expires_at'] : null,
         ]);
 
         return back()->with('success', 'Announcement updated.');

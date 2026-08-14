@@ -61,6 +61,7 @@ class DashboardController extends Controller
         $holidays = $this->companyHolidays();
         $outOfOffice = $this->outOfOffice();
         $onLeavePeople = \App\Models\TimeOffRequest::onLeaveToday();
+        $announcements = $this->dashboardAnnouncements();
 
         // Next few published events this user can see (pinned first) — powers the
         // "Upcoming events" dashboard card.
@@ -82,7 +83,7 @@ class DashboardController extends Controller
             ];
         }
 
-        $shared = compact('upcomingTimeOff', 'outOfOfficeCount', 'outOfOffice', 'timeOffBalances', 'celebrations', 'events', 'holidays', 'onLeavePeople', 'upcomingEvents', 'eventStats');
+        $shared = compact('upcomingTimeOff', 'outOfOfficeCount', 'outOfOffice', 'timeOffBalances', 'celebrations', 'events', 'holidays', 'onLeavePeople', 'upcomingEvents', 'eventStats', 'announcements');
 
         // super_admin/hr_admin → dashboard.admin
         if ($user->isAdmin()) {
@@ -96,6 +97,26 @@ class DashboardController extends Controller
 
         // employee/restricted → dashboard.employee
         return view('dashboard.employee', $shared);
+    }
+
+    /**
+     * Active, non-expired announcements for the "day at a glance" widget —
+     * pinned first, then newest. Carries pre-rendered safe HTML so the View
+     * popup can show links + line breaks without re-querying.
+     */
+    protected function dashboardAnnouncements()
+    {
+        return \App\Models\Announcement::active()->with('creator')
+            ->orderByDesc('is_pinned')->latest()->get()
+            ->map(fn ($a) => [
+                'id' => $a->id,
+                'title' => $a->title,
+                'body_html' => (string) $a->bodyHtml(),
+                'author' => optional($a->creator)->full_name ?? 'Admin',
+                'posted_label' => $a->created_at->format('d M Y'),
+                'expires_label' => optional($a->expires_at)->format('d M Y'),
+                'pinned' => (bool) $a->is_pinned,
+            ])->values();
     }
 
     /**

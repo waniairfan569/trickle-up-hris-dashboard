@@ -27,10 +27,16 @@
             @csrf
             <input type="text" name="title" value="{{ old('title') }}" required maxlength="200" placeholder="Title" class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm font-semibold dark:bg-slate-900 dark:border-slate-600 dark:text-white">
             <textarea name="body" rows="4" required maxlength="5000" placeholder="Write the announcement… you can paste links (https://…) and they'll be clickable." class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">{{ old('body') }}</textarea>
-            <div class="flex items-center justify-between">
-                <label class="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
-                    <input type="checkbox" name="is_pinned" value="1" class="rounded border-slate-300 text-brand-600"> Pin to top
-                </label>
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <div class="flex flex-wrap items-center gap-4">
+                    <label class="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                        <input type="checkbox" name="is_pinned" value="1" class="rounded border-slate-300 text-brand-600"> Pin to top
+                    </label>
+                    <label class="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                        <span class="text-slate-500 dark:text-slate-400">Expires <span class="text-slate-400">(optional)</span></span>
+                        <input type="date" name="expires_at" value="{{ old('expires_at') }}" min="{{ now()->toDateString() }}" class="rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                    </label>
+                </div>
                 <button type="submit" class="btn-brand"><i data-lucide="send" class="h-4 w-4"></i> Post</button>
             </div>
         </form>
@@ -51,6 +57,11 @@
                             </div>
                             <p class="text-sm text-slate-600 dark:text-slate-300 mt-1.5 whitespace-pre-line">{!! $a->bodyHtml() !!}</p>
                             <p class="text-[11px] text-slate-400 mt-2">{{ optional($a->creator)->full_name ?? 'Admin' }} · {{ $a->created_at->diffForHumans() }}</p>
+                            @if($a->expires_at)
+                                <p class="text-[11px] mt-1 inline-flex items-center gap-1 {{ $a->isExpired() ? 'text-rose-500 font-semibold' : 'text-slate-400' }}">
+                                    <i data-lucide="clock" class="h-3 w-3"></i>{{ $a->isExpired() ? 'Expired' : 'Expires' }} {{ $a->expires_at->format('d M Y') }}
+                                </p>
+                            @endif
                         </div>
                     </div>
                     <div class="flex items-center gap-2 mt-3 pt-3 border-t border-slate-100 dark:border-slate-700/60">
@@ -65,8 +76,14 @@
                     @csrf @method('PUT')
                     <input type="text" name="title" value="{{ $a->title }}" required maxlength="200" class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm font-semibold dark:bg-slate-900 dark:border-slate-600 dark:text-white">
                     <textarea name="body" rows="4" required maxlength="5000" class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">{{ $a->body }}</textarea>
-                    <div class="flex items-center justify-between">
-                        <label class="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300"><input type="checkbox" name="is_pinned" value="1" @checked($a->is_pinned) class="rounded border-slate-300 text-brand-600"> Pin to top</label>
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <div class="flex flex-wrap items-center gap-4">
+                            <label class="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300"><input type="checkbox" name="is_pinned" value="1" @checked($a->is_pinned) class="rounded border-slate-300 text-brand-600"> Pin to top</label>
+                            <label class="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                                <span class="text-slate-500 dark:text-slate-400">Expires</span>
+                                <input type="date" name="expires_at" value="{{ optional($a->expires_at)->toDateString() }}" class="rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                            </label>
+                        </div>
                         <div class="flex gap-2">
                             <button type="button" @click="edit = false" class="btn-outline">Cancel</button>
                             <button type="submit" class="btn-brand">Save</button>

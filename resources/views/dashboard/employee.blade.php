@@ -157,28 +157,53 @@
                         </div>
                     </div>
 
-                    <!-- Events (upcoming from the selected date) -->
-                    <div x-show="tab === 'events'" x-cloak>
-                        <template x-if="upcomingEvents().length === 0"><p class="text-xs font-semibold text-slate-400 text-center mt-10">No upcoming events</p></template>
+                    <!-- Announcements -->
+                    <div x-show="tab === 'announcements'" x-cloak>
+                        <template x-if="announcements.length === 0"><p class="text-xs font-semibold text-slate-400 text-center mt-10">No announcements</p></template>
                         <div class="space-y-2.5">
-                            <template x-for="e in upcomingEvents()" :key="e.id">
-                                <div class="flex items-center gap-3 rounded-lg p-1.5 -mx-1.5" :class="eventOngoing(e) ? 'bg-brand-50 dark:bg-brand-500/10' : ''">
-                                    <div class="h-9 w-10 rounded-lg flex flex-col items-center justify-center text-white" :class="dotBg(e.color)">
-                                        <span class="text-[9px] font-bold uppercase leading-none" x-text="monthOf(e.date)"></span>
-                                        <span class="text-sm font-extrabold leading-none" x-text="dayOf(e.date)"></span>
+                            <template x-for="a in announcements" :key="a.id">
+                                <div class="flex items-center gap-3 rounded-lg p-1.5 -mx-1.5 hover:bg-slate-50 dark:hover:bg-slate-900/40 transition">
+                                    <div class="h-9 w-10 rounded-lg flex items-center justify-center bg-amber-100 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400 shrink-0">
+                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 11l14-5v13L3 14z"/><path stroke-linecap="round" stroke-linejoin="round" d="M11.6 16.8a3 3 0 11-5.8-1.6"/></svg>
                                     </div>
                                     <div class="flex-1 min-w-0">
-                                        <p class="text-sm font-bold text-slate-800 dark:text-white truncate" x-text="e.title"></p>
-                                        <p class="text-xs text-slate-500 dark:text-slate-400 truncate">
-                                            <span x-text="eventWhen(e)"></span>
-                                            <span x-show="e.location" x-text="' · ' + e.location"></span>
+                                        <p class="text-sm font-bold text-slate-800 dark:text-white truncate">
+                                            <span x-show="a.pinned">📌 </span><span x-text="a.title"></span>
                                         </p>
+                                        <p class="text-xs text-slate-500 dark:text-slate-400 truncate" x-text="a.expires_label ? ('Expires ' + a.expires_label) : 'No expiry'"></p>
                                     </div>
+                                    <button type="button" @click="openView(a)" class="shrink-0 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-2.5 py-1 text-[11px] font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition">View</button>
                                 </div>
                             </template>
                         </div>
                     </div>
                 </div>
+
+                <!-- Announcement viewer popup -->
+                <template x-teleport="body">
+                    <div x-show="selected" x-cloak class="fixed inset-0 z-[70] flex items-center justify-center p-4" x-transition.opacity>
+                        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" @click="selected = null"></div>
+                        <div class="relative w-full max-w-lg bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-200/70 dark:border-slate-700 max-h-[85vh] overflow-y-auto"
+                             @keydown.escape.window="selected = null">
+                            <div class="flex items-start justify-between gap-3 px-6 py-4 border-b border-slate-100 dark:border-slate-700/60">
+                                <div class="min-w-0">
+                                    <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                        <span x-show="selected && selected.pinned">📌</span><span x-text="selected ? selected.title : ''"></span>
+                                    </h3>
+                                    <p class="text-[11px] text-slate-400 mt-0.5">
+                                        <span x-text="selected ? selected.author : ''"></span>
+                                        <span x-text="selected ? (' · Posted ' + selected.posted_label) : ''"></span>
+                                        <template x-if="selected && selected.expires_label"><span x-text="' · Expires ' + selected.expires_label"></span></template>
+                                    </p>
+                                </div>
+                                <button type="button" @click="selected = null" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 shrink-0">
+                                    <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                                </button>
+                            </div>
+                            <div class="px-6 py-5 text-sm text-slate-700 dark:text-slate-200 leading-relaxed break-words" x-html="selected ? selected.body_html : ''"></div>
+                        </div>
+                    </div>
+                </template>
 
                 <!-- Footer: Out of Office -->
                 @include('dashboard.partials.ooo-footer')
@@ -187,16 +212,20 @@
                 window.__celebrations = @json($celebrations);
                 window.__events = @json($events);
                 window.__holidays = @json($holidays);
+                window.__announcements = @json($announcements ?? []);
                 window.__outOfOffice = @json($outOfOffice ?? []);
                 function celebrationsWidget() {
                     return {
                         current: '{{ now()->toDateString() }}',
                         tab: 'celebrations',
-                        tabs: [{ key: 'celebrations', label: 'Celebrations' }, { key: 'events', label: 'Events' }],
+                        tabs: [{ key: 'celebrations', label: 'Celebrations' }, { key: 'announcements', label: 'Announcements' }],
                         celebrations: window.__celebrations || [],
                         events: window.__events || [],
+                        announcements: window.__announcements || [],
                         holidays: window.__holidays || [],
                         outOfOffice: window.__outOfOffice || [],
+                        selected: null,
+                        openView(a) { this.selected = a; },
                         oooOpen: false,
                         oooSearch: '',
                         oooTab: 'leave',
@@ -230,6 +259,7 @@
                         },
                         count(key) {
                             if (key === 'celebrations') return this.todaysCelebrations().length;
+                            if (key === 'announcements') return this.announcements.length;
                             if (key === 'holidays') return this.todaysHolidays().length;
                             return this.upcomingEvents().length;
                         },
