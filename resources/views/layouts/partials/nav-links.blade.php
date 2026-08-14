@@ -341,7 +341,7 @@
     <a href="{{ route('feedback.admin') }}"
        class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ request()->routeIs('feedback.admin') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">
         <i data-lucide="message-square-heart" class="h-4 w-4 shrink-0"></i>
-        <span class="flex-1">Feedback &amp; Issues</span>
+        <span class="flex-1">Feedback &amp; Suggestions</span>
         @if($openFeedback > 0)<span class="inline-flex items-center justify-center rounded-full bg-rose-500 text-white text-[10px] font-bold h-5 min-w-5 px-1">{{ $openFeedback }}</span>@endif
     </a>
 </div>

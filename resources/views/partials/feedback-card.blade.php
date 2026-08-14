@@ -1,6 +1,8 @@
 @php
-    // The signed-in employee's own submissions (most recent first).
+    // The signed-in employee's own submissions (most recent first). Resolved
+    // items drop off the dashboard — HR keeps the full record on their page.
     $myFeedback = \App\Models\Feedback::where('user_id', auth()->id())
+        ->where('status', '!=', 'resolved')
         ->with('responder')
         ->latest()
         ->limit(10)
@@ -12,7 +14,7 @@
      class="bg-white rounded-2xl shadow-sm border border-slate-200/80 dark:bg-slate-800 dark:border-slate-700/80">
     <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-700/60">
         <h2 class="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2">
-            <i data-lucide="message-square-heart" class="h-4 w-4 text-brand-500"></i> Feedback &amp; issues
+            <i data-lucide="message-square-heart" class="h-4 w-4 text-brand-500"></i> Feedback &amp; Suggestions
         </h2>
         <button type="button" @click="open = true"
                 class="inline-flex items-center gap-1.5 rounded-lg bg-brand-500 px-3 py-1.5 text-xs font-bold text-slate-900 hover:bg-brand-400 transition">
@@ -63,7 +65,7 @@
             </div>
         @else
             <div class="mt-4 rounded-xl border border-dashed border-slate-200 dark:border-slate-700 px-4 py-6 text-center">
-                <p class="text-xs text-slate-400">You haven't submitted anything yet.</p>
+                <p class="text-xs text-slate-400">Nothing open right now — send feedback anytime.</p>
             </div>
         @endif
     </div>

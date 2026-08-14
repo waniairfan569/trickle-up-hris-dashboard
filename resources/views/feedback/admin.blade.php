@@ -1,14 +1,14 @@
 @extends('layouts.hr-app')
 
-@section('title', 'Feedback & Issues')
-@section('breadcrumb', 'Feedback & Issues')
+@section('title', 'Feedback & Suggestions')
+@section('breadcrumb', 'Feedback & Suggestions')
 
 @section('content')
 <div class="max-w-4xl mx-auto space-y-6">
 
     <div>
         <h1 class="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
-            <i data-lucide="message-square-heart" class="h-6 w-6 text-brand-500"></i> Feedback &amp; Issues
+            <i data-lucide="message-square-heart" class="h-6 w-6 text-brand-500"></i> Feedback &amp; Suggestions
         </h1>
         <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Everything employees have submitted — reply and set a status; they'll see it on their dashboard.</p>
     </div>
