@@ -22,7 +22,7 @@
     .org-tree ul ul::before { content:''; position:absolute; top:0; left:50%; border-left:2px solid #c9c6bd; width:0; height:18px; }
     .dark .org-tree li::before, .dark .org-tree li::after, .dark .org-tree li:last-child::before, .dark .org-tree ul ul::before { border-color:#475569; }
 
-    .org-card { position:relative; width:214px; background:#fff; border:1px solid #e2e8f0; border-radius:14px; padding:26px 16px 18px; box-shadow:0 1px 3px rgba(15,23,42,.07); text-align:left; }
+    .org-card { position:relative; width:214px; min-height:120px; background:#fff; border:1px solid #e2e8f0; border-radius:14px; padding:26px 16px 18px; box-shadow:0 1px 3px rgba(15,23,42,.07); text-align:left; }
     .org-card.is-open { border-color:#0f172a; box-shadow:0 4px 14px rgba(15,23,42,.12); }
     .org-card.hl { box-shadow:0 0 0 3px #f59e0b; }
     .dark .org-card { background:#1e293b; border-color:#334155; }
