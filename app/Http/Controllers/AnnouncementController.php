@@ -120,4 +120,33 @@ class AnnouncementController extends Controller
 
         return back()->with('success', 'Announcement deleted.');
     }
+
+    /** AJAX: the current user acknowledges one announcement (won't auto-pop again). */
+    public function markRead(Request $request, Announcement $announcement)
+    {
+        \App\Models\AnnouncementRead::updateOrCreate(
+            ['announcement_id' => $announcement->id, 'user_id' => auth()->id()],
+            ['read_at' => now()]
+        );
+
+        return response()->json(['success' => true]);
+    }
+
+    /** AJAX: mark every currently-unread announcement as read for this user. */
+    public function markAllRead(Request $request)
+    {
+        $userId = auth()->id();
+        $unread = Announcement::active()
+            ->whereDoesntHave('reads', fn ($r) => $r->where('user_id', $userId))
+            ->pluck('id');
+
+        foreach ($unread as $id) {
+            \App\Models\AnnouncementRead::updateOrCreate(
+                ['announcement_id' => $id, 'user_id' => $userId],
+                ['read_at' => now()]
+            );
+        }
+
+        return response()->json(['success' => true, 'count' => $unread->count()]);
+    }
 }

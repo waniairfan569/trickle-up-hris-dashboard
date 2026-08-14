@@ -31,6 +31,18 @@ class Announcement extends Model
         return $query->where('is_active', true);
     }
 
+    public function reads()
+    {
+        return $this->hasMany(AnnouncementRead::class);
+    }
+
+    /** Active announcements this user hasn't read yet. */
+    public function scopeUnreadFor(Builder $query, $user): Builder
+    {
+        return $query->where('is_active', true)
+            ->whereDoesntHave('reads', fn ($r) => $r->where('user_id', $user->id));
+    }
+
     /**
      * Safe HTML for the body: escape everything, turn plain URLs into clickable
      * links, and keep line breaks. Lets admins paste text + links safely.

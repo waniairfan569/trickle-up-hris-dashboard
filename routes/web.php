@@ -84,6 +84,9 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
 
     // Announcements — admins post; everyone sees them on the dashboard.
     Route::get('all-announcements', [\App\Http\Controllers\AnnouncementController::class, 'all'])->name('announcements.all');
+    // Any user can acknowledge announcements (so they stop auto-popping).
+    Route::post('announcements/read-all', [\App\Http\Controllers\AnnouncementController::class, 'markAllRead'])->name('announcements.read-all');
+    Route::post('announcements/{announcement}/read', [\App\Http\Controllers\AnnouncementController::class, 'markRead'])->name('announcements.read');
     Route::middleware('role:super_admin,hr_admin')->group(function () {
         Route::get('announcements', [\App\Http\Controllers\AnnouncementController::class, 'index'])->name('announcements.index');
         Route::post('announcements', [\App\Http\Controllers\AnnouncementController::class, 'store'])->name('announcements.store');
