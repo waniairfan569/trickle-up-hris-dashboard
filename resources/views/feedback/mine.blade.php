@@ -82,6 +82,17 @@
                         <p class="mt-1 text-sm text-slate-700 dark:text-slate-200 whitespace-pre-line">{{ $item->admin_response }}</p>
                     </div>
                 @endif
+
+                @if($item->status !== 'resolved')
+                    <div class="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700/60 flex justify-end">
+                        <form method="POST" action="{{ route('feedback.cancel', $item) }}" onsubmit="return confirm('Cancel this submission? It will be withdrawn and HR will no longer see it.')">
+                            @csrf @method('DELETE')
+                            <button type="submit" class="inline-flex items-center gap-1 text-xs font-semibold text-rose-500 hover:text-rose-700 transition">
+                                <i data-lucide="x" class="h-3.5 w-3.5"></i> Cancel submission
+                            </button>
+                        </form>
+                    </div>
+                @endif
             </div>
         @empty
             <div class="bg-white rounded-2xl border border-dashed border-slate-200 dark:bg-slate-800 dark:border-slate-700 px-6 py-14 text-center">

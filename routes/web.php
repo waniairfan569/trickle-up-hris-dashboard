@@ -98,6 +98,7 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
     // Feedback / issue reporting — any user submits; admins review & respond.
     Route::get('feedback', [\App\Http\Controllers\FeedbackController::class, 'mine'])->name('feedback.mine');
     Route::post('feedback', [\App\Http\Controllers\FeedbackController::class, 'store'])->name('feedback.store');
+    Route::delete('feedback/{feedback}', [\App\Http\Controllers\FeedbackController::class, 'cancel'])->name('feedback.cancel');
     Route::middleware('role:super_admin,hr_admin')->group(function () {
         Route::get('admin/feedback', [\App\Http\Controllers\FeedbackController::class, 'adminIndex'])->name('feedback.admin');
         Route::post('admin/feedback/{feedback}/respond', [\App\Http\Controllers\FeedbackController::class, 'respond'])->name('feedback.respond');

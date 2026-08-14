@@ -51,6 +51,17 @@ class FeedbackController extends Controller
         return view('feedback.mine', compact('feedback'));
     }
 
+    /** Employee withdraws their own submission (only while HR hasn't resolved it). */
+    public function cancel(Request $request, Feedback $feedback)
+    {
+        abort_unless($feedback->user_id == auth()->id(), 403, 'You can only cancel your own feedback.');
+        abort_if($feedback->status === 'resolved', 403, 'Resolved feedback can no longer be cancelled.');
+
+        $feedback->delete();
+
+        return back()->with('success', 'Your feedback has been cancelled.');
+    }
+
     // ---- Admin --------------------------------------------------------------
 
     /** Admin: every submission, filterable by status. */
