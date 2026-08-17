@@ -7,11 +7,11 @@
     <style>
         .sum-caption { padding: 12pt 26pt 0; font-size: 10.5pt; color: #64748B; }
         table.sum { width: 100%; border-collapse: collapse; font-size: 11pt; margin-top: 10pt; }
-        table.sum th { background: #fcd82f; color: #1B2D5E; text-align: center; padding: 9pt 6pt; font-size: 10.5pt; white-space: nowrap; vertical-align: middle; }
+        table.sum th { background: #fcd82f; color: #1a1a24; text-align: center; padding: 9pt 6pt; font-size: 10.5pt; white-space: nowrap; vertical-align: middle; }
         table.sum th.l, table.sum td.l { text-align: left; }
         table.sum td { padding: 8pt 6pt; border-bottom: 1pt solid #E5E7EB; text-align: center; }
         table.sum tr:nth-child(even) td { background: #F8FAFC; }
-        table.sum .emp { font-weight: bold; color: #1B2D5E; font-size: 11pt; }
+        table.sum .emp { font-weight: bold; color: #1a1a24; font-size: 11pt; }
         table.sum .dept { font-size: 9pt; color: #64748B; }
         table.sum tr.tot td { font-weight: bold; background: #FEF9E0; border-top: 1.5pt solid #fcd82f; font-size: 11pt; }
         .g { color: #059669; } .r { color: #DC2626; } .a { color: #B45309; } .o { color: #EA580C; }
