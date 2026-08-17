@@ -285,7 +285,7 @@
                                     && $request->start_date && $request->end_date
                                     && $request->end_date->gt($request->start_date)
                                     && $request->end_date->gte(today());
-                                $retMin = $request->start_date ? $request->start_date->copy()->addDay()->max(today())->toDateString() : today()->toDateString();
+                                $retMin = $request->start_date ? $request->start_date->toDateString() : today()->toDateString();
                             @endphp
                             @if($request->status === 'pending')
                                 <form action="{{ route('time-off.destroy', $request) }}" method="POST" class="inline"
@@ -616,7 +616,7 @@
                         <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1.5">First day back at work</label>
                         <input type="date" name="return_date" :min="ret.min" :max="ret.max" required
                                class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
-                        <p class="text-[11px] text-slate-400 mt-1">Days from this date to the end of your leave are credited back to your balance once HR approves.</p>
+                        <p class="text-[11px] text-slate-400 mt-1">Pick the first day you're back at work — any day of your leave. Every leave day from then to the end is credited back once HR approves.</p>
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1.5">Reason <span class="font-normal text-slate-400">(optional)</span></label>

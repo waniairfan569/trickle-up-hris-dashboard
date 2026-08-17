@@ -668,11 +668,10 @@ class TimeOffController extends Controller
         $start = $timeOffRequest->start_date->copy()->startOfDay();
         $end = $timeOffRequest->end_date->copy()->startOfDay();
 
-        if ($returnDate->lte($start) || $returnDate->gt($end)) {
-            return back()->with('error', 'Return date must be after the leave starts and on or before it ends.');
-        }
-        if ($returnDate->lt(today())) {
-            return back()->with('error', 'Return date cannot be in the past.');
+        // The return date is the first day back at work — any day within the
+        // leave (returning on the start day means it wasn't taken at all).
+        if ($returnDate->lt($start) || $returnDate->gt($end)) {
+            return back()->with('error', 'Return date must be within your leave (on or before it ends).');
         }
 
         $daysTaken = $this->workingDaysBetween($timeOffRequest->employee, $start, $returnDate->copy()->subDay());
@@ -719,26 +718,33 @@ class TimeOffController extends Controller
         $originalEnd = $timeOff->end_date->copy()->startOfDay();
         $returnDate = $leaveReturn->return_date->copy()->startOfDay();
 
-        if ($returnDate->lte($start) || $returnDate->gt($originalEnd)) {
+        if ($returnDate->lt($start) || $returnDate->gt($originalEnd)) {
             return back()->with('error', 'The return date is no longer valid for this leave.');
         }
 
         $daysTaken = $this->workingDaysBetween($employee, $start, $returnDate->copy()->subDay());
         $returned = max(0, round(((float) $timeOff->days_requested) - $daysTaken, 2));
 
-        \Illuminate\Support\Facades\DB::transaction(function () use ($timeOff, $leaveReturn, $employee, $user, $returnDate, $originalEnd, $daysTaken, $returned) {
+        \Illuminate\Support\Facades\DB::transaction(function () use ($timeOff, $leaveReturn, $employee, $user, $returnDate, $start, $originalEnd, $daysTaken, $returned) {
             if ($returned > 0) {
                 $year = Carbon::parse($timeOff->start_date)->year;
                 $balance = $this->balanceService->getOrCreateBalance($employee, $timeOff->policy, $year);
                 $balance->decrement('used', $returned);
             }
-            // Free up the returned days on the attendance sheet.
-            $this->revertLeaveRange($timeOff->user_id, $returnDate->copy(), $originalEnd->copy());
-            // Shorten the leave to the actual last day off.
-            $timeOff->update([
-                'end_date' => $returnDate->copy()->subDay()->toDateString(),
-                'days_requested' => $daysTaken,
-            ]);
+
+            if ($daysTaken <= 0) {
+                // Returning on the first day → no leave was actually taken: cancel it.
+                $this->revertLeaveRange($timeOff->user_id, $start->copy(), $originalEnd->copy());
+                $timeOff->update(['status' => 'cancelled', 'cancelled_at' => now()]);
+            } else {
+                // Free the returned days on the attendance sheet, shorten to the last day off.
+                $this->revertLeaveRange($timeOff->user_id, $returnDate->copy(), $originalEnd->copy());
+                $timeOff->update([
+                    'end_date' => $returnDate->copy()->subDay()->toDateString(),
+                    'days_requested' => $daysTaken,
+                ]);
+            }
+
             $leaveReturn->update([
                 'days_returned' => $returned,
                 'status' => 'approved',
