@@ -55,6 +55,24 @@ class NotificationController extends Controller
         return response()->json(['count' => $items->count(), 'items' => $items]);
     }
 
+    /** Open a notification: mark it read, then send the user to its target. */
+    public function open($id)
+    {
+        $notification = auth()->user()->notifications()->whereKey($id)->first();
+        abort_unless($notification, 404);
+
+        if (is_null($notification->read_at)) {
+            $notification->markAsRead();
+        }
+
+        $url = $notification->data['url']
+            ?? $notification->data['action_url']
+            ?? $notification->data['action']
+            ?? route('notifications.index');
+
+        return redirect($url);
+    }
+
     public function markAsRead($id)
     {
         $notification = auth()->user()->unreadNotifications->where('id', $id)->first();

@@ -51,7 +51,7 @@
                 $icon = $n->data['icon'] ?? ($tab === 'todos' ? 'check-square' : 'bell');
                 $title = $n->data['title'] ?? 'Notification';
                 $message = $n->data['message'] ?? ($n->data['body'] ?? '');
-                $action = $n->data['action_url'] ?? ($n->data['action'] ?? null);
+                $target = $n->data['url'] ?? ($n->data['action_url'] ?? ($n->data['action'] ?? null));
             @endphp
             <div class="flex items-start gap-4 px-6 py-4 border-b border-slate-100 last:border-0 dark:border-slate-700/60 {{ $isUnread ? 'bg-brand-50/40 dark:bg-brand-500/5' : '' }}">
                 <span class="mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl {{ $isUnread ? 'bg-brand-100 text-brand-600 dark:bg-brand-500/20 dark:text-brand-400' : 'bg-slate-100 text-slate-400 dark:bg-slate-700' }}">
@@ -59,14 +59,18 @@
                 </span>
                 <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-2">
-                        <p class="text-sm font-bold text-slate-800 dark:text-white truncate">{{ $title }}</p>
+                        @if($target)
+                            <a href="{{ route('notifications.open', $n->id) }}" class="text-sm font-bold text-slate-800 dark:text-white truncate hover:text-brand-600 dark:hover:text-brand-400">{{ $title }}</a>
+                        @else
+                            <p class="text-sm font-bold text-slate-800 dark:text-white truncate">{{ $title }}</p>
+                        @endif
                         @if($isUnread)<span class="h-2 w-2 rounded-full bg-brand-500 flex-shrink-0"></span>@endif
                     </div>
                     @if($message)<p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{{ $message }}</p>@endif
                     <div class="flex items-center gap-3 mt-2">
                         <span class="text-[10px] text-slate-400">{{ $n->created_at->diffForHumans() }}</span>
-                        @if($action)
-                            <a href="{{ $action }}" class="text-[11px] font-bold text-brand-600 hover:text-brand-700">Open</a>
+                        @if($target)
+                            <a href="{{ route('notifications.open', $n->id) }}" class="text-[11px] font-bold text-brand-600 hover:text-brand-700">Open</a>
                         @endif
                         @if($isUnread)
                             <form action="{{ route('notifications.mark-read', $n->id) }}" method="POST" class="inline">
