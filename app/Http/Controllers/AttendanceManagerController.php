@@ -124,26 +124,43 @@ class AttendanceManagerController extends Controller
     {
         abort_unless($request->user() && $request->user()->isAdmin(), 403);
 
-        $date = $request->input('date', today()->toDateString());
+        $query = AttendanceRecord::with('employee')->whereNotNull('clock_in');
+
+        // A date range (Team History — a whole month) or a single day (Live Board).
+        if ($request->filled('date_from') || $request->filled('date_to')) {
+            $from = $request->input('date_from', today()->toDateString());
+            $to = $request->input('date_to', today()->toDateString());
+            $query->whereDate('date', '>=', $from)->whereDate('date', '<=', $to);
+            $label = \Carbon\Carbon::parse($from)->format('d M') . ' – ' . \Carbon\Carbon::parse($to)->format('d M Y');
+        } else {
+            $date = $request->input('date', today()->toDateString());
+            $query->whereDate('date', $date);
+            $label = \Carbon\Carbon::parse($date)->format('d M Y');
+        }
+
+        // Respect the same employee / department filters as the page it's fired from.
+        if ($request->filled('employee_id')) {
+            $query->where('user_id', $request->employee_id);
+        }
+        if ($request->filled('department_id')) {
+            $query->whereHas('employee', fn ($q) => $q->where('department_id', $request->department_id));
+        }
+
         $count = 0;
         $changed = 0;
-
-        AttendanceRecord::with('employee')
-            ->whereDate('date', $date)
-            ->whereNotNull('clock_in')
-            ->chunkById(300, function ($records) use (&$count, &$changed) {
-                foreach ($records as $r) {
-                    $before = $r->status . '|' . $r->late_minutes;
-                    $r->recalculate();
-                    $count++;
-                    if ($before !== $r->status . '|' . $r->late_minutes) {
-                        $r->save();
-                        $changed++;
-                    }
+        $query->chunkById(300, function ($records) use (&$count, &$changed) {
+            foreach ($records as $r) {
+                $before = $r->status . '|' . $r->late_minutes;
+                $r->recalculate();
+                $count++;
+                if ($before !== $r->status . '|' . $r->late_minutes) {
+                    $r->save();
+                    $changed++;
                 }
-            });
+            }
+        });
 
-        return back()->with('success', "Re-checked {$count} record(s) for " . \Carbon\Carbon::parse($date)->format('d M Y') . " against each employee's shift late rule — {$changed} updated.");
+        return back()->with('success', "Re-checked {$count} record(s) for {$label} against each employee's shift late rule — {$changed} updated.");
     }
 
     /** Bulk backfill form — add attendance for many employees on a date. */

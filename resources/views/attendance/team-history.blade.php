@@ -109,7 +109,24 @@
         <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
             <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
                 <h3 class="font-bold text-slate-800 dark:text-white">History Records</h3>
-                <a href="{{ route('attendance.team.export', request()->query()) }}" class="flex items-center text-sm font-semibold text-brand-600 bg-brand-50 hover:bg-brand-100 px-3 py-1.5 rounded-lg transition dark:bg-brand-500/10 dark:text-brand-400"><i data-lucide="download" class="w-4 h-4 mr-1.5"></i> Export CSV</a>
+                <div class="flex items-center gap-2">
+                    @if(auth()->user()->isAdmin())
+                        @php
+                            $fixFrom = request('date_from') ?: now()->startOfMonth()->toDateString();
+                            $fixTo = request('date_to') ?: now()->endOfMonth()->toDateString();
+                        @endphp
+                        <form method="POST" action="{{ route('attendance.recalc-late') }}"
+                              onsubmit="return confirm('Re-check every clock-in from {{ \Carbon\Carbon::parse($fixFrom)->format('d M') }} to {{ \Carbon\Carbon::parse($fixTo)->format('d M Y') }} against each employee\'s shift late rule? Statuses are corrected and reflected in their attendance.');">
+                            @csrf
+                            <input type="hidden" name="date_from" value="{{ $fixFrom }}">
+                            <input type="hidden" name="date_to" value="{{ $fixTo }}">
+                            <input type="hidden" name="employee_id" value="{{ request('employee_id') }}">
+                            <input type="hidden" name="department_id" value="{{ request('department_id') }}">
+                            <button type="submit" class="inline-flex items-center gap-1.5 text-sm font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 px-3 py-1.5 rounded-lg transition dark:bg-amber-500/10 dark:text-amber-400"><i data-lucide="alarm-clock" class="w-4 h-4"></i> Fix late status</button>
+                        </form>
+                    @endif
+                    <a href="{{ route('attendance.team.export', request()->query()) }}" class="flex items-center text-sm font-semibold text-brand-600 bg-brand-50 hover:bg-brand-100 px-3 py-1.5 rounded-lg transition dark:bg-brand-500/10 dark:text-brand-400"><i data-lucide="download" class="w-4 h-4 mr-1.5"></i> Export CSV</a>
+                </div>
             </div>
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-sm text-slate-600 dark:text-slate-300">
