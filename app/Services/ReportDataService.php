@@ -7,7 +7,10 @@ use App\Models\TimeOffBalance;
 use App\Models\TimeOffRequest;
 use App\Models\User;
 use App\Models\WorkSchedule;
+use App\Services\TimezoneService;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 
 /**
  * Builds the data payload for an on-demand employee report (attendance + leave
@@ -17,8 +20,13 @@ use Illuminate\Support\Carbon;
  */
 class ReportDataService
 {
+    public function __construct(private TimezoneService $tz) {}
+
     /** Statuses that count as the employee being present/working that day. */
     private const PRESENT = ['present', 'late', 'overtime', 'early_departure'];
+
+    /** Policy-name keywords that mark a leave as "unplanned". */
+    private const UNPLANNED = ['unplanned', 'casual', 'sick', 'emergency'];
 
     public function getEmployeeReportData(User $employee, Carbon $startDate, Carbon $endDate, string $reportType): array
     {
@@ -29,15 +37,7 @@ class ReportDataService
             ->get();
 
         // Scheduled working days in the period.
-        $workSchedule = $employee->workSchedule ?? WorkSchedule::default()->first();
-        $workingDays = 0;
-        $cursor = $startDate->copy();
-        while ($cursor->lte($endDate)) {
-            if ($workSchedule && $workSchedule->isWorkingDay($cursor)) {
-                $workingDays++;
-            }
-            $cursor->addDay();
-        }
+        $workingDays = $this->scheduledWorkingDays($employee, $startDate, $endDate);
 
         $presentDays     = $records->whereIn('status', self::PRESENT)->count();
         $absentDays      = $records->where('status', 'absent')->count();
@@ -55,8 +55,9 @@ class ReportDataService
         $dailyBreakdown = $records->map(fn ($r) => [
             'date'         => $r->date->format('d M Y'),
             'day'          => $r->date->format('D'),
-            'clock_in'     => $r->clock_in ? $r->clock_in->format('h:i A') : '—',
-            'clock_out'    => $r->clock_out ? $r->clock_out->format('h:i A') : '—',
+            // Convert stored (UTC) clock times into the employee's local timezone.
+            'clock_in'     => $r->clock_in ? $this->tz->toUserTime($r->clock_in->copy(), $employee)->format('h:i A') : '—',
+            'clock_out'    => $r->clock_out ? $this->tz->toUserTime($r->clock_out->copy(), $employee)->format('h:i A') : '—',
             'hours'        => $r->total_minutes_worked
                 ? intdiv($r->total_minutes_worked, 60) . 'h ' . ($r->total_minutes_worked % 60) . 'm'
                 : '—',
@@ -192,5 +193,86 @@ class ReportDataService
                 'grade_color' => $gradeColor,
             ],
         ];
+    }
+
+    /**
+     * Consolidated one-row-per-employee summary for the "All Employees" report:
+     * present / late / absent, planned vs unplanned leave, WFH and hours.
+     */
+    public function getSummaryData(Collection $employees, Carbon $startDate, Carbon $endDate): array
+    {
+        $rows = $employees->map(fn ($emp) => $this->summaryRow($emp, $startDate, $endDate))->values()->all();
+
+        $totals = ['present' => 0, 'late' => 0, 'absent' => 0, 'planned' => 0, 'unplanned' => 0, 'wfh' => 0, 'minutes' => 0, 'working_days' => 0];
+        foreach ($rows as $r) {
+            foreach ($totals as $k => $_) {
+                $totals[$k] += $r[$k];
+            }
+        }
+        $totals['rate'] = $totals['working_days'] > 0 ? round(($totals['present'] / $totals['working_days']) * 100, 1) : 0;
+
+        return ['rows' => $rows, 'totals' => $totals];
+    }
+
+    private function summaryRow(User $employee, Carbon $startDate, Carbon $endDate): array
+    {
+        $records = AttendanceRecord::where('user_id', $employee->id)
+            ->whereBetween('date', [$startDate->toDateString(), $endDate->toDateString()])
+            ->get(['status', 'total_minutes_worked', 'late_minutes']);
+
+        $present = $records->whereIn('status', self::PRESENT)->count();
+        $late    = $records->where('status', 'late')->count();
+        $absent  = $records->where('status', 'absent')->count();
+        $minutes = (int) $records->sum('total_minutes_worked');
+        $workingDays = $this->scheduledWorkingDays($employee, $startDate, $endDate);
+
+        $leaveRequests = TimeOffRequest::where('user_id', $employee->id)
+            ->where('status', 'approved')
+            ->where(function ($q) use ($startDate, $endDate) {
+                $q->whereBetween('start_date', [$startDate->toDateString(), $endDate->toDateString()])
+                  ->orWhereBetween('end_date', [$startDate->toDateString(), $endDate->toDateString()]);
+            })
+            ->with('policy')
+            ->get();
+
+        $planned = 0.0;
+        $unplanned = 0.0;
+        foreach ($leaveRequests as $lv) {
+            if (Str::contains(Str::lower(optional($lv->policy)->name ?? ''), self::UNPLANNED)) {
+                $unplanned += (float) $lv->days_requested;
+            } else {
+                $planned += (float) $lv->days_requested;
+            }
+        }
+
+        return [
+            'name'         => $employee->full_name,
+            'department'   => optional($employee->department)->name ?? '—',
+            'present'      => $present,
+            'late'         => $late,
+            'absent'       => $absent,
+            'planned'      => round($planned, 2),
+            'unplanned'    => round($unplanned, 2),
+            // No per-day remote flag exists, so remote workers' worked days are their WFH days.
+            'wfh'          => ($employee->attendance_mode ?? 'biometric') === 'remote' ? $present : 0,
+            'minutes'      => $minutes,
+            'working_days' => $workingDays,
+            'rate'         => $workingDays > 0 ? round(($present / $workingDays) * 100, 1) : 0,
+        ];
+    }
+
+    private function scheduledWorkingDays(User $employee, Carbon $startDate, Carbon $endDate): int
+    {
+        $schedule = $employee->workSchedule ?? WorkSchedule::default()->first();
+        $days = 0;
+        $cursor = $startDate->copy();
+        while ($cursor->lte($endDate)) {
+            if ($schedule && $schedule->isWorkingDay($cursor)) {
+                $days++;
+            }
+            $cursor->addDay();
+        }
+
+        return $days;
     }
 }

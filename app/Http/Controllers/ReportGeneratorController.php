@@ -60,43 +60,26 @@ class ReportGeneratorController extends Controller
             return $pdf->download($this->getFilename($data));
         }
 
-        // ── All employees ──────────────────────────────────────────
-        $employees = $this->activeEmployees(['department', 'manager', 'workSchedule']);
+        // ── All employees → one consolidated summary table ─────────
+        $employees = $this->activeEmployees(['department', 'workSchedule']);
+        $summary = $this->reports->getSummaryData($employees, $startDate, $endDate);
+
+        $data = [
+            'period_label' => $periodLabel,
+            'rows'         => $summary['rows'],
+            'totals'       => $summary['totals'],
+            'count'        => count($summary['rows']),
+            'generated_at' => now()->format('d M Y h:i A'),
+            'generated_by' => auth()->user() ? auth()->user()->full_name : 'System',
+        ];
 
         if ($request->output === 'preview') {
-            $allData = $employees
-                ->map(fn ($emp) => $this->reports->getEmployeeReportData($emp, $startDate, $endDate, $request->report_type))
-                ->values()->all();
-
-            return view('reports.pdf-template-all', compact('allData', 'periodLabel'));
+            return view('reports.pdf-summary', compact('data'));
         }
 
-        // Single employee in the set → one PDF; otherwise a ZIP of per-employee PDFs.
-        if ($employees->count() === 1) {
-            $data = $this->reports->getEmployeeReportData($employees->first(), $startDate, $endDate, $request->report_type);
-            $pdf = Pdf::loadView('reports.pdf-template', compact('data'))->setPaper('a4', 'portrait');
+        $pdf = Pdf::loadView('reports.pdf-summary', compact('data'))->setPaper('a4', 'landscape');
 
-            return $pdf->download($this->getFilename($data));
-        }
-
-        $dir = storage_path('app/temp');
-        if (! is_dir($dir)) {
-            @mkdir($dir, 0775, true);
-        }
-        $zipPath = $dir . '/reports_' . now()->format('Ymd_His') . '.zip';
-
-        $zip = new \ZipArchive;
-        $zip->open($zipPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE);
-        foreach ($employees as $employee) {
-            $data = $this->reports->getEmployeeReportData($employee, $startDate, $endDate, $request->report_type);
-            $pdf = Pdf::loadView('reports.pdf-template', compact('data'))->setPaper('a4', 'portrait');
-            $zip->addFromString($this->getFilename($data), $pdf->output());
-        }
-        $zip->close();
-
-        $zipName = 'All_Employees_' . $this->slug($periodLabel) . '.zip';
-
-        return response()->download($zipPath, $zipName)->deleteFileAfterSend();
+        return $pdf->download('All_Employees_' . $this->slug($periodLabel) . '.pdf');
     }
 
     /** Active, non-system employees (real people). */

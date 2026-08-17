@@ -130,11 +130,17 @@
                     <i data-lucide="calendar" class="h-4 w-4 text-brand-500"></i>
                     <span class="font-semibold text-slate-700 dark:text-slate-200" x-text="periodLabel"></span>
                 </div>
-                <div class="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
+                <div x-show="scope==='single'" class="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
                     <span>✓ Attendance summary</span>
                     <span>✓ Daily breakdown</span>
                     <span>✓ Leave summary &amp; balances</span>
                     <span>✓ Performance score</span>
+                </div>
+                <div x-show="scope==='all'" x-cloak class="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
+                    <span>✓ One row per employee</span>
+                    <span>✓ Present · Late · Absent</span>
+                    <span>✓ Planned &amp; unplanned leave</span>
+                    <span>✓ WFH · Hours · Rate</span>
                 </div>
             </div>
 
@@ -143,12 +149,12 @@
                 <button type="button" @click="submit('preview')" :disabled="!valid" :class="!valid ? 'opacity-50 cursor-not-allowed' : ''"
                         class="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700">
                     <i data-lucide="eye" class="h-4 w-4"></i>
-                    <span x-text="scope==='all' ? 'Preview (combined)' : 'Preview'"></span>
+                    <span x-text="scope==='all' ? 'Preview summary' : 'Preview'"></span>
                 </button>
                 <button type="button" @click="submit('pdf')" :disabled="!valid" :class="!valid ? 'opacity-50 cursor-not-allowed' : ''"
                         class="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-2.5 text-sm font-bold text-slate-900 hover:bg-brand-400 transition">
                     <i data-lucide="download" class="h-4 w-4"></i>
-                    <span x-text="scope==='all' ? 'Download all (ZIP)' : 'Download PDF'"></span>
+                    <span x-text="scope==='all' ? 'Download summary PDF' : 'Download PDF'"></span>
                 </button>
             </div>
         </div>
