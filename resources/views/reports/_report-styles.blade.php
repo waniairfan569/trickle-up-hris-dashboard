@@ -1,5 +1,5 @@
 <style>
-    @page { margin: 0; }
+    @page { margin: 82pt 0 62pt 0; }   /* top reserves the letterhead header, bottom the footer bar */
     * { margin: 0; padding: 0; }
     body { font-family: 'DejaVu Sans', sans-serif; color: #1f2937; font-size: 9pt; }
     .wrap { padding: 0 26pt 26pt; }

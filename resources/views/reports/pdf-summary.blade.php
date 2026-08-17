@@ -18,6 +18,7 @@
     </style>
 </head>
 <body>
+    @include('reports._letterhead')
     @php
         $n = fn ($v) => rtrim(rtrim(number_format((float) $v, 1), '0'), '.');
         $t = $data['totals'];

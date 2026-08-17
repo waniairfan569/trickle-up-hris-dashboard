@@ -6,6 +6,7 @@
     @include('reports._report-styles')
 </head>
 <body>
+    @include('reports._letterhead')
     @include('reports._report-body', ['data' => $data])
 </body>
 </html>
