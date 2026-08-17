@@ -52,19 +52,7 @@ class ReportDataService
         $totalOvertimeMin = (int) $records->sum('overtime_minutes');
         $attendanceRate   = $workingDays > 0 ? round(($presentDays / $workingDays) * 100, 1) : 0;
 
-        $dailyBreakdown = $records->map(fn ($r) => [
-            'date'         => $r->date->format('d M Y'),
-            'day'          => $r->date->format('D'),
-            // Convert stored (UTC) clock times into the employee's local timezone.
-            'clock_in'     => $r->clock_in ? $this->tz->toUserTime($r->clock_in->copy(), $employee)->format('h:i A') : '—',
-            'clock_out'    => $r->clock_out ? $this->tz->toUserTime($r->clock_out->copy(), $employee)->format('h:i A') : '—',
-            'hours'        => $r->total_minutes_worked
-                ? intdiv($r->total_minutes_worked, 60) . 'h ' . ($r->total_minutes_worked % 60) . 'm'
-                : '—',
-            'status'       => $r->status,
-            'late_minutes' => (int) ($r->late_minutes ?? 0),
-            'overtime_min' => (int) ($r->overtime_minutes ?? 0),
-        ])->values()->all();
+        $dailyBreakdown = $this->buildDailyBreakdown($records, $employee);
 
         // ── Leaves ──────────────────────────────────────────────────
         $leaveRequests = TimeOffRequest::where('user_id', $employee->id)
@@ -199,9 +187,9 @@ class ReportDataService
      * Consolidated one-row-per-employee summary for the "All Employees" report:
      * present / late / absent, planned vs unplanned leave, WFH and hours.
      */
-    public function getSummaryData(Collection $employees, Carbon $startDate, Carbon $endDate): array
+    public function getSummaryData(Collection $employees, Carbon $startDate, Carbon $endDate, bool $withDaily = false): array
     {
-        $rows = $employees->map(fn ($emp) => $this->summaryRow($emp, $startDate, $endDate))->values()->all();
+        $rows = $employees->map(fn ($emp) => $this->summaryRow($emp, $startDate, $endDate, $withDaily))->values()->all();
 
         $totals = ['present' => 0, 'late' => 0, 'absent' => 0, 'planned' => 0, 'unplanned' => 0, 'missing_clock_out' => 0];
         foreach ($rows as $r) {
@@ -213,11 +201,12 @@ class ReportDataService
         return ['rows' => $rows, 'totals' => $totals];
     }
 
-    private function summaryRow(User $employee, Carbon $startDate, Carbon $endDate): array
+    private function summaryRow(User $employee, Carbon $startDate, Carbon $endDate, bool $withDaily = false): array
     {
         $records = AttendanceRecord::where('user_id', $employee->id)
             ->whereBetween('date', [$startDate->toDateString(), $endDate->toDateString()])
-            ->get(['status', 'total_minutes_worked', 'late_minutes']);
+            ->orderBy('date')
+            ->get();
 
         $present = $records->whereIn('status', self::PRESENT)->count();
         $late    = $records->where('status', 'late')->count();
@@ -256,7 +245,26 @@ class ReportDataService
             'missing_clock_out' => $missing,
             'minutes'           => $minutes,
             'working_days'      => $workingDays,
+            'daily'             => $withDaily ? $this->buildDailyBreakdown($records, $employee) : [],
         ];
+    }
+
+    /** Per-day rows for an employee: date, day, local clock in/out, hours, status, late/OT. */
+    private function buildDailyBreakdown($records, User $employee): array
+    {
+        return $records->sortBy('date')->map(fn ($r) => [
+            'date'         => $r->date->format('d M Y'),
+            'day'          => $r->date->format('D'),
+            // Convert stored clock times into the employee's local timezone.
+            'clock_in'     => $r->clock_in ? $this->tz->toUserTime($r->clock_in->copy(), $employee)->format('h:i A') : '—',
+            'clock_out'    => $r->clock_out ? $this->tz->toUserTime($r->clock_out->copy(), $employee)->format('h:i A') : '—',
+            'hours'        => $r->total_minutes_worked
+                ? intdiv($r->total_minutes_worked, 60) . 'h ' . ($r->total_minutes_worked % 60) . 'm'
+                : '—',
+            'status'       => $r->status,
+            'late_minutes' => (int) ($r->late_minutes ?? 0),
+            'overtime_min' => (int) ($r->overtime_minutes ?? 0),
+        ])->values()->all();
     }
 
     private function scheduledWorkingDays(User $employee, Carbon $startDate, Carbon $endDate): int

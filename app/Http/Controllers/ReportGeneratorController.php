@@ -62,7 +62,10 @@ class ReportGeneratorController extends Controller
 
         // ── All employees → one consolidated summary table ─────────
         $employees = $this->activeEmployees(['department', 'workSchedule']);
-        $summary = $this->reports->getSummaryData($employees, $startDate, $endDate);
+        // Append a per-employee day-wise breakdown for a month / short range
+        // (a full-year day-wise table would be enormous).
+        $withDaily = $startDate->diffInDays($endDate) <= 45;
+        $summary = $this->reports->getSummaryData($employees, $startDate, $endDate, $withDaily);
 
         $data = [
             'period_label' => $periodLabel,

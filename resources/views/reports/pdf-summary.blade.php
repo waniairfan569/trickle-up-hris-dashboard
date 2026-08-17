@@ -15,6 +15,16 @@
         table.sum .dept { font-size: 9pt; color: #64748B; }
         table.sum tr.tot td { font-weight: bold; background: #FEF9E0; border-top: 1.5pt solid #fcd82f; font-size: 11pt; }
         .g { color: #059669; } .r { color: #DC2626; } .a { color: #B45309; } .o { color: #EA580C; }
+
+        /* Day-wise detail per employee */
+        .dw-head { font-size: 13pt; font-weight: bold; color: #1a1a24; border-bottom: 2pt solid #fcd82f; padding-bottom: 5pt; margin-bottom: 8pt; }
+        .dw-emp { font-size: 11pt; font-weight: bold; color: #1a1a24; margin: 12pt 0 3pt; }
+        .dw-dept { font-size: 9pt; font-weight: normal; color: #64748B; }
+        table.dw { width: 100%; border-collapse: collapse; font-size: 9pt; margin-bottom: 4pt; }
+        table.dw th { background: #1a1a24; color: #fff; text-align: center; padding: 5pt 6pt; font-size: 8.5pt; }
+        table.dw th.l, table.dw td.l { text-align: left; }
+        table.dw td { padding: 4.5pt 6pt; border-bottom: 1pt solid #E5E7EB; text-align: center; }
+        table.dw tr:nth-child(even) td { background: #F8FAFC; }
     </style>
 </head>
 <body>
@@ -76,6 +86,37 @@
                 </tr>
             @endif
         </table>
+
+        {{-- Day-wise detail per employee (monthly / short range) --}}
+        @php $anyDaily = collect($data['rows'])->contains(fn ($r) => ! empty($r['daily'])); @endphp
+        @if($anyDaily)
+            @php
+                $dwStatus = ['present'=>'Present','late'=>'Late','absent'=>'Absent','overtime'=>'Overtime','early_departure'=>'Early out','on_leave'=>'On leave','missing_clock_out'=>'No clock-out','half_day'=>'Half day','weekend'=>'Weekend'];
+            @endphp
+            <div class="page-break"></div>
+            <div class="dw-head">Day-wise Attendance — {{ $data['period_label'] }}</div>
+            @foreach($data['rows'] as $row)
+                <div class="dw-emp">{{ $row['name'] }} <span class="dw-dept">· {{ $row['department'] }}</span></div>
+                @if(! empty($row['daily']))
+                    <table class="dw">
+                        <tr><th class="l">Date</th><th>Day</th><th>In</th><th>Out</th><th>Hours</th><th>Late</th><th class="l">Status</th></tr>
+                        @foreach($row['daily'] as $d)
+                            <tr>
+                                <td class="l">{{ $d['date'] }}</td>
+                                <td>{{ $d['day'] }}</td>
+                                <td>{{ $d['clock_in'] }}</td>
+                                <td>{{ $d['clock_out'] }}</td>
+                                <td>{{ $d['hours'] }}</td>
+                                <td>{{ $d['late_minutes'] ? $d['late_minutes'].'m' : '—' }}</td>
+                                <td class="l"><span class="st st-{{ $d['status'] }}">{{ $dwStatus[$d['status']] ?? ucfirst(str_replace('_',' ',$d['status'])) }}</span></td>
+                            </tr>
+                        @endforeach
+                    </table>
+                @else
+                    <div style="font-size:8.5pt; color:#94A3B8; margin-bottom:4pt;">No attendance records in this period.</div>
+                @endif
+            @endforeach
+        @endif
 
         <div class="footer" style="font-size:9pt;">
             Generated: {{ $data['generated_at'] }} &nbsp;·&nbsp; By: {{ $data['generated_by'] }} &nbsp;·&nbsp; <b>CONFIDENTIAL — Internal use only</b>
