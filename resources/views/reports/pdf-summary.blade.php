@@ -7,7 +7,7 @@
     <style>
         .sum-caption { padding: 12pt 26pt 0; font-size: 10.5pt; color: #64748B; }
         table.sum { width: 100%; border-collapse: collapse; font-size: 11pt; margin-top: 10pt; }
-        table.sum th { background: #1B2D5E; color: #fff; text-align: center; padding: 9pt 6pt; font-size: 10.5pt; }
+        table.sum th { background: #1B2D5E; color: #fff; text-align: center; padding: 9pt 6pt; font-size: 10.5pt; white-space: nowrap; vertical-align: middle; }
         table.sum th.l, table.sum td.l { text-align: left; }
         table.sum td { padding: 8pt 6pt; border-bottom: 1pt solid #E5E7EB; text-align: center; }
         table.sum tr:nth-child(even) td { background: #F8FAFC; }
@@ -43,9 +43,9 @@
                 <th>Present</th>
                 <th>Late</th>
                 <th>Absent</th>
-                <th>Planned<br>leave</th>
-                <th>Unplanned<br>leave</th>
-                <th>Missing<br>clock-out</th>
+                <th>Planned leave</th>
+                <th>Unplanned leave</th>
+                <th>Missing clock-out</th>
             </tr>
             @forelse($data['rows'] as $row)
                 <tr>
