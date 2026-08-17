@@ -61,15 +61,15 @@
             <form method="GET" class="grid grid-cols-1 md:grid-cols-5 gap-4">
                 <div>
                     <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">From Date</label>
-                    <input type="date" name="date_from" value="{{ request('date_from') }}" class="w-full text-sm rounded-lg border-slate-300 focus:ring-brand-500 focus:border-brand-500 shadow-sm py-2 dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                    <input type="date" id="th-from" name="date_from" value="{{ request('date_from') }}" class="w-full text-sm rounded-lg border-slate-300 focus:ring-brand-500 focus:border-brand-500 shadow-sm py-2 dark:bg-slate-900 dark:border-slate-600 dark:text-white">
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">To Date</label>
-                    <input type="date" name="date_to" value="{{ request('date_to') }}" class="w-full text-sm rounded-lg border-slate-300 focus:ring-brand-500 focus:border-brand-500 shadow-sm py-2 dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                    <input type="date" id="th-to" name="date_to" value="{{ request('date_to') }}" class="w-full text-sm rounded-lg border-slate-300 focus:ring-brand-500 focus:border-brand-500 shadow-sm py-2 dark:bg-slate-900 dark:border-slate-600 dark:text-white">
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Employee</label>
-                    <select name="employee_id" class="w-full text-sm rounded-lg border-slate-300 focus:ring-brand-500 focus:border-brand-500 shadow-sm py-2 dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                    <select id="th-employee" name="employee_id" class="w-full text-sm rounded-lg border-slate-300 focus:ring-brand-500 focus:border-brand-500 shadow-sm py-2 dark:bg-slate-900 dark:border-slate-600 dark:text-white">
                         <option value="">All Employees</option>
                         @foreach($teamMembers as $member)
                             <option value="{{ $member->id }}" {{ request('employee_id') == $member->id ? 'selected' : '' }}>{{ $member->first_name }} {{ $member->last_name }}</option>
@@ -111,19 +111,43 @@
                 <h3 class="font-bold text-slate-800 dark:text-white">History Records</h3>
                 <div class="flex items-center gap-2">
                     @if(auth()->user()->isAdmin())
-                        @php
-                            $fixFrom = request('date_from') ?: now()->startOfMonth()->toDateString();
-                            $fixTo = request('date_to') ?: now()->endOfMonth()->toDateString();
-                        @endphp
-                        <form method="POST" action="{{ route('attendance.recalc-late') }}"
-                              onsubmit="return confirm('Re-check every clock-in from {{ \Carbon\Carbon::parse($fixFrom)->format('d M') }} to {{ \Carbon\Carbon::parse($fixTo)->format('d M Y') }} against each employee\'s shift late rule? Statuses are corrected and reflected in their attendance.');">
+                        {{-- Uses the CURRENT From/To date inputs (not the last submitted filter),
+                             so picking a single day fixes only that day. --}}
+                        <form method="POST" action="{{ route('attendance.recalc-late') }}" onsubmit="return prepFixLate(this)">
                             @csrf
-                            <input type="hidden" name="date_from" value="{{ $fixFrom }}">
-                            <input type="hidden" name="date_to" value="{{ $fixTo }}">
-                            <input type="hidden" name="employee_id" value="{{ request('employee_id') }}">
+                            <input type="hidden" name="date_from">
+                            <input type="hidden" name="date_to">
+                            <input type="hidden" name="employee_id">
                             <input type="hidden" name="department_id" value="{{ request('department_id') }}">
                             <button type="submit" class="inline-flex items-center gap-1.5 text-sm font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 px-3 py-1.5 rounded-lg transition dark:bg-amber-500/10 dark:text-amber-400"><i data-lucide="alarm-clock" class="w-4 h-4"></i> Fix late status</button>
                         </form>
+                        <script>
+                            function prepFixLate(form) {
+                                var fromEl = document.getElementById('th-from');
+                                var toEl = document.getElementById('th-to');
+                                var empEl = document.getElementById('th-employee');
+                                var from = fromEl && fromEl.value ? fromEl.value : '';
+                                var to = toEl && toEl.value ? toEl.value : '';
+                                if (!from && !to) {
+                                    // No dates chosen → default to the current month.
+                                    var n = new Date(), y = n.getFullYear(), m = n.getMonth();
+                                    var pad = function (x) { return String(x).padStart(2, '0'); };
+                                    from = y + '-' + pad(m + 1) + '-01';
+                                    to = y + '-' + pad(m + 1) + '-' + pad(new Date(y, m + 1, 0).getDate());
+                                } else {
+                                    if (!from) from = to;   // only one bound set → single day
+                                    if (!to) to = from;
+                                }
+                                form.date_from.value = from;
+                                form.date_to.value = to;
+                                form.employee_id.value = empEl ? empEl.value : '';
+
+                                var M = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                                var lbl = function (d) { var p = d.split('-'); return parseInt(p[2], 10) + ' ' + M[parseInt(p[1], 10) - 1] + ' ' + p[0]; };
+                                var range = (from === to) ? lbl(from) : (lbl(from) + ' to ' + lbl(to));
+                                return confirm('Re-check every clock-in for ' + range + " against each employee's shift late rule? Statuses are corrected and reflected in their attendance.");
+                            }
+                        </script>
                     @endif
                     <a href="{{ route('attendance.team.export', request()->query()) }}" class="flex items-center text-sm font-semibold text-brand-600 bg-brand-50 hover:bg-brand-100 px-3 py-1.5 rounded-lg transition dark:bg-brand-500/10 dark:text-brand-400"><i data-lucide="download" class="w-4 h-4 mr-1.5"></i> Export CSV</a>
                 </div>
