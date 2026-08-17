@@ -203,13 +203,12 @@ class ReportDataService
     {
         $rows = $employees->map(fn ($emp) => $this->summaryRow($emp, $startDate, $endDate))->values()->all();
 
-        $totals = ['present' => 0, 'late' => 0, 'absent' => 0, 'planned' => 0, 'unplanned' => 0, 'wfh' => 0, 'minutes' => 0, 'working_days' => 0];
+        $totals = ['present' => 0, 'late' => 0, 'absent' => 0, 'planned' => 0, 'unplanned' => 0, 'missing_clock_out' => 0];
         foreach ($rows as $r) {
             foreach ($totals as $k => $_) {
                 $totals[$k] += $r[$k];
             }
         }
-        $totals['rate'] = $totals['working_days'] > 0 ? round(($totals['present'] / $totals['working_days']) * 100, 1) : 0;
 
         return ['rows' => $rows, 'totals' => $totals];
     }
@@ -223,6 +222,7 @@ class ReportDataService
         $present = $records->whereIn('status', self::PRESENT)->count();
         $late    = $records->where('status', 'late')->count();
         $absent  = $records->where('status', 'absent')->count();
+        $missing = $records->where('status', 'missing_clock_out')->count();
         $minutes = (int) $records->sum('total_minutes_worked');
         $workingDays = $this->scheduledWorkingDays($employee, $startDate, $endDate);
 
@@ -246,18 +246,16 @@ class ReportDataService
         }
 
         return [
-            'name'         => $employee->full_name,
-            'department'   => optional($employee->department)->name ?? '—',
-            'present'      => $present,
-            'late'         => $late,
-            'absent'       => $absent,
-            'planned'      => round($planned, 2),
-            'unplanned'    => round($unplanned, 2),
-            // No per-day remote flag exists, so remote workers' worked days are their WFH days.
-            'wfh'          => ($employee->attendance_mode ?? 'biometric') === 'remote' ? $present : 0,
-            'minutes'      => $minutes,
-            'working_days' => $workingDays,
-            'rate'         => $workingDays > 0 ? round(($present / $workingDays) * 100, 1) : 0,
+            'name'              => $employee->full_name,
+            'department'        => optional($employee->department)->name ?? '—',
+            'present'           => $present,
+            'late'              => $late,
+            'absent'            => $absent,
+            'planned'           => round($planned, 2),
+            'unplanned'         => round($unplanned, 2),
+            'missing_clock_out' => $missing,
+            'minutes'           => $minutes,
+            'working_days'      => $workingDays,
         ];
     }
 

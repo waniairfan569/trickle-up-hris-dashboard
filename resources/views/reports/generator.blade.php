@@ -140,7 +140,7 @@
                     <span>✓ One row per employee</span>
                     <span>✓ Present · Late · Absent</span>
                     <span>✓ Planned &amp; unplanned leave</span>
-                    <span>✓ WFH · Hours · Rate</span>
+                    <span>✓ Missing clock-out</span>
                 </div>
             </div>
 
