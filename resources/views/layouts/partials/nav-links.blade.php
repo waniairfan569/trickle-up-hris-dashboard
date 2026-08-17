@@ -322,6 +322,16 @@
     </div>
 </div>
 
+<!-- Navigation Group: Reports -->
+<div class="mt-6 pt-6 border-t border-slate-850 space-y-1">
+    <div class="px-3 mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">Reports</div>
+    <a href="{{ route('reports.generate') }}"
+       class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ Str::startsWith($routeName, 'reports.') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">
+        <i data-lucide="file-bar-chart-2" class="h-4 w-4 shrink-0"></i>
+        <span class="flex-1">Report Generator</span>
+    </a>
+</div>
+
 <!-- Navigation Group: Requests -->
 @php
     $pendingCodes = \App\Models\CodeRequest::where('status', 'pending')->count();

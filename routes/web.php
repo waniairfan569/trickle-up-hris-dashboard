@@ -225,6 +225,12 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
 
     Route::resource('time-off', TimeOffController::class);
 
+    // On-demand report generator (attendance + leave PDF reports).
+    Route::middleware('role:super_admin,hr_admin')->group(function () {
+        Route::get('reports/generate', [\App\Http\Controllers\ReportGeneratorController::class, 'index'])->name('reports.generate');
+        Route::post('reports/generate', [\App\Http\Controllers\ReportGeneratorController::class, 'generate'])->name('reports.generate.submit');
+    });
+
     // 4. Performance Reviews Resource & Actions
     Route::post('performance/self-review', [PerformanceController::class, 'storeSelfReview'])
         ->name('performance.storeSelfReview');
