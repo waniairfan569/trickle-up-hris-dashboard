@@ -212,6 +212,14 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
     Route::post('time-off/{timeOffRequest}/change-policy', [TimeOffController::class, 'changePolicy'])
         ->name('time-off.change-policy');
 
+    // Return early (leave curtailment): employee requests, HR/manager approves.
+    Route::post('time-off/{timeOffRequest}/return', [TimeOffController::class, 'requestReturn'])
+        ->name('time-off.return');
+    Route::post('time-off/returns/{leaveReturn}/approve', [TimeOffController::class, 'approveReturn'])
+        ->name('time-off.return.approve');
+    Route::post('time-off/returns/{leaveReturn}/reject', [TimeOffController::class, 'rejectReturn'])
+        ->name('time-off.return.reject');
+
     Route::get('time-off/team-calendar', [TimeOffController::class, 'teamCalendar'])
         ->name('time-off.team-calendar');
 

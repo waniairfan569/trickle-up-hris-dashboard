@@ -317,9 +317,27 @@ class TimeOffController extends Controller
         // but still valid to move existing leave to.
         $movePolicies = TimeOffPolicy::orderBy('name')->get();
 
+        // Early-return (curtailment) data. myReturns keyed by request id (newest
+        // wins) drives the "Return requested/approved" state in My Requests.
+        $myReturns = \App\Models\LeaveReturn::where('user_id', $user->id)
+            ->orderBy('created_at')->get()->keyBy('time_off_request_id');
+
+        // Pending early-return requests this user may decide.
+        $pendingReturns = collect();
+        if ($user->isManager() || $user->hasRole('hr_admin') || $user->hasRole('super_admin')) {
+            $rq = \App\Models\LeaveReturn::with(['employee', 'request.policy'])
+                ->where('status', 'pending')->orderBy('created_at');
+            if (! $user->hasRole('hr_admin') && ! $user->hasRole('super_admin')) {
+                $teamIds = method_exists($user, 'teamMemberIds') ? $user->teamMemberIds() : collect();
+                $rq->whereIn('user_id', $teamIds->all() ?: [-1]);
+            }
+            $pendingReturns = $rq->get();
+        }
+
         return view('time-off.index', compact(
             'myPolicies', 'myBalances', 'timeOffBalances', 'myRequests',
-            'teamRequests', 'allRequests', 'allPolicies', 'movePolicies'
+            'teamRequests', 'allRequests', 'allPolicies', 'movePolicies',
+            'myReturns', 'pendingReturns'
         ));
     }
 
@@ -626,6 +644,202 @@ class TimeOffController extends Controller
         }
 
         return back()->with('success', 'Request cancelled.');
+    }
+
+    // ===================== Return early (leave curtailment) =====================
+
+    /** Employee asks to return early from an approved multi-day leave. */
+    public function requestReturn(Request $request, TimeOffRequest $timeOffRequest)
+    {
+        $user = auth()->user();
+        abort_unless($timeOffRequest->user_id === $user->id, 403, 'You can only return your own leave early.');
+        abort_unless($this->canReturnEarly($timeOffRequest), 422, 'This leave cannot be returned early.');
+
+        if (\App\Models\LeaveReturn::where('time_off_request_id', $timeOffRequest->id)->where('status', 'pending')->exists()) {
+            return back()->with('error', 'You already have a pending early-return request for this leave.');
+        }
+
+        $validated = $request->validate([
+            'return_date' => 'required|date',
+            'reason' => 'nullable|string|max:500',
+        ]);
+
+        $returnDate = Carbon::parse($validated['return_date'])->startOfDay();
+        $start = $timeOffRequest->start_date->copy()->startOfDay();
+        $end = $timeOffRequest->end_date->copy()->startOfDay();
+
+        if ($returnDate->lte($start) || $returnDate->gt($end)) {
+            return back()->with('error', 'Return date must be after the leave starts and on or before it ends.');
+        }
+        if ($returnDate->lt(today())) {
+            return back()->with('error', 'Return date cannot be in the past.');
+        }
+
+        $daysTaken = $this->workingDaysBetween($timeOffRequest->employee, $start, $returnDate->copy()->subDay());
+        $returned = max(0, round(((float) $timeOffRequest->days_requested) - $daysTaken, 2));
+        if ($returned <= 0) {
+            return back()->with('error', 'That return date leaves no days to credit back.');
+        }
+
+        $leaveReturn = \App\Models\LeaveReturn::create([
+            'company_id' => $user->company_id,
+            'time_off_request_id' => $timeOffRequest->id,
+            'user_id' => $user->id,
+            'return_date' => $returnDate->toDateString(),
+            'days_returned' => $returned,
+            'status' => 'pending',
+            'reason' => $validated['reason'] ?? null,
+        ]);
+
+        foreach ($this->returnApprovers() as $admin) {
+            try {
+                $admin->notify(new \App\Notifications\LeaveReturnRequested($leaveReturn));
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
+
+        return back()->with('success', 'Early-return request sent to HR for approval.');
+    }
+
+    /** HR/manager approves: shorten the leave, credit unused days, free attendance. */
+    public function approveReturn(Request $request, \App\Models\LeaveReturn $leaveReturn)
+    {
+        $user = auth()->user();
+        $timeOff = $leaveReturn->request;
+        abort_unless($timeOff, 404);
+        abort_unless($this->canApproveReturn($user, $leaveReturn), 403);
+
+        if ($leaveReturn->status !== 'pending') {
+            return back()->with('error', 'This early-return request has already been decided.');
+        }
+
+        $employee = $timeOff->employee;
+        $start = $timeOff->start_date->copy()->startOfDay();
+        $originalEnd = $timeOff->end_date->copy()->startOfDay();
+        $returnDate = $leaveReturn->return_date->copy()->startOfDay();
+
+        if ($returnDate->lte($start) || $returnDate->gt($originalEnd)) {
+            return back()->with('error', 'The return date is no longer valid for this leave.');
+        }
+
+        $daysTaken = $this->workingDaysBetween($employee, $start, $returnDate->copy()->subDay());
+        $returned = max(0, round(((float) $timeOff->days_requested) - $daysTaken, 2));
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($timeOff, $leaveReturn, $employee, $user, $returnDate, $originalEnd, $daysTaken, $returned) {
+            if ($returned > 0) {
+                $year = Carbon::parse($timeOff->start_date)->year;
+                $balance = $this->balanceService->getOrCreateBalance($employee, $timeOff->policy, $year);
+                $balance->decrement('used', $returned);
+            }
+            // Free up the returned days on the attendance sheet.
+            $this->revertLeaveRange($timeOff->user_id, $returnDate->copy(), $originalEnd->copy());
+            // Shorten the leave to the actual last day off.
+            $timeOff->update([
+                'end_date' => $returnDate->copy()->subDay()->toDateString(),
+                'days_requested' => $daysTaken,
+            ]);
+            $leaveReturn->update([
+                'days_returned' => $returned,
+                'status' => 'approved',
+                'reviewed_by' => $user->id,
+                'reviewed_at' => now(),
+            ]);
+        });
+
+        try {
+            $employee->notify(new \App\Notifications\LeaveReturnReviewed($leaveReturn->fresh()));
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
+        return back()->with('success', "Early return approved — {$returned} day(s) credited back to {$employee->first_name}.");
+    }
+
+    /** HR/manager declines the early-return request; the original leave stands. */
+    public function rejectReturn(Request $request, \App\Models\LeaveReturn $leaveReturn)
+    {
+        $user = auth()->user();
+        abort_unless($this->canApproveReturn($user, $leaveReturn), 403);
+
+        if ($leaveReturn->status !== 'pending') {
+            return back()->with('error', 'This early-return request has already been decided.');
+        }
+
+        $validated = $request->validate(['review_note' => 'nullable|string|max:500']);
+
+        $leaveReturn->update([
+            'status' => 'rejected',
+            'reviewed_by' => $user->id,
+            'reviewed_at' => now(),
+            'review_note' => $validated['review_note'] ?? null,
+        ]);
+
+        try {
+            $leaveReturn->employee->notify(new \App\Notifications\LeaveReturnReviewed($leaveReturn->fresh()));
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
+        return back()->with('success', 'Early-return request declined.');
+    }
+
+    /** An approved multi-day full-day leave that still has remaining days can be returned early. */
+    private function canReturnEarly(TimeOffRequest $r): bool
+    {
+        return $r->status === 'approved'
+            && $r->duration_type !== 'hourly'
+            && ! $r->is_half_day
+            && $r->start_date && $r->end_date
+            && $r->end_date->gt($r->start_date)
+            && $r->end_date->gte(today());
+    }
+
+    private function canApproveReturn(User $user, \App\Models\LeaveReturn $lr): bool
+    {
+        if ($user->hasRole('hr_admin') || $user->hasRole('super_admin')) {
+            return true;
+        }
+        if ($user->isManager() && method_exists($user, 'teamMemberIds')) {
+            return $user->teamMemberIds()->contains($lr->user_id);
+        }
+
+        return false;
+    }
+
+    private function returnApprovers()
+    {
+        return User::whereHas('roles', function ($q) {
+            $q->whereIn('slug', ['hr_admin', 'super_admin'])
+              ->orWhereIn('name', ['hr_admin', 'super_admin']);
+        })->where('account_status', '!=', 'deactivated')->get();
+    }
+
+    /** Working days between two dates for a user (matches how days_requested is computed). */
+    private function workingDaysBetween(User $user, Carbon $start, Carbon $end): float
+    {
+        if ($end->lt($start)) {
+            return 0.0;
+        }
+        $schedule = $user->workSchedule ?? \App\Models\WorkSchedule::default()->first();
+        if ($schedule) {
+            return (float) $schedule->countWorkingDays($start->copy(), $end->copy(), $user->id);
+        }
+
+        return (float) ($start->copy()->diffInDaysFiltered(fn (Carbon $d) => ! $d->isWeekend(), $end->copy()) + 1);
+    }
+
+    /** Undo the on-leave marking for a date range (used when a leave is shortened). */
+    private function revertLeaveRange(int $userId, Carbon $from, Carbon $to): void
+    {
+        for ($d = $from->copy()->startOfDay(); $d->lte($to); $d->addDay()) {
+            $record = \App\Models\AttendanceRecord::where('user_id', $userId)
+                ->whereDate('date', $d->toDateString())->first();
+            if ($record && $record->status === 'on_leave' && ! $record->clock_in) {
+                $record->status = 'absent';
+                $record->save();
+            }
+        }
     }
 
     public function teamCalendar()

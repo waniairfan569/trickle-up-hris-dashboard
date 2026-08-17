@@ -16,6 +16,7 @@ class NotificationCategories
         'TimeOffRequestStatusChanged'          => 'time_off',
         'LeaveRenewalNotification'             => 'time_off',
         'LeaveCategoryChanged'                 => 'time_off',
+        'LeaveReturnReviewed'                  => 'time_off',
         'DocumentSignatureRequested'           => 'documents',
         'DocumentSignatureReminder'            => 'documents',
         'DocumentSigningCompleted'             => 'documents',
