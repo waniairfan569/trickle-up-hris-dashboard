@@ -189,7 +189,25 @@ class AttendanceManagerController extends Controller
                 }
             });
 
-        return back()->with('success', "Re-checked {$count} of {$employee->first_name}'s clocked-in day(s) against their shift — {$changed} status(es) updated (late / overtime / early departure).");
+        // Clear invalid FUTURE "absent" days (no clock-in, after today) — e.g.
+        // leftovers from a returned / cancelled leave. A future day can't be absent.
+        $purged = 0;
+        AttendanceRecord::where('user_id', $employee->id)
+            ->where('status', 'absent')
+            ->whereNull('clock_in')
+            ->whereDate('date', '>', today())
+            ->get()
+            ->each(function ($r) use (&$purged) {
+                $r->delete();
+                $purged++;
+            });
+
+        $msg = "Re-checked {$count} of {$employee->first_name}'s clocked-in day(s) against their shift — {$changed} status(es) updated (late / overtime / early departure).";
+        if ($purged > 0) {
+            $msg .= " Cleared {$purged} invalid future absent day(s).";
+        }
+
+        return back()->with('success', $msg);
     }
 
     /** Bulk backfill form — add attendance for many employees on a date. */
