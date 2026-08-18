@@ -389,6 +389,25 @@ class AttendanceRecord extends Model
         return "{$hours}h {$minutes}m";
     }
 
+    /**
+     * Display label for the status. A late day can still carry overtime /
+     * early-departure minutes, so surface both (e.g. "Late + OT") instead of
+     * hiding one behind the other.
+     */
+    public function getStatusLabelAttribute(): string
+    {
+        if ($this->status === 'late') {
+            if ((int) $this->overtime_minutes > 0) {
+                return 'Late + OT';
+            }
+            if ((int) $this->early_departure_minutes > 0) {
+                return 'Late · Left early';
+            }
+        }
+
+        return ucfirst(str_replace('_', ' ', (string) $this->status));
+    }
+
     public function getStatusColorAttribute()
     {
         return match($this->status) {

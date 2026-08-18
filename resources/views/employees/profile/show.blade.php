@@ -600,7 +600,7 @@
                                 <td class="px-6 py-3 text-slate-600">{{ $att->clock_in?$tzSvc->formatForUser($att->clock_in,$employee,'h:i A'):'-' }}</td>
                                 <td class="px-6 py-3 text-slate-600">{{ $att->clock_out?$tzSvc->formatForUser($att->clock_out,$employee,'h:i A'):'-' }}</td>
                                 <td class="px-6 py-3 font-semibold text-slate-700 dark:text-slate-200">{{ $att->clock_in && $att->clock_out ? floor($att->total_minutes_worked / 60) . 'h ' . ($att->total_minutes_worked % 60) . 'm' : '-' }}</td>
-                                <td class="px-6 py-3"><span class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold capitalize {{ $asc }}">{{ str_replace('_',' ',$as) }}</span></td>
+                                <td class="px-6 py-3"><span class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold {{ $asc }}">{{ $att->status_label }}</span></td>
                                 @if($canEditAtt)
                                     <td class="px-6 py-3 text-right">
                                         <button type="button" @click="edit=!edit" class="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-bold text-brand-600 hover:bg-brand-50 dark:text-brand-400 dark:hover:bg-slate-700">
