@@ -231,6 +231,28 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
         Route::post('reports/generate', [\App\Http\Controllers\ReportGeneratorController::class, 'generate'])->name('reports.generate.submit');
     });
 
+    // HR documents (Lateness Review, Return to Work, …): build templates, fill
+    // per employee with attendance prefill, sign in-app, keep on file as history.
+    Route::middleware('role:super_admin,hr_admin')->prefix('hr-documents')->name('hr-documents.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\HrDocumentController::class, 'index'])->name('index');
+
+        // Template builder (literal 'templates/*' — declared before the {document} catch-all)
+        Route::get('templates/create', [\App\Http\Controllers\HrDocumentController::class, 'createTemplate'])->name('templates.create');
+        Route::post('templates', [\App\Http\Controllers\HrDocumentController::class, 'storeTemplate'])->name('templates.store');
+        Route::get('templates/{template}/edit', [\App\Http\Controllers\HrDocumentController::class, 'editTemplate'])->name('templates.edit');
+        Route::put('templates/{template}', [\App\Http\Controllers\HrDocumentController::class, 'updateTemplate'])->name('templates.update');
+        Route::delete('templates/{template}', [\App\Http\Controllers\HrDocumentController::class, 'destroyTemplate'])->name('templates.destroy');
+
+        // Fill / manage filled documents ('create' before the {document} catch-all)
+        Route::get('create', [\App\Http\Controllers\HrDocumentController::class, 'create'])->name('create');
+        Route::post('/', [\App\Http\Controllers\HrDocumentController::class, 'store'])->name('store');
+        Route::get('{document}/edit', [\App\Http\Controllers\HrDocumentController::class, 'edit'])->name('edit');
+        Route::put('{document}', [\App\Http\Controllers\HrDocumentController::class, 'update'])->name('update');
+        Route::get('{document}', [\App\Http\Controllers\HrDocumentController::class, 'show'])->name('show');
+        Route::get('{document}/pdf', [\App\Http\Controllers\HrDocumentController::class, 'pdf'])->name('pdf');
+        Route::delete('{document}', [\App\Http\Controllers\HrDocumentController::class, 'destroy'])->name('destroy');
+    });
+
     // 4. Performance Reviews Resource & Actions
     Route::post('performance/self-review', [PerformanceController::class, 'storeSelfReview'])
         ->name('performance.storeSelfReview');

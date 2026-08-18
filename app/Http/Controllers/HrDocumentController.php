@@ -1,0 +1,316 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Employee;
+use App\Models\HrDocument;
+use App\Models\HrDocumentTemplate;
+use App\Models\User;
+use App\Services\HrDocumentPrefillService;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
+
+class HrDocumentController extends Controller
+{
+    /** Field types the builder + renderer understand. */
+    private const TYPES = ['text', 'textarea', 'number', 'date', 'checkbox', 'radio', 'select', 'table', 'signature', 'note'];
+
+    public function __construct(private HrDocumentPrefillService $prefiller) {}
+
+    /** Landing page: template library + recent filled documents. */
+    public function index()
+    {
+        $templates = HrDocumentTemplate::query()
+            ->orderBy('sort_order')->orderBy('name')->get();
+
+        $documents = HrDocument::with('employee')
+            ->latest()->limit(50)->get();
+
+        return view('hr-documents.index', compact('templates', 'documents'));
+    }
+
+    // ── Template builder ───────────────────────────────────────────
+
+    public function createTemplate()
+    {
+        return view('hr-documents.builder', [
+            'template' => new HrDocumentTemplate(['schema' => []]),
+            'types'    => self::TYPES,
+        ]);
+    }
+
+    public function editTemplate(HrDocumentTemplate $template)
+    {
+        return view('hr-documents.builder', [
+            'template' => $template,
+            'types'    => self::TYPES,
+        ]);
+    }
+
+    public function storeTemplate(Request $request)
+    {
+        $data = $this->validateTemplate($request);
+        $data['created_by'] = auth()->id();
+
+        $template = HrDocumentTemplate::create($data);
+
+        return redirect()->route('hr-documents.index')
+            ->with('success', "Template “{$template->name}” created.");
+    }
+
+    public function updateTemplate(Request $request, HrDocumentTemplate $template)
+    {
+        $template->update($this->validateTemplate($request));
+
+        return redirect()->route('hr-documents.index')
+            ->with('success', "Template “{$template->name}” updated.");
+    }
+
+    public function destroyTemplate(HrDocumentTemplate $template)
+    {
+        $template->delete();
+
+        return redirect()->route('hr-documents.index')
+            ->with('success', 'Template deleted.');
+    }
+
+    // ── Fill / edit a document ─────────────────────────────────────
+
+    /** Show the fillable form for a template (optionally prefilled for an employee/period). */
+    public function create(Request $request)
+    {
+        $template = HrDocumentTemplate::findOrFail($request->integer('template'));
+
+        $employee = $request->filled('employee')
+            ? User::with(['department', 'manager'])->find($request->integer('employee'))
+            : null;
+
+        [$start, $end, $monthValue] = $this->resolveMonth($request->input('month'));
+
+        $prefill = [];
+        if ($employee) {
+            $prefill = $this->prefiller->prefill($template, $employee, $start, $end);
+        }
+
+        return view('hr-documents.form', [
+            'template'   => $template,
+            'employees'  => $this->employeeOptions(),
+            'employee'   => $employee,
+            'month'      => $monthValue,
+            'prefill'    => $prefill,
+            'document'   => null,
+        ]);
+    }
+
+    public function store(Request $request)
+    {
+        $template = HrDocumentTemplate::findOrFail($request->integer('template_id'));
+        $employee = User::findOrFail($request->integer('employee_id'));
+
+        [$start, $end] = $this->resolveMonth($request->input('month'));
+        $values = $this->decodeData($request->input('data'));
+
+        $document = HrDocument::create([
+            'hr_document_template_id' => $template->id,
+            'user_id'       => $employee->id,
+            'template_name' => $template->name,
+            'title'         => $this->buildTitle($template, $start),
+            'schema'        => $template->schema,   // snapshot
+            'data'          => $values,
+            'period_start'  => $start,
+            'period_end'    => $end,
+            'status'        => $request->input('action') === 'complete' ? 'completed' : 'draft',
+            'created_by'    => auth()->id(),
+        ]);
+
+        return redirect()->route('hr-documents.show', $document)
+            ->with('success', 'Document saved.');
+    }
+
+    public function edit(HrDocument $document)
+    {
+        return view('hr-documents.form', [
+            'template'   => $document->template ?? new HrDocumentTemplate(['schema' => $document->schema, 'name' => $document->template_name]),
+            'employees'  => $this->employeeOptions(),
+            'employee'   => $document->employee,
+            'month'      => optional($document->period_start)->format('Y-m'),
+            'prefill'    => $document->data ?? [],
+            'document'   => $document,
+        ]);
+    }
+
+    public function update(Request $request, HrDocument $document)
+    {
+        $values = $this->decodeData($request->input('data'));
+
+        $document->update([
+            'data'   => $values,
+            'status' => $request->input('action') === 'complete' ? 'completed' : $document->status,
+        ]);
+
+        return redirect()->route('hr-documents.show', $document)
+            ->with('success', 'Document updated.');
+    }
+
+    public function show(HrDocument $document)
+    {
+        $document->load('employee', 'creator');
+
+        return view('hr-documents.show', compact('document'));
+    }
+
+    public function pdf(HrDocument $document)
+    {
+        @ini_set('memory_limit', '512M');
+        @set_time_limit(120);
+
+        $pdf = Pdf::loadView('hr-documents.pdf', ['document' => $document])
+            ->setPaper('a4', 'portrait');
+
+        $content = $pdf->output();
+        while (ob_get_level() > 0) {
+            ob_end_clean();
+        }
+
+        $name = Str::of($document->template_name . ' ' . optional($document->employee)->full_name)
+            ->slug('_')->limit(60, '')->toString();
+
+        return response($content, 200, [
+            'Content-Type'        => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="'.($name ?: 'hr-document').'.pdf"',
+            'Content-Length'      => (string) strlen($content),
+        ]);
+    }
+
+    public function destroy(HrDocument $document)
+    {
+        $document->delete();
+
+        return redirect()->route('hr-documents.index')
+            ->with('success', 'Document deleted.');
+    }
+
+    // ── Helpers ────────────────────────────────────────────────────
+
+    private function validateTemplate(Request $request): array
+    {
+        $request->validate([
+            'name'        => 'required|string|max:150',
+            'subtitle'    => 'nullable|string|max:255',
+            'description' => 'nullable|string|max:500',
+            'icon'        => 'nullable|string|max:50',
+            'schema'      => 'required|string',
+        ]);
+
+        return [
+            'name'        => $request->input('name'),
+            'subtitle'    => $request->input('subtitle'),
+            'description' => $request->input('description'),
+            'icon'        => $request->input('icon') ?: 'file-text',
+            'prefill'     => $request->input('prefill') ?: null,
+            'schema'      => $this->normalizeSchema($this->decodeData($request->input('schema'))),
+            'is_active'   => (bool) $request->boolean('is_active', true),
+        ];
+    }
+
+    /** Clean an incoming schema: valid types, unique non-empty field ids. */
+    private function normalizeSchema($schema): array
+    {
+        $out = [];
+        $seen = [];
+
+        foreach ((array) $schema as $section) {
+            $fields = [];
+            foreach ($section['fields'] ?? [] as $field) {
+                $type = in_array($field['type'] ?? '', self::TYPES, true) ? $field['type'] : 'text';
+
+                $id = Str::slug($field['id'] ?? $field['label'] ?? 'field', '_') ?: 'field';
+                $base = $id;
+                $n = 2;
+                while (in_array($id, $seen, true)) {
+                    $id = $base . '_' . $n++;
+                }
+                $seen[] = $id;
+
+                $clean = [
+                    'id'    => $id,
+                    'label' => (string) ($field['label'] ?? ''),
+                    'type'  => $type,
+                    'width' => ($field['width'] ?? 'full') === 'half' ? 'half' : 'full',
+                ];
+                if (in_array($type, ['checkbox', 'radio', 'select'], true)) {
+                    $clean['options'] = array_values(array_filter(array_map('trim', (array) ($field['options'] ?? [])), 'strlen'));
+                }
+                if ($type === 'table') {
+                    $clean['columns'] = array_values(array_filter(array_map('trim', (array) ($field['columns'] ?? ['Column 1'])), 'strlen')) ?: ['Column 1'];
+                }
+                if ($type === 'note') {
+                    $clean['text'] = (string) ($field['text'] ?? '');
+                }
+                if (! empty($field['prefill'])) {
+                    $clean['prefill'] = (string) $field['prefill'];
+                }
+                if (! empty($field['placeholder'])) {
+                    $clean['placeholder'] = (string) $field['placeholder'];
+                }
+
+                $fields[] = $clean;
+            }
+
+            $out[] = [
+                'title'  => (string) ($section['title'] ?? 'Section'),
+                'fields' => $fields,
+            ];
+        }
+
+        return $out;
+    }
+
+    /** Decode a JSON string (from a hidden input) into an array; tolerant of arrays. */
+    private function decodeData($raw): array
+    {
+        if (is_array($raw)) {
+            return $raw;
+        }
+
+        $decoded = json_decode((string) $raw, true);
+
+        return is_array($decoded) ? $decoded : [];
+    }
+
+    /** [start, end, 'Y-m'] for a given YYYY-MM (defaults to the current month). */
+    private function resolveMonth(?string $month): array
+    {
+        try {
+            $base = $month ? Carbon::createFromFormat('Y-m', $month)->startOfMonth() : Carbon::now()->startOfMonth();
+        } catch (\Throwable $e) {
+            $base = Carbon::now()->startOfMonth();
+        }
+
+        return [$base->copy()->startOfMonth(), $base->copy()->endOfMonth(), $base->format('Y-m')];
+    }
+
+    private function buildTitle(HrDocumentTemplate $template, Carbon $start): string
+    {
+        return $template->name . ' — ' . $start->format('M Y');
+    }
+
+    /** Active, real employees for the picker. */
+    private function employeeOptions()
+    {
+        $realIds = Employee::real()->pluck('user_id')->filter()->all();
+
+        return User::active()
+            ->whereIn('id', $realIds)
+            ->with('department')
+            ->orderBy('first_name')->orderBy('last_name')
+            ->get()
+            ->map(fn ($u) => [
+                'id'         => $u->id,
+                'name'       => $u->full_name,
+                'department' => optional($u->department)->name ?? '—',
+            ])->values();
+    }
+}

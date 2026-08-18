@@ -213,7 +213,8 @@
     $templatesOpen = Str::startsWith($routeName, 'profile-templates') || Str::startsWith($routeName, 'profile-sections') || Str::startsWith($routeName, 'profile-fields') || Str::startsWith($routeName, 'signature-templates');
     $timeSettingsOpen = collect(['time-off-policies', 'leave-year-settings', 'leave-encashments', 'time-tracking-policies', 'shifts'])->contains(fn ($r) => Str::startsWith($routeName, $r));
     $attnOpen = collect(['attendance-reports', 'employees.attendance-mode'])->contains(fn ($r) => Str::startsWith($routeName, $r));
-    $timeAttGroupOpen = $timeSettingsOpen || $attnOpen;
+    $hrDocsOpen = Str::startsWith($routeName, 'hr-documents');
+    $timeAttGroupOpen = $timeSettingsOpen || $attnOpen || $hrDocsOpen;
     $securityGroupOpen = Str::startsWith($routeName, 'account.security') || request()->routeIs('roles.*') || Str::startsWith($routeName, 'admin.sessions') || Str::startsWith($routeName, 'admin.audit-logs');
     $devicesOpen = Str::startsWith($routeName, 'zkteco');
 @endphp
@@ -291,6 +292,7 @@
                     <a href="{{ route('employees.attendance-mode') }}" class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'employees.attendance-mode') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}"><i data-lucide="sliders-horizontal" class="h-4 w-4 shrink-0"></i><span class="flex-1">Attendance Mode</span></a>
                 </div>
             </div>
+            <a href="{{ route('hr-documents.index') }}" class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ $hrDocsOpen ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}"><i data-lucide="file-signature" class="h-4 w-4 shrink-0"></i><span class="flex-1">Documents</span></a>
         </div>
     </div>
 
