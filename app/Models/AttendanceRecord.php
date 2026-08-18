@@ -251,7 +251,9 @@ class AttendanceRecord extends Model
 
         // Overtime / early-departure vs the employee's ASSIGNED SHIFT end for this
         // date (shift-aware — the same source clock-out uses). Recomputed from
-        // zero so a corrected time clears any stale value; overrides late/present.
+        // zero so a corrected time clears any stale value. The MINUTES are always
+        // recorded, but a late arrival keeps its "late" status — lateness is never
+        // hidden by overtime / early-departure (those only relabel an on-time day).
         $this->overtime_minutes = 0;
         $this->early_departure_minutes = 0;
         if ($this->clock_out) {
@@ -261,12 +263,16 @@ class AttendanceRecord extends Model
                 $overtimeStart = $expectedEnd->copy()->addMinutes((int) $settings->overtime_threshold_minutes);
                 if ($this->clock_out->greaterThan($overtimeStart)) {
                     $this->overtime_minutes = (int) $expectedEnd->diffInMinutes($this->clock_out);
-                    $this->status = 'overtime';
+                    if ($this->status !== 'late') {
+                        $this->status = 'overtime';
+                    }
                 } else {
                     $earlyDeparture = $expectedEnd->copy()->subMinutes((int) $settings->early_departure_threshold_minutes);
                     if ($this->clock_out->lessThan($earlyDeparture)) {
                         $this->early_departure_minutes = (int) $this->clock_out->diffInMinutes($expectedEnd);
-                        $this->status = 'early_departure';
+                        if ($this->status !== 'late') {
+                            $this->status = 'early_departure';
+                        }
                     }
                 }
             }
