@@ -118,7 +118,11 @@ class TimeOffController extends Controller
         }
     }
 
-    /** Undo the on-leave marking when an approved leave is cancelled. */
+    /**
+     * Undo the on-leave marking when an approved leave is cancelled. The
+     * auto-created on-leave record is removed so the day reverts to normal
+     * (blank), not "absent".
+     */
     private function revertLeaveFromAttendance(TimeOffRequest $request): void
     {
         $end = Carbon::parse($request->end_date)->startOfDay();
@@ -126,8 +130,7 @@ class TimeOffController extends Controller
             $record = \App\Models\AttendanceRecord::where('user_id', $request->user_id)
                 ->whereDate('date', $d->toDateString())->first();
             if ($record && $record->status === 'on_leave' && !$record->clock_in) {
-                $record->status = 'absent';
-                $record->save();
+                $record->delete();
             }
         }
     }
@@ -835,15 +838,19 @@ class TimeOffController extends Controller
         return (float) ($start->copy()->diffInDaysFiltered(fn (Carbon $d) => ! $d->isWeekend(), $end->copy()) + 1);
     }
 
-    /** Undo the on-leave marking for a date range (used when a leave is shortened). */
+    /**
+     * Undo the on-leave marking for a date range (used when a leave is shortened
+     * or cancelled). The on-leave record was auto-created by the leave, so we
+     * remove it — the day returns to normal (blank), NOT "absent" (which would be
+     * wrong for future days). A later clock-in restores/reuses the row.
+     */
     private function revertLeaveRange(int $userId, Carbon $from, Carbon $to): void
     {
         for ($d = $from->copy()->startOfDay(); $d->lte($to); $d->addDay()) {
             $record = \App\Models\AttendanceRecord::where('user_id', $userId)
                 ->whereDate('date', $d->toDateString())->first();
             if ($record && $record->status === 'on_leave' && ! $record->clock_in) {
-                $record->status = 'absent';
-                $record->save();
+                $record->delete();
             }
         }
     }
