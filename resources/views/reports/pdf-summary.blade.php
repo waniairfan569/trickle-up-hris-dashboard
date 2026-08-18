@@ -19,7 +19,7 @@
 
         /* Day-wise detail per employee */
         .dw-head { font-size: 13pt; font-weight: bold; color: #1a1a24; border-bottom: 2pt solid #fcd82f; padding-bottom: 6pt; margin: 26pt 0 12pt; }
-        .dw-emp { font-size: 11pt; font-weight: bold; color: #1a1a24; margin: 20pt 0 5pt; }
+        .dw-emp { font-size: 11pt; font-weight: bold; color: #1a1a24; margin: 20pt 0 5pt; page-break-after: avoid; page-break-inside: avoid; }
         .dw-dept { font-size: 9pt; font-weight: normal; color: #64748B; }
         table.dw { width: 100%; border-collapse: collapse; font-size: 9pt; margin-bottom: 16pt; }
         table.dw th { background: #1a1a24; color: #fff; text-align: center; padding: 5pt 6pt; font-size: 8.5pt; }

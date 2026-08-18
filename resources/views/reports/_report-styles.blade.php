@@ -1,5 +1,5 @@
 <style>
-    @page { margin: 98pt 0 76pt 0; }   /* top clears the letterhead header, bottom the footer bar (with a gap) */
+    @page { margin: 112pt 0 100pt 0; }   /* big buffer so paginated content never slips under the fixed header/footer */
     thead { display: table-header-group; }   /* repeat table headers on every page */
     table.data tr { page-break-inside: avoid; }
     * { margin: 0; padding: 0; }
