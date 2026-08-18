@@ -14,14 +14,14 @@
         table.sum tr, table.dw tr { page-break-inside: avoid; }
         table.sum .emp { font-weight: bold; color: #1a1a24; font-size: 11pt; }
         table.sum .dept { font-size: 9pt; color: #64748B; }
-        table.sum tr.tot td { font-weight: bold; background: #FEF9E0; border-top: 1.5pt solid #fcd82f; font-size: 11pt; }
+        table.sum tr.tot td { font-weight: bold; background: #FEF9E0; border-top: 2pt solid #fcd82f; font-size: 11pt; padding: 13pt 6pt; }
         .g { color: #059669; } .r { color: #DC2626; } .a { color: #B45309; } .o { color: #EA580C; }
 
         /* Day-wise detail per employee */
-        .dw-head { font-size: 13pt; font-weight: bold; color: #1a1a24; border-bottom: 2pt solid #fcd82f; padding-bottom: 5pt; margin-bottom: 8pt; }
-        .dw-emp { font-size: 11pt; font-weight: bold; color: #1a1a24; margin: 12pt 0 3pt; }
+        .dw-head { font-size: 13pt; font-weight: bold; color: #1a1a24; border-bottom: 2pt solid #fcd82f; padding-bottom: 6pt; margin: 26pt 0 12pt; }
+        .dw-emp { font-size: 11pt; font-weight: bold; color: #1a1a24; margin: 20pt 0 5pt; }
         .dw-dept { font-size: 9pt; font-weight: normal; color: #64748B; }
-        table.dw { width: 100%; border-collapse: collapse; font-size: 9pt; margin-bottom: 4pt; }
+        table.dw { width: 100%; border-collapse: collapse; font-size: 9pt; margin-bottom: 16pt; }
         table.dw th { background: #1a1a24; color: #fff; text-align: center; padding: 5pt 6pt; font-size: 8.5pt; }
         table.dw th.l, table.dw td.l { text-align: left; }
         table.dw td { padding: 4.5pt 6pt; border-bottom: 1pt solid #E5E7EB; text-align: center; }
