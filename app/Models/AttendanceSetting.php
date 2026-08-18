@@ -29,6 +29,14 @@ class AttendanceSetting extends Model
         'allow_manual_entry' => 'boolean',
     ];
 
+    // In-memory defaults so a new/absent settings row still uses sensible
+    // thresholds (match the migration): overtime only past shift end + 30 min,
+    // early departure only if leaving more than 15 min before shift end.
+    protected $attributes = [
+        'overtime_threshold_minutes' => 30,
+        'early_departure_threshold_minutes' => 15,
+    ];
+
     public function companyEntity()
     {
         return $this->belongsTo(CompanyEntity::class);

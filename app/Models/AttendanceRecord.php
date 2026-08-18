@@ -260,14 +260,14 @@ class AttendanceRecord extends Model
             $settings = \App\Models\AttendanceSetting::first() ?? new \App\Models\AttendanceSetting();
             $expectedEnd = self::expectedEndDateTimeFor($this->employee, Carbon::parse($this->date));
             if ($expectedEnd) {
-                $overtimeStart = $expectedEnd->copy()->addMinutes((int) $settings->overtime_threshold_minutes);
+                $overtimeStart = $expectedEnd->copy()->addMinutes((int) ($settings->overtime_threshold_minutes ?? 30));
                 if ($this->clock_out->greaterThan($overtimeStart)) {
                     $this->overtime_minutes = (int) $expectedEnd->diffInMinutes($this->clock_out);
                     if ($this->status !== 'late') {
                         $this->status = 'overtime';
                     }
                 } else {
-                    $earlyDeparture = $expectedEnd->copy()->subMinutes((int) $settings->early_departure_threshold_minutes);
+                    $earlyDeparture = $expectedEnd->copy()->subMinutes((int) ($settings->early_departure_threshold_minutes ?? 15));
                     if ($this->clock_out->lessThan($earlyDeparture)) {
                         $this->early_departure_minutes = (int) $this->clock_out->diffInMinutes($expectedEnd);
                         if ($this->status !== 'late') {
