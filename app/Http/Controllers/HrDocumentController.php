@@ -184,6 +184,22 @@ class HrDocumentController extends Controller
         ]);
     }
 
+    /** Editable Word (.docx) export of a filled document. */
+    public function docx(HrDocument $document, \App\Services\HrDocumentWordService $word)
+    {
+        @ini_set('memory_limit', '512M');
+        @set_time_limit(120);
+
+        $path = $word->build($document);
+
+        $name = Str::of($document->template_name . ' ' . optional($document->employee)->full_name)
+            ->slug('_')->limit(60, '')->toString();
+
+        return response()->download($path, ($name ?: 'hr-document') . '.docx', [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        ])->deleteFileAfterSend(true);
+    }
+
     public function destroy(HrDocument $document)
     {
         $document->delete();

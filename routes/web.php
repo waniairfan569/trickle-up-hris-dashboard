@@ -250,6 +250,7 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
         Route::put('{document}', [\App\Http\Controllers\HrDocumentController::class, 'update'])->name('update');
         Route::get('{document}', [\App\Http\Controllers\HrDocumentController::class, 'show'])->name('show');
         Route::get('{document}/pdf', [\App\Http\Controllers\HrDocumentController::class, 'pdf'])->name('pdf');
+        Route::get('{document}/docx', [\App\Http\Controllers\HrDocumentController::class, 'docx'])->name('docx');
         Route::delete('{document}', [\App\Http\Controllers\HrDocumentController::class, 'destroy'])->name('destroy');
     });
 
