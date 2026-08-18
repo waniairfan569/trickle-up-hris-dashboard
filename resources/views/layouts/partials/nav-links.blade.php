@@ -2,7 +2,7 @@
     $routeName = request()->route()?->getName() ?? '';
 
     // Sidebar red badges — items needing attention on each tab.
-    $nav = ['invites' => 0, 'timeoff' => 0, 'forms' => 0, 'corrections' => 0, 'sign' => 0];
+    $nav = ['invites' => 0, 'timeoff' => 0, 'forms' => 0, 'corrections' => 0, 'sign' => 0, 'hr_to_sign' => 0];
     if ($navUser = auth()->user()) {
         // Documents awaiting THIS user's signature (shown on Document Library).
         $nav['sign'] = \App\Models\DocumentRequest::where('status', 'in_progress')
@@ -11,6 +11,9 @@
             ->get()
             ->filter(fn ($r) => $r->isAwaiting($navUser))
             ->count();
+
+        // HR documents (lateness review, return to work, …) sent to me to sign.
+        $nav['hr_to_sign'] = \App\Models\HrDocumentSigner::where('user_id', $navUser->id)->whereNull('signed_at')->count();
         $navIsAdmin = $navUser->hasRole('super_admin') || $navUser->hasRole('hr_admin');
         $navReportIds = (!$navIsAdmin && $navUser->isManager() && method_exists($navUser, 'teamMemberIds'))
             ? $navUser->teamMemberIds() : collect();
@@ -108,6 +111,11 @@
         <a href="{{ route('my-policies.index') }}"
            class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ (Str::startsWith($routeName, 'my-policies') || Str::startsWith($routeName, 'policies.')) ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">
             <i data-lucide="book-text" class="h-4 w-4 shrink-0"></i><span class="flex-1">My Policies</span>
+        </a>
+        <a href="{{ route('hr-documents.to-sign') }}"
+           class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ (Str::startsWith($routeName, 'hr-documents.to-sign') || Str::startsWith($routeName, 'hr-documents.sign')) ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">
+            <i data-lucide="file-signature" class="h-4 w-4 shrink-0"></i><span class="flex-1">To Sign</span>
+            {!! $navBadge($nav['hr_to_sign'] ?? 0) !!}
         </a>
         <a href="{{ route('equipment.index') }}"
            class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ request()->routeIs('equipment.index') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">

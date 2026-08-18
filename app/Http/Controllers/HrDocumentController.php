@@ -156,7 +156,7 @@ class HrDocumentController extends Controller
 
     public function show(HrDocument $document)
     {
-        $document->load('employee', 'creator');
+        $document->load('employee', 'creator', 'signers.user');
 
         return view('hr-documents.show', compact('document'));
     }
@@ -182,6 +182,48 @@ class HrDocumentController extends Controller
             'Content-Disposition' => 'attachment; filename="'.($name ?: 'hr-document').'.pdf"',
             'Content-Length'      => (string) strlen($content),
         ]);
+    }
+
+    /** Send a document to its employee (+ their manager) to sign in-app. */
+    public function send(HrDocument $document)
+    {
+        $sigFields = collect($document->signatureFields());
+        if ($sigFields->isEmpty()) {
+            return back()->with('error', 'This document has no signature fields, so there is nothing to sign.');
+        }
+
+        $employee = $document->employee;
+        $manager  = optional($employee)->manager;
+
+        $isMgr     = fn ($f) => Str::contains(Str::lower($f['label'] ?? ''), 'manager');
+        $mgrFields = $sigFields->filter($isMgr);
+        $empFields = $sigFields->reject($isMgr);
+
+        // Rebuild the signer set (supports re-sending).
+        $document->signers()->delete();
+        $sentTo = [];
+
+        if ($employee && $empFields->isNotEmpty()) {
+            $document->signers()->create(['user_id' => $employee->id, 'role' => 'employee', 'field_ids' => $empFields->pluck('id')->all()]);
+            $employee->notify(new \App\Notifications\HrDocumentSignatureRequested($document));
+            $sentTo[] = $employee->full_name;
+        }
+
+        if ($manager && $mgrFields->isNotEmpty()) {
+            $document->signers()->create(['user_id' => $manager->id, 'role' => 'manager', 'field_ids' => $mgrFields->pluck('id')->all()]);
+            $manager->notify(new \App\Notifications\HrDocumentSignatureRequested($document));
+            $sentTo[] = $manager->full_name;
+        }
+
+        if (empty($sentTo)) {
+            return back()->with('error', 'Could not send: the employee’s manager is not set and no employee signature field is present.');
+        }
+
+        $document->update(['status' => 'sent', 'sent_at' => now()]);
+
+        $note = ($manager && $mgrFields->isNotEmpty()) ? '' : ($mgrFields->isNotEmpty() ? ' (no line manager set — sign the manager field yourself via Edit)' : '');
+
+        return back()->with('success', 'Sent for signature to ' . collect($sentTo)->join(' and ') . '.' . $note);
     }
 
     /** Editable Word (.docx) export of a filled document. */

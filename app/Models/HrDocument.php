@@ -24,11 +24,32 @@ class HrDocument extends Model
         'data'         => 'array',
         'period_start' => 'date',
         'period_end'   => 'date',
+        'sent_at'      => 'datetime',
     ];
 
     public function template()
     {
         return $this->belongsTo(HrDocumentTemplate::class, 'hr_document_template_id');
+    }
+
+    public function signers()
+    {
+        return $this->hasMany(HrDocumentSigner::class);
+    }
+
+    /** All signature fields declared in the (snapshotted) schema. */
+    public function signatureFields(): array
+    {
+        return collect($this->schema)
+            ->flatMap(fn ($s) => $s['fields'] ?? [])
+            ->where('type', 'signature')
+            ->values()->all();
+    }
+
+    /** True once every assigned signer has signed. */
+    public function getFullySignedAttribute(): bool
+    {
+        return $this->signers->isNotEmpty() && $this->signers->whereNull('signed_at')->isEmpty();
     }
 
     /** The employee this document is about. */

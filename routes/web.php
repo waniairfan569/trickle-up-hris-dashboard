@@ -251,8 +251,15 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
         Route::get('{document}', [\App\Http\Controllers\HrDocumentController::class, 'show'])->name('show');
         Route::get('{document}/pdf', [\App\Http\Controllers\HrDocumentController::class, 'pdf'])->name('pdf');
         Route::get('{document}/docx', [\App\Http\Controllers\HrDocumentController::class, 'docx'])->name('docx');
+        Route::post('{document}/send', [\App\Http\Controllers\HrDocumentController::class, 'send'])->name('send');
         Route::delete('{document}', [\App\Http\Controllers\HrDocumentController::class, 'destroy'])->name('destroy');
     });
+
+    // Employee-facing signing of HR documents sent to them (any authenticated
+    // user; each action is gated in-controller to the assigned signers).
+    Route::get('my-documents', [\App\Http\Controllers\HrDocumentSignController::class, 'index'])->name('hr-documents.to-sign');
+    Route::get('hr-documents/{document}/sign', [\App\Http\Controllers\HrDocumentSignController::class, 'show'])->name('hr-documents.sign');
+    Route::post('hr-documents/{document}/sign', [\App\Http\Controllers\HrDocumentSignController::class, 'store'])->name('hr-documents.sign.store');
 
     // 4. Performance Reviews Resource & Actions
     Route::post('performance/self-review', [PerformanceController::class, 'storeSelfReview'])
