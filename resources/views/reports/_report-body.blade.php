@@ -18,14 +18,10 @@
     foreach ($lv['balances'] as $b) { $balTotals['allocated'] += $b['allocated']; $balTotals['used'] += $b['used']; $balTotals['remaining'] += $b['remaining']; }
 @endphp
 
-<!-- Header -->
-<table class="doc-header">
+<!-- Title bar -->
+<table class="doc-title">
     <tr>
-        <td>
-            <div class="brand">Trickle Hub</div>
-            <div class="brand-sub">Employee Report</div>
-            <div class="brand-period">{{ $meta['period_label'] }}</div>
-        </td>
+        <td class="t">{{ $emp['name'] }} <span class="per">· {{ $meta['period_label'] }}</span></td>
         <td class="conf"><span>CONFIDENTIAL</span></td>
     </tr>
 </table>

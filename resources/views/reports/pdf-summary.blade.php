@@ -35,13 +35,9 @@
         $t = $data['totals'];
     @endphp
 
-    <table class="doc-header">
+    <table class="doc-title">
         <tr>
-            <td>
-                <div class="brand">Trickle Hub</div>
-                <div class="brand-sub">All-Employees Summary</div>
-                <div class="brand-period">{{ $data['period_label'] }}</div>
-            </td>
+            <td class="t">All-Employees Summary <span class="per">· {{ $data['period_label'] }}</span></td>
             <td class="conf"><span>CONFIDENTIAL</span></td>
         </tr>
     </table>

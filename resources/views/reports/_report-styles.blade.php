@@ -9,14 +9,14 @@
     body { font-family: 'DejaVu Sans', sans-serif; color: #1f2937; font-size: 9pt; margin: 108pt 0 96pt 0; }
     .wrap { padding: 0 26pt 26pt; }
 
-    /* Header */
-    .doc-header { width: 100%; background: #1a1a24; color: #ffffff; }
-    .doc-header td { padding: 16pt 26pt; vertical-align: middle; }
-    .brand { font-size: 16pt; font-weight: bold; }
-    .brand-sub { font-size: 9pt; color: #AEB9D6; margin-top: 2pt; }
-    .brand-period { font-size: 11pt; color: #ffffff; margin-top: 3pt; font-weight: bold; }
-    .conf { text-align: right; }
-    .conf span { border: 1pt solid #6B7BB0; color: #C7D0EA; font-size: 7pt; font-weight: bold; letter-spacing: 1pt; padding: 3pt 7pt; }
+    /* Compact title bar — the letterhead already brands the page (and the
+       footer), so each report just needs a slim heading, not a full masthead. */
+    .doc-title { width: 100%; background: #1a1a24; border-bottom: 3pt solid #fcd82f; }
+    .doc-title td { padding: 9pt 26pt; vertical-align: middle; }
+    .doc-title .t { font-size: 13.5pt; font-weight: bold; color: #ffffff; }
+    .doc-title .t .per { color: #fcd82f; }
+    .conf { text-align: right; white-space: nowrap; }
+    .conf span { border: 1pt solid #fcd82f; color: #fcd82f; font-size: 7pt; font-weight: bold; letter-spacing: 1pt; padding: 3pt 7pt; }
 
     /* Employee info bar */
     .info { width: 100%; background: #EEF2FB; }
