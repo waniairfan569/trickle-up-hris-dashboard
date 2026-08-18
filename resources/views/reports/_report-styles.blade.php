@@ -1,9 +1,12 @@
 <style>
-    @page { margin: 112pt 0 100pt 0; }   /* big buffer so paginated content never slips under the fixed header/footer */
+    @page { margin: 0; }
     thead { display: table-header-group; }   /* repeat table headers on every page */
     table.data tr { page-break-inside: avoid; }
     * { margin: 0; padding: 0; }
-    body { font-family: 'DejaVu Sans', sans-serif; color: #1f2937; font-size: 9pt; }
+    /* DomPDF ignores @page margins here but DOES honour body margins as the
+       per-page margins — this reserves space for the fixed header (top) and
+       footer (bottom) on every page so content never slips under them. */
+    body { font-family: 'DejaVu Sans', sans-serif; color: #1f2937; font-size: 9pt; margin: 108pt 0 96pt 0; }
     .wrap { padding: 0 26pt 26pt; }
 
     /* Header */
