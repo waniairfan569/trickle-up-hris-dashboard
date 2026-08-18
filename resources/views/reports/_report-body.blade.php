@@ -69,7 +69,7 @@
         <div class="sec">
             <div class="sec-title">Daily Attendance</div>
             <table class="data">
-                <tr><th>Date</th><th>Day</th><th>In</th><th>Out</th><th>Hours</th><th class="num">Late</th><th>Status</th></tr>
+                <thead><tr><th>Date</th><th>Day</th><th>In</th><th>Out</th><th>Hours</th><th class="num">Late</th><th>Status</th></tr></thead>
                 @foreach($daily as $d)
                     <tr>
                         <td>{{ $d['date'] }}</td>
@@ -131,7 +131,7 @@
         <div class="sec">
             <div class="sec-title">Monthly Breakdown</div>
             <table class="data">
-                <tr><th>Month</th><th class="num">Present</th><th class="num">Absent</th><th class="num">Late</th><th class="num">On leave</th><th class="num">Hours</th><th class="num">Late min</th></tr>
+                <thead><tr><th>Month</th><th class="num">Present</th><th class="num">Absent</th><th class="num">Late</th><th class="num">On leave</th><th class="num">Hours</th><th class="num">Late min</th></tr></thead>
                 @foreach($data['monthly_breakdown'] as $m)
                     <tr>
                         <td>{{ $m['month'] }}</td>

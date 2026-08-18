@@ -1,5 +1,7 @@
 <style>
-    @page { margin: 82pt 0 62pt 0; }   /* top reserves the letterhead header, bottom the footer bar */
+    @page { margin: 98pt 0 76pt 0; }   /* top clears the letterhead header, bottom the footer bar (with a gap) */
+    thead { display: table-header-group; }   /* repeat table headers on every page */
+    table.data tr { page-break-inside: avoid; }
     * { margin: 0; padding: 0; }
     body { font-family: 'DejaVu Sans', sans-serif; color: #1f2937; font-size: 9pt; }
     .wrap { padding: 0 26pt 26pt; }

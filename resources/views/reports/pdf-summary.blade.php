@@ -10,7 +10,8 @@
         table.sum th { background: #fcd82f; color: #1a1a24; text-align: center; padding: 9pt 6pt; font-size: 10.5pt; white-space: nowrap; vertical-align: middle; }
         table.sum th.l, table.sum td.l { text-align: left; }
         table.sum td { padding: 8pt 6pt; border-bottom: 1pt solid #E5E7EB; text-align: center; }
-        table.sum tr:nth-child(even) td { background: #F8FAFC; }
+        table.sum tbody tr:nth-child(even) td { background: #F8FAFC; }
+        table.sum tr, table.dw tr { page-break-inside: avoid; }
         table.sum .emp { font-weight: bold; color: #1a1a24; font-size: 11pt; }
         table.sum .dept { font-size: 9pt; color: #64748B; }
         table.sum tr.tot td { font-weight: bold; background: #FEF9E0; border-top: 1.5pt solid #fcd82f; font-size: 11pt; }
@@ -49,15 +50,18 @@
 
     <div style="padding: 0 26pt;">
         <table class="sum">
-            <tr>
-                <th class="l">Employee</th>
-                <th>Present</th>
-                <th>Late</th>
-                <th>Absent</th>
-                <th>Planned leave</th>
-                <th>Unplanned leave</th>
-                <th>Missing clock-out</th>
-            </tr>
+            <thead>
+                <tr>
+                    <th class="l">Employee</th>
+                    <th>Present</th>
+                    <th>Late</th>
+                    <th>Absent</th>
+                    <th>Planned leave</th>
+                    <th>Unplanned leave</th>
+                    <th>Missing clock-out</th>
+                </tr>
+            </thead>
+            <tbody>
             @forelse($data['rows'] as $row)
                 <tr>
                     <td class="l">
@@ -85,6 +89,7 @@
                     <td>{{ $t['missing_clock_out'] }}</td>
                 </tr>
             @endif
+            </tbody>
         </table>
 
         {{-- Day-wise detail per employee (monthly / short range) --}}
@@ -99,7 +104,10 @@
                 <div class="dw-emp">{{ $row['name'] }} <span class="dw-dept">· {{ $row['department'] }}</span></div>
                 @if(! empty($row['daily']))
                     <table class="dw">
-                        <tr><th class="l">Date</th><th>Day</th><th>In</th><th>Out</th><th>Hours</th><th>Late</th><th class="l">Status</th></tr>
+                        <thead>
+                            <tr><th class="l">Date</th><th>Day</th><th>In</th><th>Out</th><th>Hours</th><th>Late</th><th class="l">Status</th></tr>
+                        </thead>
+                        <tbody>
                         @foreach($row['daily'] as $d)
                             <tr>
                                 <td class="l">{{ $d['date'] }}</td>
@@ -111,6 +119,7 @@
                                 <td class="l"><span class="st st-{{ $d['status'] }}">{{ $dwStatus[$d['status']] ?? ucfirst(str_replace('_',' ',$d['status'])) }}</span></td>
                             </tr>
                         @endforeach
+                        </tbody>
                     </table>
                 @else
                     <div style="font-size:8.5pt; color:#94A3B8; margin-bottom:4pt;">No attendance records in this period.</div>
