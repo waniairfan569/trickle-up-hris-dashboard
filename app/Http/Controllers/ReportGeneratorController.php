@@ -46,43 +46,85 @@ class ReportGeneratorController extends Controller
 
         [$startDate, $endDate, $periodLabel] = $this->getDateRange($request);
 
-        // ── Single employee ────────────────────────────────────────
-        if ($request->report_scope === 'single') {
-            $employee = User::with(['department', 'manager', 'workSchedule'])->findOrFail($request->employee_id);
-            $data = $this->reports->getEmployeeReportData($employee, $startDate, $endDate, $request->report_type);
+        // A full-company, day-wise PDF builds a large DomPDF frame tree in
+        // memory and can span dozens of pages. Give the request room so a big
+        // month doesn't run out of memory / time mid-render and truncate the
+        // download into a browser "ERR_INVALID_RESPONSE". (Best effort — a host
+        // that pins these via php_admin_value will keep its own ceiling.)
+        @ini_set('memory_limit', '1024M');
+        @set_time_limit(300);
 
-            if ($request->output === 'preview') {
-                return view('reports.pdf-template', compact('data'));
+        try {
+            // ── Single employee ────────────────────────────────────────
+            if ($request->report_scope === 'single') {
+                $employee = User::with(['department', 'manager', 'workSchedule'])->findOrFail($request->employee_id);
+                $data = $this->reports->getEmployeeReportData($employee, $startDate, $endDate, $request->report_type);
+
+                if ($request->output === 'preview') {
+                    return view('reports.pdf-template', compact('data'));
+                }
+
+                $pdf = Pdf::loadView('reports.pdf-template', compact('data'))->setPaper('a4', 'portrait');
+
+                return $this->downloadPdf($pdf, $this->getFilename($data));
             }
 
-            $pdf = Pdf::loadView('reports.pdf-template', compact('data'))->setPaper('a4', 'portrait');
+            // ── All employees → one consolidated summary table ─────────
+            $employees = $this->activeEmployees(['department', 'workSchedule']);
+            // Append a per-employee day-wise breakdown for a month / short range
+            // (a full-year day-wise table would be enormous).
+            $withDaily = $startDate->diffInDays($endDate) <= 45;
+            $summary = $this->reports->getSummaryData($employees, $startDate, $endDate, $withDaily);
 
-            return $pdf->download($this->getFilename($data));
+            $data = [
+                'period_label' => $periodLabel,
+                'rows'         => $summary['rows'],
+                'totals'       => $summary['totals'],
+                'count'        => count($summary['rows']),
+                'generated_at' => now()->format('d M Y h:i A'),
+                'generated_by' => auth()->user() ? auth()->user()->full_name : 'System',
+            ];
+
+            if ($request->output === 'preview') {
+                return view('reports.pdf-summary', compact('data'));
+            }
+
+            $pdf = Pdf::loadView('reports.pdf-summary', compact('data'))->setPaper('a4', 'landscape');
+
+            return $this->downloadPdf($pdf, 'All_Employees_' . $this->slug($periodLabel) . '.pdf');
+        } catch (\Throwable $e) {
+            // Log the real cause (visible in storage/logs/laravel.log on live)
+            // and show a readable message instead of a corrupt/blank response.
+            report($e);
+
+            return back()
+                ->withInput()
+                ->with('error', 'The report could not be generated. '.$e->getMessage());
+        }
+    }
+
+    /**
+     * Emit a rendered PDF as a download with a guaranteed-clean binary body.
+     *
+     * We render to a string first, then discard any leftover output buffers so
+     * a stray notice / whitespace can never be prepended to the "%PDF" bytes —
+     * which is what makes a browser reject the file as an invalid response.
+     */
+    private function downloadPdf($pdf, string $filename)
+    {
+        $content = $pdf->output();
+
+        while (ob_get_level() > 0) {
+            ob_end_clean();
         }
 
-        // ── All employees → one consolidated summary table ─────────
-        $employees = $this->activeEmployees(['department', 'workSchedule']);
-        // Append a per-employee day-wise breakdown for a month / short range
-        // (a full-year day-wise table would be enormous).
-        $withDaily = $startDate->diffInDays($endDate) <= 45;
-        $summary = $this->reports->getSummaryData($employees, $startDate, $endDate, $withDaily);
-
-        $data = [
-            'period_label' => $periodLabel,
-            'rows'         => $summary['rows'],
-            'totals'       => $summary['totals'],
-            'count'        => count($summary['rows']),
-            'generated_at' => now()->format('d M Y h:i A'),
-            'generated_by' => auth()->user() ? auth()->user()->full_name : 'System',
-        ];
-
-        if ($request->output === 'preview') {
-            return view('reports.pdf-summary', compact('data'));
-        }
-
-        $pdf = Pdf::loadView('reports.pdf-summary', compact('data'))->setPaper('a4', 'landscape');
-
-        return $pdf->download('All_Employees_' . $this->slug($periodLabel) . '.pdf');
+        return response($content, 200, [
+            'Content-Type'        => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="'.addslashes($filename).'"',
+            'Content-Length'      => (string) strlen($content),
+            'Cache-Control'       => 'private, max-age=0, must-revalidate',
+            'Pragma'              => 'public',
+        ]);
     }
 
     /** Active, non-system employees (real people). */

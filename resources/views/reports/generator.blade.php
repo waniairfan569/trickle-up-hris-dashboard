@@ -17,6 +17,10 @@
         <div class="rounded-xl bg-rose-50 p-4 border border-rose-200 text-sm text-rose-700 dark:bg-rose-500/10 dark:border-rose-500/20"><ul class="list-disc pl-5">@foreach($errors->all() as $e)<li>{{ $e }}</li>@endforeach</ul></div>
     @endif
 
+    @if(session('error'))
+        <div class="rounded-xl bg-rose-50 p-4 border border-rose-200 text-sm text-rose-700 dark:bg-rose-500/10 dark:border-rose-500/20">{{ session('error') }}</div>
+    @endif
+
     <form method="POST" action="{{ route('reports.generate.submit') }}" x-ref="form">
         @csrf
         <input type="hidden" name="report_scope" :value="scope">
