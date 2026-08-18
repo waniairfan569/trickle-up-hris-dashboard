@@ -278,6 +278,15 @@ class AttendanceRecord extends Model
             }
         }
 
+        // Clocked in but never clocked out on a PAST day → the record is
+        // incomplete (a missing clock-out), which takes over the status so it's
+        // flagged for correction. Today's in-progress day (no clock-out yet)
+        // stays present/late. Keeps recalculate() in step with the daily job,
+        // so re-checking statuses no longer erases a missing clock-out.
+        if ($this->clock_in && ! $this->clock_out && Carbon::parse($this->date)->lt(today())) {
+            $this->status = 'missing_clock_out';
+        }
+
         // Approved partial-day leave overrides late/early-departure: a half-day
         // shows as "half_day", an hourly leave just isn't late.
         $partial = self::partialDayLeaveFor((int) $this->user_id, Carbon::parse($this->date)->toDateString());
