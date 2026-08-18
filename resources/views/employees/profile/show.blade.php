@@ -392,6 +392,25 @@
                 </form>
             </div>
 
+            {{-- Fix late & overtime status from their shift --}}
+            <form method="POST" action="{{ route('attendance.employee-recalc', $employee->id) }}"
+                  onsubmit="return confirm('Re-check all of {{ $employee->first_name }}\'s clocked-in days against their shift? Late / overtime / early-departure statuses are corrected and reflected in their attendance.');"
+                  class="bg-white border border-slate-200/80 dark:border-slate-700 rounded-2xl shadow-sm dark:bg-slate-800 overflow-hidden">
+                @csrf
+                <div class="flex items-start gap-4 px-6 py-5">
+                    <span class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600 dark:bg-amber-500/10">
+                        <i data-lucide="alarm-clock" class="h-5 w-5"></i>
+                    </span>
+                    <div class="flex-1 min-w-0">
+                        <h2 class="text-sm font-bold text-slate-800 dark:text-white">Fix late &amp; overtime status</h2>
+                        <p class="text-xs text-slate-400 mt-1 leading-relaxed">
+                            Re-checks every clocked-in day against {{ $employee->first_name }}'s shift: clock-in after their shift start (+ grace) is <b>Late</b>, clock-out more than the overtime threshold after shift end is <b>Overtime</b>, leaving before shift end is <b>Early departure</b>, otherwise <b>Present</b>. Days on leave are left untouched.
+                        </p>
+                    </div>
+                    <button type="submit" class="btn-brand shrink-0"><i data-lucide="alarm-clock" class="h-4 w-4"></i> Fix status</button>
+                </div>
+            </form>
+
             {{-- Hide from attendance sheets & reports --}}
             @php $isHidden = (bool) ($employee->exclude_from_attendance ?? false); @endphp
             <form method="POST" action="{{ route('employees.update-attendance-visibility', $employee->id) }}"

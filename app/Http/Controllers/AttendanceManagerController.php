@@ -163,6 +163,35 @@ class AttendanceManagerController extends Controller
         return back()->with('success', "Re-checked {$count} record(s) for {$label} against each employee's shift late rule — {$changed} updated.");
     }
 
+    /**
+     * Re-check ALL of one employee's clocked-in days against their shift, fixing
+     * late / overtime / early-departure. Used from the employee profile. Rows
+     * with no clock-in (leave / absent) are left untouched.
+     */
+    public function recalcEmployee(Request $request, User $employee)
+    {
+        abort_unless($request->user() && $request->user()->isAdmin(), 403);
+
+        $count = 0;
+        $changed = 0;
+        AttendanceRecord::with('employee')
+            ->where('user_id', $employee->id)
+            ->whereNotNull('clock_in')
+            ->chunkById(300, function ($records) use (&$count, &$changed) {
+                foreach ($records as $r) {
+                    $before = $r->status . '|' . $r->late_minutes . '|' . $r->overtime_minutes . '|' . $r->early_departure_minutes;
+                    $r->recalculate();
+                    $count++;
+                    if ($before !== $r->status . '|' . $r->late_minutes . '|' . $r->overtime_minutes . '|' . $r->early_departure_minutes) {
+                        $r->save();
+                        $changed++;
+                    }
+                }
+            });
+
+        return back()->with('success', "Re-checked {$count} of {$employee->first_name}'s clocked-in day(s) against their shift — {$changed} status(es) updated (late / overtime / early departure).");
+    }
+
     /** Bulk backfill form — add attendance for many employees on a date. */
     public function backfillForm(Request $request)
     {
