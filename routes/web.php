@@ -243,8 +243,9 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
         Route::put('templates/{template}', [\App\Http\Controllers\HrDocumentController::class, 'updateTemplate'])->name('templates.update');
         Route::delete('templates/{template}', [\App\Http\Controllers\HrDocumentController::class, 'destroyTemplate'])->name('templates.destroy');
 
-        // Fill / manage filled documents ('create' before the {document} catch-all)
+        // Fill / manage filled documents ('create'/'preview' before the {document} catch-all)
         Route::get('create', [\App\Http\Controllers\HrDocumentController::class, 'create'])->name('create');
+        Route::post('preview', [\App\Http\Controllers\HrDocumentController::class, 'preview'])->name('preview');
         Route::post('/', [\App\Http\Controllers\HrDocumentController::class, 'store'])->name('store');
         Route::get('{document}/edit', [\App\Http\Controllers\HrDocumentController::class, 'edit'])->name('edit');
         Route::put('{document}', [\App\Http\Controllers\HrDocumentController::class, 'update'])->name('update');

@@ -81,6 +81,9 @@
             </div>
 
             <div class="mt-6 flex items-center justify-end gap-3">
+                <button type="button" @click="preview()" class="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700">
+                    <i data-lucide="eye" class="h-4 w-4"></i> Preview
+                </button>
                 <button type="submit" name="action" value="save" class="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700">
                     <i data-lucide="save" class="h-4 w-4"></i> Save draft
                 </button>
@@ -110,6 +113,18 @@
                     else if (f.type === 'signature') { if (!v || typeof v !== 'object') this.values[f.id] = { image: '', name: '', date: '', typed: '' }; }
                     else if (f.type !== 'note') { if (v === undefined || v === null) this.values[f.id] = ''; }
                 }));
+            },
+
+            // Open a live PDF preview of the current (unsaved) form in a new tab.
+            preview() {
+                const f = document.createElement('form');
+                f.method = 'POST'; f.action = @js(route('hr-documents.preview')); f.target = '_blank';
+                const add = (n, v) => { const i = document.createElement('input'); i.type = 'hidden'; i.name = n; i.value = v; f.appendChild(i); };
+                add('_token', @js(csrf_token()));
+                add('template_id', @js($template->id));
+                add('employee_id', @js($employee->id ?? optional($document)->user_id ?? ''));
+                add('data', JSON.stringify(this.values));
+                document.body.appendChild(f); f.submit(); f.remove();
             },
 
             toggle(id, opt) {

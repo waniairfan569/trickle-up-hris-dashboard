@@ -161,7 +161,7 @@ class HrDocumentController extends Controller
         return view('hr-documents.show', compact('document'));
     }
 
-    public function pdf(HrDocument $document)
+    public function pdf(HrDocument $document, Request $request)
     {
         @ini_set('memory_limit', '512M');
         @set_time_limit(120);
@@ -177,10 +177,45 @@ class HrDocumentController extends Controller
         $name = Str::of($document->template_name . ' ' . optional($document->employee)->full_name)
             ->slug('_')->limit(60, '')->toString();
 
+        // ?preview=1 opens the PDF inline in the browser instead of downloading.
+        $disposition = $request->boolean('preview') ? 'inline' : 'attachment';
+
         return response($content, 200, [
             'Content-Type'        => 'application/pdf',
-            'Content-Disposition' => 'attachment; filename="'.($name ?: 'hr-document').'.pdf"',
+            'Content-Disposition' => $disposition.'; filename="'.($name ?: 'hr-document').'.pdf"',
             'Content-Length'      => (string) strlen($content),
+        ]);
+    }
+
+    /** Live PDF preview of an unsaved fill form (opens inline, nothing stored). */
+    public function preview(Request $request)
+    {
+        @ini_set('memory_limit', '512M');
+        @set_time_limit(120);
+
+        $template = HrDocumentTemplate::findOrFail($request->integer('template_id'));
+
+        $document = new HrDocument([
+            'hr_document_template_id' => $template->id,
+            'user_id'       => $request->integer('employee_id') ?: null,
+            'template_name' => $template->name,
+            'schema'        => $template->schema,
+            'data'          => $this->decodeData($request->input('data')),
+        ]);
+        $document->setRelation('template', $template);
+        if ($document->user_id) {
+            $document->setRelation('employee', User::find($document->user_id));
+        }
+
+        $pdf = Pdf::loadView('hr-documents.pdf', ['document' => $document])->setPaper('a4', 'portrait');
+        $content = $pdf->output();
+        while (ob_get_level() > 0) {
+            ob_end_clean();
+        }
+
+        return response($content, 200, [
+            'Content-Type'        => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="preview.pdf"',
         ]);
     }
 
