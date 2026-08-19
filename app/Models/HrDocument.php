@@ -16,7 +16,7 @@ class HrDocument extends Model
 
     protected $fillable = [
         'hr_document_template_id', 'user_id', 'template_name', 'title',
-        'schema', 'data', 'period_start', 'period_end', 'status', 'created_by',
+        'schema', 'data', 'period_start', 'period_end', 'status', 'created_by', 'archived_at',
     ];
 
     protected $casts = [
@@ -25,6 +25,7 @@ class HrDocument extends Model
         'period_start' => 'date',
         'period_end'   => 'date',
         'sent_at'      => 'datetime',
+        'archived_at'  => 'datetime',
     ];
 
     public function template()

@@ -68,10 +68,16 @@
 
     {{-- History --}}
     <section>
-        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Recent documents</h2>
+        <div class="flex items-center justify-between mb-3">
+            <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400">{{ $showArchived ? 'Archived documents' : 'Recent documents' }}</h2>
+            <div class="inline-flex rounded-lg border border-slate-200 p-0.5 dark:border-slate-700">
+                <a href="{{ route('hr-documents.index') }}" class="rounded-md px-3 py-1 text-xs font-semibold transition {{ $showArchived ? 'text-slate-500 hover:text-slate-700' : 'bg-slate-900 text-white dark:bg-white dark:text-slate-900' }}">Active</a>
+                <a href="{{ route('hr-documents.index', ['archived' => 1]) }}" class="rounded-md px-3 py-1 text-xs font-semibold transition {{ $showArchived ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900' : 'text-slate-500 hover:text-slate-700' }}">Archived @if($archivedCount) ({{ $archivedCount }}) @endif</a>
+            </div>
+        </div>
         <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden dark:bg-slate-800 dark:border-slate-700">
             @if($documents->isEmpty())
-                <div class="p-8 text-center text-sm text-slate-500">No documents on file yet.</div>
+                <div class="p-8 text-center text-sm text-slate-500">{{ $showArchived ? 'No archived documents.' : 'No documents on file yet.' }}</div>
             @else
                 <table class="w-full text-sm">
                     <thead>
@@ -102,6 +108,21 @@
                                     <div class="flex items-center justify-end gap-1">
                                         <a href="{{ route('hr-documents.show', $doc) }}" class="rounded-lg p-2 text-slate-400 hover:text-brand-600 hover:bg-brand-50 transition dark:hover:bg-brand-500/10" title="View"><i data-lucide="eye" class="h-4 w-4"></i></a>
                                         <a href="{{ route('hr-documents.pdf', $doc) }}" class="rounded-lg p-2 text-slate-400 hover:text-brand-600 hover:bg-brand-50 transition dark:hover:bg-brand-500/10" title="Download PDF"><i data-lucide="download" class="h-4 w-4"></i></a>
+                                        @if($doc->archived_at)
+                                            <form method="POST" action="{{ route('hr-documents.unarchive', $doc) }}">
+                                                @csrf
+                                                <button class="rounded-lg p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition dark:hover:bg-emerald-500/10" title="Restore from archive"><i data-lucide="archive-restore" class="h-4 w-4"></i></button>
+                                            </form>
+                                        @else
+                                            <form method="POST" action="{{ route('hr-documents.archive', $doc) }}">
+                                                @csrf
+                                                <button class="rounded-lg p-2 text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition dark:hover:bg-amber-500/10" title="Archive"><i data-lucide="archive" class="h-4 w-4"></i></button>
+                                            </form>
+                                        @endif
+                                        <form method="POST" action="{{ route('hr-documents.destroy', $doc) }}" onsubmit="return confirm('Delete this document permanently?')">
+                                            @csrf @method('DELETE')
+                                            <button class="rounded-lg p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition dark:hover:bg-rose-500/10" title="Delete"><i data-lucide="trash-2" class="h-4 w-4"></i></button>
+                                        </form>
                                     </div>
                                 </td>
                             </tr>

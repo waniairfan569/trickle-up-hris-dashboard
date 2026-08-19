@@ -19,16 +19,21 @@ class HrDocumentController extends Controller
 
     public function __construct(private HrDocumentPrefillService $prefiller) {}
 
-    /** Landing page: template library + recent filled documents. */
-    public function index()
+    /** Landing page: template library + recent (or archived) filled documents. */
+    public function index(Request $request)
     {
         $templates = HrDocumentTemplate::query()
             ->orderBy('sort_order')->orderBy('name')->get();
 
-        $documents = HrDocument::with('employee')
-            ->latest()->limit(50)->get();
+        $showArchived = $request->boolean('archived');
 
-        return view('hr-documents.index', compact('templates', 'documents'));
+        $documents = HrDocument::with('employee')
+            ->when($showArchived, fn ($q) => $q->whereNotNull('archived_at'), fn ($q) => $q->whereNull('archived_at'))
+            ->latest()->limit(100)->get();
+
+        $archivedCount = HrDocument::whereNotNull('archived_at')->count();
+
+        return view('hr-documents.index', compact('templates', 'documents', 'showArchived', 'archivedCount'));
     }
 
     // ── Template builder ───────────────────────────────────────────
@@ -275,6 +280,20 @@ class HrDocumentController extends Controller
         return response()->download($path, ($name ?: 'hr-document') . '.docx', [
             'Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         ])->deleteFileAfterSend(true);
+    }
+
+    public function archive(HrDocument $document)
+    {
+        $document->update(['archived_at' => now()]);
+
+        return back()->with('success', 'Document archived.');
+    }
+
+    public function unarchive(HrDocument $document)
+    {
+        $document->update(['archived_at' => null]);
+
+        return back()->with('success', 'Document restored.');
     }
 
     public function destroy(HrDocument $document)

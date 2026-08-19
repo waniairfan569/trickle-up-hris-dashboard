@@ -253,6 +253,8 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
         Route::get('{document}/pdf', [\App\Http\Controllers\HrDocumentController::class, 'pdf'])->name('pdf');
         Route::get('{document}/docx', [\App\Http\Controllers\HrDocumentController::class, 'docx'])->name('docx');
         Route::post('{document}/send', [\App\Http\Controllers\HrDocumentController::class, 'send'])->name('send');
+        Route::post('{document}/archive', [\App\Http\Controllers\HrDocumentController::class, 'archive'])->name('archive');
+        Route::post('{document}/unarchive', [\App\Http\Controllers\HrDocumentController::class, 'unarchive'])->name('unarchive');
         Route::delete('{document}', [\App\Http\Controllers\HrDocumentController::class, 'destroy'])->name('destroy');
     });
 
