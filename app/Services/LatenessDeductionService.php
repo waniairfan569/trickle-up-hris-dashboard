@@ -63,6 +63,12 @@ class LatenessDeductionService
             'year' => $year,
             'month' => $month,
         ]);
+
+        // A reverted/waived month must never be re-deducted by a later sync.
+        if ($record->exists && $record->reverted_at) {
+            return;
+        }
+
         $already = (float) ($record->days_deducted ?? 0);
         $delta = round($target - $already, 1);
 
@@ -105,6 +111,39 @@ class LatenessDeductionService
                 report($e);
             }
         }
+    }
+
+    /**
+     * Revert a lateness penalty: restore the deducted days to the balance and
+     * flag the month as waived so a later sync never re-applies it. Also closes
+     * out any pending reversal request as approved.
+     */
+    public function revert(LatenessDeduction $record, User $admin, ?string $response = null): void
+    {
+        $days = (float) $record->days_deducted;
+
+        if ($days > 0 && $record->policy) {
+            $balance = $this->balances->getOrCreateBalance($record->employee, $record->policy, (int) $record->year);
+            // Never push `used` below zero.
+            $restore = min($days, (float) $balance->used);
+            if ($restore > 0) {
+                $balance->decrement('used', $restore);
+            }
+        }
+
+        // Keep days_deducted as the historical amount (for display); reverted_at
+        // flags the month so sync() never re-applies it.
+        $record->reverted_at = now();
+        $record->reverted_by = $admin->id;
+
+        if ($record->reversal_status === 'requested') {
+            $record->reversal_status = 'approved';
+            $record->reversal_response = $response;
+            $record->reversal_reviewed_at = now();
+            $record->reversal_reviewed_by = $admin->id;
+        }
+
+        $record->save();
     }
 
     /**

@@ -209,6 +209,13 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
         ->name('time-off.approve');
     Route::post('time-off/{timeOffRequest}/reject', [TimeOffController::class, 'reject'])
         ->name('time-off.reject');
+
+    // Late-arrival penalty reversal (appeal) workflow.
+    Route::post('lateness-deductions/{deduction}/request-reversal', [\App\Http\Controllers\LatenessDeductionController::class, 'requestReversal'])->name('lateness.request-reversal');
+    Route::middleware('role:super_admin,hr_admin')->group(function () {
+        Route::post('lateness-deductions/{deduction}/revert', [\App\Http\Controllers\LatenessDeductionController::class, 'revert'])->name('lateness.revert');
+        Route::post('lateness-deductions/{deduction}/review-reversal', [\App\Http\Controllers\LatenessDeductionController::class, 'reviewReversal'])->name('lateness.review-reversal');
+    });
     Route::post('time-off/{timeOffRequest}/change-policy', [TimeOffController::class, 'changePolicy'])
         ->name('time-off.change-policy');
 

@@ -348,7 +348,12 @@
 
         @php
             $latePenalties = \App\Models\LatenessDeduction::where('user_id', $employee->id)
-                ->where('days_deducted', '>', 0)->with('policy')->orderByDesc('year')->orderByDesc('month')->get();
+                ->where(function ($q) {
+                    $q->where('days_deducted', '>', 0)->orWhereNotNull('reverted_at')->orWhereNotNull('reversal_status');
+                })
+                ->with(['policy', 'reverter', 'reviewer'])
+                ->orderByDesc('year')->orderByDesc('month')->get();
+            $canRevert = $auth->hasRole('super_admin') || $auth->hasRole('hr_admin');
         @endphp
         @if($latePenalties->isNotEmpty())
             <div class="bg-white border border-slate-200/80 rounded-2xl shadow-sm dark:bg-slate-800 dark:border-slate-700 overflow-hidden">
@@ -359,14 +364,91 @@
                 </div>
                 <div class="divide-y divide-slate-100 dark:divide-slate-700">
                     @foreach($latePenalties as $pen)
-                        <div class="px-6 py-4 flex items-center justify-between">
-                            <div>
-                                <p class="text-sm font-semibold text-slate-800 dark:text-white">{{ \Carbon\Carbon::create($pen->year, $pen->month, 1)->format('F Y') }}</p>
-                                <p class="text-xs text-slate-400 mt-0.5">{{ $pen->late_count }} late arrivals · deducted from {{ optional($pen->policy)->name ?? 'leave balance' }}</p>
+                        @php
+                            $days = rtrim(rtrim(number_format($pen->days_deducted, 1), '0'), '.');
+                            $isReverted = (bool) $pen->reverted_at;
+                            $isRequested = $pen->reversal_status === 'requested' && ! $isReverted;
+                            $isRejected = $pen->reversal_status === 'rejected' && ! $isReverted;
+                            $canRequest = $isSelf && ! $isReverted && ! $isRequested && (float) $pen->days_deducted > 0;
+                        @endphp
+                        <div class="px-6 py-4" x-data="{ reqOpen: false, revOpen: false }">
+                            <div class="flex items-center justify-between gap-3">
+                                <div class="min-w-0">
+                                    <p class="text-sm font-semibold text-slate-800 dark:text-white">{{ \Carbon\Carbon::create($pen->year, $pen->month, 1)->format('F Y') }}</p>
+                                    <p class="text-xs text-slate-400 mt-0.5">{{ $pen->late_count }} late arrivals · deducted from {{ optional($pen->policy)->name ?? 'leave balance' }}</p>
+                                </div>
+                                <div class="flex items-center gap-2 shrink-0">
+                                    @if($isReverted)
+                                        <span class="inline-flex items-center gap-1 rounded-full bg-emerald-50 text-emerald-700 px-2.5 py-1 text-[11px] font-bold dark:bg-emerald-500/10 dark:text-emerald-400"><i data-lucide="undo-2" class="h-3 w-3"></i> Reverted</span>
+                                        <span class="text-[11px] text-slate-400 line-through">−{{ $days }} day{{ $pen->days_deducted == 1 ? '' : 's' }}</span>
+                                    @else
+                                        <span class="inline-flex items-center gap-1 rounded-full bg-amber-50 text-amber-700 px-2.5 py-1 text-[11px] font-bold dark:bg-amber-500/10 dark:text-amber-400">−{{ $days }} day{{ $pen->days_deducted == 1 ? '' : 's' }}</span>
+                                    @endif
+                                </div>
                             </div>
-                            <span class="inline-flex items-center gap-1 rounded-full bg-amber-50 text-amber-700 px-2.5 py-1 text-[11px] font-bold dark:bg-amber-500/10 dark:text-amber-400">
-                                −{{ rtrim(rtrim(number_format($pen->days_deducted, 1), '0'), '.') }} day{{ $pen->days_deducted == 1 ? '' : 's' }}
-                            </span>
+
+                            {{-- status / reason / response --}}
+                            @if($isRequested)
+                                <div class="mt-2 rounded-lg bg-amber-50/60 border border-amber-100 px-3 py-2 text-xs dark:bg-amber-500/10 dark:border-amber-500/20">
+                                    <span class="font-bold text-amber-700 dark:text-amber-400">Reversal requested</span>
+                                    <span class="text-slate-500 dark:text-slate-400">— “{{ $pen->reversal_reason }}”</span>
+                                </div>
+                            @elseif($isRejected)
+                                <div class="mt-2 rounded-lg bg-rose-50/60 border border-rose-100 px-3 py-2 text-xs dark:bg-rose-500/10 dark:border-rose-500/20">
+                                    <span class="font-bold text-rose-700 dark:text-rose-400">Reversal declined</span>
+                                    @if($pen->reversal_response)<span class="text-slate-500 dark:text-slate-400">— {{ $pen->reversal_response }}</span>@endif
+                                </div>
+                            @elseif($isReverted && $pen->reversal_response)
+                                <div class="mt-2 text-xs text-slate-400">Note: {{ $pen->reversal_response }}</div>
+                            @endif
+
+                            {{-- actions --}}
+                            @if($canRequest || ($canRevert && ! $isReverted))
+                                <div class="mt-3 flex flex-wrap items-center gap-2">
+                                    @if($canRequest)
+                                        <button type="button" @click="reqOpen = !reqOpen" class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700"><i data-lucide="undo-2" class="h-3.5 w-3.5"></i> Request reversal</button>
+                                    @endif
+                                    @if($canRevert && $isRequested)
+                                        <button type="button" @click="revOpen = !revOpen" class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-emerald-700 transition"><i data-lucide="gavel" class="h-3.5 w-3.5"></i> Review request</button>
+                                    @elseif($canRevert && ! $isReverted)
+                                        <button type="button" @click="revOpen = !revOpen" class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700"><i data-lucide="undo-2" class="h-3.5 w-3.5"></i> Revert penalty</button>
+                                    @endif
+                                </div>
+
+                                {{-- employee: request reversal form --}}
+                                @if($canRequest)
+                                    <div x-show="reqOpen" x-cloak class="mt-2">
+                                        <form method="POST" action="{{ route('lateness.request-reversal', $pen) }}">
+                                            @csrf
+                                            <textarea name="reason" required rows="2" placeholder="Why should this penalty be reversed?" class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs dark:bg-slate-900 dark:border-slate-600"></textarea>
+                                            <div class="mt-2 flex justify-end gap-2">
+                                                <button type="button" @click="reqOpen = false" class="rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800">Cancel</button>
+                                                <button type="submit" class="rounded-lg bg-brand-500 px-3 py-1.5 text-xs font-bold text-white hover:bg-brand-600">Submit request</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                @endif
+
+                                {{-- admin: revert / review form --}}
+                                @if($canRevert && ! $isReverted)
+                                    <div x-show="revOpen" x-cloak class="mt-2">
+                                        <form method="POST" action="{{ $isRequested ? route('lateness.review-reversal', $pen) : route('lateness.revert', $pen) }}">
+                                            @csrf
+                                            @if($isRequested)<input type="hidden" name="action" x-ref="act">@endif
+                                            <textarea name="response" rows="2" placeholder="Response / comment (optional)" class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs dark:bg-slate-900 dark:border-slate-600"></textarea>
+                                            <div class="mt-2 flex justify-end gap-2">
+                                                <button type="button" @click="revOpen = false" class="rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800">Cancel</button>
+                                                @if($isRequested)
+                                                    <button type="submit" @click="$refs.act.value='reject'" class="rounded-lg border border-rose-200 px-3 py-1.5 text-xs font-bold text-rose-700 hover:bg-rose-50 dark:border-rose-500/30 dark:text-rose-400">Decline</button>
+                                                    <button type="submit" @click="$refs.act.value='approve'" class="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-emerald-700">Approve &amp; revert</button>
+                                                @else
+                                                    <button type="submit" class="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-emerald-700">Revert &amp; restore days</button>
+                                                @endif
+                                            </div>
+                                        </form>
+                                    </div>
+                                @endif
+                            @endif
                         </div>
                     @endforeach
                 </div>
