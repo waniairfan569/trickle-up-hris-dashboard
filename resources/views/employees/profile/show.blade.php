@@ -297,7 +297,11 @@
             </div>
             <div class="p-6">
                 @php
-                    $empBalances = \App\Models\TimeOffBalance::where('user_id',$employee->id)->with('policy')->whereHas('policy')->get();
+                    // Only show leave types the employee is actually entitled to — e.g. maternity
+                    // is for married women, paternity for married men, both after 1 year of service.
+                    $empBalances = \App\Models\TimeOffBalance::where('user_id',$employee->id)->with('policy')->whereHas('policy')->get()
+                        ->filter(fn ($b) => $b->policy && $b->policy->appliesTo($employee))
+                        ->values();
                     $canAdjust = $auth->hasRole('super_admin') || $auth->hasRole('hr_admin');
                 @endphp
                 @if($empBalances->isEmpty())

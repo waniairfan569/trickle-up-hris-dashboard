@@ -2,6 +2,11 @@
      Uses the shared $timeOffBalances and $upcomingTimeOff; computes $resetDate itself. --}}
 @php
     $auth = $auth ?? auth()->user();
+    // Only surface leave types the viewer is entitled to (e.g. maternity for
+    // married women, paternity for married men, both after 1 year of service).
+    if ($auth && isset($timeOffBalances)) {
+        $timeOffBalances = $timeOffBalances->filter(fn ($b) => $b->policy && $b->policy->appliesTo($auth))->values();
+    }
     $resetDate = null;
     try {
         $rd = \App\Models\LeaveYearSetting::where('is_active', true)->whereNotNull('next_renewal_date')->orderBy('next_renewal_date')->value('next_renewal_date');
