@@ -429,7 +429,7 @@
                                 <i data-lucide="check" class="h-4 w-4 mr-1"></i> Approve
                             </button>
                         </form>
-                        <button @click="showReject = !showReject" class="btn-outline btn-block">
+                        <button type="button" @click="showReject = !showReject" class="btn-outline btn-block">
                             <i data-lucide="x" class="h-4 w-4 mr-1"></i> Reject
                         </button>
                     @else
@@ -444,7 +444,7 @@
                     <form action="{{ route('time-off.reject', $request) }}" method="POST">
                         @csrf
                         <label class="block text-xs font-bold text-rose-800 uppercase mb-2 dark:text-rose-400">Rejection Note (Required)</label>
-                        <textarea name="rejection_note" required rows="2" class="w-full rounded-xl border-rose-300 shadow-sm focus:border-rose-500 focus:ring-rose-500 sm:text-sm dark:bg-slate-900 dark:border-rose-500/30 dark:text-white mb-3" placeholder="Please provide a reason for rejecting this request..."></textarea>
+                        <textarea name="rejection_note" required rows="2" class="w-full rounded-xl border border-rose-300 bg-white px-3 py-2 shadow-sm focus:border-rose-500 focus:ring-rose-500 sm:text-sm dark:bg-slate-900 dark:border-rose-500/30 dark:text-white mb-3" placeholder="Please provide a reason for rejecting this request..."></textarea>
                         <div class="flex justify-end gap-2">
                             <button type="button" @click="showReject = false" class="px-3 py-1.5 text-sm font-medium text-slate-600 hover:text-slate-900 dark:text-slate-400">Cancel</button>
                             <button type="submit" class="btn-danger btn-sm">Confirm Reject</button>

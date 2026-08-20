@@ -356,29 +356,28 @@
                                     </form>
 
                                     <!-- Reject Trigger -->
-                                    <button @click="openReject = true" class="rounded-xl bg-rose-50 px-3 py-1.5 text-[11px] font-bold text-rose-700 hover:bg-rose-100 hover:text-rose-850 transition dark:bg-rose-500/10 dark:text-rose-450 dark:hover:bg-rose-500/20">
+                                    <button type="button" @click="openReject = true" class="rounded-xl bg-rose-50 px-3 py-1.5 text-[11px] font-bold text-rose-700 hover:bg-rose-100 hover:text-rose-800 transition dark:bg-rose-500/10 dark:text-rose-400 dark:hover:bg-rose-500/20">
                                         Reject
                                     </button>
 
-                                    <!-- Rejection Modal (inline overlay modal) -->
-                                    <template x-if="openReject">
-                                        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-                                            <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl border border-slate-200 dark:bg-slate-800 dark:border-slate-700" @click.away="openReject = false">
-                                                <h3 class="text-sm font-bold text-slate-900 dark:text-white">Reject Leave Request</h3>
-                                                <p class="text-xs text-slate-400 mt-1">Please provide a brief reason for rejecting {{ $req->employee->first_name ?? 'Employee' }}'s request.</p>
+                                    <!-- Rejection Modal -->
+                                    <div x-show="openReject" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4" style="display:none;">
+                                        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" @click="openReject = false"></div>
+                                        <div class="relative bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl border border-slate-200 dark:bg-slate-800 dark:border-slate-700" @click.stop>
+                                            <h3 class="text-sm font-bold text-slate-900 dark:text-white">Reject Leave Request</h3>
+                                            <p class="text-xs text-slate-400 mt-1">Please provide a brief reason for rejecting {{ $req->employee->first_name ?? 'Employee' }}'s request.</p>
 
-                                                <form action="{{ route('time-off.reject', $req->id) }}" method="POST" class="mt-4">
-                                                    @csrf
-                                                    <textarea name="rejection_note" required rows="3" placeholder="Rejection notes..." class="w-full text-xs border border-slate-200 bg-slate-50/50 rounded-xl p-2.5 focus:border-brand-500 focus:outline-none focus:bg-white dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"></textarea>
+                                            <form action="{{ route('time-off.reject', $req->id) }}" method="POST" class="mt-4">
+                                                @csrf
+                                                <textarea name="rejection_note" required rows="3" placeholder="Rejection notes..." class="w-full text-xs border border-slate-200 bg-slate-50/50 rounded-xl px-3 py-2.5 focus:border-brand-500 focus:outline-none focus:bg-white dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"></textarea>
 
-                                                    <div class="mt-4 flex justify-end gap-2">
-                                                        <button type="button" @click="openReject = false" class="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-bold text-slate-700 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200">Cancel</button>
-                                                        <button type="submit" class="rounded-xl bg-rose-600 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-rose-700">Confirm Reject</button>
-                                                    </div>
-                                                </form>
-                                            </div>
+                                                <div class="mt-4 flex justify-end gap-2">
+                                                    <button type="button" @click="openReject = false" class="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-bold text-slate-700 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200">Cancel</button>
+                                                    <button type="submit" class="rounded-xl bg-rose-600 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-rose-700">Confirm Reject</button>
+                                                </div>
+                                            </form>
                                         </div>
-                                    </template>
+                                    </div>
                                 </div>
                             </div>
                         </div>
