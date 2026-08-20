@@ -45,7 +45,7 @@
             <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400">Signed</h2>
             <form method="GET" action="{{ route('hr-documents.to-sign') }}" class="flex items-center gap-2">
                 <label class="text-xs font-semibold text-slate-500">Month</label>
-                <input type="month" name="month" value="{{ $month }}" onchange="this.form.submit()" class="rounded-lg border-slate-300 text-sm py-1.5 dark:bg-slate-900 dark:border-slate-600">
+                <input type="month" name="month" value="{{ $month }}" onchange="this.form.submit()" class="rounded-lg border border-slate-300 bg-white text-sm px-3 py-1.5 dark:bg-slate-900 dark:border-slate-600">
                 @if($month)
                     <a href="{{ route('hr-documents.to-sign') }}" class="text-xs font-semibold text-slate-400 hover:text-slate-600">Clear</a>
                 @endif

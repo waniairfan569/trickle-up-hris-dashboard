@@ -33,7 +33,7 @@
             <div class="grid gap-4 sm:grid-cols-[1fr_auto_auto] items-end">
                 <div>
                     <label class="block text-xs font-bold uppercase tracking-wide text-slate-500 mb-1.5">Employee</label>
-                    <select name="employee" class="w-full rounded-xl border-slate-300 text-sm dark:bg-slate-900 dark:border-slate-600">
+                    <select name="employee" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:bg-slate-900 dark:border-slate-600">
                         <option value="">— Select employee —</option>
                         @foreach($employees as $emp)
                             <option value="{{ $emp['id'] }}" @selected($employee && $employee->id == $emp['id'])>{{ $emp['name'] }} · {{ $emp['department'] }}</option>
@@ -42,7 +42,7 @@
                 </div>
                 <div>
                     <label class="block text-xs font-bold uppercase tracking-wide text-slate-500 mb-1.5">Month (for prefill)</label>
-                    <input type="month" name="month" value="{{ $month }}" class="rounded-xl border-slate-300 text-sm dark:bg-slate-900 dark:border-slate-600">
+                    <input type="month" name="month" value="{{ $month }}" class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:bg-slate-900 dark:border-slate-600">
                 </div>
                 <button class="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-700 transition dark:bg-white dark:text-slate-900">
                     <i data-lucide="wand-2" class="h-4 w-4"></i> Load &amp; prefill

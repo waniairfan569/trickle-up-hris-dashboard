@@ -29,7 +29,7 @@
             ])->all(),
         ])->all(),
     ];
-    $inp = 'w-full rounded-lg border-slate-300 text-sm dark:bg-slate-900 dark:border-slate-600 focus:border-brand-500 focus:ring-brand-500';
+    $inp = 'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 dark:bg-slate-900 dark:border-slate-600 dark:text-slate-200 focus:border-brand-500 focus:ring-1 focus:ring-brand-500';
 @endphp
 
 @section('content')

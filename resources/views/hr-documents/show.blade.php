@@ -101,7 +101,7 @@
 
                         <div x-show="includeManager" x-cloak class="pl-7">
                             <label class="block text-xs font-bold uppercase tracking-wide text-slate-500 mb-1.5">Line manager (signs the Manager section)</label>
-                            <select name="manager_id" :disabled="!includeManager" class="w-full rounded-lg border-slate-300 text-sm dark:bg-slate-900 dark:border-slate-600">
+                            <select name="manager_id" :disabled="!includeManager" class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:bg-slate-900 dark:border-slate-600">
                                 <option value="">— Select manager —</option>
                                 @foreach($employees as $emp)
                                     @if(!$document->employee || $emp['id'] != $document->employee->id)
