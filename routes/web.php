@@ -265,6 +265,13 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
         Route::delete('{document}', [\App\Http\Controllers\HrDocumentController::class, 'destroy'])->name('destroy');
     });
 
+    // Company-wide work-from-home days (all employees remote on those dates).
+    Route::middleware('role:super_admin,hr_admin')->group(function () {
+        Route::get('company-wfh-days', [\App\Http\Controllers\CompanyWfhDayController::class, 'index'])->name('company-wfh-days.index');
+        Route::post('company-wfh-days', [\App\Http\Controllers\CompanyWfhDayController::class, 'store'])->name('company-wfh-days.store');
+        Route::delete('company-wfh-days/{companyWfhDay}', [\App\Http\Controllers\CompanyWfhDayController::class, 'destroy'])->name('company-wfh-days.destroy');
+    });
+
     // Employee-facing signing of HR documents sent to them (any authenticated
     // user; each action is gated in-controller to the assigned signers).
     Route::get('my-documents', [\App\Http\Controllers\HrDocumentSignController::class, 'index'])->name('hr-documents.to-sign');

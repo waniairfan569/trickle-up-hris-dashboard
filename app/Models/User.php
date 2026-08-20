@@ -298,6 +298,11 @@ class User extends Authenticatable
     {
         $date = $date ?: \Illuminate\Support\Carbon::today();
 
+        // Company-wide WFH day (e.g. some Fridays) → everyone is remote.
+        if (\App\Models\CompanyWfhDay::isCompanyRemote($date)) {
+            return 'remote';
+        }
+
         if ($this->isWorkingFromHomeOn($date)) {
             return 'remote';
         }
