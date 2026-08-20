@@ -296,7 +296,10 @@
                 @if($isSelf)<a href="{{ route('time-off.create') }}" class="btn-brand btn-sm"><i data-lucide="plus" class="h-3.5 w-3.5"></i> Request Time Off</a>@endif
             </div>
             <div class="p-6">
-                @php $empBalances = \App\Models\TimeOffBalance::where('user_id',$employee->id)->with('policy')->whereHas('policy')->get(); @endphp
+                @php
+                    $empBalances = \App\Models\TimeOffBalance::where('user_id',$employee->id)->with('policy')->whereHas('policy')->get();
+                    $canAdjust = $auth->hasRole('super_admin') || $auth->hasRole('hr_admin');
+                @endphp
                 @if($empBalances->isEmpty())
                     <p class="text-sm text-slate-400 italic">No time-off policies assigned.</p>
                 @else
@@ -309,11 +312,33 @@
                                 $lbl=stripos($pN,'Annual')!==false?'Planned Leaves':(stripos($pN,'Casual')!==false?'Unplanned':$pN);
                                 $cc=['border-cyan-400','border-amber-400','border-rose-400','border-emerald-400','border-indigo-400'][$loop->index%5];
                             @endphp
-                            <div class="border-l-4 {{ $cc }} bg-slate-50 dark:bg-slate-700/50 rounded-xl p-4">
-                                <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">{{ $lbl }}</p>
+                            <div class="border-l-4 {{ $cc }} bg-slate-50 dark:bg-slate-700/50 rounded-xl p-4" @if($canAdjust) x-data="{ adj: false, amt: 1 }" @endif>
+                                <div class="flex items-start justify-between gap-2">
+                                    <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">{{ $lbl }}</p>
+                                    @if($canAdjust)
+                                        <button type="button" @click="adj = !adj" title="Adjust allocation" class="shrink-0 -mt-0.5 rounded-lg p-1 text-slate-300 hover:text-brand-600 hover:bg-white dark:hover:bg-slate-600 transition"><i data-lucide="sliders-horizontal" class="h-3.5 w-3.5"></i></button>
+                                    @endif
+                                </div>
                                 <p class="text-2xl font-extrabold text-slate-800 dark:text-white">{{ floatval($rem) }}</p>
                                 <p class="text-[11px] text-slate-400 mt-0.5">of {{ floatval($total) }} days total</p>
                                 <p class="text-[10px] text-slate-400 mt-1">Used: {{ floatval($b->used) }} · Pending: {{ floatval($b->pending) }}</p>
+
+                                @if($canAdjust)
+                                    <div x-show="adj" x-cloak class="mt-3 pt-3 border-t border-slate-200 dark:border-slate-600">
+                                        <form method="POST" action="{{ route('time-off-policies.adjust-balance', $b->policy) }}" x-ref="af">
+                                            @csrf
+                                            <input type="hidden" name="user_id" value="{{ $employee->id }}">
+                                            <input type="hidden" name="amount" x-ref="amt">
+                                            <label class="block text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-1">Adjust allocation (days)</label>
+                                            <div class="flex items-center gap-1.5">
+                                                <input type="number" min="0.5" step="0.5" x-model.number="amt" class="w-14 rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs dark:bg-slate-900 dark:border-slate-600">
+                                                <button type="button" @click="$refs.amt.value = -Math.abs(amt || 0); if ($refs.amt.value != 0) $refs.af.submit()" class="rounded-lg bg-rose-50 px-2.5 py-1 text-xs font-bold text-rose-700 hover:bg-rose-100 transition dark:bg-rose-500/10 dark:text-rose-400">&minus; Subtract</button>
+                                                <button type="button" @click="$refs.amt.value = Math.abs(amt || 0); if ($refs.amt.value != 0) $refs.af.submit()" class="rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700 hover:bg-emerald-100 transition dark:bg-emerald-500/10 dark:text-emerald-400">+ Add</button>
+                                            </div>
+                                            <input type="text" name="note" placeholder="Reason (optional)" class="mt-2 w-full rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs dark:bg-slate-900 dark:border-slate-600">
+                                        </form>
+                                    </div>
+                                @endif
                             </div>
                         @endforeach
                     </div>

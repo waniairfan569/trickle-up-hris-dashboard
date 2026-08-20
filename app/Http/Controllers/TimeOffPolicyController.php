@@ -5,11 +5,14 @@ namespace App\Http\Controllers;
 use App\Models\TimeOffPolicy;
 use App\Models\User;
 use App\Services\TimeOffBalanceService;
+use App\Traits\LogsActivity;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class TimeOffPolicyController extends Controller
 {
+    use LogsActivity;
+
     protected $balanceService;
 
     public function __construct(TimeOffBalanceService $balanceService)
@@ -269,8 +272,26 @@ class TimeOffPolicyController extends Controller
         $user = User::find($request->user_id);
         $admin = auth()->user() ?? User::first();
 
-        $this->balanceService->manualAdjust($user, $timeOffPolicy, $request->amount, $request->note ?? 'Manual adjustment', $admin);
+        $amount = (float) $request->amount;
+        $note = $request->note ?: 'Manual adjustment';
 
-        return back()->with('success', 'Balance adjusted successfully.');
+        $this->balanceService->manualAdjust($user, $timeOffPolicy, $amount, $note, $admin);
+
+        // Record it in the activity feed so the change is traceable everywhere.
+        // Best-effort: a broadcast/queue hiccup must never fail the adjustment.
+        try {
+            $sign = $amount >= 0 ? '+' : '';
+            $this->logActivity(
+                'adjusted',
+                'TimeOffBalance',
+                $user->id,
+                "Adjusted {$user->full_name}'s {$timeOffPolicy->name} balance by {$sign}{$amount} day(s) — {$note}",
+                ['policy_id' => $timeOffPolicy->id, 'amount' => $amount, 'note' => $note]
+            );
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
+        return back()->with('success', ($amount >= 0 ? 'Added ' : 'Subtracted ') . abs($amount) . ' day(s) — balance updated.');
     }
 }
