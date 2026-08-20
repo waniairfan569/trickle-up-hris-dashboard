@@ -61,7 +61,7 @@ class User extends Authenticatable
         // Invitation system fields:
         'account_status', 'invitation_token', 'invitation_token_hash',
         'invitation_sent_at', 'invitation_expires_at', 'invitation_accepted_at',
-        'must_change_password', 'invited_by', 'attendance_mode', 'is_operator',
+        'must_change_password', 'invited_by', 'attendance_mode', 'remote_days', 'is_operator',
         'exclude_from_attendance',
         // Personal settings:
         'theme', 'notification_prefs', 'date_format', 'week_start',
@@ -88,6 +88,7 @@ class User extends Authenticatable
         'is_operator' => 'boolean',
         'exclude_from_attendance' => 'boolean',
         'notification_prefs' => 'array',
+        'remote_days' => 'array',
     ];
 
     /**
@@ -283,7 +284,43 @@ class User extends Authenticatable
      */
     public function usesDashboardClockIn(): bool
     {
-        return ($this->attendance_mode ?? 'biometric') === 'remote';
+        return $this->effectiveAttendanceMode(\Illuminate\Support\Carbon::today()) === 'remote';
+    }
+
+    /**
+     * The attendance mode that actually applies on a given day — day-aware, so
+     * hybrid / work-from-home is handled automatically:
+     *   1. An approved Work-From-Home request covering the date → remote.
+     *   2. The date's weekday is one of this employee's hybrid remote days → remote.
+     *   3. Otherwise the employee's base attendance_mode (biometric / remote).
+     */
+    public function effectiveAttendanceMode(?\Illuminate\Support\Carbon $date = null): string
+    {
+        $date = $date ?: \Illuminate\Support\Carbon::today();
+
+        if ($this->isWorkingFromHomeOn($date)) {
+            return 'remote';
+        }
+
+        $weekday = $date->format('D'); // Mon, Tue, …
+        if (in_array($weekday, (array) ($this->remote_days ?? []), true)) {
+            return 'remote';
+        }
+
+        return $this->attendance_mode ?? 'biometric';
+    }
+
+    /** True if the employee has an approved Work-From-Home request covering the date. */
+    public function isWorkingFromHomeOn(\Illuminate\Support\Carbon $date): bool
+    {
+        return \App\Models\TimeOffRequest::where('user_id', $this->id)
+            ->where('status', 'approved')
+            ->whereDate('start_date', '<=', $date->toDateString())
+            ->whereDate('end_date', '>=', $date->toDateString())
+            ->whereHas('policy', fn ($q) => $q->where(fn ($q2) => $q2
+                ->whereRaw('LOWER(name) like ?', ['%work from home%'])
+                ->orWhereRaw('LOWER(name) like ?', ['%wfh%'])))
+            ->exists();
     }
 
     /**

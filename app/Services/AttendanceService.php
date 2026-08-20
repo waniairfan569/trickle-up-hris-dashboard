@@ -356,11 +356,15 @@ class AttendanceService
                 continue;
             }
 
-            // Check Time Off
+            // Check Time Off. Work-From-Home is NOT leave — the employee is
+            // working (remotely), so it must not mark the day as on-leave.
             $onLeave = TimeOffRequest::where('user_id', $user->id)
                 ->where('status', 'approved')
                 ->whereDate('start_date', '<=', $date->toDateString())
                 ->whereDate('end_date', '>=', $date->toDateString())
+                ->whereDoesntHave('policy', fn ($q) => $q->where(fn ($q2) => $q2
+                    ->whereRaw('LOWER(name) like ?', ['%work from home%'])
+                    ->orWhereRaw('LOWER(name) like ?', ['%wfh%'])))
                 ->exists();
 
             if ($onLeave) {

@@ -278,17 +278,53 @@
                                 @endif
                             </td>
 
-                            <!-- Attendance mode (biometric / remote) -->
+                            <!-- Attendance mode (biometric / remote) + hybrid remote days -->
                             <td class="py-4 px-6">
-                                @php $mode = $emp->user->attendance_mode ?? 'biometric'; @endphp
-                                <form action="{{ route('employees.update-attendance-mode', $emp->user_id) }}" method="POST" class="inline-flex">
-                                    @csrf @method('PUT')
-                                    <select name="attendance_mode" onchange="this.form.submit()" title="Attendance mode"
-                                            class="rounded-lg border-slate-300 text-[11px] font-bold py-1 pl-2 pr-7 shadow-sm focus:ring-brand-500 focus:border-brand-500 dark:bg-slate-700 dark:border-slate-600 {{ $mode === 'remote' ? 'text-emerald-700' : 'text-indigo-700' }}">
-                                        <option value="biometric" {{ $mode === 'biometric' ? 'selected' : '' }}>On-site · Biometric</option>
-                                        <option value="remote" {{ $mode === 'remote' ? 'selected' : '' }}>Remote · Dashboard</option>
-                                    </select>
-                                </form>
+                                @php $mode = $emp->user->attendance_mode ?? 'biometric'; $rdays = $emp->user->remote_days ?? []; @endphp
+                                <div class="inline-flex items-center gap-1.5" x-data="{ hyb: false }">
+                                    {{-- Base mode (preserves current hybrid days) --}}
+                                    <form action="{{ route('employees.update-attendance-mode', $emp->user_id) }}" method="POST" class="inline-flex">
+                                        @csrf @method('PUT')
+                                        @foreach($rdays as $d)<input type="hidden" name="remote_days[]" value="{{ $d }}">@endforeach
+                                        <select name="attendance_mode" onchange="this.form.submit()" title="Attendance mode"
+                                                class="rounded-lg border-slate-300 text-[11px] font-bold py-1 pl-2 pr-7 shadow-sm focus:ring-brand-500 focus:border-brand-500 dark:bg-slate-700 dark:border-slate-600 {{ $mode === 'remote' ? 'text-emerald-700' : 'text-indigo-700' }}">
+                                            <option value="biometric" {{ $mode === 'biometric' ? 'selected' : '' }}>On-site · Biometric</option>
+                                            <option value="remote" {{ $mode === 'remote' ? 'selected' : '' }}>Remote · Dashboard</option>
+                                        </select>
+                                    </form>
+
+                                    {{-- Hybrid remote days --}}
+                                    <button type="button" @click="hyb = true" title="Hybrid remote days"
+                                            class="relative inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1 text-[10px] font-bold text-slate-500 hover:bg-slate-50 transition dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700">
+                                        <i data-lucide="calendar-range" class="h-3.5 w-3.5"></i>
+                                        @if(count($rdays))<span class="text-emerald-600">{{ count($rdays) }}d</span>@else Hybrid @endif
+                                    </button>
+
+                                    <template x-teleport="body">
+                                        <div x-show="hyb" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4" style="display:none;">
+                                            <div class="absolute inset-0 bg-slate-900/50" @click="hyb = false"></div>
+                                            <div class="relative w-full max-w-xs rounded-2xl bg-white p-5 shadow-xl dark:bg-slate-800" @click.stop>
+                                                <h3 class="text-sm font-bold text-slate-900 dark:text-white">Hybrid remote days</h3>
+                                                <p class="text-xs text-slate-500 mt-1">Pick the weekdays {{ $emp->user->first_name }} works from home (dashboard clock-in). Other days use their base mode.</p>
+                                                <form action="{{ route('employees.update-attendance-mode', $emp->user_id) }}" method="POST" class="mt-4">
+                                                    @csrf @method('PUT')
+                                                    <input type="hidden" name="attendance_mode" value="{{ $mode }}">
+                                                    <div class="grid grid-cols-4 gap-2">
+                                                        @foreach(['Mon','Tue','Wed','Thu','Fri','Sat','Sun'] as $d)
+                                                            <label class="flex items-center justify-center gap-1 rounded-lg border border-slate-200 px-2 py-1.5 text-xs font-semibold cursor-pointer has-[:checked]:border-emerald-400 has-[:checked]:bg-emerald-50 has-[:checked]:text-emerald-700 dark:border-slate-600 dark:has-[:checked]:bg-emerald-500/10">
+                                                                <input type="checkbox" name="remote_days[]" value="{{ $d }}" @checked(in_array($d, $rdays)) class="sr-only"> {{ $d }}
+                                                            </label>
+                                                        @endforeach
+                                                    </div>
+                                                    <div class="mt-4 flex justify-end gap-2">
+                                                        <button type="button" @click="hyb = false" class="rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800">Cancel</button>
+                                                        <button type="submit" class="rounded-lg bg-brand-500 px-3 py-1.5 text-xs font-bold text-white hover:bg-brand-600">Save</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
                             </td>
 
                             @endif

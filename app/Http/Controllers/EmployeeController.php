@@ -693,12 +693,21 @@ class EmployeeController extends Controller
 
         $validated = $request->validate([
             'attendance_mode' => ['required', \Illuminate\Validation\Rule::in(['biometric', 'remote'])],
+            'remote_days'     => ['nullable', 'array'],
+            'remote_days.*'   => [\Illuminate\Validation\Rule::in(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'])],
         ]);
 
-        $employee->update(['attendance_mode' => $validated['attendance_mode']]);
+        $remoteDays = array_values(array_unique($validated['remote_days'] ?? []));
+
+        $employee->update([
+            'attendance_mode' => $validated['attendance_mode'],
+            'remote_days'     => $remoteDays,
+        ]);
 
         $label = $validated['attendance_mode'] === 'remote' ? 'Remote (dashboard clock-in)' : 'On-site (biometric device)';
-        return back()->with('success', $employee->full_name . "'s attendance mode set to {$label}.");
+        $hybrid = $remoteDays ? ' Remote on ' . implode(', ', $remoteDays) . '.' : '';
+
+        return back()->with('success', $employee->full_name . "'s attendance mode set to {$label}.{$hybrid}");
     }
 
     /**
