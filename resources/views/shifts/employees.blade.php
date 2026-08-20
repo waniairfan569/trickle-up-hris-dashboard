@@ -25,6 +25,13 @@
         </div>
     </div>
 
+    @if(session('success'))
+        <div class="mb-4 rounded-xl bg-emerald-50 p-4 border border-emerald-200 text-sm text-emerald-700 dark:bg-emerald-500/10 dark:border-emerald-500/20">{{ session('success') }}</div>
+    @endif
+    @if(session('error'))
+        <div class="mb-4 rounded-xl bg-rose-50 p-4 border border-rose-200 text-sm text-rose-700 dark:bg-rose-500/10 dark:border-rose-500/20">{{ session('error') }}</div>
+    @endif
+
     @if($members->isEmpty())
         <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm py-14 text-center dark:bg-slate-800 dark:border-slate-700">
             <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-50 text-slate-400 dark:bg-slate-700 mb-3 mx-auto"><i data-lucide="users" class="h-7 w-7"></i></div>
@@ -45,6 +52,7 @@
                             <th class="px-5 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-slate-500">Employee</th>
                             <th class="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-slate-500">Department</th>
                             <th class="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-slate-500">Assignment</th>
+                            <th class="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-wider text-slate-500">Actions</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100 dark:divide-slate-700/60">
@@ -82,6 +90,14 @@
                                         </span>
                                     @endforeach
                                     @if(!$m['recurring'] && $m['singles']->isEmpty())<span class="text-slate-300">—</span>@endif
+                                </td>
+                                <td class="px-4 py-3 text-right whitespace-nowrap">
+                                    <form method="POST" action="{{ route('shifts.unassign-employee', [$shift, $u->id]) }}" onsubmit="return confirm('Remove {{ addslashes($name) }} from the {{ addslashes($shift->name) }} shift?')">
+                                        @csrf @method('DELETE')
+                                        <button type="submit" class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-[11px] font-bold text-slate-500 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 transition dark:border-slate-600 dark:text-slate-300 dark:hover:bg-rose-500/10">
+                                            <i data-lucide="user-minus" class="h-3.5 w-3.5"></i> Unassign
+                                        </button>
+                                    </form>
                                 </td>
                             </tr>
                         @endforeach

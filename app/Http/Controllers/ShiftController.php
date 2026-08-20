@@ -48,6 +48,19 @@ class ShiftController extends Controller
         return view('shifts.employees', compact('shift', 'members'));
     }
 
+    /** Remove an employee from a shift (all their recurring + single assignments). */
+    public function unassignEmployee(Shift $shift, User $employee)
+    {
+        $count = $shift->assignments()->where('user_id', $employee->id)->delete();
+
+        $name = trim($employee->first_name . ' ' . $employee->last_name) ?: 'Employee';
+
+        return back()->with(
+            $count ? 'success' : 'error',
+            $count ? "{$name} was removed from the {$shift->name} shift." : 'No assignment found to remove.'
+        );
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([
