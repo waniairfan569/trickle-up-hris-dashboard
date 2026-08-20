@@ -26,14 +26,23 @@ class HrDocumentController extends Controller
             ->orderBy('sort_order')->orderBy('name')->get();
 
         $showArchived = $request->boolean('archived');
+        $month        = $request->input('month');   // YYYY-MM filter on the document period
 
         $documents = HrDocument::with('employee')
             ->when($showArchived, fn ($q) => $q->whereNotNull('archived_at'), fn ($q) => $q->whereNull('archived_at'))
+            ->when($month, function ($q) use (&$month) {
+                try {
+                    $start = Carbon::createFromFormat('Y-m', $month)->startOfMonth();
+                    $q->whereBetween('period_start', [$start->copy()->startOfMonth(), $start->copy()->endOfMonth()]);
+                } catch (\Throwable $e) {
+                    $month = null;
+                }
+            })
             ->latest()->limit(100)->get();
 
         $archivedCount = HrDocument::whereNotNull('archived_at')->count();
 
-        return view('hr-documents.index', compact('templates', 'documents', 'showArchived', 'archivedCount'));
+        return view('hr-documents.index', compact('templates', 'documents', 'showArchived', 'archivedCount', 'month'));
     }
 
     // ── Template builder ───────────────────────────────────────────

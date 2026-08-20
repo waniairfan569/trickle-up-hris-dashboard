@@ -68,16 +68,32 @@
 
     {{-- History --}}
     <section>
-        <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center justify-between gap-4 flex-wrap mb-3">
             <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400">{{ $showArchived ? 'Archived documents' : 'Recent documents' }}</h2>
-            <div class="inline-flex rounded-lg border border-slate-200 p-0.5 dark:border-slate-700">
-                <a href="{{ route('hr-documents.index') }}" class="rounded-md px-3 py-1 text-xs font-semibold transition {{ $showArchived ? 'text-slate-500 hover:text-slate-700' : 'bg-slate-900 text-white dark:bg-white dark:text-slate-900' }}">Active</a>
-                <a href="{{ route('hr-documents.index', ['archived' => 1]) }}" class="rounded-md px-3 py-1 text-xs font-semibold transition {{ $showArchived ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900' : 'text-slate-500 hover:text-slate-700' }}">Archived @if($archivedCount) ({{ $archivedCount }}) @endif</a>
+            <div class="flex items-center gap-3">
+                <form method="GET" action="{{ route('hr-documents.index') }}" class="flex items-center gap-2">
+                    @if($showArchived)<input type="hidden" name="archived" value="1">@endif
+                    <label class="text-xs font-semibold text-slate-500">Month</label>
+                    <input type="month" name="month" value="{{ $month }}" onchange="this.form.submit()" class="rounded-lg border-slate-300 text-sm py-1.5 dark:bg-slate-900 dark:border-slate-600">
+                    @if($month)
+                        <a href="{{ route('hr-documents.index', $showArchived ? ['archived' => 1] : []) }}" class="text-xs font-semibold text-slate-400 hover:text-slate-600">Clear</a>
+                    @endif
+                </form>
+                <div class="inline-flex rounded-lg border border-slate-200 p-0.5 dark:border-slate-700">
+                    <a href="{{ route('hr-documents.index', $month ? ['month' => $month] : []) }}" class="rounded-md px-3 py-1 text-xs font-semibold transition {{ $showArchived ? 'text-slate-500 hover:text-slate-700' : 'bg-slate-900 text-white dark:bg-white dark:text-slate-900' }}">Active</a>
+                    <a href="{{ route('hr-documents.index', array_filter(['archived' => 1, 'month' => $month])) }}" class="rounded-md px-3 py-1 text-xs font-semibold transition {{ $showArchived ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900' : 'text-slate-500 hover:text-slate-700' }}">Archived @if($archivedCount) ({{ $archivedCount }}) @endif</a>
+                </div>
             </div>
         </div>
         <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden dark:bg-slate-800 dark:border-slate-700">
             @if($documents->isEmpty())
-                <div class="p-8 text-center text-sm text-slate-500">{{ $showArchived ? 'No archived documents.' : 'No documents on file yet.' }}</div>
+                <div class="p-8 text-center text-sm text-slate-500">
+                    @if($month)
+                        No {{ $showArchived ? 'archived ' : '' }}documents for {{ \Illuminate\Support\Carbon::createFromFormat('Y-m', $month)->format('F Y') }}.
+                    @else
+                        {{ $showArchived ? 'No archived documents.' : 'No documents on file yet.' }}
+                    @endif
+                </div>
             @else
                 <table class="w-full text-sm">
                     <thead>

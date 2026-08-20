@@ -29,7 +29,10 @@
                             <div class="text-xs text-slate-500">Sent {{ optional($signer->document->sent_at)->format('d M Y') ?? $signer->created_at->format('d M Y') }} · signing as {{ ucfirst($signer->role ?? 'signer') }}</div>
                         </div>
                     </div>
-                    <a href="{{ route('hr-documents.sign', $signer->document) }}" class="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-600 transition shrink-0"><i data-lucide="pen-line" class="h-4 w-4"></i> Review &amp; sign</a>
+                    <div class="flex items-center gap-2 shrink-0">
+                        <a href="{{ route('hr-documents.my-pdf', [$signer->document, 'preview' => 1]) }}" target="_blank" class="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-3 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700"><i data-lucide="eye" class="h-4 w-4"></i> Preview</a>
+                        <a href="{{ route('hr-documents.sign', $signer->document) }}" class="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-600 transition"><i data-lucide="pen-line" class="h-4 w-4"></i> Review &amp; sign</a>
+                    </div>
                 </div>
             @empty
                 <div class="rounded-2xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500 dark:border-slate-600">Nothing to sign right now. 🎉</div>
@@ -37,18 +40,34 @@
         </div>
     </section>
 
-    @if($done->isNotEmpty())
-        <section>
-            <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Signed</h2>
-            <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden dark:bg-slate-800 dark:border-slate-700 divide-y divide-slate-100 dark:divide-slate-700">
-                @foreach($done as $signer)
-                    <div class="px-5 py-3 flex items-center justify-between text-sm">
-                        <span class="font-semibold text-slate-700 dark:text-slate-200">{{ $signer->document->template_name }}</span>
-                        <span class="inline-flex items-center gap-1 text-emerald-600 text-xs font-semibold"><i data-lucide="check-circle-2" class="h-4 w-4"></i> Signed {{ $signer->signed_at->format('d M Y') }}</span>
+    <section>
+        <div class="flex items-center justify-between gap-4 flex-wrap mb-3">
+            <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400">Signed</h2>
+            <form method="GET" action="{{ route('hr-documents.to-sign') }}" class="flex items-center gap-2">
+                <label class="text-xs font-semibold text-slate-500">Month</label>
+                <input type="month" name="month" value="{{ $month }}" onchange="this.form.submit()" class="rounded-lg border-slate-300 text-sm py-1.5 dark:bg-slate-900 dark:border-slate-600">
+                @if($month)
+                    <a href="{{ route('hr-documents.to-sign') }}" class="text-xs font-semibold text-slate-400 hover:text-slate-600">Clear</a>
+                @endif
+            </form>
+        </div>
+        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden dark:bg-slate-800 dark:border-slate-700 divide-y divide-slate-100 dark:divide-slate-700">
+            @forelse($done as $signer)
+                <div class="px-5 py-3 flex items-center justify-between gap-4 text-sm">
+                    <div class="min-w-0">
+                        <div class="font-semibold text-slate-700 dark:text-slate-200 truncate">{{ $signer->document->template_name }}</div>
+                        <div class="text-xs text-slate-500">{{ optional($signer->document->period_start)->format('M Y') }}</div>
                     </div>
-                @endforeach
-            </div>
-        </section>
-    @endif
+                    <div class="flex items-center gap-3 shrink-0">
+                        <span class="inline-flex items-center gap-1 text-emerald-600 text-xs font-semibold"><i data-lucide="check-circle-2" class="h-4 w-4"></i> Signed {{ $signer->signed_at->format('d M Y') }}</span>
+                        <a href="{{ route('hr-documents.my-pdf', [$signer->document, 'preview' => 1]) }}" target="_blank" class="rounded-lg p-2 text-slate-400 hover:text-brand-600 hover:bg-brand-50 transition dark:hover:bg-brand-500/10" title="Preview"><i data-lucide="eye" class="h-4 w-4"></i></a>
+                        <a href="{{ route('hr-documents.my-pdf', $signer->document) }}" class="rounded-lg p-2 text-slate-400 hover:text-brand-600 hover:bg-brand-50 transition dark:hover:bg-brand-500/10" title="Download PDF"><i data-lucide="download" class="h-4 w-4"></i></a>
+                    </div>
+                </div>
+            @empty
+                <div class="px-5 py-8 text-center text-sm text-slate-400">{{ $month ? 'No documents signed in '.\Illuminate\Support\Carbon::createFromFormat('Y-m', $month)->format('F Y').'.' : 'Nothing signed yet.' }}</div>
+            @endforelse
+        </div>
+    </section>
 </div>
 @endsection

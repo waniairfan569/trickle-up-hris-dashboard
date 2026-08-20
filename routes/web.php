@@ -261,6 +261,7 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
     // Employee-facing signing of HR documents sent to them (any authenticated
     // user; each action is gated in-controller to the assigned signers).
     Route::get('my-documents', [\App\Http\Controllers\HrDocumentSignController::class, 'index'])->name('hr-documents.to-sign');
+    Route::get('my-documents/{document}/pdf', [\App\Http\Controllers\HrDocumentSignController::class, 'pdf'])->name('hr-documents.my-pdf');
     Route::get('hr-documents/{document}/sign', [\App\Http\Controllers\HrDocumentSignController::class, 'show'])->name('hr-documents.sign');
     Route::post('hr-documents/{document}/sign', [\App\Http\Controllers\HrDocumentSignController::class, 'store'])->name('hr-documents.sign.store');
 
