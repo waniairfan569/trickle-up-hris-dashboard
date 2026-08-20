@@ -383,7 +383,8 @@
                     ? ($stage === 'manager' ? 'Awaiting Manager' : ($stage === 'hr_admin' ? 'Awaiting HR Admin' : 'Awaiting Super Admin'))
                     : null;
             @endphp
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-6 flex flex-col md:flex-row gap-6 dark:bg-slate-800 dark:border-slate-700/80" x-data="{ showReject: false }">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-6 dark:bg-slate-800 dark:border-slate-700/80" x-data="{ showReject: false }">
+                <div class="flex flex-col md:flex-row gap-6">
                 <div class="flex-1">
                     <div class="flex items-center justify-between mb-2">
                         <div class="flex items-center gap-3">
@@ -439,15 +440,20 @@
                         </div>
                     @endif
                 </div>
-                
-                <div x-show="showReject" style="display: none;" class="w-full mt-4 bg-rose-50 p-4 rounded-xl border border-rose-100 dark:bg-rose-500/10 dark:border-rose-500/20">
+                </div>
+
+                {{-- Rejection note — full-width panel below the row --}}
+                <div x-show="showReject" x-cloak style="display:none;" class="mt-5 rounded-xl border border-rose-200 bg-rose-50/70 p-4 dark:bg-rose-500/10 dark:border-rose-500/20">
                     <form action="{{ route('time-off.reject', $request) }}" method="POST">
                         @csrf
-                        <label class="block text-xs font-bold text-rose-800 uppercase mb-2 dark:text-rose-400">Rejection Note (Required)</label>
-                        <textarea name="rejection_note" required rows="2" class="w-full rounded-xl border border-rose-300 bg-white px-3 py-2 shadow-sm focus:border-rose-500 focus:ring-rose-500 sm:text-sm dark:bg-slate-900 dark:border-rose-500/30 dark:text-white mb-3" placeholder="Please provide a reason for rejecting this request..."></textarea>
-                        <div class="flex justify-end gap-2">
-                            <button type="button" @click="showReject = false" class="px-3 py-1.5 text-sm font-medium text-slate-600 hover:text-slate-900 dark:text-slate-400">Cancel</button>
-                            <button type="submit" class="btn-danger btn-sm">Confirm Reject</button>
+                        <div class="flex items-center gap-2 mb-2">
+                            <i data-lucide="message-square-x" class="h-4 w-4 text-rose-500"></i>
+                            <label class="text-xs font-bold uppercase tracking-wide text-rose-700 dark:text-rose-400">Rejection note <span class="font-normal normal-case text-rose-400">· required</span></label>
+                        </div>
+                        <textarea name="rejection_note" required rows="2" class="w-full rounded-xl border border-rose-300 bg-white px-3.5 py-2.5 text-sm shadow-sm placeholder:text-rose-300 focus:border-rose-500 focus:ring-2 focus:ring-rose-200 focus:outline-none dark:bg-slate-900 dark:border-rose-500/30 dark:text-white dark:placeholder:text-rose-500/40" placeholder="Let {{ $request->employee->first_name }} know why this request can’t be approved…"></textarea>
+                        <div class="mt-3 flex items-center justify-end gap-2">
+                            <button type="button" @click="showReject = false" class="rounded-xl px-4 py-2 text-sm font-semibold text-slate-500 hover:text-slate-800 hover:bg-white transition dark:text-slate-400 dark:hover:bg-slate-700">Cancel</button>
+                            <button type="submit" class="inline-flex items-center gap-2 rounded-xl bg-rose-600 px-4 py-2 text-sm font-bold text-white shadow-sm hover:bg-rose-700 transition"><i data-lucide="x" class="h-4 w-4"></i> Confirm Reject</button>
                         </div>
                     </form>
                 </div>
