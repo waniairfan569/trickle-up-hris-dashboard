@@ -15,7 +15,7 @@
     .dark .fc .fc-col-header-cell-cushion,.dark .fc .fc-daygrid-day-number{color:#94a3b8}
 </style>
 
-<div class="max-w-5xl mx-auto space-y-6" x-data="empCalendar()">
+<div class="space-y-6" x-data="empCalendar()">
     <div>
         <h1 class="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
             <i data-lucide="calendar-days" class="h-6 w-6 text-brand-500"></i> Company Calendar

@@ -4,7 +4,7 @@
 @section('breadcrumb', 'To sign')
 
 @section('content')
-<div class="max-w-4xl mx-auto space-y-8">
+<div class="space-y-8">
 
     <div>
         <h1 class="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
