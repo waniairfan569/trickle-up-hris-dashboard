@@ -810,7 +810,7 @@ class EmployeeController extends Controller
         $validated = $request->validate([
             'first_name' => 'required|string|max:255',
             'last_name'  => 'required|string|max:255',
-            'email'      => 'required|email|unique:users,email,' . $employee->id . '|unique:employees,email,user_id,' . $employee->id,
+            'email'      => 'required|email|unique:users,email,' . $employee->id . '|unique:employees,email,' . $employee->id . ',user_id',
             'phone'      => 'nullable|string|max:255',
             'address'    => 'nullable|string|max:255',
             'job_title'  => 'nullable|string|max:255',
