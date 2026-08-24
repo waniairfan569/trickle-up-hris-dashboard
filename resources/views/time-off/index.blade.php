@@ -291,7 +291,7 @@
                                       onsubmit="return confirm('Cancel this time-off request?')">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300">Cancel</button>
+                                    <button type="submit" class="inline-flex items-center gap-1 rounded-lg border border-rose-200 px-2.5 py-1 text-xs font-bold text-rose-600 hover:bg-rose-50 transition dark:border-rose-500/30 dark:text-rose-400 dark:hover:bg-rose-500/10"><i data-lucide="x" class="h-3.5 w-3.5"></i> Cancel</button>
                                 </form>
                             @elseif($ret && $ret->status === 'pending')
                                 <span class="inline-flex items-center gap-1 text-xs font-semibold text-amber-600 dark:text-amber-400"><i data-lucide="clock" class="h-3.5 w-3.5"></i> Return requested</span>
@@ -488,23 +488,24 @@
                 </select>
             </form>
         </div>
-        <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
-            <thead class="bg-slate-50 dark:bg-slate-900/50">
+        <div class="overflow-x-auto">
+        <table class="min-w-full text-sm">
+            <thead class="sticky top-0 z-10 bg-slate-50/95 backdrop-blur border-b border-slate-200 dark:bg-slate-900/85 dark:border-slate-700">
                 <tr>
-                    <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider dark:text-slate-400">Employee</th>
-                    <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider dark:text-slate-400">Policy</th>
-                    <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider dark:text-slate-400">Dates</th>
-                    <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider dark:text-slate-400">Days</th>
-                    <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider dark:text-slate-400">Status</th>
-                    <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider dark:text-slate-400">Decided By</th>
-                    <th class="px-6 py-3 text-right text-xs font-bold text-slate-500 uppercase tracking-wider dark:text-slate-400">Actions</th>
+                    @foreach(['Employee','Policy','Dates','Days','Status','Decided By'] as $h)
+                        <th class="px-6 py-3 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider dark:text-slate-400">{{ $h }}</th>
+                    @endforeach
+                    <th class="px-6 py-3 text-right text-[11px] font-bold text-slate-500 uppercase tracking-wider dark:text-slate-400">Actions</th>
                 </tr>
             </thead>
-            <tbody class="bg-white divide-y divide-slate-200 dark:bg-slate-800 dark:divide-slate-700">
+            <tbody class="divide-y divide-slate-100 dark:divide-slate-700/60">
                 @forelse($allRequests as $request)
-                    <tr>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900 dark:text-white align-top">
-                            {{ $request->employee->first_name }} {{ $request->employee->last_name }}
+                    <tr class="hover:bg-slate-50/70 even:bg-slate-50/30 transition dark:hover:bg-slate-700/30 dark:even:bg-slate-900/20">
+                        <td class="px-6 py-4 whitespace-nowrap align-top">
+                            <div class="flex items-center gap-2.5">
+                                <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-brand-400 to-indigo-400 text-[11px] font-bold text-white">{{ strtoupper(substr($request->employee->first_name,0,1).substr($request->employee->last_name,0,1)) }}</span>
+                                <span class="text-sm font-semibold text-slate-900 dark:text-white">{{ $request->employee->first_name }} {{ $request->employee->last_name }}</span>
+                            </div>
                         </td>
                         <td class="px-6 py-4 text-sm text-slate-500 dark:text-slate-400 align-top">
                             <div class="font-medium text-slate-700 dark:text-slate-300">{{ $request->policy->name }}</div>
@@ -553,12 +554,13 @@
                                 <span class="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md ml-2 dark:bg-slate-700 dark:text-slate-300">Half Day ({{ ucfirst($request->half_day_period) }})</span>
                             @endif
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-slate-700 tabular-nums dark:text-slate-300">
                             {{ $request->duration_label }}
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold {{ $request->status_color }}">
-                                {{ ucfirst($request->status) }}
+                            @php $sc = ['approved'=>'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400','pending'=>'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400','rejected'=>'bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400','cancelled'=>'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400'][$request->status] ?? 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300'; @endphp
+                            <span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold {{ $sc }}">
+                                <span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span>{{ ucfirst($request->status) }}
                             </span>
                         </td>
                         <td class="px-6 py-4 text-sm">
@@ -581,18 +583,23 @@
                                       onsubmit="return confirm('Cancel this {{ $request->status }} request?@if($request->status === 'approved') The reserved balance is refunded and any on-leave days in this period revert to their prior status — including days already in the past.@endif')">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300">Cancel</button>
+                                    <button type="submit" class="inline-flex items-center gap-1 rounded-lg border border-rose-200 px-2.5 py-1 text-xs font-bold text-rose-600 hover:bg-rose-50 transition dark:border-rose-500/30 dark:text-rose-400 dark:hover:bg-rose-500/10"><i data-lucide="x" class="h-3.5 w-3.5"></i> Cancel</button>
                                 </form>
                             @endif
                         </td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="7" class="px-6 py-12 text-center text-sm text-slate-500 dark:text-slate-400">No requests found.</td>
+                        <td colspan="7" class="px-6 py-16 text-center">
+                            <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-50 text-slate-300 dark:bg-slate-900"><i data-lucide="calendar-off" class="h-6 w-6"></i></div>
+                            <p class="mt-3 text-sm font-semibold text-slate-600 dark:text-slate-300">No requests found</p>
+                            <p class="text-xs text-slate-400">Try changing the status or policy filter.</p>
+                        </td>
                     </tr>
                 @endforelse
             </tbody>
         </table>
+        </div>
         @if($allRequests->hasPages())
             <div class="px-6 py-4 border-t border-slate-200 dark:border-slate-700">
                 {{ $allRequests->links() }}
