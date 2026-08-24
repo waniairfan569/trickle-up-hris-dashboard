@@ -711,7 +711,7 @@ class CompanyDocumentController extends Controller
             'category_id' => $data['category_id'],
             'title' => $data['title'],
             'description' => $data['description'] ?? null,
-            'version' => $data['version'] ?: '1.0',
+            'version' => ($data['version'] ?? null) ?: '1.0',
             'version_notes' => $data['version_notes'] ?? null,
             'access_level' => $data['access_level'],
             'is_active' => $request->boolean('is_active', true),

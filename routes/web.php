@@ -292,7 +292,9 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
         ->name('performance.reopen');
     Route::post('performance/cycles', [PerformanceController::class, 'storeCycle'])
         ->name('performance.storeCycle');
-    Route::resource('performance', PerformanceController::class);
+    // create/edit/update/destroy are not implemented (reviews use the custom
+    // POST actions above) — only index + show exist, so limit the resource.
+    Route::resource('performance', PerformanceController::class)->only(['index', 'show']);
 
     // 5. HR Profile Templates (Dynamic Profiles)
     Route::post('profile-templates/assign', [ProfileTemplateController::class, 'assign'])->name('profile-templates.assign');
@@ -407,7 +409,9 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
         Route::post('invitation/{employee}/cancel', [\App\Http\Controllers\InvitationController::class, 'cancelInvitation'])->name('invitation.cancel');
 
         Route::get('/admin/audit-logs', [\App\Http\Controllers\AuditLogController::class, 'index'])->name('admin.audit-logs');
-        Route::resource('roles', \App\Http\Controllers\RoleController::class);
+        // RoleController only implements index; role changes go through
+        // EmployeeController::updateRole. Avoid registering dead CRUD routes.
+        Route::resource('roles', \App\Http\Controllers\RoleController::class)->only(['index']);
 
         // Job Locations (central list of where employees work)
         Route::resource('job-locations', \App\Http\Controllers\JobLocationController::class)
@@ -438,7 +442,9 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
         Route::resource('work-schedules', WorkScheduleController::class);
         Route::post('work-schedules/{work_schedule}/set-default', [WorkScheduleController::class, 'setDefault'])->name('work-schedules.set-default');
         
-        Route::resource('holiday-calendars', HolidayCalendarController::class);
+        // No create/edit pages (calendars are created/edited via modals; the
+        // create view doesn't exist and there's no edit() method) — exclude them.
+        Route::resource('holiday-calendars', HolidayCalendarController::class)->except(['create', 'edit']);
         Route::post('holiday-calendars/{holiday_calendar}/add-holiday', [HolidayCalendarController::class, 'addHoliday'])->name('holiday-calendars.add-holiday');
         Route::delete('holiday-calendars/{holiday_calendar}/remove-holiday/{holiday}', [HolidayCalendarController::class, 'removeHoliday'])->name('holiday-calendars.remove-holiday');
         Route::post('holiday-calendars/{holiday_calendar}/assign', [HolidayCalendarController::class, 'assign'])->name('holiday-calendars.assign');
@@ -573,7 +579,6 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
         // HR Admin + Super Admin only
         Route::middleware(['role:hr_admin,super_admin'])->group(function () {
             Route::post('manual', [AttendanceManagerController::class, 'manualEntry'])->name('manual');
-            Route::get('all', [AttendanceManagerController::class, 'allHistory'])->name('all');
             Route::put('records/{record}/times', [AttendanceManagerController::class, 'updateTimes'])->name('records.update-times');
             Route::post('recalc-late', [AttendanceManagerController::class, 'recalcLate'])->name('recalc-late');
             Route::post('employee/{employee}/entry', [AttendanceManagerController::class, 'profileAttendance'])->name('employee-entry');

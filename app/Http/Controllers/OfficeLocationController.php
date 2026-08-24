@@ -32,7 +32,7 @@ class OfficeLocationController extends Controller
 
         $validated['allow_remote'] = $request->has('allow_remote');
         $validated['created_by'] = auth()->id();
-        $validated['company_entity_id'] = auth()->user()->entity_id;
+        $validated['company_entity_id'] = auth()->user()->company_entity_id;
 
         OfficeLocation::create($validated);
 

@@ -472,7 +472,6 @@ class AttendanceManagerController extends Controller
         $record->clock_in = $validated['clock_in'] ? Carbon::parse($validated['clock_in']) : null;
         $record->clock_out = $validated['clock_out'] ? Carbon::parse($validated['clock_out']) : null;
         $record->notes = $validated['notes'];
-        $record->is_manual_entry = true;
         $record->edited_by = auth()->id();
         $record->edited_at = now();
 

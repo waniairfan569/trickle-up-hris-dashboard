@@ -80,7 +80,7 @@ class CompanyPolicyController extends Controller
             'deadline' => 'nullable|date',
         ]);
 
-        if (in_array($validated['assigned_to_type'], ['user', 'department'], true) && !$validated['assigned_to_id']) {
+        if (in_array($validated['assigned_to_type'], ['user', 'department'], true) && !($validated['assigned_to_id'] ?? null)) {
             return back()->withErrors(['assigned_to_id' => 'Select who to assign the policy to.']);
         }
 
@@ -185,7 +185,7 @@ class CompanyPolicyController extends Controller
             'title' => $validated['title'],
             'description' => $validated['description'] ?? null,
             'content' => $validated['content'] ?? null,
-            'version' => $validated['version'] ?: '1.0',
+            'version' => ($validated['version'] ?? null) ?: '1.0',
             'category' => $validated['category'],
             'status' => $validated['status'] ?? 'draft',
             'effective_date' => $validated['effective_date'] ?? null,

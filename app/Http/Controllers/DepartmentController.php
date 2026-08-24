@@ -139,7 +139,7 @@ class DepartmentController extends Controller
     public function employees(Department $department)
     {
         // Scoped list of employees for an API or specific view if needed
-        $employees = $department->employees()->select('id', 'first_name', 'last_name', 'email', 'avatar')->get();
+        $employees = $department->employees()->select('id', 'first_name', 'last_name', 'email', 'avatar_url')->get();
         return response()->json($employees);
     }
 }
