@@ -189,7 +189,9 @@ class CompanyFormController extends Controller
             'assigned_to_id' => 'nullable|integer',
         ]);
 
-        if (in_array($validated['assigned_to_type'], ['user', 'department'], true) && !$validated['assigned_to_id']) {
+        $assignedToId = $validated['assigned_to_id'] ?? null;
+
+        if (in_array($validated['assigned_to_type'], ['user', 'department'], true) && !$assignedToId) {
             return back()->withErrors(['assigned_to_id' => 'Select who to assign the form to.']);
         }
 
@@ -197,7 +199,7 @@ class CompanyFormController extends Controller
             [
                 'form_id' => $companyForm->id,
                 'assigned_to_type' => $validated['assigned_to_type'],
-                'assigned_to_id' => $validated['assigned_to_type'] === 'all' ? null : $validated['assigned_to_id'],
+                'assigned_to_id' => $validated['assigned_to_type'] === 'all' ? null : $assignedToId,
             ],
             ['assigned_by' => auth()->id(), 'assigned_at' => now()]
         );
