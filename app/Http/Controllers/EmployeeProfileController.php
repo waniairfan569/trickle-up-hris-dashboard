@@ -206,7 +206,9 @@ class EmployeeProfileController extends Controller
                 'department_id' => $employee->department_id,
                 'first_name'    => $employee->first_name,
                 'last_name'     => $employee->last_name,
-                'job_title'     => $employee->job_title,
+                // employees.job_title is NOT NULL — coalesce so a user with no
+                // title mirrors as an empty string instead of throwing.
+                'job_title'     => (string) $employee->job_title,
             ]);
 
         // Bug #3 Fix: Redirect to view mode after save (not back to ?edit=1)
