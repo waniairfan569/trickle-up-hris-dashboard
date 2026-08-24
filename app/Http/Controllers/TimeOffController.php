@@ -309,8 +309,15 @@ class TimeOffController extends Controller
             if ($request->has('policy_id') && $request->policy_id !== 'all') {
                 $query->where('policy_id', $request->policy_id);
             }
-            
-            $allRequests = $query->paginate(20);
+            // Month filter (YYYY-MM): any request whose leave window touches that month.
+            if ($request->filled('month') && preg_match('/^\d{4}-\d{2}$/', $request->input('month'))) {
+                $monthStart = \Carbon\Carbon::createFromFormat('Y-m-d', $request->input('month') . '-01')->startOfMonth();
+                $monthEnd   = (clone $monthStart)->endOfMonth();
+                $query->whereDate('start_date', '<=', $monthEnd->toDateString())
+                      ->whereDate('end_date', '>=', $monthStart->toDateString());
+            }
+
+            $allRequests = $query->paginate(20)->withQueryString();
         }
         
         $allPolicies = TimeOffPolicy::active()->get();

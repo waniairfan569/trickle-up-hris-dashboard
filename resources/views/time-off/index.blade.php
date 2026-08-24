@@ -5,7 +5,7 @@
 
 @section('content')
 @php $isTimeOffAdmin = auth()->user()->hasRole('hr_admin') || auth()->user()->hasRole('super_admin'); @endphp
-<div class="space-y-8" x-data="{ activeTab: '{{ ($isTimeOffAdmin || $teamRequests->isNotEmpty()) ? 'team_requests' : 'my_requests' }}', ret: { open: false, action: '', min: '', max: '', label: '' } }">
+<div class="space-y-8" x-data="{ activeTab: '{{ (($isTimeOffAdmin || auth()->user()->hasRole('hr_admin') || auth()->user()->hasRole('super_admin')) && (request('tab') === 'all' || request()->hasAny(['status','policy_id','month']))) ? 'all_requests' : (($isTimeOffAdmin || $teamRequests->isNotEmpty()) ? 'team_requests' : 'my_requests') }}', ret: { open: false, action: '', min: '', max: '', label: '' } }">
     <div class="sm:flex sm:items-center sm:justify-between border-b border-slate-200/80 pb-5 dark:border-slate-700/60">
         <div>
             <h2 class="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">Time-Off</h2>
@@ -480,13 +480,27 @@
                     <option value="approved" {{ request('status') == 'approved' ? 'selected' : '' }}>Approved</option>
                     <option value="rejected" {{ request('status') == 'rejected' ? 'selected' : '' }}>Rejected</option>
                 </select>
-                <select name="policy_id" onchange="this.form.submit()" class="rounded-xl border-slate-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 text-sm py-1.5 dark:bg-slate-800 dark:border-slate-600 dark:text-white">
+                <select name="policy_id" onchange="this.form.submit()" class="rounded-xl border border-slate-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 text-sm py-1.5 dark:bg-slate-800 dark:border-slate-600 dark:text-white">
                     <option value="all">All Policies</option>
                     @foreach($allPolicies as $policy)
                         <option value="{{ $policy->id }}" {{ request('policy_id') == $policy->id ? 'selected' : '' }}>{{ $policy->name }}</option>
                     @endforeach
                 </select>
+                <div class="flex items-center gap-1.5">
+                    <label for="all-req-month" class="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Month</label>
+                    <input type="month" id="all-req-month" name="month" value="{{ request('month') }}" onchange="this.form.submit()"
+                           class="rounded-xl border border-slate-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 text-sm py-1.5 px-3 dark:bg-slate-800 dark:border-slate-600 dark:text-white">
+                </div>
+                @if(request('month') || (request('status') && request('status') !== 'all') || (request('policy_id') && request('policy_id') !== 'all'))
+                    <a href="{{ route('time-off.index', ['tab' => 'all']) }}"
+                       class="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400">
+                        <i data-lucide="x" class="h-3.5 w-3.5"></i> Clear
+                    </a>
+                @endif
             </form>
+            <span class="ml-auto text-xs font-medium text-slate-500 dark:text-slate-400">
+                {{ $allRequests->total() }} {{ Str::plural('request', $allRequests->total()) }}
+            </span>
         </div>
         <div class="overflow-x-auto">
         <table class="min-w-full text-sm">
