@@ -5,7 +5,7 @@
 
 @section('content')
 @php $isTimeOffAdmin = auth()->user()->hasRole('hr_admin') || auth()->user()->hasRole('super_admin'); @endphp
-<div class="space-y-8" x-data="{ activeTab: '{{ $isTimeOffAdmin ? 'all_requests' : 'my_requests' }}', ret: { open: false, action: '', min: '', max: '', label: '' } }">
+<div class="space-y-8" x-data="{ activeTab: '{{ ($isTimeOffAdmin || $teamRequests->isNotEmpty()) ? 'team_requests' : 'my_requests' }}', ret: { open: false, action: '', min: '', max: '', label: '' } }">
     <div class="sm:flex sm:items-center sm:justify-between border-b border-slate-200/80 pb-5 dark:border-slate-700/60">
         <div>
             <h2 class="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">Time-Off</h2>
@@ -140,26 +140,25 @@
         @endforelse
     </div>
 
-    <!-- Tabs -->
-    <div class="border-b border-slate-200 dark:border-slate-700">
-        <nav class="-mb-px flex space-x-8">
-            @if($isTimeOffAdmin)
-                <button @click="activeTab = 'all_requests'" :class="{'border-brand-500 text-brand-600 dark:text-brand-400': activeTab === 'all_requests', 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 dark:text-slate-400 dark:hover:text-slate-300': activeTab !== 'all_requests'}" class="whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm transition">
-                    All Requests (HR)
-                </button>
-            @endif
-            @if($teamRequests->isNotEmpty() || $isTimeOffAdmin)
-                <button @click="activeTab = 'team_requests'" :class="{'border-brand-500 text-brand-600 dark:text-brand-400': activeTab === 'team_requests', 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 dark:text-slate-400 dark:hover:text-slate-300': activeTab !== 'team_requests'}" class="whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm transition flex items-center">
-                    Approvals
-                    @if($teamRequests->count() > 0)
-                        <span class="ml-2 bg-brand-100 text-brand-600 py-0.5 px-2 rounded-full text-xs font-bold dark:bg-brand-900 dark:text-brand-300">{{ $teamRequests->count() }}</span>
-                    @endif
-                </button>
-            @endif
-            <button @click="activeTab = 'my_requests'" :class="{'border-brand-500 text-brand-600 dark:text-brand-400': activeTab === 'my_requests', 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 dark:text-slate-400 dark:hover:text-slate-300': activeTab !== 'my_requests'}" class="whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm transition">
-                My Requests
+    <!-- Tabs (Approvals first & default, then All Requests, then My Requests) -->
+    <div class="inline-flex flex-wrap gap-1 rounded-2xl bg-slate-100 p-1 dark:bg-slate-800/80">
+        @php $tabBase = 'inline-flex items-center gap-2 whitespace-nowrap rounded-xl px-4 py-2 text-sm font-semibold transition'; @endphp
+        @if($teamRequests->isNotEmpty() || $isTimeOffAdmin)
+            <button @click="activeTab = 'team_requests'" :class="activeTab === 'team_requests' ? 'bg-white text-brand-600 shadow-sm dark:bg-slate-700 dark:text-brand-400' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'" class="{{ $tabBase }}">
+                <i data-lucide="inbox" class="h-4 w-4"></i> Approvals
+                @if($teamRequests->count() > 0)
+                    <span class="rounded-full bg-brand-500 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">{{ $teamRequests->count() }}</span>
+                @endif
             </button>
-        </nav>
+        @endif
+        @if($isTimeOffAdmin)
+            <button @click="activeTab = 'all_requests'" :class="activeTab === 'all_requests' ? 'bg-white text-brand-600 shadow-sm dark:bg-slate-700 dark:text-brand-400' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'" class="{{ $tabBase }}">
+                <i data-lucide="list" class="h-4 w-4"></i> All Requests <span class="text-[11px] font-normal opacity-70">HR</span>
+            </button>
+        @endif
+        <button @click="activeTab = 'my_requests'" :class="activeTab === 'my_requests' ? 'bg-white text-brand-600 shadow-sm dark:bg-slate-700 dark:text-brand-400' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'" class="{{ $tabBase }}">
+            <i data-lucide="user" class="h-4 w-4"></i> My Requests
+        </button>
     </div>
 
     <!-- My Requests Tab -->
