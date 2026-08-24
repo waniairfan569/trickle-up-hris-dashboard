@@ -447,7 +447,10 @@ class AttendanceRecord extends Model
 
     public function scopePresent(Builder $query)
     {
-        return $query->where('status', 'present');
+        // "Present" = the employee was at work that day. Overtime and
+        // early-departure days are still present days (late is its own stat),
+        // so count them as present too.
+        return $query->whereIn('status', ['present', 'overtime', 'early_departure']);
     }
 
     public function scopeAbsent(Builder $query)
