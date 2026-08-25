@@ -442,7 +442,9 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
         Route::post('signature-templates', [\App\Http\Controllers\SignatureTemplateController::class, 'store'])->name('signature-templates.store');
         Route::delete('signature-templates/{signatureTemplate}', [\App\Http\Controllers\SignatureTemplateController::class, 'destroy'])->name('signature-templates.destroy');
 
-        Route::resource('company-entities', CompanyEntityController::class);
+        // Entities are the company's legal entities — created/edited, not deleted
+        // (there is no destroy() and no delete UI). Exclude the broken DELETE route.
+        Route::resource('company-entities', CompanyEntityController::class)->except(['destroy']);
         Route::post('company-entities/{entity}/set-primary', [CompanyEntityController::class, 'setPrimary'])->name('company-entities.set-primary');
         
         Route::resource('work-schedules', WorkScheduleController::class);
