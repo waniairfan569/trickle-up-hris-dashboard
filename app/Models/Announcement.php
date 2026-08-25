@@ -7,12 +7,14 @@ use App\Tenancy\BelongsToTenant;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\HtmlString;
 
 class Announcement extends Model
 {
     use BelongsToTenant;
     use HasFactory;
+    use SoftDeletes;
 
     protected $fillable = ['title', 'body', 'is_pinned', 'is_active', 'expires_at', 'created_by'];
 

@@ -6,11 +6,16 @@
 @section('content')
 <div class="max-w-3xl mx-auto space-y-6">
 
-    <div>
-        <h1 class="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
-            <i data-lucide="megaphone" class="h-6 w-6 text-brand-500"></i> Announcements
-        </h1>
-        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Post updates for everyone — they appear on each employee's dashboard.</p>
+    <div class="flex items-start justify-between gap-3">
+        <div>
+            <h1 class="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+                <i data-lucide="megaphone" class="h-6 w-6 text-brand-500"></i> Announcements
+            </h1>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Post updates for everyone — they appear on each employee's dashboard. Expired ones hide from employees automatically.</p>
+        </div>
+        <a href="{{ route('announcements.archived') }}" class="shrink-0 inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700">
+            <i data-lucide="archive" class="h-4 w-4"></i> Archive
+        </a>
     </div>
 
     @if(session('success'))
@@ -67,7 +72,7 @@
                     <div class="flex items-center gap-2 mt-3 pt-3 border-t border-slate-100 dark:border-slate-700/60">
                         <button type="button" @click="edit = true" class="text-xs font-semibold text-slate-500 hover:text-slate-800">Edit</button>
                         <form method="POST" action="{{ route('announcements.toggle', $a) }}">@csrf<button type="submit" class="text-xs font-semibold text-slate-500 hover:text-slate-800">{{ $a->is_active ? 'Hide' : 'Show' }}</button></form>
-                        <form method="POST" action="{{ route('announcements.destroy', $a) }}" onsubmit="return confirm('Delete this announcement?')" class="ml-auto">@csrf @method('DELETE')<button type="submit" class="text-xs font-semibold text-rose-500 hover:text-rose-700">Delete</button></form>
+                        <form method="POST" action="{{ route('announcements.destroy', $a) }}" onsubmit="return confirm('Move this announcement to the Archive? You can restore it later.')" class="ml-auto">@csrf @method('DELETE')<button type="submit" class="inline-flex items-center gap-1 text-xs font-semibold text-rose-500 hover:text-rose-700"><i data-lucide="archive" class="h-3.5 w-3.5"></i> Archive</button></form>
                     </div>
                 </div>
 

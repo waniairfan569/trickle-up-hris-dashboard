@@ -89,10 +89,13 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
     Route::post('announcements/{announcement}/read', [\App\Http\Controllers\AnnouncementController::class, 'markRead'])->name('announcements.read');
     Route::middleware('role:super_admin,hr_admin')->group(function () {
         Route::get('announcements', [\App\Http\Controllers\AnnouncementController::class, 'index'])->name('announcements.index');
+        Route::get('announcements/archived', [\App\Http\Controllers\AnnouncementController::class, 'archived'])->name('announcements.archived');
         Route::post('announcements', [\App\Http\Controllers\AnnouncementController::class, 'store'])->name('announcements.store');
         Route::put('announcements/{announcement}', [\App\Http\Controllers\AnnouncementController::class, 'update'])->name('announcements.update');
         Route::post('announcements/{announcement}/toggle', [\App\Http\Controllers\AnnouncementController::class, 'toggle'])->name('announcements.toggle');
         Route::delete('announcements/{announcement}', [\App\Http\Controllers\AnnouncementController::class, 'destroy'])->name('announcements.destroy');
+        Route::post('announcements/{announcement}/restore', [\App\Http\Controllers\AnnouncementController::class, 'restore'])->name('announcements.restore');
+        Route::delete('announcements/{announcement}/force', [\App\Http\Controllers\AnnouncementController::class, 'forceDelete'])->name('announcements.force-delete');
     });
 
     // Feedback / issue reporting — any user submits; admins review & respond.

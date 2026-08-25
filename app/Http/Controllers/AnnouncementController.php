@@ -116,13 +116,48 @@ class AnnouncementController extends Controller
         return back()->with('success', $announcement->is_active ? 'Announcement shown.' : 'Announcement hidden.');
     }
 
+    /** Archive an announcement (soft delete) — recoverable from the Archive. */
     public function destroy(Request $request, Announcement $announcement)
     {
         abort_unless($request->user() && $request->user()->isAdmin(), 403);
 
         $announcement->delete();
 
-        return back()->with('success', 'Announcement deleted.');
+        return back()->with('success', 'Announcement archived — you can restore it anytime from the Archive.');
+    }
+
+    /** Admin: list archived (soft-deleted) announcements. */
+    public function archived(Request $request)
+    {
+        abort_unless($request->user() && $request->user()->isAdmin(), 403);
+
+        $announcements = Announcement::onlyTrashed()->with('creator')
+            ->latest('deleted_at')
+            ->get();
+
+        return view('announcements.archived', compact('announcements'));
+    }
+
+    /** Admin: restore an archived announcement back to the live list. */
+    public function restore(Request $request, int $announcement)
+    {
+        abort_unless($request->user() && $request->user()->isAdmin(), 403);
+
+        $record = Announcement::onlyTrashed()->findOrFail($announcement);
+        $record->restore();
+
+        return back()->with('success', 'Announcement restored.');
+    }
+
+    /** Admin: permanently delete an archived announcement (cannot be undone). */
+    public function forceDelete(Request $request, int $announcement)
+    {
+        abort_unless($request->user() && $request->user()->isAdmin(), 403);
+
+        $record = Announcement::onlyTrashed()->findOrFail($announcement);
+        $record->forceDelete();
+
+        return back()->with('success', 'Announcement permanently deleted.');
     }
 
     /** AJAX: the current user acknowledges one announcement (won't auto-pop again). */
