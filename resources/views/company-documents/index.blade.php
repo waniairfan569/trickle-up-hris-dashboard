@@ -59,7 +59,10 @@
                 <a href="{{ route('company-documents.admin', request()->only('category')) }}" class="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-rose-600 dark:text-slate-400"><i data-lucide="x" class="h-3.5 w-3.5"></i> Clear</a>
             @endif
         </form>
-        <a href="{{ route('company-documents.archived') }}" class="ml-auto inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700">
+        <a href="{{ route('document-categories.manage') }}" class="ml-auto inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700">
+            <i data-lucide="folders" class="h-4 w-4"></i> Categories
+        </a>
+        <a href="{{ route('company-documents.archived') }}" class="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700">
             <i data-lucide="archive" class="h-4 w-4"></i> Archive
         </a>
     </div>

@@ -522,7 +522,13 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
         Route::post('company-documents/{document}/restore', [\App\Http\Controllers\CompanyDocumentController::class, 'restoreDocument'])->name('company-documents.restore');
         Route::delete('company-documents/{document}/force', [\App\Http\Controllers\CompanyDocumentController::class, 'forceDelete'])->name('company-documents.force-delete');
         Route::get('document-categories', [\App\Http\Controllers\DocumentCategoryController::class, 'index'])->name('document-categories.index');
+        Route::get('document-categories/manage', [\App\Http\Controllers\DocumentCategoryController::class, 'manage'])->name('document-categories.manage');
+        Route::get('document-categories/deleted', [\App\Http\Controllers\DocumentCategoryController::class, 'deleted'])->name('document-categories.deleted');
         Route::post('document-categories', [\App\Http\Controllers\DocumentCategoryController::class, 'store'])->name('document-categories.store');
+        Route::put('document-categories/{documentCategory}', [\App\Http\Controllers\DocumentCategoryController::class, 'update'])->name('document-categories.update');
+        Route::delete('document-categories/{documentCategory}', [\App\Http\Controllers\DocumentCategoryController::class, 'destroy'])->name('document-categories.destroy');
+        Route::post('document-categories/{documentCategory}/restore', [\App\Http\Controllers\DocumentCategoryController::class, 'restore'])->name('document-categories.restore');
+        Route::delete('document-categories/{documentCategory}/force', [\App\Http\Controllers\DocumentCategoryController::class, 'forceDelete'])->name('document-categories.force-delete');
 
         // Automated daily attendance report — settings, manual send, preview
         Route::prefix('attendance-reports')->name('attendance-reports.')->group(function () {
