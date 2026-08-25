@@ -29,7 +29,7 @@ class WorkspaceBrandingController extends Controller
         ]);
 
         $tenant->brand_name = $data['brand_name'];
-        $tenant->primary_color = $data['primary_color'] ?: null;
+        $tenant->primary_color = ($data['primary_color'] ?? null) ?: null;
 
         if ($request->boolean('remove_logo')) {
             $tenant->logo_url = null;
