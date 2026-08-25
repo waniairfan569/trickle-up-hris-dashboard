@@ -33,6 +33,15 @@ class CompanyDocumentController extends Controller
             $query->where('file_extension', $request->type);
         }
 
+        // Month filter (YYYY-MM) on when the document was uploaded.
+        $month = $request->input('month');
+        if ($month && preg_match('/^\d{4}-\d{2}$/', $month)) {
+            $start = \Carbon\Carbon::createFromFormat('Y-m', $month)->startOfMonth();
+            $query->whereBetween('created_at', [$start->copy()->startOfMonth(), $start->copy()->endOfMonth()]);
+        } else {
+            $month = null;
+        }
+
         $documents = $query->get();
         $categories = DocumentCategory::orderBy('sort_order')->withCount('documents')->get();
 
@@ -43,7 +52,7 @@ class CompanyDocumentController extends Controller
             'categories' => $categories->count(),
         ];
 
-        return view('company-documents.index', compact('documents', 'categories', 'stats'));
+        return view('company-documents.index', compact('documents', 'categories', 'stats', 'month'));
     }
 
     public function create()
@@ -374,7 +383,39 @@ class CompanyDocumentController extends Controller
     {
         $document->delete();
 
-        return redirect()->route('company-documents.admin')->with('success', 'Document deleted.');
+        return redirect()->route('company-documents.admin')->with('success', 'Document archived — you can restore it anytime from the Archive.');
+    }
+
+    /** Admin: archived (soft-deleted) documents — restore or delete permanently. */
+    public function archived()
+    {
+        $documents = CompanyDocument::onlyTrashed()->with(['category', 'uploader'])
+            ->latest('deleted_at')
+            ->get();
+
+        return view('company-documents.archived', compact('documents'));
+    }
+
+    /** Admin: restore an archived document back to the library. */
+    public function restoreDocument(int $document)
+    {
+        $doc = CompanyDocument::onlyTrashed()->findOrFail($document);
+        $doc->restore();
+
+        return back()->with('success', 'Document restored.');
+    }
+
+    /** Admin: permanently delete an archived document (and its stored file). */
+    public function forceDelete(int $document)
+    {
+        $doc = CompanyDocument::onlyTrashed()->findOrFail($document);
+
+        if ($doc->file_path && Storage::exists($doc->file_path)) {
+            Storage::delete($doc->file_path);
+        }
+        $doc->forceDelete();
+
+        return redirect()->route('company-documents.archived')->with('success', 'Document permanently deleted.');
     }
 
     // ----- Shared (access-controlled) --------------------------------------

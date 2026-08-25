@@ -26,6 +26,20 @@
         @endforeach
     </div>
 
+    <div class="flex flex-wrap items-center gap-3">
+        <form method="GET" action="{{ route('company-policies.index') }}" class="flex items-center gap-1.5">
+            <label for="cp-month" class="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Created in</label>
+            <input type="month" id="cp-month" name="month" value="{{ $month }}" onchange="this.form.submit()"
+                   class="rounded-xl border border-slate-300 shadow-sm text-sm py-1.5 px-3 focus:border-brand-500 focus:ring-brand-500 dark:bg-slate-800 dark:border-slate-600 dark:text-white">
+            @if($month)
+                <a href="{{ route('company-policies.index') }}" class="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-rose-600 dark:text-slate-400"><i data-lucide="x" class="h-3.5 w-3.5"></i> Clear</a>
+            @endif
+        </form>
+        <a href="{{ route('company-policies.deleted') }}" class="ml-auto inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700">
+            <i data-lucide="trash-2" class="h-4 w-4"></i> Deleted
+        </a>
+    </div>
+
     <div class="space-y-3">
         @forelse($policies as $policy)
             <div x-show="tab === 'all' || tab === '{{ $policy->status }}'" class="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-5 dark:bg-slate-800 dark:border-slate-700">
@@ -37,14 +51,17 @@
                             <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold {{ $statusBadge[$policy->status] }}">{{ ucfirst($policy->status) }}</span>
                             <span class="text-[11px] font-semibold text-slate-400">v{{ $policy->version }}</span>
                         </div>
-                        <p class="text-xs text-slate-400 mt-1">{{ $policy->acknowledgments_count }} acknowledgment(s) · {{ $policy->acknowledgment_rate }}% complete @if($policy->effective_date) · effective {{ $policy->effective_date->format('d M Y') }} @endif</p>
+                        <p class="text-xs text-slate-400 mt-1">{{ $policy->acknowledgments_count }} acknowledgment(s) · {{ $policy->acknowledgment_rate }}% complete · created {{ $policy->created_at->format('d M Y') }} @if($policy->effective_date) · effective {{ $policy->effective_date->format('d M Y') }} @endif</p>
                         <div class="mt-2 h-1.5 w-48 rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden"><div class="h-full bg-brand-500" style="width: {{ $policy->acknowledgment_rate }}%"></div></div>
                     </div>
                     <div class="flex items-center gap-2 flex-wrap">
                         <a href="{{ route('company-policies.show', $policy) }}" class="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-200">View</a>
                         <a href="{{ route('company-policies.edit', $policy) }}" class="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-200">Edit</a>
                         <a href="{{ route('company-policies.acknowledgments', $policy) }}" class="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-200">Tracking</a>
-                        <form action="{{ route('company-policies.destroy', $policy) }}" method="POST" onsubmit="return confirm('Delete “{{ $policy->title }}”?');">@csrf @method('DELETE')<button class="inline-flex h-7 w-7 items-center justify-center rounded-lg text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10"><i data-lucide="trash-2" class="h-4 w-4"></i></button></form>
+                        @if($policy->document_file)
+                            <a href="{{ route('policies.download', $policy) }}" title="Download policy document" class="inline-flex items-center gap-1 rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-200"><i data-lucide="download" class="h-3.5 w-3.5"></i> Download</a>
+                        @endif
+                        <form action="{{ route('company-policies.destroy', $policy) }}" method="POST" onsubmit="return confirm('Delete “{{ $policy->title }}”? It moves to Deleted and can be restored.');">@csrf @method('DELETE')<button title="Delete (recoverable)" class="inline-flex h-7 w-7 items-center justify-center rounded-lg text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10"><i data-lucide="trash-2" class="h-4 w-4"></i></button></form>
                     </div>
                 </div>
             </div>

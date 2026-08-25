@@ -486,6 +486,7 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
 
         // Company Policies — admin (create, assign, track acknowledgments)
         Route::get('company-policies', [\App\Http\Controllers\CompanyPolicyController::class, 'index'])->name('company-policies.index');
+        Route::get('company-policies/deleted', [\App\Http\Controllers\CompanyPolicyController::class, 'deleted'])->name('company-policies.deleted');
         Route::get('company-policies/create', [\App\Http\Controllers\CompanyPolicyController::class, 'create'])->name('company-policies.create');
         Route::post('company-policies', [\App\Http\Controllers\CompanyPolicyController::class, 'store'])->name('company-policies.store');
         Route::get('company-policies/{companyPolicy}/edit', [\App\Http\Controllers\CompanyPolicyController::class, 'edit'])->name('company-policies.edit');
@@ -496,9 +497,12 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
         Route::get('company-policies/{companyPolicy}/export', [\App\Http\Controllers\CompanyPolicyController::class, 'export'])->name('company-policies.export');
         Route::post('policy-acknowledgments/{acknowledgment}/remind', [\App\Http\Controllers\CompanyPolicyController::class, 'sendReminder'])->name('company-policies.remind');
         Route::delete('company-policies/{companyPolicy}', [\App\Http\Controllers\CompanyPolicyController::class, 'destroy'])->name('company-policies.destroy');
+        Route::post('company-policies/{companyPolicy}/restore', [\App\Http\Controllers\CompanyPolicyController::class, 'restore'])->name('company-policies.restore');
+        Route::delete('company-policies/{companyPolicy}/force', [\App\Http\Controllers\CompanyPolicyController::class, 'forceDelete'])->name('company-policies.force-delete');
 
         // Company Documents — admin file library
         Route::get('company-documents', [\App\Http\Controllers\CompanyDocumentController::class, 'adminIndex'])->name('company-documents.admin');
+        Route::get('company-documents/archived', [\App\Http\Controllers\CompanyDocumentController::class, 'archived'])->name('company-documents.archived');
         Route::get('company-documents/create', [\App\Http\Controllers\CompanyDocumentController::class, 'create'])->name('company-documents.create');
         Route::post('company-documents', [\App\Http\Controllers\CompanyDocumentController::class, 'store'])->name('company-documents.store');
         Route::get('company-documents/{document}/acknowledgments', [\App\Http\Controllers\CompanyDocumentController::class, 'acknowledgments'])->name('company-documents.acknowledgments');
@@ -510,6 +514,8 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
         Route::put('company-documents/{document}', [\App\Http\Controllers\CompanyDocumentController::class, 'update'])->name('company-documents.update');
         Route::post('company-documents/{document}/new-version', [\App\Http\Controllers\CompanyDocumentController::class, 'newVersion'])->name('company-documents.new-version');
         Route::delete('company-documents/{document}', [\App\Http\Controllers\CompanyDocumentController::class, 'destroy'])->name('company-documents.destroy');
+        Route::post('company-documents/{document}/restore', [\App\Http\Controllers\CompanyDocumentController::class, 'restoreDocument'])->name('company-documents.restore');
+        Route::delete('company-documents/{document}/force', [\App\Http\Controllers\CompanyDocumentController::class, 'forceDelete'])->name('company-documents.force-delete');
         Route::get('document-categories', [\App\Http\Controllers\DocumentCategoryController::class, 'index'])->name('document-categories.index');
         Route::post('document-categories', [\App\Http\Controllers\DocumentCategoryController::class, 'store'])->name('document-categories.store');
 

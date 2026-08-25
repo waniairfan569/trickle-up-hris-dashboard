@@ -19,11 +19,54 @@ class CompanyPolicyController extends Controller
 {
     private const CATEGORIES = ['hr', 'it', 'finance', 'legal', 'health_safety', 'general'];
 
-    public function index()
+    public function index(Request $request)
     {
-        $policies = CompanyPolicy::withCount('acknowledgments')->latest()->get();
+        $query = CompanyPolicy::withCount('acknowledgments')->latest();
 
-        return view('company-policies.index', compact('policies'));
+        // Month filter (YYYY-MM) on when the policy was created.
+        $month = $request->input('month');
+        if ($month && preg_match('/^\d{4}-\d{2}$/', $month)) {
+            $start = \Carbon\Carbon::createFromFormat('Y-m', $month)->startOfMonth();
+            $query->whereBetween('created_at', [$start->copy()->startOfMonth(), $start->copy()->endOfMonth()]);
+        } else {
+            $month = null;
+        }
+
+        $policies = $query->get();
+
+        return view('company-policies.index', compact('policies', 'month'));
+    }
+
+    /** Admin: deleted (soft-deleted) policies — restore or remove permanently. */
+    public function deleted()
+    {
+        $policies = CompanyPolicy::onlyTrashed()->withCount('acknowledgments')
+            ->latest('deleted_at')
+            ->get();
+
+        return view('company-policies.deleted', compact('policies'));
+    }
+
+    /** Admin: restore a deleted policy. */
+    public function restore(int $companyPolicy)
+    {
+        $policy = CompanyPolicy::onlyTrashed()->findOrFail($companyPolicy);
+        $policy->restore();
+
+        return back()->with('success', 'Policy restored.');
+    }
+
+    /** Admin: permanently delete a policy (and its stored document). */
+    public function forceDelete(int $companyPolicy)
+    {
+        $policy = CompanyPolicy::onlyTrashed()->findOrFail($companyPolicy);
+
+        if ($policy->document_file && Storage::exists($policy->document_file)) {
+            Storage::delete($policy->document_file);
+        }
+        $policy->forceDelete();
+
+        return redirect()->route('company-policies.deleted')->with('success', 'Policy permanently deleted.');
     }
 
     public function create()
@@ -161,7 +204,7 @@ class CompanyPolicyController extends Controller
     {
         $companyPolicy->delete();
 
-        return redirect()->route('company-policies.index')->with('success', 'Policy deleted.');
+        return redirect()->route('company-policies.index')->with('success', 'Policy moved to Deleted — you can restore it anytime.');
     }
 
     // ---------------------------------------------------------------------
