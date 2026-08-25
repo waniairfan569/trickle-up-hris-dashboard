@@ -107,8 +107,15 @@ class DepartmentController extends Controller
             'sort_order' => 'integer'
         ]);
 
-        if ($validated['parent_id'] == $department->id) {
+        if (($validated['parent_id'] ?? null) == $department->id) {
             return back()->withErrors(['parent_id' => 'A department cannot be its own parent.']);
+        }
+
+        // Prevent hierarchy cycles: the new parent must not be one of this
+        // department's own descendants (a cycle makes full_name / employee
+        // counts recurse forever). The edit form hides these, but guard the POST.
+        if (!empty($validated['parent_id']) && $this->descendantIds($department)->contains((int) $validated['parent_id'])) {
+            return back()->withErrors(['parent_id' => 'A department cannot be moved under one of its own sub-departments.']);
         }
 
         if ($validated['name'] !== $department->name) {
