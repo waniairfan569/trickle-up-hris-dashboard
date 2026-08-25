@@ -316,7 +316,35 @@ class HrDocumentController extends Controller
         $document->delete();
 
         return redirect()->route('hr-documents.index')
-            ->with('success', 'Document deleted.');
+            ->with('success', 'Document moved to Deleted — you can restore it anytime.');
+    }
+
+    /** Deleted (soft-deleted) documents — restore or remove permanently. */
+    public function deleted()
+    {
+        $documents = HrDocument::onlyTrashed()->with('employee')
+            ->latest('deleted_at')->get();
+
+        return view('hr-documents.deleted', compact('documents'));
+    }
+
+    /** Restore a deleted document back to the list. */
+    public function restoreDocument(int $document)
+    {
+        $doc = HrDocument::onlyTrashed()->findOrFail($document);
+        $doc->restore();
+
+        return back()->with('success', 'Document restored.');
+    }
+
+    /** Permanently delete a document (and its signers). */
+    public function forceDelete(int $document)
+    {
+        $doc = HrDocument::onlyTrashed()->findOrFail($document);
+        $doc->signers()->delete();
+        $doc->forceDelete();
+
+        return redirect()->route('hr-documents.deleted')->with('success', 'Document permanently deleted.');
     }
 
     // ── Helpers ────────────────────────────────────────────────────

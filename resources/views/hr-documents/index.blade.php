@@ -83,6 +83,7 @@
                     <a href="{{ route('hr-documents.index', $month ? ['month' => $month] : []) }}" class="rounded-md px-3 py-1 text-xs font-semibold transition {{ $showArchived ? 'text-slate-500 hover:text-slate-700' : 'bg-slate-900 text-white dark:bg-white dark:text-slate-900' }}">Active</a>
                     <a href="{{ route('hr-documents.index', array_filter(['archived' => 1, 'month' => $month])) }}" class="rounded-md px-3 py-1 text-xs font-semibold transition {{ $showArchived ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900' : 'text-slate-500 hover:text-slate-700' }}">Archived @if($archivedCount) ({{ $archivedCount }}) @endif</a>
                 </div>
+                <a href="{{ route('hr-documents.deleted') }}" class="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-slate-700 dark:text-slate-400"><i data-lucide="trash-2" class="h-3.5 w-3.5"></i> Deleted</a>
             </div>
         </div>
         <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden dark:bg-slate-800 dark:border-slate-700">
@@ -135,9 +136,9 @@
                                                 <button class="rounded-lg p-2 text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition dark:hover:bg-amber-500/10" title="Archive"><i data-lucide="archive" class="h-4 w-4"></i></button>
                                             </form>
                                         @endif
-                                        <form method="POST" action="{{ route('hr-documents.destroy', $doc) }}" onsubmit="return confirm('Delete this document permanently?')">
+                                        <form method="POST" action="{{ route('hr-documents.destroy', $doc) }}" onsubmit="return confirm('Move this document to Deleted? You can restore it later.')">
                                             @csrf @method('DELETE')
-                                            <button class="rounded-lg p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition dark:hover:bg-rose-500/10" title="Delete"><i data-lucide="trash-2" class="h-4 w-4"></i></button>
+                                            <button class="rounded-lg p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition dark:hover:bg-rose-500/10" title="Delete (recoverable)"><i data-lucide="trash-2" class="h-4 w-4"></i></button>
                                         </form>
                                     </div>
                                 </td>

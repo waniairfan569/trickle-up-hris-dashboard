@@ -18,13 +18,28 @@ class EventController extends Controller
     {
         $this->authorizeManage();
 
-        $events = Event::where('status', 'active')->orderBy('date')->get();
-        $archived = Event::where('status', 'archived')->orderByDesc('date')->get();
+        // Month filter (YYYY-MM): events whose date (or end date) falls in the month.
+        $month = $request->input('month');
+        if ($month && ! preg_match('/^\d{4}-\d{2}$/', $month)) {
+            $month = null;
+        }
+        $monthFilter = null;
+        if ($month) {
+            $start = \Carbon\Carbon::createFromFormat('Y-m', $month)->startOfMonth();
+            $from = $start->copy()->startOfMonth()->toDateString();
+            $to   = $start->copy()->endOfMonth()->toDateString();
+            $monthFilter = fn ($q) => $q->where(function ($qq) use ($from, $to) {
+                $qq->whereBetween('date', [$from, $to])->orWhereBetween('end_date', [$from, $to]);
+            });
+        }
+
+        $events = Event::where('status', 'active')->when($monthFilter, $monthFilter)->orderBy('date')->get();
+        $archived = Event::where('status', 'archived')->when($monthFilter, $monthFilter)->orderByDesc('date')->get();
         $departments = Department::orderBy('name')->get(['id', 'name']);
         $users = User::where('account_status', '!=', 'deactivated')
             ->orderBy('first_name')->get(['id', 'first_name', 'last_name']);
 
-        return view('events.index', compact('events', 'archived', 'departments', 'users'));
+        return view('events.index', compact('events', 'archived', 'departments', 'users', 'month'));
     }
 
     public function store(Request $request)

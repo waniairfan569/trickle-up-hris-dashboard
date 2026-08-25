@@ -62,6 +62,18 @@
 
     {{-- ============================== LIST TAB ============================== --}}
     <div x-show="tab === 'list'" x-cloak class="space-y-6">
+        <div class="flex flex-wrap items-center gap-3">
+            <form method="GET" action="{{ route('events.index') }}" class="flex items-center gap-1.5">
+                <input type="hidden" name="tab" value="list">
+                <label for="ev-month" class="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Month</label>
+                <input type="month" id="ev-month" name="month" value="{{ $month }}" onchange="this.form.submit()"
+                       class="rounded-xl border border-slate-300 shadow-sm text-sm py-1.5 px-3 focus:border-brand-500 focus:ring-brand-500 dark:bg-slate-800 dark:border-slate-600 dark:text-white">
+                @if($month)
+                    <a href="{{ route('events.index', ['tab' => 'list']) }}" class="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-rose-600 dark:text-slate-400"><i data-lucide="x" class="h-3.5 w-3.5"></i> Clear</a>
+                @endif
+            </form>
+            @if($month)<span class="text-xs font-medium text-slate-500 dark:text-slate-400">{{ $events->count() }} active · {{ $archived->count() }} archived this month</span>@endif
+        </div>
         <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden dark:bg-slate-800 dark:border-slate-700">
             <div class="px-6 py-3 border-b border-slate-100 dark:border-slate-700/60"><span class="text-sm font-bold text-slate-700 dark:text-slate-200">All events</span></div>
             @if($events->isEmpty())
@@ -372,7 +384,7 @@
     // Page-level: tabs, calendar, detail modal.
     function eventsPage() {
         return {
-            tab: 'calendar', calendar: null, toast: '',
+            tab: (new URLSearchParams(location.search)).get('tab') || 'calendar', calendar: null, toast: '',
             modal: { open: false, id: null, title: '', dates: '', location: '', description: '', published: false, pinned: false, visibility: 'all', published_at: null, color: '#F5C800' },
             day: { open: false, label: '', events: [] },
             init() {
