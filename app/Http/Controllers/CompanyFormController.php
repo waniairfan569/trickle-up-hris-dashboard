@@ -20,18 +20,56 @@ class CompanyFormController extends Controller
 {
     private const TYPES = ['text', 'textarea', 'number', 'email', 'phone', 'date', 'dropdown', 'multi_select', 'checkbox', 'radio', 'file_upload', 'heading', 'paragraph', 'divider', 'signature'];
 
-    public function index()
+    public function index(Request $request)
     {
-        $forms = CompanyForm::withCount(['fields', 'submissions'])
+        $query = CompanyForm::withCount(['fields', 'submissions'])
             ->with('assignments')
-            ->latest()
-            ->get()
+            ->latest();
+
+        // Month filter (YYYY-MM) on when the form was created.
+        $month = $request->input('month');
+        if ($month && preg_match('/^\d{4}-\d{2}$/', $month)) {
+            $start = \Carbon\Carbon::createFromFormat('Y-m', $month)->startOfMonth();
+            $query->whereBetween('created_at', [$start->copy()->startOfMonth(), $start->copy()->endOfMonth()]);
+        } else {
+            $month = null;
+        }
+
+        $forms = $query->get()
             ->each(function ($form) {
                 $form->assigned_count = $form->getAssignedUsersFor()->count();
                 $form->submitted_count = $form->submissions()->where('status', 'submitted')->count();
             });
 
-        return view('company-forms.index', compact('forms'));
+        return view('company-forms.index', compact('forms', 'month'));
+    }
+
+    /** Admin: archived (soft-deleted) forms — restore or delete permanently. */
+    public function archived()
+    {
+        $forms = CompanyForm::onlyTrashed()->withCount(['fields', 'submissions'])
+            ->latest('deleted_at')
+            ->get();
+
+        return view('company-forms.archived', compact('forms'));
+    }
+
+    /** Admin: restore an archived form back to the active list. */
+    public function restore(int $companyForm)
+    {
+        $form = CompanyForm::onlyTrashed()->findOrFail($companyForm);
+        $form->restore();
+
+        return back()->with('success', 'Form restored.');
+    }
+
+    /** Admin: permanently delete an archived form (and its dependents). */
+    public function forceDelete(int $companyForm)
+    {
+        $form = CompanyForm::onlyTrashed()->findOrFail($companyForm);
+        $form->forceDelete();
+
+        return redirect()->route('company-forms.archived')->with('success', 'Form permanently deleted.');
     }
 
     public function store(Request $request)
@@ -426,7 +464,7 @@ class CompanyFormController extends Controller
     {
         $companyForm->delete();
 
-        return redirect()->route('company-forms.index')->with('success', 'Form deleted.');
+        return redirect()->route('company-forms.index')->with('success', 'Form archived — you can restore it anytime from the Archive.');
     }
 
     // ---------------------------------------------------------------------

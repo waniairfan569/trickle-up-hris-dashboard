@@ -463,6 +463,7 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
 
         // Company Forms — dynamic form builder (admin)
         Route::get('company-forms', [\App\Http\Controllers\CompanyFormController::class, 'index'])->name('company-forms.index');
+        Route::get('company-forms/archived', [\App\Http\Controllers\CompanyFormController::class, 'archived'])->name('company-forms.archived');
         Route::post('company-forms', [\App\Http\Controllers\CompanyFormController::class, 'store'])->name('company-forms.store');
         Route::get('company-forms/{companyForm}/builder', [\App\Http\Controllers\CompanyFormController::class, 'builder'])->name('company-forms.builder');
         Route::get('company-forms/{companyForm}/preview', [\App\Http\Controllers\CompanyFormController::class, 'preview'])->name('company-forms.preview');
@@ -480,6 +481,8 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
         Route::post('company-forms/{companyForm}/reviewers', [\App\Http\Controllers\CompanyFormController::class, 'assignReviewer'])->name('company-forms.reviewers.add');
         Route::delete('company-forms/{companyForm}/reviewers/{user}', [\App\Http\Controllers\CompanyFormController::class, 'removeReviewer'])->name('company-forms.reviewers.remove');
         Route::delete('company-forms/{companyForm}', [\App\Http\Controllers\CompanyFormController::class, 'destroy'])->name('company-forms.destroy');
+        Route::post('company-forms/{companyForm}/restore', [\App\Http\Controllers\CompanyFormController::class, 'restore'])->name('company-forms.restore');
+        Route::delete('company-forms/{companyForm}/force', [\App\Http\Controllers\CompanyFormController::class, 'forceDelete'])->name('company-forms.force-delete');
 
         // Company Policies — admin (create, assign, track acknowledgments)
         Route::get('company-policies', [\App\Http\Controllers\CompanyPolicyController::class, 'index'])->name('company-policies.index');
