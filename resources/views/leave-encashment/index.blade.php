@@ -32,10 +32,21 @@
                 <option value="all">All policies</option>
                 @foreach($policies as $p)<option value="{{ $p->id }}" @selected(request('policy_id') == $p->id)>{{ $p->name }}</option>@endforeach
             </select>
-            <a href="{{ route('leave-encashments.export', array_filter(['year' => $year, 'status' => request('status'), 'policy_id' => request('policy_id')])) }}"
-               class="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700">
-                <i data-lucide="download" class="h-4 w-4"></i> Download Excel
-            </a>
+            <select name="period" onchange="this.form.submit()" title="Filter by when records were processed" class="rounded-xl border border-slate-300 px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-600 dark:text-white">
+                <option value="all" @selected(($period ?? 'all') === 'all')>Full year</option>
+                <option value="h1" @selected(($period ?? '') === 'h1')>First half (Jan–Jun)</option>
+                <option value="h2" @selected(($period ?? '') === 'h2')>Second half (Jul–Dec)</option>
+                @foreach(range(1,12) as $m)
+                    @php $mm = str_pad($m, 2, '0', STR_PAD_LEFT); @endphp
+                    <option value="{{ $mm }}" @selected(($period ?? '') === $mm)>{{ \Carbon\Carbon::create()->month($m)->format('F') }}</option>
+                @endforeach
+            </select>
+            @php $exportParams = array_filter(['year' => $year, 'status' => request('status'), 'policy_id' => request('policy_id'), 'period' => ($period ?? null) !== 'all' ? ($period ?? null) : null]); @endphp
+            <div class="inline-flex rounded-xl border border-slate-300 overflow-hidden dark:border-slate-600" x-data>
+                <a href="{{ route('leave-encashments.export', $exportParams) }}" class="inline-flex items-center gap-1.5 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 border-r border-slate-200 dark:border-slate-600"><i data-lucide="sheet" class="h-4 w-4"></i> Excel</a>
+                <a href="{{ route('leave-encashments.export-pdf', $exportParams) }}" class="inline-flex items-center gap-1.5 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 border-r border-slate-200 dark:border-slate-600"><i data-lucide="file-down" class="h-4 w-4"></i> PDF</a>
+                <a href="{{ route('leave-encashments.export-pdf', $exportParams + ['preview' => 1]) }}" target="_blank" class="inline-flex items-center gap-1.5 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"><i data-lucide="eye" class="h-4 w-4"></i> Preview</a>
+            </div>
         </form>
     </div>
 

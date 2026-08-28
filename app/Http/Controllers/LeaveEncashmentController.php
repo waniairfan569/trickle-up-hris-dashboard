@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Exports\LeaveEncashmentExport;
 use App\Models\LeaveEncashmentRecord;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Maatwebsite\Excel\Facades\Excel;
@@ -15,20 +16,10 @@ class LeaveEncashmentController extends Controller
     {
         $years = LeaveEncashmentRecord::select('renewal_year')->distinct()
             ->orderByDesc('renewal_year')->pluck('renewal_year');
-        $year = (int) ($request->get('year') ?: ($years->first() ?: now()->year));
+        $year = $this->resolveYear($request, $years);
+        $period = $this->normalizePeriod($request->get('period'));
 
-        $query = LeaveEncashmentRecord::with(['employee.department', 'policy', 'processedBy'])
-            ->where('renewal_year', $year)
-            ->latest();
-
-        if ($request->filled('status') && $request->status !== 'all') {
-            $query->where('status', $request->status);
-        }
-        if ($request->filled('policy_id') && $request->policy_id !== 'all') {
-            $query->where('policy_id', $request->policy_id);
-        }
-
-        $records = $query->get();
+        $records = $this->filteredQuery($request, $year, $period)->latest()->get();
 
         $all = LeaveEncashmentRecord::where('renewal_year', $year)->get();
         $summary = [
@@ -40,24 +31,126 @@ class LeaveEncashmentController extends Controller
 
         $policies = \App\Models\TimeOffPolicy::orderBy('name')->get(['id', 'name']);
 
-        return view('leave-encashment.index', compact('records', 'years', 'year', 'summary', 'policies'));
+        return view('leave-encashment.index', compact('records', 'years', 'year', 'summary', 'policies', 'period'));
     }
 
-    /** Download the year's encashment records (respecting status/policy filters) as Excel. */
+    /** Download the records (respecting year/period/status/policy filters) as Excel. */
     public function export(Request $request)
     {
-        $year = (int) ($request->get('year') ?: (LeaveEncashmentRecord::max('renewal_year') ?: now()->year));
+        $year = $this->resolveYear($request);
+        $period = $this->normalizePeriod($request->get('period'));
+        $records = $this->filteredQuery($request, $year, $period)->latest()->get();
 
-        $records = LeaveEncashmentRecord::with(['employee.department', 'policy', 'processedBy'])
-            ->where('renewal_year', $year)
-            ->when($request->filled('status') && $request->status !== 'all', fn ($q) => $q->where('status', $request->status))
-            ->when($request->filled('policy_id') && $request->policy_id !== 'all', fn ($q) => $q->where('policy_id', $request->policy_id))
-            ->latest()
-            ->get();
+        return Excel::download(new LeaveEncashmentExport($records), $this->fileStem($year, $period) . '.xlsx');
+    }
 
-        $filename = 'leave-encashments-' . $year . '.xlsx';
+    /** Download (or ?preview=1 to open inline) the records as a PDF report. */
+    public function exportPdf(Request $request)
+    {
+        @ini_set('memory_limit', '512M');
+        @set_time_limit(120);
 
-        return Excel::download(new LeaveEncashmentExport($records), $filename);
+        $year = $this->resolveYear($request);
+        $period = $this->normalizePeriod($request->get('period'));
+        $records = $this->filteredQuery($request, $year, $period)->latest()->get();
+
+        $data = [
+            'records' => $records,
+            'year' => $year,
+            'periodLabel' => $this->periodLabel($period),
+            'status' => $request->get('status', 'all'),
+            'policyName' => $request->filled('policy_id') && $request->policy_id !== 'all'
+                ? optional(\App\Models\TimeOffPolicy::find($request->policy_id))->name : null,
+            'totals' => [
+                'count' => $records->count(),
+                'amount' => $records->sum('encashment_amount'),
+                'days_encashed' => $records->sum('days_to_encash'),
+                'days_lapsed' => $records->sum('days_lapsed'),
+                'currency' => optional($records->first())->currency ?: 'PKR',
+            ],
+            'generatedAt' => now(),
+        ];
+
+        $pdf = Pdf::loadView('leave-encashment.pdf', $data)->setPaper('a4', 'landscape');
+        $content = $pdf->output();
+        while (ob_get_level() > 0) {
+            ob_end_clean();
+        }
+
+        $disposition = $request->boolean('preview') ? 'inline' : 'attachment';
+
+        return response($content, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => $disposition . '; filename="' . $this->fileStem($year, $period) . '.pdf"',
+        ]);
+    }
+
+    // --- Filter helpers (shared by index + both exports) ---------------------
+
+    private function resolveYear(Request $request, $years = null): int
+    {
+        $fallback = ($years && $years->first()) ?: (LeaveEncashmentRecord::max('renewal_year') ?: now()->year);
+
+        return (int) ($request->get('year') ?: $fallback);
+    }
+
+    /** Valid period keys: all | h1 | h2 | 01..12 (month of processed_at). */
+    private function normalizePeriod(?string $period): string
+    {
+        if (in_array($period, ['h1', 'h2'], true)) {
+            return $period;
+        }
+        if (is_numeric($period) && (int) $period >= 1 && (int) $period <= 12) {
+            return str_pad((string) (int) $period, 2, '0', STR_PAD_LEFT);
+        }
+
+        return 'all';
+    }
+
+    private function periodLabel(string $period): string
+    {
+        if ($period === 'h1') {
+            return 'First half (Jan–Jun)';
+        }
+        if ($period === 'h2') {
+            return 'Second half (Jul–Dec)';
+        }
+        if (ctype_digit($period)) {
+            return \Carbon\Carbon::createFromFormat('m', $period)->format('F');
+        }
+
+        return 'Full year';
+    }
+
+    private function filteredQuery(Request $request, int $year, string $period)
+    {
+        $query = LeaveEncashmentRecord::with(['employee.department', 'policy', 'processedBy'])
+            ->where('renewal_year', $year);
+
+        if ($request->filled('status') && $request->status !== 'all') {
+            $query->where('status', $request->status);
+        }
+        if ($request->filled('policy_id') && $request->policy_id !== 'all') {
+            $query->where('policy_id', $request->policy_id);
+        }
+
+        // Half-year / month slices are by when the record was processed.
+        if ($period === 'h1') {
+            $query->whereNotNull('processed_at')->whereMonth('processed_at', '<=', 6);
+        } elseif ($period === 'h2') {
+            $query->whereNotNull('processed_at')->whereMonth('processed_at', '>=', 7);
+        } elseif (ctype_digit($period)) {
+            $query->whereNotNull('processed_at')->whereMonth('processed_at', (int) $period);
+        }
+
+        return $query;
+    }
+
+    private function fileStem(int $year, string $period): string
+    {
+        $suffix = $period === 'all' ? '' : '-' . Str::slug($this->periodLabel($period));
+
+        return 'leave-encashments-' . $year . $suffix;
     }
 
     public function approve(Request $request, LeaveEncashmentRecord $record)

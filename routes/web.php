@@ -567,6 +567,7 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
         Route::post('leave-year-settings/{leaveYearSetting}/renew', [\App\Http\Controllers\LeaveYearSettingsController::class, 'manualRenewal'])->name('leave-year-settings.renew');
         Route::get('leave-encashments', [\App\Http\Controllers\LeaveEncashmentController::class, 'index'])->name('leave-encashments.index');
         Route::get('leave-encashments/export', [\App\Http\Controllers\LeaveEncashmentController::class, 'export'])->name('leave-encashments.export');
+        Route::get('leave-encashments/export-pdf', [\App\Http\Controllers\LeaveEncashmentController::class, 'exportPdf'])->name('leave-encashments.export-pdf');
         Route::post('leave-encashments/mark-paid', [\App\Http\Controllers\LeaveEncashmentController::class, 'markPaid'])->name('leave-encashments.mark-paid');
         Route::post('leave-encashments/{record}/approve', [\App\Http\Controllers\LeaveEncashmentController::class, 'approve'])->name('leave-encashments.approve');
         Route::post('leave-encashments/{record}/reject', [\App\Http\Controllers\LeaveEncashmentController::class, 'reject'])->name('leave-encashments.reject');
