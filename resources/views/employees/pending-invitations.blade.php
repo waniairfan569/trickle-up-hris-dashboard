@@ -154,11 +154,19 @@
         </div>
     </div>
 
-    {{-- Invitation history — accepted invitations (who joined, when, invited by) --}}
-    <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 dark:bg-slate-800 dark:border-slate-700/80 overflow-hidden">
-        <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700/60 flex items-center justify-between">
+    {{-- Invitation history — full record (sent / accepted / expired) --}}
+    <div id="history" class="bg-white rounded-2xl shadow-sm border border-slate-200/80 dark:bg-slate-800 dark:border-slate-700/80 overflow-hidden scroll-mt-6">
+        <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <h2 class="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2"><i data-lucide="history" class="h-4 w-4 text-slate-400"></i> Invitation history</h2>
-            <span class="text-xs font-medium text-slate-400">{{ $history->total() }} accepted</span>
+            <div class="flex flex-wrap items-center gap-1.5">
+                @foreach(['all' => 'All', 'accepted' => 'Accepted', 'pending' => 'Pending', 'expired' => 'Expired'] as $key => $label)
+                    <a href="{{ route('employees.pending-invitations', array_filter(['invite_status' => $key === 'all' ? null : $key])) }}#history"
+                       class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold transition {{ ($inviteStatus ?? 'all') === $key ? 'bg-brand-600 text-slate-900' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300' }}">
+                        {{ $label }}
+                        <span class="rounded-full px-1.5 text-[10px] {{ ($inviteStatus ?? 'all') === $key ? 'bg-black/10' : 'bg-white/70 dark:bg-slate-800/70' }}">{{ $inviteCounts[$key] ?? 0 }}</span>
+                    </a>
+                @endforeach
+            </div>
         </div>
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700/80">
@@ -174,10 +182,19 @@
                 </thead>
                 <tbody class="divide-y divide-slate-200 bg-white dark:divide-slate-700/80 dark:bg-slate-800">
                     @forelse($history as $user)
+                        @php
+                            $iStatus = $user->invitation_accepted_at ? 'accepted'
+                                : (($user->invitation_expires_at && $user->invitation_expires_at->isPast()) ? 'expired' : 'pending');
+                            $iBadge = [
+                                'accepted' => ['Accepted', 'check', 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400', 'from-emerald-400 to-emerald-600'],
+                                'pending'  => ['Pending',  'clock', 'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400', 'from-amber-400 to-amber-600'],
+                                'expired'  => ['Expired',  'x',     'bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400', 'from-slate-400 to-slate-600'],
+                            ][$iStatus];
+                        @endphp
                         <tr class="hover:bg-slate-50 transition-colors dark:hover:bg-slate-700/50">
                             <td class="whitespace-nowrap py-3.5 pl-6 pr-3">
                                 <div class="flex items-center gap-3">
-                                    <div class="h-9 w-9 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-white text-xs font-bold shadow-sm">{{ $user->initials }}</div>
+                                    <div class="h-9 w-9 rounded-xl bg-gradient-to-br {{ $iBadge[3] }} flex items-center justify-center text-white text-xs font-bold shadow-sm">{{ $user->initials }}</div>
                                     <div>
                                         <div class="text-sm font-bold text-slate-800 dark:text-white">{{ $user->full_name }}</div>
                                         <div class="text-xs text-slate-400">{{ $user->email }}</div>
@@ -189,7 +206,7 @@
                             <td class="whitespace-nowrap px-3 py-3.5 text-sm text-slate-500 dark:text-slate-400" title="{{ $user->invitation_sent_at }}">{{ optional($user->invitation_sent_at)->format('d M Y') ?? '—' }}</td>
                             <td class="whitespace-nowrap px-3 py-3.5 text-sm text-slate-600 dark:text-slate-300" title="{{ $user->invitation_accepted_at }}">{{ optional($user->invitation_accepted_at)->format('d M Y') ?? '—' }}</td>
                             <td class="whitespace-nowrap px-3 py-3.5">
-                                <span class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400"><i data-lucide="check" class="h-3 w-3"></i> Accepted</span>
+                                <span class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold {{ $iBadge[2] }}"><i data-lucide="{{ $iBadge[1] }}" class="h-3 w-3"></i> {{ $iBadge[0] }}</span>
                             </td>
                         </tr>
                     @empty
@@ -197,8 +214,8 @@
                             <td colspan="6" class="px-6 py-12 text-center">
                                 <div class="flex flex-col items-center justify-center">
                                     <div class="h-12 w-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-3"><i data-lucide="history" class="h-6 w-6 text-slate-400"></i></div>
-                                    <h3 class="text-sm font-bold text-slate-900 dark:text-white">No invitation history yet</h3>
-                                    <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Once invited employees accept and set up their accounts, they'll appear here.</p>
+                                    <h3 class="text-sm font-bold text-slate-900 dark:text-white">No {{ ($inviteStatus ?? 'all') !== 'all' ? $inviteStatus . ' ' : '' }}invitations</h3>
+                                    <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Every invitation sent — accepted, still pending, or expired — is recorded here.</p>
                                 </div>
                             </td>
                         </tr>

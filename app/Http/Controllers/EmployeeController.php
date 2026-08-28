@@ -140,16 +140,34 @@ class EmployeeController extends Controller
             })
             ->get();
 
-        // Invitation history — every invitation that has since been accepted, so
-        // there's a record of who was invited, by whom, and when they joined.
+        // Invitation history — a record of every invitation ever sent, with its
+        // status (accepted / still pending / expired). Filterable.
+        $now = now();
+        $base = User::whereNotNull('invitation_sent_at');
+        $inviteCounts = [
+            'all' => (clone $base)->count(),
+            'accepted' => (clone $base)->whereNotNull('invitation_accepted_at')->count(),
+            'pending' => (clone $base)->whereNull('invitation_accepted_at')
+                ->where(fn ($q) => $q->whereNull('invitation_expires_at')->orWhere('invitation_expires_at', '>=', $now))->count(),
+            'expired' => (clone $base)->whereNull('invitation_accepted_at')
+                ->whereNotNull('invitation_expires_at')->where('invitation_expires_at', '<', $now)->count(),
+        ];
+
+        $inviteStatus = in_array($request->get('invite_status'), ['accepted', 'pending', 'expired'], true)
+            ? $request->get('invite_status') : 'all';
+
         $history = User::with(['department', 'invitedBy'])
             ->whereNotNull('invitation_sent_at')
-            ->whereNotNull('invitation_accepted_at')
-            ->orderByDesc('invitation_accepted_at')
+            ->when($inviteStatus === 'accepted', fn ($q) => $q->whereNotNull('invitation_accepted_at'))
+            ->when($inviteStatus === 'pending', fn ($q) => $q->whereNull('invitation_accepted_at')
+                ->where(fn ($qq) => $qq->whereNull('invitation_expires_at')->orWhere('invitation_expires_at', '>=', $now)))
+            ->when($inviteStatus === 'expired', fn ($q) => $q->whereNull('invitation_accepted_at')
+                ->whereNotNull('invitation_expires_at')->where('invitation_expires_at', '<', $now))
+            ->orderByDesc('invitation_sent_at')
             ->paginate(15, ['*'], 'history')
             ->withQueryString();
 
-        return view('employees.pending-invitations', compact('pendingUsers', 'history'));
+        return view('employees.pending-invitations', compact('pendingUsers', 'history', 'inviteCounts', 'inviteStatus'));
     }
 
     /**
