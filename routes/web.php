@@ -247,6 +247,14 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
     Route::middleware('role:super_admin,hr_admin')->group(function () {
         Route::get('reports/generate', [\App\Http\Controllers\ReportGeneratorController::class, 'index'])->name('reports.generate');
         Route::post('reports/generate', [\App\Http\Controllers\ReportGeneratorController::class, 'generate'])->name('reports.generate.submit');
+
+        // Generation history — re-preview / re-download past reports + manage the log.
+        Route::get('reports/history', [\App\Http\Controllers\ReportGeneratorController::class, 'history'])->name('reports.history');
+        Route::delete('reports/history', [\App\Http\Controllers\ReportGeneratorController::class, 'historyClear'])->name('reports.history.clear');
+        Route::get('reports/history/{generation}/preview', [\App\Http\Controllers\ReportGeneratorController::class, 'historyShow'])->name('reports.history.preview');
+        Route::get('reports/history/{generation}/download', [\App\Http\Controllers\ReportGeneratorController::class, 'historyDownload'])->name('reports.history.download');
+        Route::put('reports/history/{generation}', [\App\Http\Controllers\ReportGeneratorController::class, 'historyUpdate'])->name('reports.history.update');
+        Route::delete('reports/history/{generation}', [\App\Http\Controllers\ReportGeneratorController::class, 'historyDestroy'])->name('reports.history.destroy');
     });
 
     // HR documents (Lateness Review, Return to Work, …): build templates, fill
