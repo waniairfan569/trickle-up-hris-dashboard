@@ -95,17 +95,31 @@
     <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm dark:bg-slate-800 dark:border-slate-700 overflow-hidden">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-5 py-4 border-b border-slate-100 dark:border-slate-700/60">
             <h2 class="text-sm font-bold text-slate-700 dark:text-slate-200">Decision history</h2>
-            <form method="GET" action="{{ route('equipment.admin') }}" class="flex items-center gap-2">
-                @if($sort !== 'newest')<input type="hidden" name="sort" value="{{ $sort }}">@endif
-                <div class="relative">
-                    <i data-lucide="search" class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400"></i>
-                    <input type="search" name="q" value="{{ $search }}" placeholder="Search employee or equipment…"
-                           class="w-full sm:w-64 rounded-xl border border-slate-300 pl-9 pr-3 py-2 text-xs shadow-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+            <div class="flex flex-wrap items-center gap-2">
+                <form method="GET" action="{{ route('equipment.admin') }}" class="flex flex-wrap items-center gap-2">
+                    @if($sort !== 'newest')<input type="hidden" name="sort" value="{{ $sort }}">@endif
+                    <div class="relative">
+                        <i data-lucide="search" class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400"></i>
+                        <input type="search" name="q" value="{{ $search }}" placeholder="Search employee or equipment…"
+                               class="w-full sm:w-52 rounded-xl border border-slate-300 pl-9 pr-3 py-2 text-xs shadow-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                    </div>
+                    <div class="flex items-center gap-1 text-xs">
+                        <span class="text-slate-400 font-semibold">From</span>
+                        <input type="date" name="date_from" value="{{ $dateFrom }}" onchange="this.form.submit()" class="rounded-xl border border-slate-300 px-2 py-1.5 text-xs dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                        <span class="text-slate-400 font-semibold">To</span>
+                        <input type="date" name="date_to" value="{{ $dateTo }}" onchange="this.form.submit()" class="rounded-xl border border-slate-300 px-2 py-1.5 text-xs dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                    </div>
+                    @if($search !== '' || $dateFrom || $dateTo)
+                        <a href="{{ route('equipment.admin', $sort !== 'newest' ? ['sort' => $sort] : []) }}" class="text-xs font-semibold text-slate-400 hover:text-rose-600 dark:hover:text-rose-400">Clear</a>
+                    @endif
+                </form>
+                @php $exportParams = array_filter(['q' => $search, 'date_from' => $dateFrom, 'date_to' => $dateTo]); @endphp
+                <div class="inline-flex rounded-xl border border-slate-300 overflow-hidden dark:border-slate-600">
+                    <a href="{{ route('equipment.export', $exportParams) }}" title="Download Excel" class="inline-flex items-center gap-1 bg-white px-2.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 border-r border-slate-200 dark:border-slate-600"><i data-lucide="sheet" class="h-4 w-4"></i> Excel</a>
+                    <a href="{{ route('equipment.export-pdf', $exportParams) }}" title="Download PDF" class="inline-flex items-center gap-1 bg-white px-2.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 border-r border-slate-200 dark:border-slate-600"><i data-lucide="file-down" class="h-4 w-4"></i> PDF</a>
+                    <a href="{{ route('equipment.export-pdf', $exportParams + ['preview' => 1]) }}" target="_blank" title="Preview" class="inline-flex items-center gap-1 bg-white px-2.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"><i data-lucide="eye" class="h-4 w-4"></i> Preview</a>
                 </div>
-                @if($search !== '')
-                    <a href="{{ route('equipment.admin', $sort !== 'newest' ? ['sort' => $sort] : []) }}" class="text-xs font-semibold text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">Clear</a>
-                @endif
-            </form>
+            </div>
         </div>
 
         @if($decided->total())

@@ -2,11 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\EquipmentRequestsExport;
 use App\Models\EquipmentRequest;
 use App\Models\User;
 use App\Notifications\EquipmentRequestedNotification;
 use App\Notifications\EquipmentRequestReviewedNotification;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use Maatwebsite\Excel\Facades\Excel;
 
 class EquipmentRequestController extends Controller
 {
@@ -104,10 +107,15 @@ class EquipmentRequestController extends Controller
             }
         };
 
+        $dateFrom = $request->get('date_from');
+        $dateTo = $request->get('date_to');
+
         $sort = in_array($request->get('sort'), ['newest', 'oldest', 'employee', 'equipment'], true) ? $request->get('sort') : 'newest';
         $decided = EquipmentRequest::whereIn('status', ['approved', 'rejected'])
             ->with(['employee', 'reviewer'])
             ->tap($applySearch)
+            ->when($dateFrom, fn ($q) => $q->whereDate('created_at', '>=', $dateFrom))
+            ->when($dateTo, fn ($q) => $q->whereDate('created_at', '<=', $dateTo))
             ->when($sort === 'oldest', fn ($q) => $q->oldest('reviewed_at'))
             ->when($sort === 'equipment', fn ($q) => $q->orderBy('equipment_name'))
             ->when($sort === 'employee', fn ($q) => $q->orderBy(User::select('first_name')->whereColumn('users.id', 'equipment_requests.user_id')))
@@ -115,7 +123,74 @@ class EquipmentRequestController extends Controller
             ->paginate(20, ['*'], 'decided')
             ->withQueryString();
 
-        return view('equipment.admin', compact('pending', 'decided', 'search', 'sort'));
+        return view('equipment.admin', compact('pending', 'decided', 'search', 'sort', 'dateFrom', 'dateTo'));
+    }
+
+    /**
+     * The report dataset for exports: every request in the chosen date range
+     * (by request date) + optional status + search — pending and decided.
+     */
+    private function reportQuery(Request $request)
+    {
+        $search = trim((string) $request->get('q', ''));
+
+        return EquipmentRequest::with(['employee.department', 'reviewer'])
+            ->when($request->filled('date_from'), fn ($q) => $q->whereDate('created_at', '>=', $request->date_from))
+            ->when($request->filled('date_to'), fn ($q) => $q->whereDate('created_at', '<=', $request->date_to))
+            ->when($request->filled('status') && $request->status !== 'all', fn ($q) => $q->where('status', $request->status))
+            ->when($search !== '', fn ($q) => $q->where(function ($qq) use ($search) {
+                $qq->where('equipment_name', 'like', "%{$search}%")
+                    ->orWhereHas('employee', fn ($e) => $e->where('first_name', 'like', "%{$search}%")->orWhere('last_name', 'like', "%{$search}%"));
+            }))
+            ->latest('created_at');
+    }
+
+    private function reportStem(Request $request): string
+    {
+        $from = $request->get('date_from');
+        $to = $request->get('date_to');
+        $range = ($from || $to) ? '-' . ($from ?: 'start') . '_to_' . ($to ?: 'now') : '';
+
+        return 'equipment-requests' . $range;
+    }
+
+    /** Admin: download the requests (date range / status / search) as Excel. */
+    public function export(Request $request)
+    {
+        abort_unless($request->user() && $request->user()->isAdmin(), 403);
+
+        return Excel::download(new EquipmentRequestsExport($this->reportQuery($request)->get()), $this->reportStem($request) . '.xlsx');
+    }
+
+    /** Admin: download (or ?preview=1 to open inline) the requests as a PDF. */
+    public function exportPdf(Request $request)
+    {
+        abort_unless($request->user() && $request->user()->isAdmin(), 403);
+
+        @ini_set('memory_limit', '512M');
+        @set_time_limit(120);
+
+        $requests = $this->reportQuery($request)->get();
+
+        $pdf = Pdf::loadView('equipment.pdf', [
+            'requests' => $requests,
+            'dateFrom' => $request->get('date_from'),
+            'dateTo' => $request->get('date_to'),
+            'status' => $request->get('status', 'all'),
+            'generatedAt' => now(),
+        ])->setPaper('a4', 'landscape');
+
+        $content = $pdf->output();
+        while (ob_get_level() > 0) {
+            ob_end_clean();
+        }
+
+        $disposition = $request->boolean('preview') ? 'inline' : 'attachment';
+
+        return response($content, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => $disposition . '; filename="' . $this->reportStem($request) . '.pdf"',
+        ]);
     }
 
     /** Admin: approve a request. */

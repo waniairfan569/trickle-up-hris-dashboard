@@ -137,6 +137,8 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
     Route::post('equipment', [\App\Http\Controllers\EquipmentRequestController::class, 'store'])->name('equipment.store');
     Route::middleware('role:super_admin,hr_admin')->group(function () {
         Route::get('admin/equipment', [\App\Http\Controllers\EquipmentRequestController::class, 'adminIndex'])->name('equipment.admin');
+        Route::get('admin/equipment/export', [\App\Http\Controllers\EquipmentRequestController::class, 'export'])->name('equipment.export');
+        Route::get('admin/equipment/export-pdf', [\App\Http\Controllers\EquipmentRequestController::class, 'exportPdf'])->name('equipment.export-pdf');
         Route::post('admin/equipment/{equipmentRequest}/approve', [\App\Http\Controllers\EquipmentRequestController::class, 'approve'])->name('equipment.approve');
         Route::post('admin/equipment/{equipmentRequest}/reject', [\App\Http\Controllers\EquipmentRequestController::class, 'reject'])->name('equipment.reject');
         Route::delete('admin/equipment/{equipmentRequest}', [\App\Http\Controllers\EquipmentRequestController::class, 'destroy'])->name('equipment.destroy');
