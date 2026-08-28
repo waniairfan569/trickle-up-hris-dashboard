@@ -257,6 +257,18 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
         Route::delete('reports/history/{generation}', [\App\Http\Controllers\ReportGeneratorController::class, 'historyDestroy'])->name('reports.history.destroy');
     });
 
+    // Linked Sheets — a library of Google Sheet / spreadsheet links. Viewing is
+    // open to any authenticated user (each row is visibility-checked in-controller);
+    // adding / editing / removing is admin-only.
+    Route::get('sheets', [\App\Http\Controllers\LinkedSheetController::class, 'index'])->name('sheets.index');
+    Route::get('sheets/{sheet}/open', [\App\Http\Controllers\LinkedSheetController::class, 'open'])->name('sheets.open');
+    Route::get('sheets/{sheet}/preview', [\App\Http\Controllers\LinkedSheetController::class, 'preview'])->name('sheets.preview');
+    Route::middleware('role:super_admin,hr_admin')->group(function () {
+        Route::post('sheets', [\App\Http\Controllers\LinkedSheetController::class, 'store'])->name('sheets.store');
+        Route::put('sheets/{sheet}', [\App\Http\Controllers\LinkedSheetController::class, 'update'])->name('sheets.update');
+        Route::delete('sheets/{sheet}', [\App\Http\Controllers\LinkedSheetController::class, 'destroy'])->name('sheets.destroy');
+    });
+
     // HR documents (Lateness Review, Return to Work, …): build templates, fill
     // per employee with attendance prefill, sign in-app, keep on file as history.
     Route::middleware('role:super_admin,hr_admin')->prefix('hr-documents')->name('hr-documents.')->group(function () {
