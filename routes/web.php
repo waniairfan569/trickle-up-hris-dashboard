@@ -313,8 +313,8 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
     Route::resource('performance', PerformanceController::class)->only(['index', 'show']);
 
     // 5. HR Profile Templates (Dynamic Profiles)
-    Route::post('profile-templates/assign', [ProfileTemplateController::class, 'assign'])->name('profile-templates.assign');
-    Route::post('profile-templates/unassign', [ProfileTemplateController::class, 'unassign'])->name('profile-templates.unassign');
+    Route::post('profile-templates/assign', [ProfileTemplateController::class, 'assign'])->name('profile-templates.assign')->middleware('role:super_admin,hr_admin');
+    Route::post('profile-templates/unassign', [ProfileTemplateController::class, 'unassign'])->name('profile-templates.unassign')->middleware('role:super_admin,hr_admin');
     Route::post('profile-templates/{profile_template}/sections', [ProfileTemplateController::class, 'storeSection'])->name('profile-templates.sections.store')->middleware('role:super_admin,hr_admin');
     Route::put('profile-sections/{section}', [ProfileTemplateController::class, 'updateSection'])->name('profile-sections.update')->middleware('role:super_admin,hr_admin');
     Route::delete('profile-sections/{section}', [ProfileTemplateController::class, 'destroySection'])->name('profile-sections.destroy')->middleware('role:super_admin,hr_admin');
