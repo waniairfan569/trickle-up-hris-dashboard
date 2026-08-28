@@ -89,13 +89,19 @@
                 </tr></thead>
                 <tbody class="divide-y divide-slate-100 dark:divide-slate-700/60">
                     @forelse($records as $r)
-                        <tr x-data="{ showReject: false }">
-                            <td class="px-4 py-2.5">
-                                @if(in_array($r->status, ['pending', 'approved'], true))
-                                    <input type="checkbox" :checked="selected.includes({{ $r->id }})"
-                                           @change="selected.includes({{ $r->id }}) ? selected = selected.filter(i => i !== {{ $r->id }}) : selected.push({{ $r->id }})"
-                                           class="rounded border-slate-300 text-brand-600">
-                                @endif
+                        <tr x-data="{ showReject: false, open: false }" :class="open ? 'bg-slate-50/60 dark:bg-slate-900/30' : ''">
+                            <td class="px-4 py-2.5 whitespace-nowrap">
+                                <div class="flex items-center gap-1.5">
+                                    @if(in_array($r->status, ['pending', 'approved'], true))
+                                        <input type="checkbox" :checked="selected.includes({{ $r->id }})"
+                                               @change="selected.includes({{ $r->id }}) ? selected = selected.filter(i => i !== {{ $r->id }}) : selected.push({{ $r->id }})"
+                                               class="rounded border-slate-300 text-brand-600">
+                                    @endif
+                                    <button type="button" @click="open = !open" :aria-expanded="open" title="Full details"
+                                            class="rounded-md p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700">
+                                        <i data-lucide="chevron-down" class="h-4 w-4 transition-transform" :class="open ? 'rotate-180' : ''"></i>
+                                    </button>
+                                </div>
                             </td>
                             <td class="px-4 py-2.5 whitespace-nowrap">
                                 <span class="font-semibold text-slate-800 dark:text-slate-200">{{ optional($r->employee)->full_name }}</span>
@@ -125,6 +131,42 @@
                                         <button type="submit" class="rounded-lg bg-rose-600 px-2 py-1 text-[11px] font-bold text-white">✓</button>
                                     </form>
                                 @endif
+                            </td>
+                        </tr>
+                        {{-- Full record breakdown --}}
+                        <tr x-show="open" x-cloak>
+                            <td colspan="11" class="px-4 pb-4 pt-0 bg-slate-50/60 dark:bg-slate-900/30">
+                                @php
+                                    $cur = $r->currency;
+                                    $money = fn ($v) => $cur . ' ' . number_format((float) $v, 2);
+                                    $rule = $r->encashment_type === 'percent_of_annual'
+                                        ? $fmtD($r->encashment_value) . '% of annual allocation'
+                                        : ucfirst(str_replace('_', ' ', (string) $r->encashment_type));
+                                @endphp
+                                <div class="rounded-xl border border-slate-200 bg-white p-4 dark:bg-slate-800 dark:border-slate-700">
+                                    <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-3">Encashment breakdown — {{ optional($r->employee)->full_name }} · {{ optional($r->policy)->name }} · {{ $r->leave_year_label }}</p>
+                                    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-3 text-xs">
+                                        <div><dt class="text-slate-400">Renewal year</dt><dd class="font-semibold text-slate-800 dark:text-slate-200">{{ $r->renewal_year }}</dd></div>
+                                        <div><dt class="text-slate-400">Annual allocation</dt><dd class="font-semibold text-slate-800 dark:text-slate-200">{{ $fmtD($r->annual_allocation) }} days</dd></div>
+                                        <div><dt class="text-slate-400">Pro-rata</dt><dd class="font-semibold text-slate-800 dark:text-slate-200">{{ $r->is_pro_rata ? 'Yes · ' . $r->pro_rata_months . ' month(s)' : 'No (full year)' }}</dd></div>
+                                        <div><dt class="text-slate-400">Days remaining</dt><dd class="font-semibold text-slate-800 dark:text-slate-200">{{ $fmtD($r->days_remaining_before_renewal) }}</dd></div>
+                                        <div><dt class="text-slate-400">Encashment rule</dt><dd class="font-semibold text-slate-800 dark:text-slate-200">{{ $rule }}</dd></div>
+                                        <div><dt class="text-slate-400">Cap</dt><dd class="font-semibold text-slate-800 dark:text-slate-200">{{ $fmtD($r->encashment_cap_days) }} days</dd></div>
+                                        <div><dt class="text-slate-400">Days encashed</dt><dd class="font-semibold text-emerald-600">{{ $fmtD($r->days_to_encash) }}</dd></div>
+                                        <div><dt class="text-slate-400">Days lapsed</dt><dd class="font-semibold {{ $r->days_lapsed > 0 ? 'text-amber-600' : 'text-slate-500' }}">{{ $fmtD($r->days_lapsed) }}</dd></div>
+                                        <div><dt class="text-slate-400">Monthly salary (snapshot)</dt><dd class="font-semibold text-slate-800 dark:text-slate-200">{{ $money($r->monthly_salary_snapshot) }}</dd></div>
+                                        <div><dt class="text-slate-400">Daily rate</dt><dd class="font-semibold text-slate-800 dark:text-slate-200">{{ $money($r->daily_rate) }}</dd></div>
+                                        <div><dt class="text-slate-400">Amount</dt><dd class="font-extrabold text-slate-900 dark:text-white">{{ $r->formatted_amount }}</dd></div>
+                                        <div><dt class="text-slate-400">Status</dt><dd><span class="rounded-full px-2 py-0.5 text-[10px] font-bold {{ $r->status_badge_color }}">{{ ucfirst($r->status) }}</span></dd></div>
+                                        <div><dt class="text-slate-400">Processed by</dt><dd class="font-semibold text-slate-800 dark:text-slate-200">{{ optional($r->processedBy)->full_name ?? '—' }}</dd></div>
+                                        <div><dt class="text-slate-400">Processed at</dt><dd class="font-semibold text-slate-800 dark:text-slate-200">{{ optional($r->processed_at)->format('d M Y H:i') ?? '—' }}</dd></div>
+                                        <div><dt class="text-slate-400">Payment date</dt><dd class="font-semibold text-slate-800 dark:text-slate-200">{{ optional($r->payment_date)->format('d M Y') ?? '—' }}</dd></div>
+                                        <div><dt class="text-slate-400">Payment reference</dt><dd class="font-semibold text-slate-800 dark:text-slate-200">{{ $r->payment_reference ?: '—' }}</dd></div>
+                                        @if($r->admin_notes)
+                                            <div class="col-span-2 sm:col-span-3 lg:col-span-4"><dt class="text-slate-400">Admin notes</dt><dd class="font-medium text-slate-700 dark:text-slate-300">{{ $r->admin_notes }}</dd></div>
+                                        @endif
+                                    </div>
+                                </div>
                             </td>
                         </tr>
                     @empty
