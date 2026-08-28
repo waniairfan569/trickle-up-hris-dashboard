@@ -12,7 +12,7 @@
 @endphp
 
 @section('content')
-<div class="max-w-6xl mx-auto space-y-6" x-data="sheetsPage(@js($departments->map(fn($d)=>['id'=>$d->id,'name'=>$d->name])->values()))">
+<div class="max-w-6xl mx-auto space-y-6" x-data="sheetsPage()">
 
     {{-- Header --}}
     <div class="flex flex-wrap items-start justify-between gap-3">
@@ -22,11 +22,9 @@
             </h1>
             <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Quick links to your Google Sheets &amp; spreadsheets — open or preview them right here.</p>
         </div>
-        @if($isAdmin)
         <button type="button" @click="openCreate()" class="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-bold text-slate-900 hover:bg-brand-400 transition">
             <i data-lucide="plus" class="h-4 w-4"></i> Add sheet
         </button>
-        @endif
     </div>
 
     @if(session('success'))
@@ -76,25 +74,12 @@
                             </span>
                             <div class="min-w-0 flex-1">
                                 <p class="font-bold text-slate-800 dark:text-white truncate">{{ $s->name }}</p>
-                                <p class="text-[11px] text-slate-400">{{ $s->provider_label }}</p>
+                                <p class="text-[11px] text-slate-400">{{ $s->provider_label }}@if($s->opens_count) · {{ $s->opens_count }} open{{ $s->opens_count === 1 ? '' : 's' }}@endif</p>
                             </div>
                         </div>
 
                         @if($s->description)
                             <p class="mt-3 text-sm text-slate-500 dark:text-slate-400 line-clamp-2">{{ $s->description }}</p>
-                        @endif
-
-                        {{-- Visibility (admin insight) --}}
-                        @if($isAdmin)
-                            <div class="mt-3 flex items-center gap-1.5 text-[11px]">
-                                @if($s->visibility==='everyone')
-                                    <span class="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 font-semibold text-slate-500 dark:bg-slate-700 dark:text-slate-300"><i data-lucide="globe" class="h-3 w-3"></i> Everyone</span>
-                                @elseif($s->visibility==='admins')
-                                    <span class="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 font-semibold text-amber-600 dark:bg-amber-500/10 dark:text-amber-400"><i data-lucide="lock" class="h-3 w-3"></i> Admins only</span>
-                                @else
-                                    <span class="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-0.5 font-semibold text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400"><i data-lucide="users" class="h-3 w-3"></i> {{ $s->departments->pluck('name')->join(', ') ?: 'Departments' }}</span>
-                                @endif
-                            </div>
                         @endif
 
                         <div class="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700/60 flex items-center gap-1.5">
@@ -106,27 +91,23 @@
                                class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700">
                                 <i data-lucide="eye" class="h-3.5 w-3.5"></i> Preview
                             </a>
-                            @if($isAdmin)
-                                <div class="ml-auto flex items-center gap-1">
-                                    <button type="button" title="Edit"
-                                            @click="openEdit({{ Illuminate\Support\Js::from([
-                                                'id' => $s->id, 'name' => $s->name, 'url' => $s->url,
-                                                'description' => $s->description, 'category' => $s->category,
-                                                'visibility' => $s->visibility,
-                                                'department_ids' => $s->departments->pluck('id'),
-                                            ]) }})"
-                                            class="inline-grid place-items-center h-7 w-7 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-brand-600 dark:hover:bg-slate-700">
-                                        <i data-lucide="pencil" class="h-3.5 w-3.5"></i>
+                            <div class="ml-auto flex items-center gap-1">
+                                <button type="button" title="Edit"
+                                        @click="openEdit({{ Illuminate\Support\Js::from([
+                                            'id' => $s->id, 'name' => $s->name, 'url' => $s->url,
+                                            'description' => $s->description, 'category' => $s->category,
+                                        ]) }})"
+                                        class="inline-grid place-items-center h-7 w-7 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-brand-600 dark:hover:bg-slate-700">
+                                    <i data-lucide="pencil" class="h-3.5 w-3.5"></i>
+                                </button>
+                                <form method="POST" action="{{ route('sheets.destroy', $s) }}" onsubmit="return confirm('Remove “{{ $s->name }}” from the library?')">
+                                    @csrf @method('DELETE')
+                                    <button type="submit" title="Remove"
+                                            class="inline-grid place-items-center h-7 w-7 rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-500/10">
+                                        <i data-lucide="trash-2" class="h-3.5 w-3.5"></i>
                                     </button>
-                                    <form method="POST" action="{{ route('sheets.destroy', $s) }}" onsubmit="return confirm('Remove “{{ $s->name }}” from the library?')">
-                                        @csrf @method('DELETE')
-                                        <button type="submit" title="Remove"
-                                                class="inline-grid place-items-center h-7 w-7 rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-500/10">
-                                            <i data-lucide="trash-2" class="h-3.5 w-3.5"></i>
-                                        </button>
-                                    </form>
-                                </div>
-                            @endif
+                                </form>
+                            </div>
                         </div>
                     </div>
                 @endforeach
@@ -136,20 +117,14 @@
         <div class="rounded-2xl border border-dashed border-slate-300 dark:border-slate-600 p-16 text-center">
             <i data-lucide="sheet" class="h-10 w-10 text-slate-300 dark:text-slate-600 mx-auto"></i>
             <p class="mt-3 font-bold text-slate-600 dark:text-slate-300">No sheets yet</p>
-            <p class="text-sm text-slate-400 mt-1">
-                @if($isAdmin) Add a Google Sheet link and it will show up here for quick access.
-                @else No sheets have been shared with you yet. @endif
-            </p>
-            @if($isAdmin)
-                <button type="button" @click="openCreate()" class="inline-flex items-center gap-2 mt-4 rounded-xl bg-brand-500 px-4 py-2 text-sm font-bold text-slate-900 hover:bg-brand-400">
-                    <i data-lucide="plus" class="h-4 w-4"></i> Add your first sheet
-                </button>
-            @endif
+            <p class="text-sm text-slate-400 mt-1">Add a Google Sheet link and it will show up here for quick access.</p>
+            <button type="button" @click="openCreate()" class="inline-flex items-center gap-2 mt-4 rounded-xl bg-brand-500 px-4 py-2 text-sm font-bold text-slate-900 hover:bg-brand-400">
+                <i data-lucide="plus" class="h-4 w-4"></i> Add your first sheet
+            </button>
         </div>
     @endforelse
 
-    {{-- Add / edit modal (admin) --}}
-    @if($isAdmin)
+    {{-- Add / edit modal --}}
     <div x-show="open" x-cloak class="fixed inset-0 z-50 grid place-items-center bg-slate-900/40 p-4 overflow-y-auto" @keydown.escape.window="open=false">
         <div class="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl dark:bg-slate-800 my-8" @click.away="open=false">
             <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
@@ -170,42 +145,18 @@
                            class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
                     <p class="text-[11px] text-slate-400 mt-1">Tip: for the in-app preview to work, share the sheet as “Anyone with the link · Viewer”.</p>
                 </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-[11px] font-bold text-slate-500 mb-1">Category</label>
-                        <input type="text" name="category" x-model="form.category" maxlength="80" list="sheet-categories" placeholder="Finance, HR…"
-                               class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
-                        <datalist id="sheet-categories">
-                            @foreach($categories as $cat)<option value="{{ $cat }}">@endforeach
-                        </datalist>
-                    </div>
-                    <div>
-                        <label class="block text-[11px] font-bold text-slate-500 mb-1">Visibility</label>
-                        <select name="visibility" x-model="form.visibility" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
-                            <option value="everyone">Everyone</option>
-                            <option value="admins">Admins only</option>
-                            <option value="departments">Specific departments</option>
-                        </select>
-                    </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-500 mb-1">Category <span class="font-normal text-slate-400">(optional)</span></label>
+                    <input type="text" name="category" x-model="form.category" maxlength="80" list="sheet-categories" placeholder="Finance, HR…"
+                           class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                    <datalist id="sheet-categories">
+                        @foreach($categories as $cat)<option value="{{ $cat }}">@endforeach
+                    </datalist>
                 </div>
                 <div>
                     <label class="block text-[11px] font-bold text-slate-500 mb-1">Description <span class="font-normal text-slate-400">(optional)</span></label>
                     <textarea name="description" x-model="form.description" rows="2" maxlength="1000" placeholder="What is this sheet for?"
                               class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white"></textarea>
-                </div>
-
-                {{-- department picker --}}
-                <div x-show="form.visibility==='departments'" x-cloak>
-                    <label class="block text-[11px] font-bold text-slate-500 mb-1">Departments that can see this</label>
-                    <div class="max-h-40 overflow-y-auto rounded-xl border border-slate-200 p-2 grid grid-cols-2 gap-1 dark:border-slate-600">
-                        <template x-for="d in departments" :key="d.id">
-                            <label class="flex items-center gap-2 rounded-lg px-2 py-1 text-sm hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer">
-                                <input type="checkbox" name="department_ids[]" :value="d.id" x-model.number="form.department_ids" class="rounded border-slate-300 text-brand-500">
-                                <span class="text-slate-700 dark:text-slate-200 truncate" x-text="d.name"></span>
-                            </label>
-                        </template>
-                        <p x-show="departments.length===0" class="col-span-2 text-xs text-slate-400 px-2 py-2">No departments defined.</p>
-                    </div>
                 </div>
 
                 <div class="flex items-center justify-end gap-2 pt-1">
@@ -215,22 +166,20 @@
             </form>
         </div>
     </div>
-    @endif
 </div>
 
 <script>
-    function sheetsPage(departments) {
-        const blank = { name: '', url: '', description: '', category: '', visibility: 'everyone', department_ids: [] };
+    function sheetsPage() {
+        const blank = { name: '', url: '', description: '', category: '' };
         return {
             open: false,
             isEdit: false,
-            departments: departments,
             storeUrl: '{{ route('sheets.store') }}',
             form: { ...blank },
             formAction: '{{ route('sheets.store') }}',
             openCreate() {
                 this.isEdit = false;
-                this.form = { ...blank, department_ids: [] };
+                this.form = { ...blank };
                 this.formAction = this.storeUrl;
                 this.open = true;
             },
@@ -241,8 +190,6 @@
                     url: sheet.url || '',
                     description: sheet.description || '',
                     category: sheet.category || '',
-                    visibility: sheet.visibility || 'everyone',
-                    department_ids: (sheet.department_ids || []).map(Number),
                 };
                 this.formAction = '{{ url('sheets') }}/' + sheet.id;
                 this.open = true;

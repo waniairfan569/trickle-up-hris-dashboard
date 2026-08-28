@@ -2,23 +2,18 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Department;
 use App\Models\LinkedSheet;
 use Illuminate\Http\Request;
 
 class LinkedSheetController extends Controller
 {
-    /** The sheets library — grouped by category, scoped to what the user may see. */
+    /** The sheets library — grouped by category. Admin-only (gated at the route). */
     public function index(Request $request)
     {
-        $user = $request->user();
-        $isAdmin = $user->isAdmin();
-
         $q        = trim((string) $request->get('q'));
         $category = $request->get('category');
 
-        $sheets = LinkedSheet::with(['departments', 'creator'])
-            ->visibleTo($user)
+        $sheets = LinkedSheet::with('creator')
             ->when($category, fn ($b) => $b->where('category', $category))
             ->when($q !== '', fn ($b) => $b->where(fn ($w) => $w
                 ->where('name', 'like', "%{$q}%")
@@ -32,24 +27,19 @@ class LinkedSheetController extends Controller
         $grouped = $sheets->groupBy(fn ($s) => $s->category ?: 'Uncategorised');
 
         // Distinct categories for the filter + the add-form datalist.
-        $categories = LinkedSheet::visibleTo($user)
-            ->whereNotNull('category')->where('category', '!=', '')
+        $categories = LinkedSheet::whereNotNull('category')->where('category', '!=', '')
             ->distinct()->orderBy('category')->pluck('category');
 
-        $departments = $isAdmin ? Department::orderBy('name')->get(['id', 'name']) : collect();
-
         return view('sheets.index', [
-            'grouped'     => $grouped,
-            'total'       => $sheets->count(),
-            'categories'  => $categories,
-            'departments' => $departments,
-            'isAdmin'     => $isAdmin,
-            'q'           => $q,
-            'category'    => $category,
+            'grouped'    => $grouped,
+            'total'      => $sheets->count(),
+            'categories' => $categories,
+            'q'          => $q,
+            'category'   => $category,
         ]);
     }
 
-    /** Register a new linked sheet (admin). */
+    /** Register a new linked sheet. */
     public function store(Request $request)
     {
         $data = $this->validated($request);
@@ -60,16 +50,13 @@ class LinkedSheetController extends Controller
             'description' => $data['description'] ?? null,
             'category'    => ($data['category'] ?? null) ?: null,
             'provider'    => LinkedSheet::detectProvider($data['url']),
-            'visibility'  => $data['visibility'],
             'created_by'  => $request->user()->id,
         ]);
-
-        $this->syncDepartments($sheet, $data);
 
         return redirect()->route('sheets.index')->with('success', "“{$sheet->name}” added.");
     }
 
-    /** Update a linked sheet (admin). */
+    /** Update a linked sheet. */
     public function update(Request $request, LinkedSheet $sheet)
     {
         $data = $this->validated($request);
@@ -80,15 +67,12 @@ class LinkedSheetController extends Controller
             'description' => $data['description'] ?? null,
             'category'    => ($data['category'] ?? null) ?: null,
             'provider'    => LinkedSheet::detectProvider($data['url']),
-            'visibility'  => $data['visibility'],
         ]);
-
-        $this->syncDepartments($sheet, $data);
 
         return redirect()->route('sheets.index')->with('success', "“{$sheet->name}” updated.");
     }
 
-    /** Remove a linked sheet (admin). Soft delete — the record is recoverable. */
+    /** Remove a linked sheet. Soft delete — the record is recoverable. */
     public function destroy(LinkedSheet $sheet)
     {
         $name = $sheet->name;
@@ -98,10 +82,8 @@ class LinkedSheetController extends Controller
     }
 
     /** Open the sheet at its source (tracks an open, then redirects). */
-    public function open(Request $request, LinkedSheet $sheet)
+    public function open(LinkedSheet $sheet)
     {
-        abort_unless($sheet->canView($request->user()), 403);
-
         $sheet->increment('opens_count');
         $sheet->forceFill(['last_opened_at' => now()])->save();
 
@@ -109,10 +91,8 @@ class LinkedSheetController extends Controller
     }
 
     /** In-app embedded preview of the sheet. */
-    public function preview(Request $request, LinkedSheet $sheet)
+    public function preview(LinkedSheet $sheet)
     {
-        abort_unless($sheet->canView($request->user()), 403);
-
         return view('sheets.preview', compact('sheet'));
     }
 
@@ -121,25 +101,12 @@ class LinkedSheetController extends Controller
     private function validated(Request $request): array
     {
         return $request->validate([
-            'name'            => 'required|string|max:150',
-            'url'             => 'required|url|max:2000',
-            'description'     => 'nullable|string|max:1000',
-            'category'        => 'nullable|string|max:80',
-            'visibility'      => 'required|in:everyone,admins,departments',
-            'department_ids'  => 'required_if:visibility,departments|array',
-            'department_ids.*'=> 'exists:departments,id',
+            'name'        => 'required|string|max:150',
+            'url'         => 'required|url|max:2000',
+            'description' => 'nullable|string|max:1000',
+            'category'    => 'nullable|string|max:80',
         ], [
-            'url.url'                     => 'Enter a valid link (including https://).',
-            'department_ids.required_if'  => 'Pick at least one department for department-restricted visibility.',
+            'url.url' => 'Enter a valid link (including https://).',
         ]);
-    }
-
-    private function syncDepartments(LinkedSheet $sheet, array $data): void
-    {
-        if (($data['visibility'] ?? null) === 'departments') {
-            $sheet->departments()->sync($data['department_ids'] ?? []);
-        } else {
-            $sheet->departments()->detach();
-        }
     }
 }

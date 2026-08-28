@@ -12,7 +12,7 @@ class LinkedSheet extends Model
 
     protected $fillable = [
         'name', 'url', 'description', 'category', 'provider',
-        'visibility', 'opens_count', 'last_opened_at', 'created_by',
+        'opens_count', 'last_opened_at', 'created_by',
     ];
 
     protected $casts = [
@@ -20,18 +20,11 @@ class LinkedSheet extends Model
         'last_opened_at' => 'datetime',
     ];
 
-    public const VISIBILITIES = ['everyone', 'admins', 'departments'];
-
     // ── Relationships ───────────────────────────────────────────────────────────
 
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');
-    }
-
-    public function departments()
-    {
-        return $this->belongsToMany(Department::class, 'linked_sheet_department');
     }
 
     // ── Provider / embed helpers ────────────────────────────────────────────────
@@ -82,41 +75,5 @@ class LinkedSheet extends Model
             'airtable' => 'Airtable',
             'link'     => 'Link',
         ][$this->provider] ?? 'Link';
-    }
-
-    // ── Visibility ──────────────────────────────────────────────────────────────
-
-    /** Can the given user see / open this sheet? */
-    public function canView(?User $user): bool
-    {
-        if (! $user) {
-            return false;
-        }
-        if ($user->isAdmin()) {
-            return true;
-        }
-
-        return match ($this->visibility) {
-            'everyone'    => true,
-            'departments' => $user->department_id
-                && $this->departments->contains('id', $user->department_id),
-            default       => false, // 'admins'
-        };
-    }
-
-    /** Limit a query to the sheets a given user is allowed to see. */
-    public function scopeVisibleTo($query, ?User $user)
-    {
-        if ($user && $user->isAdmin()) {
-            return $query;
-        }
-
-        return $query->where(function ($q) use ($user) {
-            $q->where('visibility', 'everyone');
-            if ($user && $user->department_id) {
-                $q->orWhere(fn ($w) => $w->where('visibility', 'departments')
-                    ->whereHas('departments', fn ($d) => $d->where('departments.id', $user->department_id)));
-            }
-        });
     }
 }
