@@ -12,7 +12,7 @@ class ActivityLog extends Model
     const CREATED_AT = 'created_at';
     
     protected $guarded = [];
-    protected $casts = ['metadata' => 'json'];
+    protected $casts = ['metadata' => 'json', 'created_at' => 'datetime'];
 
     public function company() { return $this->belongsTo(Company::class); }
     public function user() { return $this->belongsTo(User::class); }
