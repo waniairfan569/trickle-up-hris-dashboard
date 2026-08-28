@@ -61,7 +61,7 @@ class User extends Authenticatable
         // Invitation system fields:
         'account_status', 'invitation_token', 'invitation_token_hash',
         'invitation_sent_at', 'invitation_expires_at', 'invitation_accepted_at',
-        'must_change_password', 'invited_by', 'attendance_mode', 'remote_days', 'is_operator',
+        'must_change_password', 'invited_by', 'attendance_mode', 'remote_days', 'is_operator', 'can_send_codes',
         'exclude_from_attendance',
         // Personal settings:
         'theme', 'notification_prefs', 'date_format', 'week_start',
@@ -86,6 +86,7 @@ class User extends Authenticatable
         'use_custom_timezone' => 'boolean',
         'forms_last_seen_at' => 'datetime',
         'is_operator' => 'boolean',
+        'can_send_codes' => 'boolean',
         'exclude_from_attendance' => 'boolean',
         'notification_prefs' => 'array',
         'remote_days' => 'array',

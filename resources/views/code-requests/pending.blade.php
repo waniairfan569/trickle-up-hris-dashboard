@@ -65,17 +65,63 @@
         @endforelse
     </div>
 
-    {{-- History search (by employee or tool) --}}
-    @if($resolved->total() || $rejected->total() || $search !== '')
+    {{-- Delegated code senders (super admin only) --}}
+    @if($isSuperAdmin)
+        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-5 dark:bg-slate-800 dark:border-slate-700" x-data="{ open: {{ $senders->isNotEmpty() ? 'true' : 'false' }} }">
+            <button type="button" @click="open = !open" class="w-full flex items-center justify-between">
+                <span class="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2"><i data-lucide="user-cog" class="h-4 w-4 text-brand-500"></i> Who can send codes <span class="text-xs font-normal text-slate-400">({{ $senders->count() }} delegated)</span></span>
+                <i data-lucide="chevron-down" class="h-4 w-4 text-slate-400 transition-transform" :class="open ? 'rotate-180' : ''"></i>
+            </button>
+            <div x-show="open" x-cloak class="mt-4 space-y-3">
+                <p class="text-xs text-slate-500 dark:text-slate-400">Super admins and HR admins can always send codes. Grant a specific person access below so they can help handle code requests.</p>
+                @if($senders->isNotEmpty())
+                    <div class="flex flex-wrap gap-2">
+                        @foreach($senders as $s)
+                            <span class="inline-flex items-center gap-1.5 rounded-full bg-slate-100 pl-3 pr-1 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-700 dark:text-slate-200">
+                                {{ $s->full_name }}
+                                <form method="POST" action="{{ route('code-requests.senders.revoke', $s->id) }}" onsubmit="return confirm('Remove code-send access from {{ $s->full_name }}?')">@csrf @method('DELETE')
+                                    <button type="submit" title="Revoke" class="inline-flex h-5 w-5 items-center justify-center rounded-full text-slate-400 hover:bg-rose-100 hover:text-rose-600 dark:hover:bg-rose-500/20"><i data-lucide="x" class="h-3 w-3"></i></button>
+                                </form>
+                            </span>
+                        @endforeach
+                    </div>
+                @endif
+                <form method="POST" x-data="{ uid: '' }" :action="uid ? '{{ url('admin/code-requests/senders') }}/' + uid + '/grant' : '#'" @submit="if(!uid){ $event.preventDefault(); }" class="flex flex-wrap items-center gap-2">
+                    @csrf
+                    <select x-model="uid" class="rounded-xl border border-slate-300 px-3 py-2 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                        <option value="">Grant access to…</option>
+                        @foreach($grantableUsers as $u)<option value="{{ $u->id }}">{{ $u->full_name }} — {{ $u->email }}</option>@endforeach
+                    </select>
+                    <button type="submit" class="btn-brand btn-sm"><i data-lucide="plus" class="h-4 w-4"></i> Grant</button>
+                </form>
+            </div>
+        </div>
+    @endif
+
+    {{-- History search + date range + download --}}
+    <div class="flex flex-wrap items-center gap-2">
         <form method="GET" class="flex flex-wrap items-center gap-2">
-            <div class="relative flex-1 min-w-[200px] max-w-sm">
+            @if($sort !== 'newest')<input type="hidden" name="sort" value="{{ $sort }}">@endif
+            <div class="relative flex-1 min-w-[180px] max-w-xs">
                 <i data-lucide="search" class="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                <input type="text" name="q" value="{{ $search }}" placeholder="Search history by employee or tool…" class="w-full rounded-xl border border-slate-300 py-2 pl-9 pr-3 text-sm shadow-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                <input type="text" name="q" value="{{ $search }}" placeholder="Search by employee or tool…" class="w-full rounded-xl border border-slate-300 py-2 pl-9 pr-3 text-sm shadow-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+            </div>
+            <div class="flex items-center gap-1 text-xs">
+                <span class="text-slate-400 font-semibold">From</span>
+                <input type="date" name="date_from" value="{{ $dateFrom }}" onchange="this.form.submit()" class="rounded-xl border border-slate-300 px-2 py-1.5 text-xs dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                <span class="text-slate-400 font-semibold">To</span>
+                <input type="date" name="date_to" value="{{ $dateTo }}" onchange="this.form.submit()" class="rounded-xl border border-slate-300 px-2 py-1.5 text-xs dark:bg-slate-900 dark:border-slate-600 dark:text-white">
             </div>
             <button type="submit" class="btn-dark btn-sm">Search</button>
-            @if($search !== '')<a href="{{ route('code-requests.pending') }}" class="btn-outline btn-sm">Clear</a>@endif
+            @if($search !== '' || $dateFrom || $dateTo)<a href="{{ route('code-requests.pending') }}" class="btn-outline btn-sm">Clear</a>@endif
         </form>
-    @endif
+        @php $exportParams = array_filter(['q' => $search, 'date_from' => $dateFrom, 'date_to' => $dateTo]); @endphp
+        <div class="inline-flex rounded-xl border border-slate-300 overflow-hidden dark:border-slate-600">
+            <a href="{{ route('code-requests.export', $exportParams) }}" title="Download Excel" class="inline-flex items-center gap-1 bg-white px-2.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 border-r border-slate-200 dark:border-slate-600"><i data-lucide="sheet" class="h-4 w-4"></i> Excel</a>
+            <a href="{{ route('code-requests.export-pdf', $exportParams) }}" title="Download PDF" class="inline-flex items-center gap-1 bg-white px-2.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 border-r border-slate-200 dark:border-slate-600"><i data-lucide="file-down" class="h-4 w-4"></i> PDF</a>
+            <a href="{{ route('code-requests.export-pdf', $exportParams + ['preview' => 1]) }}" target="_blank" title="Preview" class="inline-flex items-center gap-1 bg-white px-2.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"><i data-lucide="eye" class="h-4 w-4"></i> Preview</a>
+        </div>
+    </div>
 
     {{-- Recently sent — paginated; codes are hidden until an admin reveals one --}}
     @if($resolved->total())

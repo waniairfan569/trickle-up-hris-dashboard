@@ -112,14 +112,20 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
     Route::get('my-codes', [\App\Http\Controllers\CodeRequestController::class, 'myCodeRequests'])->name('code-requests.my');
     Route::get('my-codes/json', [\App\Http\Controllers\CodeRequestController::class, 'myCodeRequestsJson'])->name('code-requests.my-json');
     Route::post('code-requests/{codeRequest}/cancel', [\App\Http\Controllers\CodeRequestController::class, 'cancel'])->name('code-requests.cancel');
-    Route::middleware('role:super_admin,hr_admin')->group(function () {
+    // Admins OR a user a super admin granted code-send access — checked in-controller.
+    Route::group([], function () {
         Route::get('admin/code-requests', [\App\Http\Controllers\CodeRequestController::class, 'pendingCodes'])->name('code-requests.pending');
         Route::get('admin/code-requests/json', [\App\Http\Controllers\CodeRequestController::class, 'pendingJson'])->name('code-requests.pending-json');
+        Route::get('admin/code-requests/export', [\App\Http\Controllers\CodeRequestController::class, 'export'])->name('code-requests.export');
+        Route::get('admin/code-requests/export-pdf', [\App\Http\Controllers\CodeRequestController::class, 'exportPdf'])->name('code-requests.export-pdf');
         Route::get('admin/code-requests/{codeRequest}/reveal', [\App\Http\Controllers\CodeRequestController::class, 'revealCode'])->name('code-requests.reveal');
         Route::post('admin/code-requests/{codeRequest}/resend', [\App\Http\Controllers\CodeRequestController::class, 'resendCode'])->name('code-requests.resend');
         Route::post('admin/code-requests/{codeRequest}/reason', [\App\Http\Controllers\CodeRequestController::class, 'updateRejection'])->name('code-requests.reason');
         Route::post('admin/code-requests/{codeRequest}/send', [\App\Http\Controllers\CodeRequestController::class, 'sendCode'])->name('code-requests.send');
         Route::post('admin/code-requests/{codeRequest}/reject', [\App\Http\Controllers\CodeRequestController::class, 'rejectCode'])->name('code-requests.reject');
+        // Super-admin: delegate code-send access to a chosen person.
+        Route::post('admin/code-requests/senders/{user}/grant', [\App\Http\Controllers\CodeRequestController::class, 'grantSender'])->name('code-requests.senders.grant');
+        Route::delete('admin/code-requests/senders/{user}', [\App\Http\Controllers\CodeRequestController::class, 'revokeSender'])->name('code-requests.senders.revoke');
     });
 
     // Employee: my leave-encashment history.

@@ -2,12 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\CodeRequestsExport;
 use App\Models\CodeRequest;
+use App\Models\Role;
 use App\Models\User;
 use App\Notifications\CodeProvidedNotification;
 use App\Notifications\CodeRejectedNotification;
 use App\Notifications\CodeRequestedNotification;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use Maatwebsite\Excel\Facades\Excel;
 
 class CodeRequestController extends Controller
 {
@@ -114,7 +118,7 @@ class CodeRequestController extends Controller
     /** Admin: the quick-response panel. */
     public function pendingCodes(Request $request)
     {
-        abort_unless($request->user() && $request->user()->isAdmin(), 403);
+        $this->authorizeSender($request);
 
         $pending = CodeRequest::pending()->with('employee')->oldest()->get();
 
@@ -130,10 +134,16 @@ class CodeRequestController extends Controller
             }
         };
 
+        $dateFrom = $request->get('date_from');
+        $dateTo = $request->get('date_to');
+        $applyDates = fn ($q) => $q
+            ->when($dateFrom, fn ($qq) => $qq->whereDate('created_at', '>=', $dateFrom))
+            ->when($dateTo, fn ($qq) => $qq->whereDate('created_at', '<=', $dateTo));
+
         $sort = in_array($request->get('sort'), ['newest', 'oldest', 'employee', 'tool'], true) ? $request->get('sort') : 'newest';
         $resolved = CodeRequest::where('status', 'code_sent')
             ->with(['employee', 'responder'])
-            ->tap($applySearch)
+            ->tap($applySearch)->tap($applyDates)
             ->when($sort === 'oldest', fn ($q) => $q->oldest('code_sent_at'))
             ->when($sort === 'tool', fn ($q) => $q->orderBy('tool_name'))
             ->when($sort === 'employee', fn ($q) => $q->orderBy(User::select('first_name')->whereColumn('users.id', 'code_requests.employee_id')))
@@ -142,18 +152,30 @@ class CodeRequestController extends Controller
             ->withQueryString();
         $rejected = CodeRequest::where('status', 'rejected')
             ->with(['employee', 'responder'])
-            ->tap($applySearch)
+            ->tap($applySearch)->tap($applyDates)
             ->latest('updated_at')
             ->paginate(15, ['*'], 'declined')
             ->withQueryString();
 
-        return view('code-requests.pending', compact('pending', 'resolved', 'rejected', 'search', 'sort'));
+        // Delegated code-sender management (super admin only sees the controls).
+        $isSuperAdmin = $request->user()->hasRole(Role::SUPER_ADMIN);
+        $senders = $isSuperAdmin
+            ? User::where('can_send_codes', true)->where('account_status', '!=', 'deactivated')->orderBy('first_name')->get(['id', 'first_name', 'last_name', 'email'])
+            : collect();
+        $grantableUsers = $isSuperAdmin
+            ? User::where('account_status', '!=', 'deactivated')
+                ->whereDoesntHave('roles', fn ($q) => $q->whereIn('slug', [Role::SUPER_ADMIN, Role::HR_ADMIN]))
+                ->where('can_send_codes', false)
+                ->orderBy('first_name')->get(['id', 'first_name', 'last_name', 'email'])
+            : collect();
+
+        return view('code-requests.pending', compact('pending', 'resolved', 'rejected', 'search', 'sort', 'dateFrom', 'dateTo', 'isSuperAdmin', 'senders', 'grantableUsers'));
     }
 
     /** Admin reveals a single stored code on demand (kept out of the page HTML). */
     public function revealCode(Request $request, CodeRequest $codeRequest)
     {
-        abort_unless($request->user() && $request->user()->isAdmin(), 403);
+        $this->authorizeSender($request);
 
         return response()->json(['value' => $codeRequest->code_provided]);
     }
@@ -161,7 +183,7 @@ class CodeRequestController extends Controller
     /** AJAX (poll): the current pending queue, newest first — powers the live "new request pops in at the top" list. */
     public function pendingJson(Request $request)
     {
-        abort_unless($request->user() && $request->user()->isAdmin(), 403);
+        $this->authorizeSender($request);
 
         $pending = CodeRequest::pending()->with('employee')->latest()->get()->map(fn ($r) => [
             'id' => $r->id,
@@ -178,7 +200,7 @@ class CodeRequestController extends Controller
     /** AJAX: HR sends the code back to the employee. */
     public function sendCode(Request $request, CodeRequest $codeRequest)
     {
-        abort_unless($request->user() && $request->user()->isAdmin(), 403);
+        $this->authorizeSender($request);
 
         $validated = $request->validate([
             'code_provided' => 'required|string|max:500',
@@ -213,7 +235,7 @@ class CodeRequestController extends Controller
     /** AJAX: HR declines the request (optionally with a reason). */
     public function rejectCode(Request $request, CodeRequest $codeRequest)
     {
-        abort_unless($request->user() && $request->user()->isAdmin(), 403);
+        $this->authorizeSender($request);
 
         $validated = $request->validate([
             'rejection_reason' => 'required|string|max:255',
@@ -247,7 +269,7 @@ class CodeRequestController extends Controller
     /** Re-notify the employee with the code that was already sent (if not yet purged). */
     public function resendCode(Request $request, CodeRequest $codeRequest)
     {
-        abort_unless($request->user() && $request->user()->isAdmin(), 403);
+        $this->authorizeSender($request);
 
         if (!$codeRequest->hasCode()) {
             return response()->json(['success' => false, 'message' => 'That code was cleared for security and can no longer be resent — send a new one.'], 422);
@@ -270,7 +292,7 @@ class CodeRequestController extends Controller
     /** Edit the decline reason on an already-declined request. */
     public function updateRejection(Request $request, CodeRequest $codeRequest)
     {
-        abort_unless($request->user() && $request->user()->isAdmin(), 403);
+        $this->authorizeSender($request);
 
         $validated = $request->validate([
             'rejection_reason' => 'required|string|max:255',
@@ -281,5 +303,100 @@ class CodeRequestController extends Controller
         $codeRequest->update(['rejection_reason' => trim($validated['rejection_reason'])]);
 
         return response()->json(['success' => true, 'reason' => $codeRequest->rejection_reason]);
+    }
+
+    // ---- Delegated senders (super admin grants code-send access) ------------
+
+    public function grantSender(Request $request, User $user)
+    {
+        abort_unless($request->user() && $request->user()->hasRole(Role::SUPER_ADMIN), 403, 'Only a super admin can grant code-send access.');
+
+        $user->forceFill(['can_send_codes' => true])->save();
+
+        return back()->with('success', $user->full_name . ' can now send codes.');
+    }
+
+    public function revokeSender(Request $request, User $user)
+    {
+        abort_unless($request->user() && $request->user()->hasRole(Role::SUPER_ADMIN), 403, 'Only a super admin can revoke code-send access.');
+
+        $user->forceFill(['can_send_codes' => false])->save();
+
+        return back()->with('success', $user->full_name . ' can no longer send codes.');
+    }
+
+    // ---- Report download (Excel / PDF) -------------------------------------
+
+    /**
+     * Report dataset for exports — every request in the chosen date range +
+     * optional status + search. The code VALUES are never exported (they are
+     * meant to be redacted after use).
+     */
+    private function reportQuery(Request $request)
+    {
+        $search = trim((string) $request->get('q', ''));
+
+        return CodeRequest::with(['employee.department', 'responder'])
+            ->when($request->filled('date_from'), fn ($q) => $q->whereDate('created_at', '>=', $request->date_from))
+            ->when($request->filled('date_to'), fn ($q) => $q->whereDate('created_at', '<=', $request->date_to))
+            ->when($request->filled('status') && $request->status !== 'all', fn ($q) => $q->where('status', $request->status))
+            ->when($search !== '', fn ($q) => $q->where(function ($qq) use ($search) {
+                $qq->where('tool_name', 'like', "%{$search}%")
+                    ->orWhereHas('employee', fn ($e) => $e->where('first_name', 'like', "%{$search}%")->orWhere('last_name', 'like', "%{$search}%"));
+            }))
+            ->latest('created_at');
+    }
+
+    private function reportStem(Request $request): string
+    {
+        $from = $request->get('date_from');
+        $to = $request->get('date_to');
+        $range = ($from || $to) ? '-' . ($from ?: 'start') . '_to_' . ($to ?: 'now') : '';
+
+        return 'code-requests' . $range;
+    }
+
+    public function export(Request $request)
+    {
+        $this->authorizeSender($request);
+
+        return Excel::download(new CodeRequestsExport($this->reportQuery($request)->get()), $this->reportStem($request) . '.xlsx');
+    }
+
+    public function exportPdf(Request $request)
+    {
+        $this->authorizeSender($request);
+
+        @ini_set('memory_limit', '512M');
+        @set_time_limit(120);
+
+        $pdf = Pdf::loadView('code-requests.pdf', [
+            'requests' => $this->reportQuery($request)->get(),
+            'dateFrom' => $request->get('date_from'),
+            'dateTo' => $request->get('date_to'),
+            'status' => $request->get('status', 'all'),
+            'generatedAt' => now(),
+        ])->setPaper('a4', 'landscape');
+
+        $content = $pdf->output();
+        while (ob_get_level() > 0) {
+            ob_end_clean();
+        }
+
+        $disposition = $request->boolean('preview') ? 'inline' : 'attachment';
+
+        return response($content, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => $disposition . '; filename="' . $this->reportStem($request) . '.pdf"',
+        ]);
+    }
+
+    // ------------------------------------------------------------------------
+
+    /** Admins, or a user a super admin has granted code-send access. */
+    private function authorizeSender(Request $request): void
+    {
+        $u = $request->user();
+        abort_unless($u && ($u->isAdmin() || $u->can_send_codes), 403, 'You do not have access to code requests.');
     }
 }
