@@ -85,7 +85,15 @@
                             </td>
                             <td class="px-5 py-3 text-slate-500 whitespace-nowrap">{{ optional($row['sent_at'])->format('d M Y') ?? '—' }}</td>
                             <td class="px-5 py-3 text-right">
-                                <a href="{{ route('documents.show', $row['request']) }}" class="inline-flex items-center gap-1 text-xs font-bold text-brand-600 hover:text-brand-700">View <i data-lucide="arrow-right" class="h-3.5 w-3.5"></i></a>
+                                <div class="inline-flex items-center gap-3">
+                                    @if(!in_array($row['status'], ['completed', 'declined', 'cancelled'], true))
+                                        <form method="POST" action="{{ route('documents.cancel', $row['request']) }}" onsubmit="return confirm('Cancel this signature request for {{ optional($row['subject'])->full_name ?? 'this employee' }}? It will be removed from their To-Sign list.');">
+                                            @csrf
+                                            <button type="submit" class="inline-flex items-center gap-1 text-xs font-bold text-rose-500 hover:text-rose-700"><i data-lucide="x-circle" class="h-3.5 w-3.5"></i> Cancel</button>
+                                        </form>
+                                    @endif
+                                    <a href="{{ route('documents.show', $row['request']) }}" class="inline-flex items-center gap-1 text-xs font-bold text-brand-600 hover:text-brand-700">View <i data-lucide="arrow-right" class="h-3.5 w-3.5"></i></a>
+                                </div>
                             </td>
                         </tr>
                     @empty

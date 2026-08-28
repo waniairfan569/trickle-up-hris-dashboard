@@ -348,6 +348,30 @@ class DocumentRequestController extends Controller
         return redirect()->route('documents.show', $documentRequest)->with('success', 'You declined to sign this document.');
     }
 
+    /**
+     * Admin (or the person who sent it): cancel/withdraw a still-open signature
+     * request. It leaves 'in_progress', so it immediately drops off every pending
+     * signer's To-Sign list on the employee side.
+     */
+    public function cancel(Request $request, DocumentRequest $documentRequest)
+    {
+        $user = auth()->user();
+        abort_unless(
+            $user && ($user->isAdmin() || (int) $documentRequest->created_by === (int) $user->id),
+            403,
+            'Only an admin can cancel a signature request.'
+        );
+
+        if (in_array($documentRequest->status, ['completed', 'declined', 'cancelled'], true)) {
+            return back()->with('error', 'This request can no longer be cancelled — it is already ' . $documentRequest->status . '.');
+        }
+
+        $documentRequest->update(['status' => 'cancelled']);
+        $documentRequest->logEvent('cancelled', $user, $request->input('reason'), $request->ip());
+
+        return back()->with('success', 'Signature request cancelled — it has been removed from the recipient’s To-Sign list.');
+    }
+
     /** GET documents/{request}/file — stream the template file for participants. */
     public function file(DocumentRequest $documentRequest)
     {

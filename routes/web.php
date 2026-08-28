@@ -396,6 +396,8 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
     Route::get('documents/{documentRequest}/sign', [\App\Http\Controllers\DocumentRequestController::class, 'sign'])->name('documents.sign');
     Route::post('documents/{documentRequest}/sign', [\App\Http\Controllers\DocumentRequestController::class, 'storeSignature'])->name('documents.sign.store');
     Route::post('documents/{documentRequest}/decline', [\App\Http\Controllers\DocumentRequestController::class, 'decline'])->name('documents.decline');
+    // Admin/creator withdraws a still-open request (removes it from the recipient's To-Sign list).
+    Route::post('documents/{documentRequest}/cancel', [\App\Http\Controllers\DocumentRequestController::class, 'cancel'])->name('documents.cancel');
 
     // Notifications
     Route::get('notifications', [App\Http\Controllers\NotificationController::class, 'index'])->name('notifications.index');
