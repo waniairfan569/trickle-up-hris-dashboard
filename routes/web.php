@@ -419,9 +419,11 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
         Route::post('invitation/{employee}/cancel', [\App\Http\Controllers\InvitationController::class, 'cancelInvitation'])->name('invitation.cancel');
 
         Route::get('/admin/audit-logs', [\App\Http\Controllers\AuditLogController::class, 'index'])->name('admin.audit-logs');
-        // RoleController only implements index; role changes go through
-        // EmployeeController::updateRole. Avoid registering dead CRUD routes.
-        Route::resource('roles', \App\Http\Controllers\RoleController::class)->only(['index']);
+        // Roles & Permissions manager (super-admin only — enforced in controller).
+        // User↔role assignment still happens via EmployeeController::updateRole.
+        Route::resource('roles', \App\Http\Controllers\RoleController::class)
+            ->except(['show']);
+        Route::get('roles/{role}/permissions', [\App\Http\Controllers\RoleController::class, 'show'])->name('roles.show');
 
         // Job Locations (central list of where employees work)
         Route::resource('job-locations', \App\Http\Controllers\JobLocationController::class)
