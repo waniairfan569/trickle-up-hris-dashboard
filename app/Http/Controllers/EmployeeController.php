@@ -140,7 +140,16 @@ class EmployeeController extends Controller
             })
             ->get();
 
-        return view('employees.pending-invitations', compact('pendingUsers'));
+        // Invitation history — every invitation that has since been accepted, so
+        // there's a record of who was invited, by whom, and when they joined.
+        $history = User::with(['department', 'invitedBy'])
+            ->whereNotNull('invitation_sent_at')
+            ->whereNotNull('invitation_accepted_at')
+            ->orderByDesc('invitation_accepted_at')
+            ->paginate(15, ['*'], 'history')
+            ->withQueryString();
+
+        return view('employees.pending-invitations', compact('pendingUsers', 'history'));
     }
 
     /**

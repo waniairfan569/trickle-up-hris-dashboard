@@ -153,5 +153,62 @@
             </table>
         </div>
     </div>
+
+    {{-- Invitation history — accepted invitations (who joined, when, invited by) --}}
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 dark:bg-slate-800 dark:border-slate-700/80 overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700/60 flex items-center justify-between">
+            <h2 class="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2"><i data-lucide="history" class="h-4 w-4 text-slate-400"></i> Invitation history</h2>
+            <span class="text-xs font-medium text-slate-400">{{ $history->total() }} accepted</span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700/80">
+                <thead class="bg-slate-50 dark:bg-slate-800/50">
+                    <tr>
+                        <th class="py-3 pl-6 pr-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider dark:text-slate-400">Employee</th>
+                        <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider dark:text-slate-400">Department</th>
+                        <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider dark:text-slate-400">Invited by</th>
+                        <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider dark:text-slate-400">Sent</th>
+                        <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider dark:text-slate-400">Accepted</th>
+                        <th class="px-3 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider dark:text-slate-400">Status</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200 bg-white dark:divide-slate-700/80 dark:bg-slate-800">
+                    @forelse($history as $user)
+                        <tr class="hover:bg-slate-50 transition-colors dark:hover:bg-slate-700/50">
+                            <td class="whitespace-nowrap py-3.5 pl-6 pr-3">
+                                <div class="flex items-center gap-3">
+                                    <div class="h-9 w-9 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-white text-xs font-bold shadow-sm">{{ $user->initials }}</div>
+                                    <div>
+                                        <div class="text-sm font-bold text-slate-800 dark:text-white">{{ $user->full_name }}</div>
+                                        <div class="text-xs text-slate-400">{{ $user->email }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="whitespace-nowrap px-3 py-3.5 text-sm text-slate-500 dark:text-slate-400">{{ optional($user->department)->name ?? '—' }}</td>
+                            <td class="whitespace-nowrap px-3 py-3.5 text-sm text-slate-500 dark:text-slate-400">{{ optional($user->invitedBy)->full_name ?? '—' }}</td>
+                            <td class="whitespace-nowrap px-3 py-3.5 text-sm text-slate-500 dark:text-slate-400" title="{{ $user->invitation_sent_at }}">{{ optional($user->invitation_sent_at)->format('d M Y') ?? '—' }}</td>
+                            <td class="whitespace-nowrap px-3 py-3.5 text-sm text-slate-600 dark:text-slate-300" title="{{ $user->invitation_accepted_at }}">{{ optional($user->invitation_accepted_at)->format('d M Y') ?? '—' }}</td>
+                            <td class="whitespace-nowrap px-3 py-3.5">
+                                <span class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400"><i data-lucide="check" class="h-3 w-3"></i> Accepted</span>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="6" class="px-6 py-12 text-center">
+                                <div class="flex flex-col items-center justify-center">
+                                    <div class="h-12 w-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-3"><i data-lucide="history" class="h-6 w-6 text-slate-400"></i></div>
+                                    <h3 class="text-sm font-bold text-slate-900 dark:text-white">No invitation history yet</h3>
+                                    <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Once invited employees accept and set up their accounts, they'll appear here.</p>
+                                </div>
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+        @if($history->hasPages())
+            <div class="px-6 py-4 border-t border-slate-100 dark:border-slate-700/60">{{ $history->links() }}</div>
+        @endif
+    </div>
 </div>
 @endsection
