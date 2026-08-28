@@ -155,7 +155,7 @@
         <div class="overflow-x-auto">
             <table class="w-full text-sm">
                 <thead><tr class="text-left text-[11px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100 dark:border-slate-700/60">
-                    <th class="px-5 py-3">Date</th><th class="px-5 py-3">Sent at</th><th class="px-5 py-3 text-right">Recipients</th><th class="px-5 py-3 text-right">Present</th><th class="px-5 py-3 text-right">Late</th><th class="px-5 py-3 text-right">Absent</th><th class="px-5 py-3">Status</th><th class="px-5 py-3">Trigger</th>
+                    <th class="px-5 py-3">Date</th><th class="px-5 py-3">Sent at</th><th class="px-5 py-3 text-right">Recipients</th><th class="px-5 py-3 text-right">Present</th><th class="px-5 py-3 text-right">Late</th><th class="px-5 py-3 text-right">Absent</th><th class="px-5 py-3">Status</th><th class="px-5 py-3">Trigger</th><th class="px-5 py-3 text-center">Preview</th><th class="px-5 py-3 text-center">Download</th>
                 </tr></thead>
                 <tbody>
                     @forelse($logs as $log)
@@ -168,13 +168,27 @@
                             <td class="px-5 py-2.5 text-right text-rose-600">{{ $log->absent_count }}</td>
                             <td class="px-5 py-2.5"><span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold {{ $badge[$log->status] ?? '' }}">{{ ucfirst($log->status) }}</span></td>
                             <td class="px-5 py-2.5 text-xs text-slate-400">{{ ucfirst($log->triggered_by) }}@if($log->triggeredBy) · {{ $log->triggeredBy->full_name }}@endif</td>
+                            @php $ds = $log->report_date->toDateString(); @endphp
+                            <td class="px-5 py-2.5 text-center">
+                                <a href="{{ route('attendance-reports.preview', ['date' => $ds]) }}" target="_blank" title="Preview {{ $log->report_date->format('d M Y') }} report"
+                                   class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-800 dark:hover:bg-slate-700 dark:hover:text-white"><i data-lucide="eye" class="h-4 w-4"></i></a>
+                            </td>
+                            <td class="px-5 py-2.5 text-center">
+                                <a href="{{ route('attendance-reports.download', ['date' => $ds]) }}" title="Download {{ $log->report_date->format('d M Y') }} as Excel"
+                                   class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-brand-600 dark:hover:bg-slate-700 dark:hover:text-brand-400"><i data-lucide="download" class="h-4 w-4"></i></a>
+                            </td>
                         </tr>
                     @empty
-                        <tr><td colspan="8" class="px-5 py-12 text-center text-sm text-slate-400">No reports sent yet.</td></tr>
+                        <tr><td colspan="10" class="px-5 py-12 text-center text-sm text-slate-400">No reports sent yet.</td></tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
+        @if($logs->hasPages())
+            <div class="px-6 py-4 border-t border-slate-100 dark:border-slate-700/60">
+                {{ $logs->links() }}
+            </div>
+        @endif
     </div>
 </div>
 @endsection

@@ -538,6 +538,7 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
             Route::post('settings', [\App\Http\Controllers\AttendanceReportController::class, 'updateSettings'])->name('settings.update');
             Route::post('send-manual', [\App\Http\Controllers\AttendanceReportController::class, 'sendManual'])->name('send-manual');
             Route::get('preview', [\App\Http\Controllers\AttendanceReportController::class, 'previewReport'])->name('preview');
+            Route::get('download', [\App\Http\Controllers\AttendanceReportController::class, 'download'])->name('download');
         });
 
         // Company Events (admin manage; published events shown to employees)

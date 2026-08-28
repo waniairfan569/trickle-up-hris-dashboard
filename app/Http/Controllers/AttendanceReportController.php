@@ -2,18 +2,22 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\AttendanceReportExport;
 use App\Models\AttendanceReportLog;
 use App\Models\AttendanceReportSettings;
 use App\Services\AttendanceReportService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Maatwebsite\Excel\Facades\Excel;
 
 class AttendanceReportController extends Controller
 {
     public function settings()
     {
         $settings = AttendanceReportSettings::getSettings();
-        $logs = AttendanceReportLog::with('triggeredBy')->orderByDesc('report_date')->orderByDesc('id')->limit(30)->get();
+        $logs = AttendanceReportLog::with('triggeredBy')
+            ->orderByDesc('report_date')->orderByDesc('id')
+            ->paginate(15);
 
         $counts = [
             'super_admin' => $this->roleCount('super_admin'),
@@ -58,7 +62,7 @@ class AttendanceReportController extends Controller
             'include_full_table' => $request->boolean('include_full_table'),
             'attach_excel' => $request->boolean('attach_excel'),
             'late_threshold_minutes' => $validated['late_threshold_minutes'],
-            'report_subject_template' => $validated['report_subject_template'] ?: 'Daily Attendance Report — {{date}}',
+            'report_subject_template' => ($validated['report_subject_template'] ?? null) ?: 'Daily Attendance Report — {{date}}',
         ]);
 
         return back()->with('success', 'Report settings updated.');
@@ -77,9 +81,11 @@ class AttendanceReportController extends Controller
         return back()->with('success', "Report sent to {$result['recipients']} recipient(s).");
     }
 
-    public function previewReport(AttendanceReportService $service)
+    /** Preview the report for any date (defaults to today). */
+    public function previewReport(Request $request, AttendanceReportService $service)
     {
-        $data = $service->getReportData(Carbon::today());
+        $date = $request->filled('date') ? Carbon::parse($request->date) : Carbon::today();
+        $data = $service->getReportData($date);
         $settings = AttendanceReportSettings::getSettings();
 
         return view('emails.daily-attendance-report', [
@@ -87,6 +93,17 @@ class AttendanceReportController extends Controller
             'settings' => $settings,
             'recipient' => auth()->user(),
         ]);
+    }
+
+    /** Download any date's attendance report as Excel. */
+    public function download(Request $request, AttendanceReportService $service)
+    {
+        $request->validate(['date' => 'required|date|before_or_equal:today']);
+
+        $date = Carbon::parse($request->date);
+        $data = $service->getReportData($date);
+
+        return Excel::download(new AttendanceReportExport($data), 'attendance-report-' . $date->toDateString() . '.xlsx');
     }
 
     private function roleCount(string $slug): int
