@@ -41,6 +41,11 @@
                                 @if($event->location) · {{ $event->location }} @endif
                             </p>
                             @if($event->description)<p class="text-xs text-slate-400 mt-0.5 line-clamp-1">{{ $event->description }}</p>@endif
+                            @if($event->meeting_link)
+                                <a href="{{ $event->meeting_link }}" target="_blank" rel="noopener" class="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-bold text-slate-900 hover:bg-brand-700">
+                                    <i data-lucide="video" class="h-3.5 w-3.5"></i> Join
+                                </a>
+                            @endif
                         </div>
                     </div>
                 @endforeach
@@ -64,7 +69,13 @@
                 </div>
                 <p class="text-sm text-slate-500 dark:text-slate-400 mt-1" x-text="modal.dates"></p>
                 <p class="text-xs text-slate-500 dark:text-slate-400 mt-1.5" x-show="modal.location"><i data-lucide="map-pin" class="h-3.5 w-3.5 inline -mt-0.5"></i> <span x-text="modal.location"></span></p>
+                <p class="text-xs text-brand-600 dark:text-brand-400 font-semibold mt-1.5" x-show="modal.is_online"><i data-lucide="video" class="h-3.5 w-3.5 inline -mt-0.5"></i> Online event</p>
                 <p class="text-sm text-slate-600 dark:text-slate-300 mt-3 whitespace-pre-line" x-show="modal.description" x-text="modal.description"></p>
+                <template x-if="modal.meeting_link">
+                    <a :href="modal.meeting_link" target="_blank" rel="noopener" class="mt-4 inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2 text-sm font-bold text-slate-900 hover:bg-brand-700">
+                        <i data-lucide="video" class="h-4 w-4"></i> Join meeting
+                    </a>
+                </template>
             </div>
             <button type="button" @click="modal.open=false" class="absolute top-4 right-4 text-slate-400 hover:text-slate-700"><i data-lucide="x" class="h-5 w-5"></i></button>
         </div>
@@ -95,7 +106,7 @@
     function empCalendar() {
         return {
             calendar: null,
-            modal: { open: false, title: '', dates: '', location: '', description: '', color: '#F5C800' },
+            modal: { open: false, title: '', dates: '', location: '', is_online: false, meeting_link: '', description: '', color: '#F5C800' },
             day: { open: false, label: '', events: [] },
             init() { this.$nextTick(() => this.mount()); },
             mount() {
@@ -115,7 +126,7 @@
                 const fmt = d => new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
                 let dates = ev.start ? fmt(ev.start) : '';
                 if (p.end_display) { const ed = fmt(p.end_display); if (ed !== dates) dates += ' – ' + ed; }
-                this.modal = { open: true, title: ev.title, dates, location: p.location || '', description: p.description || '', color: ev.backgroundColor || '#F5C800' };
+                this.modal = { open: true, title: ev.title, dates, location: p.location || '', is_online: !!p.is_online, meeting_link: p.meeting_link || '', description: p.description || '', color: ev.backgroundColor || '#F5C800' };
                 this.$nextTick(() => window.lucide && window.lucide.createIcons());
             },
             // Clicking a day cell: one event → its detail, several → a chooser.

@@ -109,7 +109,14 @@
                                     <td class="px-5 py-3 whitespace-nowrap text-slate-500 dark:text-slate-400">
                                         {{ $event->date->format('d M Y') }}@if($event->is_multi_day) – {{ $event->end_date->format('d M Y') }}@endif
                                     </td>
-                                    <td class="px-5 py-3 text-slate-500 dark:text-slate-400 max-w-[12rem] truncate">{{ $event->location ?: '—' }}</td>
+                                    <td class="px-5 py-3 text-slate-500 dark:text-slate-400 max-w-[12rem] truncate">
+                                        @if($event->is_online)
+                                            <span class="inline-flex items-center gap-1 rounded-full bg-brand-50 px-2 py-0.5 text-[11px] font-bold text-brand-700 dark:bg-brand-500/10 dark:text-brand-400"><i data-lucide="video" class="h-3 w-3"></i> Online</span>
+                                            @if($event->location) <span class="text-slate-400">· {{ $event->location }}</span>@endif
+                                        @else
+                                            {{ $event->location ?: '—' }}
+                                        @endif
+                                    </td>
                                     <td class="px-5 py-3 whitespace-nowrap">
                                         <span x-show="published" class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400"><span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span> Published</span>
                                         <span x-show="!published" class="inline-flex items-center gap-1 rounded-full border border-dashed border-slate-300 px-2 py-0.5 text-[10px] font-bold text-slate-500 dark:border-slate-600 dark:text-slate-400"><span class="h-1.5 w-1.5 rounded-full bg-slate-400"></span> Draft</span>
@@ -160,6 +167,17 @@
                                                                 </select>
                                                             </div>
                                                             <div class="sm:col-span-2"><label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Description</label><textarea name="description" rows="2" maxlength="1000" class="w-full rounded-xl border-slate-300 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white resize-none">{{ $event->description }}</textarea></div>
+                                                            <div class="sm:col-span-2 rounded-xl border border-slate-100 bg-slate-50/60 p-3.5 dark:border-slate-700/60 dark:bg-slate-900/30 space-y-3" x-data="{ online: {{ $event->is_online ? 'true' : 'false' }} }">
+                                                                <label class="inline-flex items-center gap-2.5 text-sm font-semibold text-slate-700 dark:text-slate-200">
+                                                                    <input type="hidden" name="is_online" value="0">
+                                                                    <input type="checkbox" name="is_online" value="1" x-model="online" @checked($event->is_online) class="rounded border-slate-300 text-brand-600">
+                                                                    <span><i data-lucide="video" class="h-4 w-4 inline -mt-0.5"></i> Online event</span>
+                                                                </label>
+                                                                <div x-show="online" x-cloak>
+                                                                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Meeting link</label>
+                                                                    <input type="url" name="meeting_link" value="{{ $event->meeting_link }}" placeholder="https://meet.google.com/…  ·  Zoom  ·  Teams  ·  any link" maxlength="1000" class="w-full rounded-xl border-slate-300 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                                                                </div>
+                                                            </div>
                                                             <div class="sm:col-span-2">
                                                                 <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Who can see it</label>
                                                                 <select name="visibility" x-model="vis" class="w-full rounded-xl border-slate-300 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
@@ -251,6 +269,20 @@
                 <textarea name="description" rows="2" maxlength="1000" class="w-full rounded-xl border-slate-300 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white resize-none">{{ old('description') }}</textarea>
             </div>
 
+            {{-- Online event + meeting link --}}
+            <div class="sm:col-span-2 rounded-xl border border-slate-100 bg-slate-50/60 p-4 dark:border-slate-700/60 dark:bg-slate-900/30 space-y-3" x-data="{ online: {{ old('is_online') ? 'true' : 'false' }} }">
+                <label class="inline-flex items-center gap-2.5 text-sm font-semibold text-slate-700 dark:text-slate-200">
+                    <input type="hidden" name="is_online" value="0">
+                    <input type="checkbox" name="is_online" value="1" x-model="online" @checked(old('is_online')) class="rounded border-slate-300 text-brand-600">
+                    <span><i data-lucide="video" class="h-4 w-4 inline -mt-0.5"></i> Online event <span class="block text-[11px] font-normal text-slate-400">Add a meeting link employees can join from</span></span>
+                </label>
+                <div x-show="online" x-cloak>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Meeting link</label>
+                    <input type="url" name="meeting_link" value="{{ old('meeting_link') }}" placeholder="https://meet.google.com/…  ·  Zoom  ·  Teams  ·  any link" maxlength="1000" class="w-full rounded-xl border-slate-300 text-sm dark:bg-slate-800 dark:border-slate-600 dark:text-white">
+                    <p class="text-[11px] text-slate-400 mt-1">Google Meet, Zoom, Teams or any meeting URL.</p>
+                </div>
+            </div>
+
             {{-- Visibility --}}
             <div class="sm:col-span-2 rounded-xl border border-slate-100 bg-slate-50/60 p-4 dark:border-slate-700/60 dark:bg-slate-900/30 space-y-3">
                 <div>
@@ -304,7 +336,14 @@
                 </div>
                 <p class="text-sm text-slate-500 dark:text-slate-400 mt-1" x-text="modal.dates"></p>
                 <p class="text-xs text-slate-500 dark:text-slate-400 mt-1.5" x-show="modal.location"><i data-lucide="map-pin" class="h-3.5 w-3.5 inline -mt-0.5"></i> <span x-text="modal.location"></span></p>
+                <p class="text-xs text-brand-600 dark:text-brand-400 font-semibold mt-1.5" x-show="modal.is_online"><i data-lucide="video" class="h-3.5 w-3.5 inline -mt-0.5"></i> Online event</p>
                 <p class="text-sm text-slate-600 dark:text-slate-300 mt-3 whitespace-pre-line" x-show="modal.description" x-text="modal.description"></p>
+
+                <template x-if="modal.meeting_link">
+                    <a :href="modal.meeting_link" target="_blank" rel="noopener" class="mt-3 inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2 text-sm font-bold text-slate-900 hover:bg-brand-700">
+                        <i data-lucide="video" class="h-4 w-4"></i> Join meeting
+                    </a>
+                </template>
 
                 <div class="mt-4 rounded-xl bg-slate-50 p-3 text-xs dark:bg-slate-900/50">
                     <template x-if="modal.published">
@@ -385,7 +424,7 @@
     function eventsPage() {
         return {
             tab: (new URLSearchParams(location.search)).get('tab') || 'calendar', calendar: null, toast: '',
-            modal: { open: false, id: null, title: '', dates: '', location: '', description: '', published: false, pinned: false, visibility: 'all', published_at: null, color: '#F5C800' },
+            modal: { open: false, id: null, title: '', dates: '', location: '', is_online: false, meeting_link: '', description: '', published: false, pinned: false, visibility: 'all', published_at: null, color: '#F5C800' },
             day: { open: false, label: '', events: [] },
             init() {
                 this.$nextTick(() => this.mountCalendar());
@@ -440,7 +479,7 @@
                 const fmt = d => new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
                 let dates = ev.start ? fmt(ev.start) : '';
                 if (p.end_display) { const ed = fmt(p.end_display); if (ed !== dates) dates += ' – ' + ed; }
-                this.modal = { open: true, id: ev.id, title: ev.title, dates, location: p.location || '', description: p.description || '', published: !!p.is_published, pinned: !!p.is_pinned, visibility: p.visibility || 'all', published_at: p.published_at, color: ev.backgroundColor || '#F5C800' };
+                this.modal = { open: true, id: ev.id, title: ev.title, dates, location: p.location || '', is_online: !!p.is_online, meeting_link: p.meeting_link || '', description: p.description || '', published: !!p.is_published, pinned: !!p.is_pinned, visibility: p.visibility || 'all', published_at: p.published_at, color: ev.backgroundColor || '#F5C800' };
                 this.$nextTick(evRefreshIcons);
             },
             async publish(id) { const d = await evPost(`/events/${id}/publish`); if (d && d.success) { this.modal.published = true; this.modal.published_at = d.published_at; this.afterChange(id, true, this.modal.pinned, d.message); } },

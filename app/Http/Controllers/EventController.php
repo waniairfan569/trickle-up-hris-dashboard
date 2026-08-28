@@ -188,6 +188,8 @@ class EventController extends Controller
             'color' => $e->color_hex,
             'extendedProps' => [
                 'location' => $e->location,
+                'is_online' => (bool) $e->is_online,
+                'meeting_link' => $e->meeting_link,
                 'description' => $e->description,
                 'is_published' => (bool) $e->is_published,
                 'is_pinned' => (bool) $e->is_pinned,
@@ -279,6 +281,8 @@ class EventController extends Controller
             'date' => 'required|date',
             'end_date' => 'nullable|date|after_or_equal:date',
             'location' => 'nullable|string|max:120',
+            'is_online' => 'nullable|boolean',
+            'meeting_link' => 'nullable|url|max:1000',
             'color' => 'nullable|string|max:20',
             'visibility' => 'nullable|in:all,department,specific',
             'department_ids' => 'nullable|array',
@@ -293,6 +297,9 @@ class EventController extends Controller
             'date' => $request->input('date'),
             'end_date' => $request->input('end_date'),
             'location' => $request->input('location'),
+            'is_online' => $request->boolean('is_online'),
+            // Only keep a meeting link on an online event (clears it if unticked).
+            'meeting_link' => $request->boolean('is_online') ? ($request->input('meeting_link') ?: null) : null,
             'color' => $request->input('color') ?: 'brand',
             'visibility' => $request->input('visibility') ?: 'all',
             'notify_employees' => $request->boolean('notify_employees'),
