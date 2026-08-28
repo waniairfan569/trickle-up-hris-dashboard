@@ -274,6 +274,8 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
     // Company-wide work-from-home days (all employees remote on those dates).
     Route::middleware('role:super_admin,hr_admin')->group(function () {
         Route::get('company-wfh-days', [\App\Http\Controllers\CompanyWfhDayController::class, 'index'])->name('company-wfh-days.index');
+        Route::get('company-wfh-days/export', [\App\Http\Controllers\CompanyWfhDayController::class, 'export'])->name('company-wfh-days.export');
+        Route::get('company-wfh-days/export-pdf', [\App\Http\Controllers\CompanyWfhDayController::class, 'exportPdf'])->name('company-wfh-days.export-pdf');
         Route::post('company-wfh-days', [\App\Http\Controllers\CompanyWfhDayController::class, 'store'])->name('company-wfh-days.store');
         Route::delete('company-wfh-days/{companyWfhDay}', [\App\Http\Controllers\CompanyWfhDayController::class, 'destroy'])->name('company-wfh-days.destroy');
     });

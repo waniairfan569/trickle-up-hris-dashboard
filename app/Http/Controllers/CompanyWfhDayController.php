@@ -2,9 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\CompanyWfhDaysExport;
 use App\Models\CompanyWfhDay;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Maatwebsite\Excel\Facades\Excel;
 
 class CompanyWfhDayController extends Controller
 {
@@ -39,5 +42,37 @@ class CompanyWfhDayController extends Controller
         $companyWfhDay->delete();
 
         return back()->with('success', 'Company WFH day removed.');
+    }
+
+    /** Download the WFH-days sheet as Excel. */
+    public function export()
+    {
+        return Excel::download(new CompanyWfhDaysExport, 'company-wfh-days.xlsx');
+    }
+
+    /** Download (or ?preview=1 to open inline) the WFH-days sheet as a PDF. */
+    public function exportPdf(Request $request)
+    {
+        @ini_set('memory_limit', '256M');
+        @set_time_limit(120);
+
+        $days = CompanyWfhDay::with('creator')->orderBy('date')->get();
+
+        $pdf = Pdf::loadView('company-wfh-days.pdf', [
+            'days' => $days,
+            'generatedAt' => now(),
+        ])->setPaper('a4', 'portrait');
+
+        $content = $pdf->output();
+        while (ob_get_level() > 0) {
+            ob_end_clean();
+        }
+
+        $disposition = $request->boolean('preview') ? 'inline' : 'attachment';
+
+        return response($content, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => $disposition . '; filename="company-wfh-days.pdf"',
+        ]);
     }
 }

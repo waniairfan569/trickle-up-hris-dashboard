@@ -6,11 +6,18 @@
 @section('content')
 <div class="max-w-3xl mx-auto space-y-6">
 
-    <div>
-        <h1 class="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
-            <i data-lucide="house-wifi" class="h-6 w-6 text-brand-500"></i> Company WFH Days
-        </h1>
-        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Dates when the whole company works from home. Every employee automatically clocks in via the dashboard on these days.</p>
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+            <h1 class="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+                <i data-lucide="house-wifi" class="h-6 w-6 text-brand-500"></i> Company WFH Days
+            </h1>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Dates when the whole company works from home. Every employee automatically clocks in via the dashboard on these days.</p>
+        </div>
+        <div class="shrink-0 inline-flex rounded-xl border border-slate-300 overflow-hidden dark:border-slate-600">
+            <a href="{{ route('company-wfh-days.export') }}" title="Download Excel sheet" class="inline-flex items-center gap-1.5 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 border-r border-slate-200 dark:border-slate-600"><i data-lucide="sheet" class="h-4 w-4"></i> Excel</a>
+            <a href="{{ route('company-wfh-days.export-pdf') }}" title="Download PDF sheet" class="inline-flex items-center gap-1.5 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 border-r border-slate-200 dark:border-slate-600"><i data-lucide="file-down" class="h-4 w-4"></i> PDF</a>
+            <a href="{{ route('company-wfh-days.export-pdf', ['preview' => 1]) }}" target="_blank" title="Preview the sheet" class="inline-flex items-center gap-1.5 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"><i data-lucide="eye" class="h-4 w-4"></i> Preview</a>
+        </div>
     </div>
 
     @if(session('success'))
