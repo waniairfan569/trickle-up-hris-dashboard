@@ -61,6 +61,20 @@ class ShiftController extends Controller
         );
     }
 
+    /** Cancel the whole roster: remove every employee from this shift at once. */
+    public function unassignAll(Shift $shift)
+    {
+        $count = $shift->assignments()->count();
+        $shift->assignments()->delete();
+
+        return back()->with(
+            $count ? 'success' : 'error',
+            $count
+                ? "All {$count} assignment(s) removed from the {$shift->name} shift."
+                : 'There was no one assigned to this shift.'
+        );
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([

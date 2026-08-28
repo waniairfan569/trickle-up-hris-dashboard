@@ -22,6 +22,14 @@
                     · <span class="font-semibold">{{ $members->count() }}</span> {{ \Illuminate\Support\Str::plural('employee', $members->count()) }} on this shift
                 </p>
             </div>
+            @if($members->isNotEmpty())
+                <form method="POST" action="{{ route('shifts.unassign-all', $shift) }}" onsubmit="return confirm('Remove all {{ $members->count() }} employee(s) from the {{ addslashes($shift->name) }} shift? This cancels the whole roster.')" class="shrink-0">
+                    @csrf
+                    <button type="submit" class="inline-flex items-center gap-1.5 rounded-xl border border-rose-200 bg-white px-3 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 dark:bg-slate-800 dark:border-rose-500/30 dark:text-rose-400 dark:hover:bg-rose-500/10">
+                        <i data-lucide="user-x" class="h-4 w-4"></i> Remove all
+                    </button>
+                </form>
+            @endif
         </div>
     </div>
 

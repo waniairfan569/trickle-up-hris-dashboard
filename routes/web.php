@@ -623,6 +623,7 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
         Route::resource('shifts', ShiftController::class)->except(['create', 'edit', 'show']);
         Route::get('shifts/{shift}/employees', [ShiftController::class, 'employees'])->name('shifts.employees');
         Route::delete('shifts/{shift}/employees/{employee}', [ShiftController::class, 'unassignEmployee'])->name('shifts.unassign-employee');
+        Route::post('shifts/{shift}/unassign-all', [ShiftController::class, 'unassignAll'])->name('shifts.unassign-all');
         Route::post('shifts/{shift}/set-default', [ShiftController::class, 'setDefault'])->name('shifts.set-default');
         Route::post('shifts/{shift}/assign-all', [ShiftController::class, 'assignToAll'])->name('shifts.assign-all');
         Route::post('shifts/{shift}/assign-selected', [ShiftController::class, 'assignToSelected'])->name('shifts.assign-selected');
