@@ -2,8 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\LeaveEncashmentExport;
 use App\Models\LeaveEncashmentRecord;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+use Maatwebsite\Excel\Facades\Excel;
 
 class LeaveEncashmentController extends Controller
 {
@@ -38,6 +41,23 @@ class LeaveEncashmentController extends Controller
         $policies = \App\Models\TimeOffPolicy::orderBy('name')->get(['id', 'name']);
 
         return view('leave-encashment.index', compact('records', 'years', 'year', 'summary', 'policies'));
+    }
+
+    /** Download the year's encashment records (respecting status/policy filters) as Excel. */
+    public function export(Request $request)
+    {
+        $year = (int) ($request->get('year') ?: (LeaveEncashmentRecord::max('renewal_year') ?: now()->year));
+
+        $records = LeaveEncashmentRecord::with(['employee.department', 'policy', 'processedBy'])
+            ->where('renewal_year', $year)
+            ->when($request->filled('status') && $request->status !== 'all', fn ($q) => $q->where('status', $request->status))
+            ->when($request->filled('policy_id') && $request->policy_id !== 'all', fn ($q) => $q->where('policy_id', $request->policy_id))
+            ->latest()
+            ->get();
+
+        $filename = 'leave-encashments-' . $year . '.xlsx';
+
+        return Excel::download(new LeaveEncashmentExport($records), $filename);
     }
 
     public function approve(Request $request, LeaveEncashmentRecord $record)

@@ -32,6 +32,10 @@
                 <option value="all">All policies</option>
                 @foreach($policies as $p)<option value="{{ $p->id }}" @selected(request('policy_id') == $p->id)>{{ $p->name }}</option>@endforeach
             </select>
+            <a href="{{ route('leave-encashments.export', array_filter(['year' => $year, 'status' => request('status'), 'policy_id' => request('policy_id')])) }}"
+               class="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700">
+                <i data-lucide="download" class="h-4 w-4"></i> Download Excel
+            </a>
         </form>
     </div>
 
