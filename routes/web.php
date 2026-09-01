@@ -397,6 +397,13 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
             Route::post('plans/{plan}/toggle', [\App\Http\Controllers\PlanController::class, 'toggleActive'])->name('plans.toggle');
             Route::delete('plans/{plan}', [\App\Http\Controllers\PlanController::class, 'destroy'])->name('plans.destroy');
 
+            // Module (feature) catalog that plans are built from.
+            Route::get('modules', [\App\Http\Controllers\ModulesController::class, 'index'])->name('modules');
+            Route::post('modules', [\App\Http\Controllers\ModulesController::class, 'store'])->name('modules.store');
+            Route::put('modules/{feature}', [\App\Http\Controllers\ModulesController::class, 'update'])->name('modules.update');
+            Route::post('modules/{feature}/toggle', [\App\Http\Controllers\ModulesController::class, 'toggleActive'])->name('modules.toggle');
+            Route::delete('modules/{feature}', [\App\Http\Controllers\ModulesController::class, 'destroy'])->name('modules.destroy');
+
             // Operator team.
             Route::get('operators', [\App\Http\Controllers\OperatorTeamController::class, 'index'])->name('operators');
             Route::post('operators', [\App\Http\Controllers\OperatorTeamController::class, 'store'])->name('operators.store');

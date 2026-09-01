@@ -41,6 +41,7 @@
         ['label'=>'Companies', 'icon'=>'building-2', 'route'=>'operator.index', 'active'=>$rn==='operator.index' || str_starts_with($rn,'operator.companies')],
         ['label'=>'Billing', 'icon'=>'receipt', 'route'=>'operator.billing', 'active'=>$rn==='operator.billing'],
         $isOwner ? ['label'=>'Plans', 'icon'=>'layers', 'route'=>'operator.plans', 'active'=>str_starts_with($rn,'operator.plans')] : null,
+        $isOwner ? ['label'=>'Modules', 'icon'=>'layout-grid', 'route'=>'operator.modules', 'active'=>str_starts_with($rn,'operator.modules')] : null,
         $isOwner ? ['label'=>'Operators', 'icon'=>'shield', 'route'=>'operator.operators', 'active'=>str_starts_with($rn,'operator.operators')] : null,
     ]));
     $navSoon = [];

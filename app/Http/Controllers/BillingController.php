@@ -21,7 +21,7 @@ class BillingController extends Controller
         return view('billing.index', [
             'tenant' => $tenant,
             'plans' => $plans,
-            'featureLabels' => config('plans.feature_labels'),
+            'featureLabels' => \App\Models\PlanFeature::labels(),
             'symbol' => config('plans.currency_symbol', '$'),
         ]);
     }

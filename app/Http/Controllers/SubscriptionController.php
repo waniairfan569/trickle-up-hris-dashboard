@@ -27,7 +27,7 @@ class SubscriptionController extends Controller
             'tenant'        => $tenant,
             'plans'         => Plan::active()->ordered()->get(),
             'events'        => $tenant->subscriptionEvents()->with('operator')->limit(30)->get(),
-            'featureLabels' => config('plans.feature_labels', []),
+            'featureLabels' => \App\Models\PlanFeature::labels(),
             'symbol'        => config('plans.currency_symbol', '$'),
         ]);
     }

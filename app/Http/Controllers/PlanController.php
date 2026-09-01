@@ -21,7 +21,7 @@ class PlanController extends Controller
 
         return view('operator.plans', [
             'plans'         => $plans,
-            'featureLabels' => config('plans.feature_labels', []),
+            'featureLabels' => \App\Models\PlanFeature::labels(),
             'currency'      => config('plans.currency', 'USD'),
             'symbol'        => config('plans.currency_symbol', '$'),
         ]);
