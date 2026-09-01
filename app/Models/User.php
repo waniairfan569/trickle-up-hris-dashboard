@@ -61,7 +61,7 @@ class User extends Authenticatable
         // Invitation system fields:
         'account_status', 'invitation_token', 'invitation_token_hash',
         'invitation_sent_at', 'invitation_expires_at', 'invitation_accepted_at',
-        'must_change_password', 'invited_by', 'attendance_mode', 'remote_days', 'is_operator', 'can_send_codes',
+        'must_change_password', 'invited_by', 'attendance_mode', 'remote_days', 'is_operator', 'operator_role', 'can_send_codes',
         'exclude_from_attendance',
         // Personal settings:
         'theme', 'notification_prefs', 'date_format', 'week_start',
@@ -112,6 +112,21 @@ class User extends Authenticatable
     public function isOperator(): bool
     {
         return (bool) $this->is_operator;
+    }
+
+    /**
+     * Platform Owner — full power (plans, pricing, suspend/cancel, manage other
+     * operators). A missing operator_role on an operator defaults to owner.
+     */
+    public function isOperatorOwner(): bool
+    {
+        return $this->isOperator() && ($this->operator_role ?? 'owner') === 'owner';
+    }
+
+    /** Support operator — view + impersonate + restorative actions only. */
+    public function isOperatorSupport(): bool
+    {
+        return $this->isOperator() && $this->operator_role === 'support';
     }
 
     /**

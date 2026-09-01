@@ -50,7 +50,9 @@
         <h2 class="text-sm font-bold text-slate-700 dark:text-slate-200 flex items-center gap-2"><i data-lucide="credit-card" class="h-4 w-4 text-indigo-500"></i> Subscription</h2>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
-            {{-- Change plan --}}
+            @php $isOwner = auth()->user()->isOperatorOwner(); @endphp
+            {{-- Change plan (owner only) --}}
+            @if($isOwner)
             <form action="{{ route('operator.plan', $tenant) }}" method="POST" class="space-y-2">@csrf
                 <label class="block text-[11px] font-bold text-slate-500">Plan</label>
                 <div class="flex gap-2">
@@ -61,7 +63,7 @@
                 </div>
             </form>
 
-            {{-- Discount --}}
+            {{-- Discount (owner only) --}}
             <form action="{{ route('operator.companies.discount', $tenant) }}" method="POST" class="space-y-2">@csrf
                 <label class="block text-[11px] font-bold text-slate-500">Discount / comp (%)</label>
                 <div class="flex gap-2">
@@ -69,6 +71,7 @@
                     <button class="rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700">Apply</button>
                 </div>
             </form>
+            @endif
 
             {{-- Extend trial --}}
             <form action="{{ route('operator.companies.trial', $tenant) }}" method="POST" class="space-y-2">@csrf
@@ -87,14 +90,15 @@
                 <div class="flex flex-wrap gap-2">
                     @if($tenant->status==='suspended')
                         <form action="{{ route('operator.activate', $tenant) }}" method="POST">@csrf<button class="rounded-xl bg-emerald-600 px-3 py-2 text-sm font-bold text-white hover:bg-emerald-700">Activate</button></form>
-                    @else
+                    @elseif($isOwner)
                         <form action="{{ route('operator.suspend', $tenant) }}" method="POST" onsubmit="return confirm('Suspend {{ $tenant->name }}? Their users are locked out.');">@csrf<button class="rounded-xl bg-amber-500 px-3 py-2 text-sm font-bold text-white hover:bg-amber-600">Suspend</button></form>
                     @endif
                     @if($tenant->isCanceled())
                         <form action="{{ route('operator.companies.reactivate', $tenant) }}" method="POST">@csrf<button class="rounded-xl bg-emerald-600 px-3 py-2 text-sm font-bold text-white hover:bg-emerald-700">Reactivate</button></form>
-                    @else
+                    @elseif($isOwner)
                         <form action="{{ route('operator.companies.cancel', $tenant) }}" method="POST" onsubmit="return confirm('Cancel {{ $tenant->name }}\'s subscription?');">@csrf<button class="rounded-xl border border-rose-200 px-3 py-2 text-sm font-bold text-rose-600 hover:bg-rose-50 dark:border-rose-500/30 dark:hover:bg-rose-500/10">Cancel</button></form>
                     @endif
+                    @if(!$isOwner)<span class="text-[11px] text-slate-400 self-center">Support role — pricing &amp; suspend/cancel are owner-only.</span>@endif
                 </div>
             </div>
         </div>

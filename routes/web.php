@@ -362,29 +362,36 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
 
     // SaaS operator console — platform owner manages all agencies.
     Route::middleware('operator')->prefix('operator')->name('operator.')->group(function () {
+        // ── Support + Owner (view + impersonate + restorative actions) ──
         Route::get('/', [\App\Http\Controllers\OperatorController::class, 'index'])->name('index');
-        Route::post('tenants/{tenant}/suspend', [\App\Http\Controllers\OperatorController::class, 'suspend'])->name('suspend');
-        Route::post('tenants/{tenant}/activate', [\App\Http\Controllers\OperatorController::class, 'activate'])->name('activate');
-        Route::post('tenants/{tenant}/plan', [\App\Http\Controllers\OperatorController::class, 'updatePlan'])->name('plan');
-        Route::post('tenants/{tenant}/impersonate', [\App\Http\Controllers\OperatorController::class, 'impersonate'])->name('impersonate');
-
-        // Dynamic plans — the owner creates/edits/archives plans anytime.
-        Route::get('plans', [\App\Http\Controllers\PlanController::class, 'index'])->name('plans');
-        Route::post('plans', [\App\Http\Controllers\PlanController::class, 'store'])->name('plans.store');
-        Route::put('plans/{plan}', [\App\Http\Controllers\PlanController::class, 'update'])->name('plans.update');
-        Route::post('plans/{plan}/duplicate', [\App\Http\Controllers\PlanController::class, 'duplicate'])->name('plans.duplicate');
-        Route::post('plans/{plan}/toggle', [\App\Http\Controllers\PlanController::class, 'toggleActive'])->name('plans.toggle');
-        Route::delete('plans/{plan}', [\App\Http\Controllers\PlanController::class, 'destroy'])->name('plans.destroy');
-
-        // Billing dashboard.
         Route::get('billing', [\App\Http\Controllers\OperatorController::class, 'billing'])->name('billing');
-
-        // Per-company subscription management.
+        Route::post('tenants/{tenant}/impersonate', [\App\Http\Controllers\OperatorController::class, 'impersonate'])->name('impersonate');
         Route::get('companies/{tenant}', [\App\Http\Controllers\SubscriptionController::class, 'show'])->name('companies.show');
-        Route::post('companies/{tenant}/cancel', [\App\Http\Controllers\SubscriptionController::class, 'cancel'])->name('companies.cancel');
-        Route::post('companies/{tenant}/reactivate', [\App\Http\Controllers\SubscriptionController::class, 'reactivate'])->name('companies.reactivate');
         Route::post('companies/{tenant}/trial', [\App\Http\Controllers\SubscriptionController::class, 'extendTrial'])->name('companies.trial');
-        Route::post('companies/{tenant}/discount', [\App\Http\Controllers\SubscriptionController::class, 'applyDiscount'])->name('companies.discount');
+        Route::post('companies/{tenant}/reactivate', [\App\Http\Controllers\SubscriptionController::class, 'reactivate'])->name('companies.reactivate');
+        Route::post('tenants/{tenant}/activate', [\App\Http\Controllers\OperatorController::class, 'activate'])->name('activate');
+
+        // ── Owner only (pricing, destructive/financial, operator team) ──
+        Route::middleware('operator.owner')->group(function () {
+            Route::post('tenants/{tenant}/suspend', [\App\Http\Controllers\OperatorController::class, 'suspend'])->name('suspend');
+            Route::post('tenants/{tenant}/plan', [\App\Http\Controllers\OperatorController::class, 'updatePlan'])->name('plan');
+            Route::post('companies/{tenant}/cancel', [\App\Http\Controllers\SubscriptionController::class, 'cancel'])->name('companies.cancel');
+            Route::post('companies/{tenant}/discount', [\App\Http\Controllers\SubscriptionController::class, 'applyDiscount'])->name('companies.discount');
+
+            // Dynamic plans.
+            Route::get('plans', [\App\Http\Controllers\PlanController::class, 'index'])->name('plans');
+            Route::post('plans', [\App\Http\Controllers\PlanController::class, 'store'])->name('plans.store');
+            Route::put('plans/{plan}', [\App\Http\Controllers\PlanController::class, 'update'])->name('plans.update');
+            Route::post('plans/{plan}/duplicate', [\App\Http\Controllers\PlanController::class, 'duplicate'])->name('plans.duplicate');
+            Route::post('plans/{plan}/toggle', [\App\Http\Controllers\PlanController::class, 'toggleActive'])->name('plans.toggle');
+            Route::delete('plans/{plan}', [\App\Http\Controllers\PlanController::class, 'destroy'])->name('plans.destroy');
+
+            // Operator team.
+            Route::get('operators', [\App\Http\Controllers\OperatorTeamController::class, 'index'])->name('operators');
+            Route::post('operators', [\App\Http\Controllers\OperatorTeamController::class, 'store'])->name('operators.store');
+            Route::put('operators/{operator}/role', [\App\Http\Controllers\OperatorTeamController::class, 'updateRole'])->name('operators.role');
+            Route::delete('operators/{operator}', [\App\Http\Controllers\OperatorTeamController::class, 'revoke'])->name('operators.revoke');
+        });
     });
     // Return from impersonation — allowed while acting as a tenant admin (session-guarded).
     Route::post('operator/stop-impersonating', [\App\Http\Controllers\OperatorController::class, 'stopImpersonating'])->name('operator.stop-impersonating');

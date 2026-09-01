@@ -18,7 +18,9 @@
             </a>
         @endforeach
 
+        @if(!empty($navSoon))
         <div class="px-3 mt-6 mb-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">Soon</div>
+        @endif
         @foreach($navSoon as $item)
             <div class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold text-slate-500 cursor-not-allowed select-none" title="Coming soon">
                 <i data-lucide="{{ $item['icon'] }}" class="h-4 w-4 shrink-0"></i>

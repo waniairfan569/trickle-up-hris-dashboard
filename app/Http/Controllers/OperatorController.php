@@ -118,6 +118,8 @@ class OperatorController extends Controller
 
         abort_unless($admin, 404, 'That workspace has no admin to impersonate.');
 
+        \App\Models\OperatorAudit::record('impersonate', "Impersonated {$tenant->name} as {$admin->full_name}.", $tenant->id);
+
         $request->session()->put('operator_impersonator_id', Auth::id());
         Auth::login($admin);
 
