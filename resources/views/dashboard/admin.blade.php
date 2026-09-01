@@ -32,8 +32,8 @@
     $lateToday = $todayRecs->where('status', 'late')->count();
     $presentIds = $todayRecs->whereIn('status', ['present', 'late', 'overtime', 'early_departure'])->pluck('user_id')->unique();
 
-    {{-- Working remotely TODAY: base-remote, an approved WFH request today, a hybrid
-         remote weekday, or a company-wide WFH day (mirrors User::effectiveAttendanceMode). --}}
+    // Working remotely TODAY: base-remote, an approved WFH request today, a hybrid
+    // remote weekday, or a company-wide WFH day (mirrors User::effectiveAttendanceMode).
     $companyRemoteToday = \App\Models\CompanyWfhDay::isCompanyRemote(today());
     $wfhTodayIds = \App\Models\TimeOffRequest::where('status', 'approved')
         ->whereDate('start_date', '<=', today()->toDateString())
