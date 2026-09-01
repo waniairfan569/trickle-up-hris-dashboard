@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Plan;
+use App\Models\SubscriptionEvent;
 use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -23,15 +24,13 @@ class OperatorController extends Controller
             return $t;
         });
 
-        $mrr = $tenants->where('status', 'active')->sum(fn ($t) => (float) ($t->planConfig()['price'] ?? 0));
-
         $stats = [
             'total' => $tenants->count(),
             'active' => $tenants->where('status', 'active')->count(),
             'trialing' => $tenants->where('status', 'trialing')->count(),
             'suspended' => $tenants->where('status', 'suspended')->count(),
             'seats' => $tenants->sum('seat_count'),
-            'mrr' => $mrr,
+            'mrr' => $tenants->sum(fn ($t) => $t->mrr()), // discount-aware, active only
         ];
 
         return view('operator.index', [
@@ -42,16 +41,57 @@ class OperatorController extends Controller
         ]);
     }
 
+    /** Billing dashboard — revenue, subscription health, and recent activity. */
+    public function billing()
+    {
+        $tenants = Tenant::all();
+
+        $stats = [
+            'mrr'       => round($tenants->sum(fn ($t) => $t->mrr()), 2),
+            'arr'       => round($tenants->sum(fn ($t) => $t->mrr()) * 12, 2),
+            'active'    => $tenants->where('status', 'active')->count(),
+            'trialing'  => $tenants->where('status', 'trialing')->count(),
+            'suspended' => $tenants->where('status', 'suspended')->count(),
+            'canceled'  => $tenants->where('status', 'canceled')->count(),
+            'discounted'=> $tenants->filter(fn ($t) => (int) $t->discount_percent > 0)->count(),
+        ];
+
+        // Revenue by plan (active tenants only).
+        $byPlan = $tenants->where('status', 'active')
+            ->groupBy(fn ($t) => $t->planKey())
+            ->map(fn ($grp, $key) => [
+                'name'  => optional(Plan::forKey($key))->name ?? ucfirst($key),
+                'count' => $grp->count(),
+                'mrr'   => round($grp->sum(fn ($t) => $t->mrr()), 2),
+            ])->sortByDesc('mrr')->values();
+
+        // Trials ending within 7 days.
+        $trialsEnding = $tenants->filter(fn ($t) => $t->onTrial() && $t->trialDaysLeft() <= 7)
+            ->sortBy(fn ($t) => $t->trial_ends_at)->values();
+
+        $recent = SubscriptionEvent::with(['tenant', 'operator'])->latest()->limit(15)->get();
+
+        return view('operator.billing', [
+            'stats'        => $stats,
+            'byPlan'       => $byPlan,
+            'trialsEnding' => $trialsEnding,
+            'recent'       => $recent,
+            'symbol'       => config('plans.currency_symbol', '$'),
+        ]);
+    }
+
     public function suspend(Tenant $tenant)
     {
         $tenant->update(['status' => 'suspended']);
+        SubscriptionEvent::record($tenant, 'suspended', 'Workspace suspended.');
 
         return back()->with('success', "{$tenant->name} suspended.");
     }
 
     public function activate(Tenant $tenant)
     {
-        $tenant->update(['status' => 'active']);
+        $tenant->update(['status' => 'active', 'canceled_at' => null]);
+        SubscriptionEvent::record($tenant, 'activated', 'Workspace activated.');
 
         return back()->with('success', "{$tenant->name} activated.");
     }
@@ -63,6 +103,7 @@ class OperatorController extends Controller
         abort_unless($plan, 422, 'Unknown plan.');
 
         $tenant->update(['plan' => $plan->key]);
+        SubscriptionEvent::record($tenant, 'plan_changed', "Plan changed to {$plan->name}.");
 
         return back()->with('success', "{$tenant->name} moved to the {$plan->name} plan.");
     }

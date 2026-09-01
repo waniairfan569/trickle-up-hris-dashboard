@@ -375,6 +375,16 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
         Route::post('plans/{plan}/duplicate', [\App\Http\Controllers\PlanController::class, 'duplicate'])->name('plans.duplicate');
         Route::post('plans/{plan}/toggle', [\App\Http\Controllers\PlanController::class, 'toggleActive'])->name('plans.toggle');
         Route::delete('plans/{plan}', [\App\Http\Controllers\PlanController::class, 'destroy'])->name('plans.destroy');
+
+        // Billing dashboard.
+        Route::get('billing', [\App\Http\Controllers\OperatorController::class, 'billing'])->name('billing');
+
+        // Per-company subscription management.
+        Route::get('companies/{tenant}', [\App\Http\Controllers\SubscriptionController::class, 'show'])->name('companies.show');
+        Route::post('companies/{tenant}/cancel', [\App\Http\Controllers\SubscriptionController::class, 'cancel'])->name('companies.cancel');
+        Route::post('companies/{tenant}/reactivate', [\App\Http\Controllers\SubscriptionController::class, 'reactivate'])->name('companies.reactivate');
+        Route::post('companies/{tenant}/trial', [\App\Http\Controllers\SubscriptionController::class, 'extendTrial'])->name('companies.trial');
+        Route::post('companies/{tenant}/discount', [\App\Http\Controllers\SubscriptionController::class, 'applyDiscount'])->name('companies.discount');
     });
     // Return from impersonation — allowed while acting as a tenant admin (session-guarded).
     Route::post('operator/stop-impersonating', [\App\Http\Controllers\OperatorController::class, 'stopImpersonating'])->name('operator.stop-impersonating');

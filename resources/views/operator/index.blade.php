@@ -51,8 +51,8 @@
                     @endphp
                     <tr class="hover:bg-slate-50/60 dark:hover:bg-slate-700/30">
                         <td class="px-5 py-3">
-                            <div class="font-bold text-slate-800 dark:text-white">{{ $t->brand_name ?: $t->name }}</div>
-                            <div class="text-[11px] text-slate-400">{{ $t->slug }}</div>
+                            <a href="{{ route('operator.companies.show', $t) }}" class="font-bold text-slate-800 hover:text-indigo-600 dark:text-white dark:hover:text-indigo-400">{{ $t->brand_name ?: $t->name }}</a>
+                            <div class="text-[11px] text-slate-400">{{ $t->slug }}@if($t->discount_percent) · <span class="text-emerald-600 font-semibold">-{{ $t->discount_percent }}%</span>@endif</div>
                         </td>
                         <td class="px-5 py-3 text-slate-600 dark:text-slate-300">
                             {{ optional($t->admin)->full_name ?? '—' }}
@@ -76,6 +76,7 @@
                         <td class="px-5 py-3 text-slate-500">{{ optional($t->created_at)->format('d M Y') }}</td>
                         <td class="px-5 py-3">
                             <div class="flex items-center justify-end gap-1.5">
+                                <a href="{{ route('operator.companies.show', $t) }}" title="Manage" class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-indigo-600 dark:hover:bg-slate-700"><i data-lucide="settings-2" class="h-4 w-4"></i></a>
                                 @if($t->admin)
                                     <form action="{{ route('operator.impersonate', $t) }}" method="POST" onsubmit="return confirm('Log in as {{ $t->name }}\'s admin? You can return to the console anytime.');">
                                         @csrf

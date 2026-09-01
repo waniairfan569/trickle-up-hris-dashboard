@@ -7,18 +7,25 @@ use Illuminate\Database\Eloquent\Model;
 class Tenant extends Model
 {
     protected $fillable = [
-        'name', 'slug', 'subdomain', 'status', 'plan',
+        'name', 'slug', 'subdomain', 'status', 'plan', 'discount_percent',
         'brand_name', 'logo_url', 'primary_color', 'from_email', 'timezone', 'currency',
-        'trial_ends_at',
+        'trial_ends_at', 'canceled_at',
     ];
 
     protected $casts = [
         'trial_ends_at' => 'datetime',
+        'canceled_at' => 'datetime',
+        'discount_percent' => 'integer',
     ];
 
     public function users()
     {
         return $this->hasMany(User::class);
+    }
+
+    public function subscriptionEvents()
+    {
+        return $this->hasMany(SubscriptionEvent::class)->latest();
     }
 
     /** The default tenant that owns all pre-SaaS data. */
@@ -126,5 +133,30 @@ class Tenant extends Model
         $features = $this->planConfig()['features'] ?? [];
 
         return in_array('*', $features, true) || in_array($feature, $features, true);
+    }
+
+    public function isCanceled(): bool
+    {
+        return $this->status === 'canceled';
+    }
+
+    /** The plan's list price. */
+    public function planPrice(): float
+    {
+        return (float) ($this->planConfig()['price'] ?? 0);
+    }
+
+    /** Price after any operator discount/comp is applied. */
+    public function effectivePrice(): float
+    {
+        $pct = max(0, min(100, (int) ($this->discount_percent ?? 0)));
+
+        return round($this->planPrice() * (1 - $pct / 100), 2);
+    }
+
+    /** Monthly recurring revenue this company contributes (paid + active only). */
+    public function mrr(): float
+    {
+        return $this->status === 'active' ? $this->effectivePrice() : 0.0;
     }
 }

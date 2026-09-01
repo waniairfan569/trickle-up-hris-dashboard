@@ -37,13 +37,12 @@
 @php
     $rn = request()->route()?->getName() ?? '';
     $navMain = [
-        ['label'=>'Companies', 'icon'=>'building-2', 'route'=>'operator.index', 'active'=>$rn==='operator.index'],
+        ['label'=>'Companies', 'icon'=>'building-2', 'route'=>'operator.index', 'active'=>$rn==='operator.index' || str_starts_with($rn,'operator.companies')],
         ['label'=>'Plans', 'icon'=>'layers', 'route'=>'operator.plans', 'active'=>str_starts_with($rn,'operator.plans')],
+        ['label'=>'Billing', 'icon'=>'receipt', 'route'=>'operator.billing', 'active'=>$rn==='operator.billing'],
     ];
     // Not built yet — shown so the console's shape is clear; wired up as we go.
     $navSoon = [
-        ['label'=>'Subscriptions', 'icon'=>'credit-card'],
-        ['label'=>'Billing', 'icon'=>'receipt'],
         ['label'=>'Operators', 'icon'=>'shield'],
     ];
 @endphp
