@@ -215,12 +215,17 @@ class AttendanceRecord extends Model
      */
     public function recalculate(): void
     {
-        if (in_array($this->status, ['on_leave', 'public_holiday', 'weekend'], true)) {
-            return;
-        }
-
-        // No clock-in at all -> absent.
+        // A clock-in — a real punch OR one an admin added on the profile — means
+        // the employee worked, so their status is (re)computed below. A protected
+        // non-working status (leave / holiday / weekend) is only kept when there
+        // is NO clock-in; otherwise a manually-added clock-in on a leave/WFH day
+        // would never clear "absent".
         if (!$this->clock_in) {
+            if (in_array($this->status, ['on_leave', 'public_holiday', 'weekend'], true)) {
+                return;
+            }
+
+            // No clock-in and not a protected day -> absent.
             $this->status = 'absent';
             $this->late_minutes = 0;
             $this->total_minutes_worked = 0;
