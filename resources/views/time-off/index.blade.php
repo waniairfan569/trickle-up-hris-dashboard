@@ -252,7 +252,14 @@
                         <td class="px-6 py-4 text-sm font-medium text-slate-900 dark:text-white align-top">
                             <div>{{ $request->policy->name }}</div>
                             @if($request->reason)
-                                <div class="text-xs font-normal text-slate-500 italic mt-1 max-w-[240px] line-clamp-2 dark:text-slate-400" title="{{ $request->reason }}">“{{ $request->reason }}”</div>
+                                <div x-data="{ show:false, x:0, y:0 }" class="mt-1 max-w-[240px]">
+                                    <div x-ref="r{{ $request->id }}" style="cursor:help;"
+                                         @mouseenter="x=$event.clientX; y=$event.clientY; show = ($refs.r{{ $request->id }}.scrollHeight > $refs.r{{ $request->id }}.clientHeight)"
+                                         @mouseleave="show=false"
+                                         class="text-xs font-normal text-slate-500 italic line-clamp-2 dark:text-slate-400">“{{ $request->reason }}”</div>
+                                    <div x-show="show" x-cloak
+                                         :style="`position:fixed; left:${Math.min(x+14, window.innerWidth-330)}px; top:${y+18}px; z-index:60; width:max-content; max-width:20rem; background:#0f172a; color:#fff; font-size:11px; line-height:1.5; padding:.5rem .7rem; border-radius:.5rem; box-shadow:0 10px 28px -10px rgba(0,0,0,.5); white-space:normal; word-break:break-word;`">“{{ $request->reason }}”</div>
+                                </div>
                             @endif
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400 align-top">
@@ -557,7 +564,14 @@
                                 </div>
                             @endif
                             @if($request->reason)
-                                <div class="text-xs text-slate-500 italic mt-1 max-w-[240px] line-clamp-2 dark:text-slate-400" title="{{ $request->reason }}">“{{ $request->reason }}”</div>
+                                <div x-data="{ show:false, x:0, y:0 }" class="mt-1 max-w-[240px]">
+                                    <div x-ref="ra{{ $request->id }}" style="cursor:help;"
+                                         @mouseenter="x=$event.clientX; y=$event.clientY; show = ($refs.ra{{ $request->id }}.scrollHeight > $refs.ra{{ $request->id }}.clientHeight)"
+                                         @mouseleave="show=false"
+                                         class="text-xs text-slate-500 italic line-clamp-2 dark:text-slate-400">“{{ $request->reason }}”</div>
+                                    <div x-show="show" x-cloak
+                                         :style="`position:fixed; left:${Math.min(x+14, window.innerWidth-330)}px; top:${y+18}px; z-index:60; width:max-content; max-width:20rem; background:#0f172a; color:#fff; font-size:11px; line-height:1.5; padding:.5rem .7rem; border-radius:.5rem; box-shadow:0 10px 28px -10px rgba(0,0,0,.5); white-space:normal; word-break:break-word;`">“{{ $request->reason }}”</div>
+                                </div>
                             @endif
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">
