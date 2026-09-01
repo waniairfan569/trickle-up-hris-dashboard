@@ -227,6 +227,7 @@ class TimeOffRequest extends Model
     public static function onLeaveToday($userIds = null)
     {
         $q = static::where('status', 'approved')
+            ->excludingWorkFromHome()
             ->whereDate('start_date', '<=', today())
             ->whereDate('end_date', '>=', today())
             ->with(['employee:id,first_name,last_name,avatar_url', 'policy:id,name']);
@@ -263,6 +264,23 @@ class TimeOffRequest extends Model
     public function scopeApproved($query)
     {
         return $query->where('status', 'approved');
+    }
+
+    /**
+     * Real time off only — Work From Home is dropped. Someone on WFH is working
+     * (remotely), so they are neither "on leave" nor "out of office": they still
+     * belong on the attendance sheet and are still expected to clock in.
+     * Requests with no policy at all are kept (they can't be identified as WFH).
+     */
+    public function scopeExcludingWorkFromHome($query)
+    {
+        return $query->whereDoesntHave('policy', fn ($q) => $q->workFromHome());
+    }
+
+    /** Only Work-From-Home requests — the inverse of excludingWorkFromHome(). */
+    public function scopeWorkFromHomeOnly($query)
+    {
+        return $query->whereHas('policy', fn ($q) => $q->workFromHome());
     }
 
     public function scopeForUser($query, User $user)

@@ -158,6 +158,7 @@ class AttendanceRecord extends Model
     {
         $request = \App\Models\TimeOffRequest::where('user_id', $userId)
             ->where('status', 'approved')
+            ->excludingWorkFromHome() // WFH is a working day, not partial leave
             ->whereDate('start_date', '<=', $date)
             ->whereDate('end_date', '>=', $date)
             ->where(function ($q) {

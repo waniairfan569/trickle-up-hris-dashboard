@@ -70,11 +70,9 @@ class AttendanceReportService
         // Work-From-Home is excluded — those employees are working (remotely),
         // not off, so they stay in the expected-present pool.
         $onLeaveRequests = \App\Models\TimeOffRequest::where('status', 'approved')
+            ->excludingWorkFromHome()
             ->whereDate('start_date', '<=', $date->toDateString())
             ->whereDate('end_date', '>=', $date->toDateString())
-            ->whereDoesntHave('policy', fn ($q) => $q->where(fn ($q2) => $q2
-                ->whereRaw('LOWER(name) like ?', ['%work from home%'])
-                ->orWhereRaw('LOWER(name) like ?', ['%wfh%'])))
             ->when($reportingIds, fn ($q) => $q->whereIn('user_id', $reportingIds->all()))
             ->with(['employee.department', 'policy'])
             ->get();

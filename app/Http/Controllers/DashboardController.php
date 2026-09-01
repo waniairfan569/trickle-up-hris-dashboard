@@ -48,7 +48,9 @@ class DashboardController extends Controller
             ->orderBy('start_date', 'asc')
             ->get();
 
+        // Work From Home is not "out of office" — those people are working.
         $outOfOfficeCount = \App\Models\TimeOffRequest::where('status', 'approved')
+            ->excludingWorkFromHome()
             ->whereDate('start_date', '<=', today())
             ->whereDate('end_date', '>=', today())
             ->count();
@@ -179,13 +181,17 @@ class DashboardController extends Controller
             ->values();
     }
 
-    /** Approved leaves overlapping the window — real "out of office" people per day. */
+    /**
+     * Approved leaves overlapping the window — real "out of office" people per
+     * day. Work From Home is excluded: they're at work, just not in the office.
+     */
     protected function outOfOffice()
     {
         $windowStart = today()->copy()->subDays(31)->toDateString();
         $windowEnd = today()->copy()->addDays(180)->toDateString();
 
         return \App\Models\TimeOffRequest::where('status', 'approved')
+            ->excludingWorkFromHome()
             ->whereDate('start_date', '<=', $windowEnd)
             ->whereDate('end_date', '>=', $windowStart)
             ->with('employee:id,first_name,last_name,avatar_url')

@@ -15,8 +15,10 @@
 
     $pendingApprovals = \App\Models\TimeOffRequest::where('status', 'pending')->count();
 
-    // Today's snapshot
+    // Today's snapshot. Work From Home is not leave — those people are working
+    // (remotely) and still expected to clock in, so they're not counted here.
     $leaveToday = \App\Models\TimeOffRequest::where('status', 'approved')
+        ->excludingWorkFromHome()
         ->whereDate('start_date', '<=', today())
         ->whereDate('end_date', '>=', today())
         ->with('policy')->get();

@@ -86,6 +86,28 @@ class TimeOffPolicy extends Model
     }
 
     /**
+     * Work-From-Home policies. WFH is NOT time off — the employee is working,
+     * just not from the office — so it must never read as leave or "out of
+     * office" anywhere. There's no WFH policy type (the enum has none), so it's
+     * matched by name; this scope and isWorkFromHome() are the ONLY places that
+     * rule lives, so every surface agrees on what counts as WFH.
+     */
+    public function scopeWorkFromHome($query)
+    {
+        return $query->where(fn ($q) => $q
+            ->whereRaw('LOWER(name) like ?', ['%work from home%'])
+            ->orWhereRaw('LOWER(name) like ?', ['%wfh%']));
+    }
+
+    /** True when this policy is a Work-From-Home policy (see scopeWorkFromHome). */
+    public function isWorkFromHome(): bool
+    {
+        $name = strtolower((string) $this->name);
+
+        return str_contains($name, 'work from home') || str_contains($name, 'wfh');
+    }
+
+    /**
      * Methods
      */
     public function getAllowanceForUser(User $user)

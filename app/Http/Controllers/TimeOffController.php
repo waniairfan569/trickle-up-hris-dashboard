@@ -100,9 +100,17 @@ class TimeOffController extends Controller
      * never show as an absence. Days they actually clocked in are left
      * untouched (half-day / hourly people who worked their other hours stay
      * Present).
+     *
+     * Work From Home is the one exception: it isn't time off at all — the
+     * employee is working remotely and still clocks in — so a WFH approval must
+     * never stamp "On Leave" over their day.
      */
     private function applyLeaveToAttendance(TimeOffRequest $request): void
     {
+        if (optional($request->policy)->isWorkFromHome()) {
+            return;
+        }
+
         $end = Carbon::parse($request->end_date)->startOfDay();
         for ($d = Carbon::parse($request->start_date)->startOfDay(); $d->lte($end); $d->addDay()) {
             try {

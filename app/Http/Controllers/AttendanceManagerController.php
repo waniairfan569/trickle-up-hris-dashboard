@@ -102,12 +102,17 @@ class AttendanceManagerController extends Controller
         return TimeOffRequest::onLeaveToday($ids);
     }
 
-    /** User IDs on approved leave today (scoped to a manager's team). */
+    /**
+     * User IDs on approved leave today (scoped to a manager's team). Work From
+     * Home is excluded — they're working remotely, so they stay on the board as
+     * a normal working day rather than being flipped to "on leave".
+     */
     private function onLeaveUserIds(User $user)
     {
         $scope = $user->isAdmin() ? null : $user->teamMemberIds()->all();
 
         return TimeOffRequest::where('status', 'approved')
+            ->excludingWorkFromHome()
             ->whereDate('start_date', '<=', Carbon::today())
             ->whereDate('end_date', '>=', Carbon::today())
             ->when(is_array($scope), fn ($q) => $q->whereIn('user_id', $scope))
@@ -268,9 +273,11 @@ class AttendanceManagerController extends Controller
         $created = 0; $updated = 0; $skipped = 0; $onLeave = 0;
 
         foreach ($users as $user) {
-            // Keep people who are on approved leave that day as-is.
+            // Keep people who are on approved leave that day as-is. WFH is not
+            // leave — they worked, so they get the backfilled record like anyone.
             $isOnLeave = TimeOffRequest::where('user_id', $user->id)
                 ->where('status', 'approved')
+                ->excludingWorkFromHome()
                 ->whereDate('start_date', '<=', $date)
                 ->whereDate('end_date', '>=', $date)
                 ->exists();
@@ -317,6 +324,7 @@ class AttendanceManagerController extends Controller
         $ids = $user->isAdmin() ? null : $user->teamMemberIds()->all();
 
         $upcoming = TimeOffRequest::where('status', 'approved')
+            ->excludingWorkFromHome()
             ->whereDate('start_date', '>', today())
             ->whereDate('start_date', '<=', today()->copy()->addDays(30))
             ->when(is_array($ids), fn ($q) => $q->whereIn('user_id', $ids))
@@ -400,8 +408,10 @@ class AttendanceManagerController extends Controller
                     $calMatrix[$rec->user_id][Carbon::parse($rec->date)->toDateString()] = $rec->status;
                 });
 
-            // Approved leave → fill any blank day as "on_leave"
+            // Approved leave → fill any blank day as "on_leave" (WFH is working,
+            // so it never paints a calendar day as leave)
             TimeOffRequest::where('status', 'approved')
+                ->excludingWorkFromHome()
                 ->whereIn('user_id', $empIds)
                 ->whereDate('start_date', '<=', $monthEnd->toDateString())
                 ->whereDate('end_date', '>=', $monthStart->toDateString())

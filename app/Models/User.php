@@ -345,11 +345,9 @@ class User extends Authenticatable
     {
         return \App\Models\TimeOffRequest::where('user_id', $this->id)
             ->where('status', 'approved')
+            ->workFromHomeOnly()
             ->whereDate('start_date', '<=', $date->toDateString())
             ->whereDate('end_date', '>=', $date->toDateString())
-            ->whereHas('policy', fn ($q) => $q->where(fn ($q2) => $q2
-                ->whereRaw('LOWER(name) like ?', ['%work from home%'])
-                ->orWhereRaw('LOWER(name) like ?', ['%wfh%'])))
             ->exists();
     }
 

@@ -215,8 +215,11 @@ class ReportDataService
         $minutes = (int) $records->sum('total_minutes_worked');
         $workingDays = $this->scheduledWorkingDays($employee, $startDate, $endDate);
 
+        // Planned / unplanned leave days. Work From Home is not leave, so it
+        // never lands in either column.
         $leaveRequests = TimeOffRequest::where('user_id', $employee->id)
             ->where('status', 'approved')
+            ->excludingWorkFromHome()
             ->where(function ($q) use ($startDate, $endDate) {
                 $q->whereBetween('start_date', [$startDate->toDateString(), $endDate->toDateString()])
                   ->orWhereBetween('end_date', [$startDate->toDateString(), $endDate->toDateString()]);

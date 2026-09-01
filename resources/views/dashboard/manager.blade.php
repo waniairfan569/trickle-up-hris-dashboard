@@ -20,8 +20,9 @@
         ->latest()
         ->get();
         
-    // List of reports who are on leave today
+    // List of reports who are on leave today (Work From Home isn't leave)
     $onLeaveTodayUserIds = \App\Models\TimeOffRequest::where('status', 'approved')
+        ->excludingWorkFromHome()
         ->whereDate('start_date', '<=', today())
         ->whereDate('end_date', '>=', today())
         ->with('employee')
