@@ -45,6 +45,30 @@
     </div>
     @if($tenant->admin)<p class="text-xs text-slate-400">Admin: <b class="text-slate-600 dark:text-slate-300">{{ $tenant->admin->full_name }}</b> · {{ $tenant->admin->email }}</p>@endif
 
+    {{-- Modules & access (determined by the plan) --}}
+    @php $planFeatures = $tenant->planConfig()['features'] ?? []; $allAccess = in_array('*', $planFeatures, true); @endphp
+    <div class="rounded-2xl border border-slate-200/80 bg-white shadow-sm p-5 dark:bg-slate-800 dark:border-slate-700">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+            <h2 class="text-sm font-bold text-slate-700 dark:text-slate-200 flex items-center gap-2"><i data-lucide="layout-grid" class="h-4 w-4 text-indigo-500"></i> Modules &amp; access</h2>
+            <span class="text-[11px] text-slate-400">via the <b class="text-slate-600 dark:text-slate-300">{{ $tenant->planConfig()['name'] ?? '—' }}</b> plan</span>
+        </div>
+
+        @if($allAccess)
+            <p class="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-600 dark:text-emerald-400"><i data-lucide="check-circle" class="h-4 w-4"></i> All modules included — full access</p>
+        @endif
+
+        <div class="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-2">
+            @foreach($featureLabels as $key => $label)
+                @php $has = $allAccess || $tenant->hasFeature($key); @endphp
+                <div class="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm {{ $has ? 'border-emerald-200 bg-emerald-50/50 dark:border-emerald-500/20 dark:bg-emerald-500/5' : 'border-slate-200 bg-slate-50/50 dark:border-slate-700 dark:bg-slate-900/30' }}">
+                    <i data-lucide="{{ $has ? 'check' : 'minus' }}" class="h-3.5 w-3.5 shrink-0 {{ $has ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400' }}"></i>
+                    <span class="{{ $has ? 'text-slate-800 dark:text-white font-medium' : 'text-slate-400 line-through' }}">{{ $label }}</span>
+                </div>
+            @endforeach
+        </div>
+        <p class="mt-3 text-[11px] text-slate-400">Access follows the plan. Change it by moving this company to a different plan above, or by editing the plan's features on the <a href="{{ route('operator.plans') }}" class="text-indigo-600 hover:underline dark:text-indigo-400">Plans</a> page.</p>
+    </div>
+
     {{-- Subscription controls --}}
     <div class="rounded-2xl border border-slate-200/80 bg-white shadow-sm p-5 space-y-5 dark:bg-slate-800 dark:border-slate-700">
         <h2 class="text-sm font-bold text-slate-700 dark:text-slate-200 flex items-center gap-2"><i data-lucide="credit-card" class="h-4 w-4 text-indigo-500"></i> Subscription</h2>

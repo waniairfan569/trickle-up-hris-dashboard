@@ -24,10 +24,11 @@ class SubscriptionController extends Controller
             ->first();
 
         return view('operator.company', [
-            'tenant' => $tenant,
-            'plans'  => Plan::active()->ordered()->get(),
-            'events' => $tenant->subscriptionEvents()->with('operator')->limit(30)->get(),
-            'symbol' => config('plans.currency_symbol', '$'),
+            'tenant'        => $tenant,
+            'plans'         => Plan::active()->ordered()->get(),
+            'events'        => $tenant->subscriptionEvents()->with('operator')->limit(30)->get(),
+            'featureLabels' => config('plans.feature_labels', []),
+            'symbol'        => config('plans.currency_symbol', '$'),
         ]);
     }
 

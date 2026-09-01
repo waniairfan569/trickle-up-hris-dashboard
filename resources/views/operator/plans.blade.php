@@ -49,9 +49,18 @@
                 <div class="mt-3 space-y-1.5 text-sm text-slate-600 dark:text-slate-300">
                     <div class="flex items-center gap-2"><i data-lucide="users" class="h-3.5 w-3.5 text-slate-400"></i> {{ $plan->seats === 0 ? 'Unlimited' : $plan->seats }} seats</div>
                     <div class="flex items-center gap-2"><i data-lucide="check-circle" class="h-3.5 w-3.5 text-slate-400"></i>
-                        @if(in_array('*', $plan->features ?? [], true)) All features
-                        @else {{ count($plan->features ?? []) }} feature{{ count($plan->features ?? []) === 1 ? '' : 's' }} @endif
+                        @if(in_array('*', $plan->features ?? [], true)) All modules
+                        @else {{ count($plan->features ?? []) }} module{{ count($plan->features ?? []) === 1 ? '' : 's' }} @endif
                     </div>
+                    @unless(in_array('*', $plan->features ?? [], true))
+                        <div class="flex flex-wrap gap-1 pl-5">
+                            @forelse($plan->features ?? [] as $fk)
+                                @isset($featureLabels[$fk])<span class="text-[10px] rounded bg-slate-100 px-1.5 py-0.5 text-slate-600 dark:bg-slate-700 dark:text-slate-300">{{ $featureLabels[$fk] }}</span>@endisset
+                            @empty
+                                <span class="text-[10px] text-slate-400">No modules selected</span>
+                            @endforelse
+                        </div>
+                    @endunless
                     @if($plan->trial_days > 0)<div class="flex items-center gap-2"><i data-lucide="clock" class="h-3.5 w-3.5 text-slate-400"></i> {{ $plan->trial_days }}-day trial</div>@endif
                     <div class="flex items-center gap-2"><i data-lucide="building-2" class="h-3.5 w-3.5 text-slate-400"></i> {{ $plan->tenants_count }} compan{{ $plan->tenants_count === 1 ? 'y' : 'ies' }}</div>
                 </div>
