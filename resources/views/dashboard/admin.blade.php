@@ -32,9 +32,23 @@
     $lateToday = $todayRecs->where('status', 'late')->count();
     $presentIds = $todayRecs->whereIn('status', ['present', 'late', 'overtime', 'early_departure'])->pluck('user_id')->unique();
 
-    $workingRemotely = \App\Models\User::active()
+    {{-- Working remotely TODAY: base-remote, an approved WFH request today, a hybrid
+         remote weekday, or a company-wide WFH day (mirrors User::effectiveAttendanceMode). --}}
+    $companyRemoteToday = \App\Models\CompanyWfhDay::isCompanyRemote(today());
+    $wfhTodayIds = \App\Models\TimeOffRequest::where('status', 'approved')
+        ->whereDate('start_date', '<=', today()->toDateString())
+        ->whereDate('end_date', '>=', today()->toDateString())
+        ->whereHas('policy', fn ($q) => $q->workFromHome())
+        ->pluck('user_id')->unique();
+    $weekdayShort = today()->format('D');
+    $remoteEmployees = \App\Models\User::active()
         ->whereIn('id', $realEmployeeIds->all())
-        ->where('attendance_mode', 'remote')->count();
+        ->get()
+        ->filter(fn ($u) => $companyRemoteToday
+            || $wfhTodayIds->contains($u->id)
+            || in_array($weekdayShort, (array) ($u->remote_days ?? []), true)
+            || ($u->attendance_mode ?? 'biometric') === 'remote');
+    $workingRemotely = $remoteEmployees->count();
 
     // Absent = active, not present, not on leave — but ONLY on a working day for
     // that employee AND only once their shift has actually STARTED. Someone whose
@@ -95,11 +109,9 @@
     $lateDetailFor = $todayRecs->where('status', 'late')->groupBy('user_id')->map(fn ($rs) => $fmtLate($rs->first()->late_minutes));
     $absentDetailFor = $absentUserIds->mapWithKeys(fn ($id) => [$id => 'Not clocked in today']);
 
-    $remotePeople = \App\Models\User::active()
-        ->whereIn('id', $realEmployeeIds->all())
-        ->where('attendance_mode', 'remote')
-        ->get()
-        ->map(fn ($u) => $asPerson($u) + ['detail' => 'Working remotely'])->values()->all();
+    $remotePeople = $remoteEmployees
+        ->map(fn ($u) => $asPerson($u) + ['detail' => $wfhTodayIds->contains($u->id) ? 'Working from home today' : 'Working remotely'])
+        ->values()->all();
     $pendingPeople = \App\Models\TimeOffRequest::where('status', 'pending')->with(['employee', 'policy'])->get()
         ->map(fn ($r) => $r->employee ? $asPerson($r->employee) + ['detail' => $leaveRange($r)] : null)
         ->filter()->unique('name')->values()->all();

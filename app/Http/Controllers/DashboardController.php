@@ -208,6 +208,10 @@ class DashboardController extends Controller
                     'start' => $r->start_date->toDateString(),
                     'end' => $r->end_date->toDateString(),
                     'range' => $r->start_date->format('d M Y') . ' – ' . $r->end_date->format('d M Y'),
+                    // How much leave — "2 hours" / "Half day" / "3 days" — plus the
+                    // time window for an hourly request.
+                    'duration' => $r->duration_label,
+                    'time' => $r->time_range,
                 ];
             })
             ->values();

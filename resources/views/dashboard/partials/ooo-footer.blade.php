@@ -52,9 +52,13 @@
                             <template x-if="o.avatar"><img :src="o.avatar" class="h-full w-full object-cover"></template>
                             <template x-if="!o.avatar"><span x-text="o.initials"></span></template>
                         </span>
-                        <div class="min-w-0">
+                        <div class="min-w-0 flex-1">
                             <p class="text-sm font-bold text-slate-800 dark:text-white truncate" x-text="o.name"></p>
-                            <p class="text-xs text-slate-500 dark:text-slate-400" x-text="o.range"></p>
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <p class="text-xs text-slate-500 dark:text-slate-400" x-text="o.range"></p>
+                                <template x-if="o.duration"><span class="text-[10px] font-bold rounded-md bg-indigo-50 px-1.5 py-0.5 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400" x-text="o.duration"></span></template>
+                            </div>
+                            <template x-if="o.time"><p class="text-[11px] text-slate-400 mt-0.5" x-text="o.time"></p></template>
                         </div>
                     </div>
                 </template>
