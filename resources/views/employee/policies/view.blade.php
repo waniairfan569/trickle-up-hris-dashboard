@@ -95,7 +95,7 @@
 
             <label class="flex items-start gap-2.5 cursor-pointer">
                 <input type="checkbox" name="confirmed" value="1" x-model="confirmed" class="mt-0.5 rounded border-slate-300 text-brand-600 h-5 w-5">
-                <span class="text-sm text-slate-700 dark:text-slate-200">I confirm that I have read and understood the <span class="font-semibold">{{ $policy->title }}</span> policy@if($needsSig) and the signature above is mine@endif.</span>
+                <span class="text-sm text-slate-700 dark:text-slate-200">I confirm that I have read and understood the <span class="font-semibold">{{ $policy->title }}</span> policy{{ $needsSig ? ' and the signature above is mine' : '' }}.</span>
             </label>
 
             <button type="submit" class="w-full rounded-xl bg-brand-600 px-6 py-3 text-sm font-bold text-slate-900 hover:bg-brand-700">Acknowledge policy</button>

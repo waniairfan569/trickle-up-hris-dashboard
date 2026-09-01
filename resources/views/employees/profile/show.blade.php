@@ -515,7 +515,7 @@
                     <div class="flex-1 min-w-0">
                         <h2 class="text-sm font-bold text-slate-800 dark:text-white">Fix late &amp; overtime status</h2>
                         <p class="text-xs text-slate-400 mt-1 leading-relaxed">
-                            Re-checks every clocked-in day against {{ $employee->first_name }}'s shift: clock-in after their shift start (+ grace) is <b>Late</b>, clock-out more than the overtime threshold after shift end is <b>Overtime</b>, leaving before shift end is <b>Early departure</b>, otherwise <b>Present</b>. Days on leave are left untouched, and invalid <b>Absent</b> days are cleared — future ones (e.g. from a returned leave) and any dated before {{ $employee->first_name }} joined@if($employee->employmentStartDate()) ({{ $employee->employmentStartDate()->format('d M Y') }})@endif.
+                            Re-checks every clocked-in day against {{ $employee->first_name }}'s shift: clock-in after their shift start (+ grace) is <b>Late</b>, clock-out more than the overtime threshold after shift end is <b>Overtime</b>, leaving before shift end is <b>Early departure</b>, otherwise <b>Present</b>. Days on leave are left untouched, and invalid <b>Absent</b> days are cleared — future ones (e.g. from a returned leave) and any dated before {{ $employee->first_name }} joined{{ $employee->employmentStartDate() ? ' (' . $employee->employmentStartDate()->format('d M Y') . ')' : '' }}.
                         </p>
                     </div>
                     <button type="submit" class="btn-brand shrink-0"><i data-lucide="alarm-clock" class="h-4 w-4"></i> Fix status</button>
