@@ -45,14 +45,6 @@
 
 <!-- Navigation Group: Primary -->
 <div class="space-y-1">
-    @if(optional(auth()->user())->isOperator())
-    <a href="{{ route('operator.index') }}"
-       class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ Str::startsWith($routeName, 'operator') ? 'bg-indigo-600 text-white shadow-md' : 'text-indigo-300 hover:text-white hover:bg-slate-800' }}">
-        <i data-lucide="server" class="h-4 w-4 shrink-0"></i>
-        <span>Operator Console</span>
-    </a>
-    @endif
-
     <a href="{{ route('dashboard') }}"
        class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ Str::startsWith($routeName, 'dashboard') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">
         <i data-lucide="layout-dashboard" class="h-4 w-4 shrink-0 transition {{ Str::startsWith($routeName, 'dashboard') ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>

@@ -33,6 +33,12 @@ class DashboardController extends Controller
             abort(401, 'Unauthenticated.');
         }
 
+        // Platform operators don't belong to any company — send them to their own
+        // console, never the company dashboard.
+        if ($user->isOperator()) {
+            return redirect()->route('operator.index');
+        }
+
         // Shared widgets shown on every dashboard (calendar + time-off balances).
         // Show anything still on the calendar: approved leave AND requests still
         // awaiting a decision (pending). Rejected/cancelled aren't "upcoming".

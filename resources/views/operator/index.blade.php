@@ -1,15 +1,15 @@
-@extends('layouts.hr-app')
+@extends('layouts.operator')
 
-@section('title', 'Operator Console')
-@section('breadcrumb', 'Operator')
+@section('title', 'Companies')
+@section('breadcrumb', 'Companies')
 
 @section('content')
 <div class="max-w-6xl mx-auto space-y-6">
     <div>
         <h1 class="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
-            <i data-lucide="server" class="h-6 w-6 text-brand-500"></i> Operator Console
+            <i data-lucide="building-2" class="h-6 w-6 text-indigo-500"></i> Companies
         </h1>
-        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Manage every agency on the platform.</p>
+        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Every company (agency) using the platform — manage plans, status and access.</p>
     </div>
 
     <!-- Stats -->

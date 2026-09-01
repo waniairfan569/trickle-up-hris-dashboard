@@ -54,6 +54,12 @@ class PageController extends Controller
             }
             RateLimiter::clear($throttleKey);
             $request->session()->regenerate();
+
+            // Platform operators land in their own console, not the company app.
+            if (Auth::user()->isOperator()) {
+                return redirect()->route('operator.index');
+            }
+
             return redirect()->intended('/dashboard');
         }
 
