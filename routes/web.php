@@ -34,6 +34,10 @@ Route::match(['get', 'post'], '/iclock/ping', [\App\Http\Controllers\ZktecoPushC
 Route::get('/login', [\App\Http\Controllers\PageController::class, 'showLogin'])->name('login');
 Route::post('/login', [\App\Http\Controllers\PageController::class, 'login'])->name('login.post');
 
+// Two-factor challenge — the second login step (session holds the pending user id).
+Route::get('/two-factor-challenge', [\App\Http\Controllers\TwoFactorChallengeController::class, 'show'])->name('two-factor.challenge');
+Route::post('/two-factor-challenge', [\App\Http\Controllers\TwoFactorChallengeController::class, 'verify'])->name('two-factor.verify');
+
 // SaaS: public agency signup ("Create your workspace")
 Route::middleware('guest')->group(function () {
     Route::get('/register', [\App\Http\Controllers\Auth\RegisterTenantController::class, 'show'])->name('register');
@@ -371,6 +375,13 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
         Route::post('companies/{tenant}/reactivate', [\App\Http\Controllers\SubscriptionController::class, 'reactivate'])->name('companies.reactivate');
         Route::post('tenants/{tenant}/activate', [\App\Http\Controllers\OperatorController::class, 'activate'])->name('activate');
 
+        // Each operator manages their own two-factor auth.
+        Route::get('security', [\App\Http\Controllers\TwoFactorController::class, 'show'])->name('security');
+        Route::post('security/enable', [\App\Http\Controllers\TwoFactorController::class, 'enable'])->name('security.enable');
+        Route::post('security/confirm', [\App\Http\Controllers\TwoFactorController::class, 'confirm'])->name('security.confirm');
+        Route::post('security/recovery', [\App\Http\Controllers\TwoFactorController::class, 'regenerateRecovery'])->name('security.recovery');
+        Route::delete('security', [\App\Http\Controllers\TwoFactorController::class, 'disable'])->name('security.disable');
+
         // ── Owner only (pricing, destructive/financial, operator team) ──
         Route::middleware('operator.owner')->group(function () {
             Route::post('tenants/{tenant}/suspend', [\App\Http\Controllers\OperatorController::class, 'suspend'])->name('suspend');
@@ -390,6 +401,7 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
             Route::get('operators', [\App\Http\Controllers\OperatorTeamController::class, 'index'])->name('operators');
             Route::post('operators', [\App\Http\Controllers\OperatorTeamController::class, 'store'])->name('operators.store');
             Route::put('operators/{operator}/role', [\App\Http\Controllers\OperatorTeamController::class, 'updateRole'])->name('operators.role');
+            Route::post('operators/{operator}/reset-2fa', [\App\Http\Controllers\OperatorTeamController::class, 'resetTwoFactor'])->name('operators.reset-2fa');
             Route::delete('operators/{operator}', [\App\Http\Controllers\OperatorTeamController::class, 'revoke'])->name('operators.revoke');
         });
     });

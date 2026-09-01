@@ -52,11 +52,24 @@ class PageController extends Controller
                     'email' => 'This account is not active. Please contact your administrator.',
                 ]);
             }
+            $user = Auth::user();
+
+            // Two-factor: password was right, but don't complete login yet —
+            // log back out, remember who they are, and challenge for a code.
+            if ($user->hasTwoFactorEnabled()) {
+                Auth::logout();
+                $request->session()->put('2fa.user_id', $user->id);
+                $request->session()->put('2fa.remember', $request->boolean('remember'));
+                RateLimiter::clear($throttleKey);
+
+                return redirect()->route('two-factor.challenge');
+            }
+
             RateLimiter::clear($throttleKey);
             $request->session()->regenerate();
 
             // Platform operators land in their own console, not the company app.
-            if (Auth::user()->isOperator()) {
+            if ($user->isOperator()) {
                 return redirect()->route('operator.index');
             }
 

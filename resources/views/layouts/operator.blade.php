@@ -88,6 +88,13 @@
             <div class="mx-4 mt-4 sm:mx-6 lg:mx-8 rounded-xl bg-rose-50 border border-rose-200 px-4 py-3 text-sm text-rose-700 dark:bg-rose-500/10 dark:border-rose-500/20">{{ session('error') }}</div>
         @endif
 
+        @unless(optional(auth()->user())->hasTwoFactorEnabled() || ($rn ?? '') === 'operator.security')
+            <div class="mx-4 mt-4 sm:mx-6 lg:mx-8 rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800 flex items-center justify-between gap-3 dark:bg-amber-500/10 dark:border-amber-500/20 dark:text-amber-300">
+                <span class="flex items-center gap-2"><i data-lucide="shield-alert" class="h-4 w-4 shrink-0"></i> Two-factor authentication isn’t set up on your operator account.</span>
+                <a href="{{ route('operator.security') }}" class="shrink-0 rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-bold text-white hover:bg-amber-600">Set it up</a>
+            </div>
+        @endunless
+
         <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
             @yield('content')
         </main>

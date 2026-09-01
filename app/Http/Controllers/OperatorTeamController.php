@@ -90,6 +90,21 @@ class OperatorTeamController extends Controller
         return back()->with('success', "Operator access revoked for {$name}.");
     }
 
+    /** Owner clears another operator's 2FA (device lost / lockout recovery). */
+    public function resetTwoFactor(User $operator)
+    {
+        abort_unless($operator->is_operator, 404);
+
+        $operator->two_factor_secret = null;
+        $operator->two_factor_recovery_codes = null;
+        $operator->two_factor_confirmed_at = null;
+        $operator->save();
+
+        OperatorAudit::record('operator_role_changed', "Reset two-factor auth for {$operator->full_name}.");
+
+        return back()->with('success', "Two-factor auth reset for {$operator->full_name}.");
+    }
+
     private function isLastOwner(User $operator): bool
     {
         return $operator->operator_role === 'owner'

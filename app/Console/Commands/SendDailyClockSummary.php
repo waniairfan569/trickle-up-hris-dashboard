@@ -20,8 +20,11 @@ class SendDailyClockSummary extends Command
         $date = $this->option('date') ? Carbon::parse($this->option('date')) : now()->startOfDay();
         $dry = (bool) $this->option('dry');
 
+        // Employees who had already joined on this date — a future hire has no
+        // attendance yet and must never be listed (as absent or otherwise).
         $employees = User::where('account_status', 'active')
             ->where('exclude_from_attendance', false)
+            ->joinedBy($date)
             ->with('workSchedule')->get();
         $records = AttendanceRecord::forDate($date->copy())->get()->keyBy('user_id');
 

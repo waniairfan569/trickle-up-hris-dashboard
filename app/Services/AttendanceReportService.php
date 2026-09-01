@@ -52,10 +52,16 @@ class AttendanceReportService
         $employeeUserIds = \App\Models\Employee::real()->pluck('user_id')->filter()
             ->diff(User::attendanceHiddenIds());
 
-        $records = $query->get()->filter(fn ($r) => $employeeUserIds->contains($r->user_id))->values();
+        // Anyone who hadn't joined yet on this date is off the sheet entirely —
+        // not expected, not absent (and any legacy pre-joining row is ignored).
+        $records = $query->get()
+            ->filter(fn ($r) => $employeeUserIds->contains($r->user_id))
+            ->filter(fn ($r) => !$r->employee || $r->employee->hasJoinedBy($date))
+            ->values();
 
         $activeUsers = User::active()
             ->whereIn('id', $employeeUserIds->all())
+            ->joinedBy($date)
             ->when($reportingIds, fn ($q) => $q->whereIn('id', $reportingIds->all()))
             ->with('department')
             ->get();

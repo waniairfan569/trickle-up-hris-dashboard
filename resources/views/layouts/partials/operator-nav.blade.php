@@ -31,9 +31,15 @@
     </nav>
 
     {{-- Footer --}}
-    <div class="px-4 py-3 border-t border-slate-800 shrink-0">
-        <form action="{{ route('logout') }}" method="POST">@csrf
-            <button class="flex items-center gap-2 text-[13px] font-semibold text-slate-400 hover:text-white transition">
+    <div class="px-3 py-3 border-t border-slate-800 shrink-0 space-y-1">
+        @php $rn2 = request()->route()?->getName() ?? ''; @endphp
+        <a href="{{ route('operator.security') }}"
+           class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ str_starts_with($rn2,'operator.security') ? 'bg-slate-800 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+            <i data-lucide="shield-check" class="h-4 w-4 shrink-0"></i><span class="flex-1">Security</span>
+            @unless(optional(auth()->user())->hasTwoFactorEnabled())<span class="h-2 w-2 rounded-full bg-amber-400" title="2FA not set up"></span>@endunless
+        </a>
+        <form action="{{ route('logout') }}" method="POST" class="px-3">@csrf
+            <button class="flex items-center gap-2 text-[13px] font-semibold text-slate-400 hover:text-white transition py-1">
                 <i data-lucide="log-out" class="h-4 w-4"></i> Sign out
             </button>
         </form>

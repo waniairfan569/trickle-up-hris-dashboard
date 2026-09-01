@@ -90,6 +90,9 @@ class User extends Authenticatable
         'exclude_from_attendance' => 'boolean',
         'notification_prefs' => 'array',
         'remote_days' => 'array',
+        'two_factor_secret' => 'encrypted',
+        'two_factor_recovery_codes' => 'encrypted:array',
+        'two_factor_confirmed_at' => 'datetime',
     ];
 
     /**
@@ -127,6 +130,12 @@ class User extends Authenticatable
     public function isOperatorSupport(): bool
     {
         return $this->isOperator() && $this->operator_role === 'support';
+    }
+
+    /** TOTP two-factor auth is enabled once a code has been confirmed. */
+    public function hasTwoFactorEnabled(): bool
+    {
+        return $this->two_factor_confirmed_at !== null && ! empty($this->two_factor_secret);
     }
 
     /**
@@ -552,6 +561,57 @@ class User extends Authenticatable
         }
 
         return $start;
+    }
+
+    /**
+     * The first day attendance applies to this employee — their joining date.
+     * The admin-entered hire date wins; `joined_at` (stamped automatically when
+     * the account is created, often days or weeks before the person actually
+     * starts) is only a fallback. Null = no joining date on file at all.
+     *
+     * Nothing before this day can be an absence — they weren't employed yet — so
+     * every attendance surface (daily generation, reports, backfill) must gate on
+     * it. Deliberately NOT serviceStartDate(), which takes the EARLIEST date
+     * across all sources for tenure/leave-accrual purposes.
+     */
+    public function employmentStartDate(): ?\Carbon\Carbon
+    {
+        foreach ([$this->hire_date, $this->joined_at] as $raw) {
+            if ($raw === null || $raw === '') {
+                continue;
+            }
+            try {
+                return \Carbon\Carbon::parse($raw)->startOfDay();
+            } catch (\Throwable $e) {
+                // Unparseable date — fall through to the next candidate.
+            }
+        }
+
+        return null;
+    }
+
+    /** Had this employee already joined on the given date? True when no joining date is on file. */
+    public function hasJoinedBy($date): bool
+    {
+        $start = $this->employmentStartDate();
+
+        return $start === null || $start->lte(\Carbon\Carbon::parse($date)->startOfDay());
+    }
+
+    /**
+     * Employees who had already joined on the given date — employmentStartDate()
+     * expressed in SQL (hire_date wins, joined_at is the fallback, neither set
+     * means always included). Use it to keep pre-joining days off attendance.
+     */
+    public function scopeJoinedBy($query, $date)
+    {
+        $d = \Carbon\Carbon::parse($date)->toDateString();
+
+        return $query->where(function ($q) use ($d) {
+            $q->whereDate('hire_date', '<=', $d)
+                ->orWhere(fn ($q2) => $q2->whereNull('hire_date')->whereDate('joined_at', '<=', $d))
+                ->orWhere(fn ($q2) => $q2->whereNull('hire_date')->whereNull('joined_at'));
+        });
     }
 
     /** Whole months of completed service, or null if no start date is on file. */

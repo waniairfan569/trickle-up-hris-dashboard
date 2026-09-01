@@ -202,9 +202,24 @@ class AttendanceManagerController extends Controller
                 $purged++;
             });
 
+        // Clear "absent" days BEFORE they joined — attendance starts on the
+        // joining date, so days they weren't employed on aren't absences.
+        $preJoining = 0;
+        if ($start = $employee->employmentStartDate()) {
+            \App\Console\Commands\PurgePreJoiningAttendance::preJoiningQuery($employee->id, $start)
+                ->get()
+                ->each(function ($r) use (&$preJoining) {
+                    $r->delete();
+                    $preJoining++;
+                });
+        }
+
         $msg = "Re-checked {$count} of {$employee->first_name}'s clocked-in day(s) against their shift — {$changed} status(es) updated (late / overtime / early departure).";
         if ($purged > 0) {
             $msg .= " Cleared {$purged} invalid future absent day(s).";
+        }
+        if ($preJoining > 0) {
+            $msg .= " Cleared {$preJoining} absent day(s) before their joining date ({$start->format('d M Y')}).";
         }
 
         return back()->with('success', $msg);
@@ -245,8 +260,10 @@ class AttendanceManagerController extends Controller
         $date = $validated['date'];
         $overwrite = $request->boolean('overwrite');
 
+        // Nobody gets attendance for a day before they joined.
         $users = User::where('account_status', '!=', 'deactivated')
             ->where('exclude_from_attendance', false)
+            ->joinedBy($date)
             ->get();
         $created = 0; $updated = 0; $skipped = 0; $onLeave = 0;
 

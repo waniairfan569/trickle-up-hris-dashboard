@@ -26,6 +26,9 @@
                         <p class="font-bold text-slate-800 dark:text-white">{{ $op->full_name }} @if($op->id===auth()->id())<span class="text-[11px] font-normal text-slate-400">(you)</span>@endif</p>
                         <p class="text-[11px] text-slate-400">{{ $op->email }}</p>
                     </div>
+                    @if($op->hasTwoFactorEnabled())
+                        <span class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400" title="2FA on"><i data-lucide="shield-check" class="h-3 w-3"></i> 2FA</span>
+                    @endif
                     @if($op->operator_role==='support')
                         <span class="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-bold text-slate-500 dark:bg-slate-700 dark:text-slate-300"><i data-lucide="headphones" class="h-3 w-3"></i> Support</span>
                     @else
@@ -36,6 +39,11 @@
                             <input type="hidden" name="operator_role" value="{{ $op->operator_role==='owner' ? 'support' : 'owner' }}">
                             <button class="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700">Make {{ $op->operator_role==='owner' ? 'Support' : 'Owner' }}</button>
                         </form>
+                        @if($op->hasTwoFactorEnabled() && $op->id!==auth()->id())
+                            <form action="{{ route('operator.operators.reset-2fa', $op) }}" method="POST" onsubmit="return confirm('Reset 2FA for {{ $op->full_name }}? They can set it up again on next login.')">@csrf
+                                <button title="Reset 2FA (lockout recovery)" class="inline-grid place-items-center h-8 w-8 rounded-lg text-slate-400 hover:bg-amber-50 hover:text-amber-600 dark:hover:bg-amber-500/10"><i data-lucide="shield-off" class="h-4 w-4"></i></button>
+                            </form>
+                        @endif
                         @if($op->id!==auth()->id())
                             <form action="{{ route('operator.operators.revoke', $op) }}" method="POST" onsubmit="return confirm('Revoke operator access for {{ $op->full_name }}?')">@csrf @method('DELETE')
                                 <button title="Revoke" class="inline-grid place-items-center h-8 w-8 rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-500/10"><i data-lucide="user-minus" class="h-4 w-4"></i></button>

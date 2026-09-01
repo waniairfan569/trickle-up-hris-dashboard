@@ -267,11 +267,17 @@ class ReportDataService
         ])->values()->all();
     }
 
+    /**
+     * Working days the employee was actually expected in. Days before they
+     * joined never count — otherwise a mid-month new hire is measured against a
+     * full month and their attendance rate reads far worse than it is.
+     */
     private function scheduledWorkingDays(User $employee, Carbon $startDate, Carbon $endDate): int
     {
         $schedule = $employee->workSchedule ?? WorkSchedule::default()->first();
+        $joined = $employee->employmentStartDate();
         $days = 0;
-        $cursor = $startDate->copy();
+        $cursor = $joined && $joined->gt($startDate) ? $joined->copy() : $startDate->copy();
         while ($cursor->lte($endDate)) {
             if ($schedule && $schedule->isWorkingDay($cursor)) {
                 $days++;

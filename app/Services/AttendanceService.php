@@ -320,10 +320,13 @@ class AttendanceService
     {
         // Real employees only — never generate attendance for system/owner
         // accounts, nor for anyone an admin has hidden from attendance.
+        // joinedBy(): attendance starts on the joining date. Someone who hadn't
+        // joined yet on this date can't be absent, so no record is created at all.
         $realEmployeeIds = \App\Models\Employee::where('is_system', false)->pluck('user_id')->filter();
         $users = User::where('status', 'active')
             ->whereIn('id', $realEmployeeIds->all())
             ->where('exclude_from_attendance', false)
+            ->joinedBy($date)
             ->get();
 
         // Company-wide working days (from the Attendance Report Settings page) —
