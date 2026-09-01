@@ -581,6 +581,21 @@
                     $attQ->limit(14);
                 }
                 $atts = $attQ->get();
+
+                // Approved leave covering the shown days, so a Half day / On leave /
+                // hourly row can show HOW MUCH leave was taken (e.g. "Half day",
+                // "2 hours · 10:00 AM – 12:00 PM"), not just the status word.
+                $attDates = $atts->map(fn ($a) => \Carbon\Carbon::parse($a->date)->toDateString());
+                $attLeaves = $attDates->isEmpty() ? collect() : \App\Models\TimeOffRequest::where('user_id', $employee->id)
+                    ->where('status', 'approved')
+                    ->whereDate('start_date', '<=', $attDates->max())
+                    ->whereDate('end_date', '>=', $attDates->min())
+                    ->with('policy')->get();
+                $leaveOn = function ($date) use ($attLeaves) {
+                    $d = \Carbon\Carbon::parse($date);
+                    return $attLeaves->first(fn ($r) => $r->start_date->lte($d) && $r->end_date->gte($d));
+                };
+
                 $tzSvc = app(\App\Services\TimezoneService::class);
                 $canEditAtt = $auth->isAdmin();
                 $cols = $canEditAtt ? 6 : 5;
@@ -711,7 +726,13 @@
                                 <td class="px-6 py-3 text-slate-600">{{ $att->clock_in?$tzSvc->formatForUser($att->clock_in,$employee,'h:i A'):'-' }}</td>
                                 <td class="px-6 py-3 text-slate-600">{{ $att->clock_out?$tzSvc->formatForUser($att->clock_out,$employee,'h:i A'):'-' }}</td>
                                 <td class="px-6 py-3 font-semibold text-slate-700 dark:text-slate-200">{{ $att->clock_in && $att->clock_out ? floor($att->total_minutes_worked / 60) . 'h ' . ($att->total_minutes_worked % 60) . 'm' : '-' }}</td>
-                                <td class="px-6 py-3"><span class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold {{ $asc }}">{{ $att->status_label }}</span></td>
+                                <td class="px-6 py-3">
+                                    <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold {{ $asc }}">{{ $att->status_label }}</span>
+                                    @php $lv = $leaveOn($att->date); @endphp
+                                    @if($lv)
+                                        <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{{ $lv->duration_label }} leave{{ $lv->time_range ? ' · ' . $lv->time_range : '' }}</div>
+                                    @endif
+                                </td>
                                 @if($canEditAtt)
                                     <td class="px-6 py-3 text-right">
                                         <button type="button" @click="edit=!edit" class="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-bold text-brand-600 hover:bg-brand-50 dark:text-brand-400 dark:hover:bg-slate-700">
