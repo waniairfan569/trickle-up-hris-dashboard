@@ -35,16 +35,41 @@ class Tenant extends Model
 
     // ---- Billing / subscription --------------------------------------------
 
-    public function planKey(): string
-    {
-        $key = $this->plan ?: 'trial';
+    /** Memoised resolved Plan model for this tenant (request-lifetime). */
+    protected ?Plan $resolvedPlan = null;
+    protected bool $planResolved = false;
 
-        return config("plans.plans.$key") ? $key : 'trial';
+    public function planModel(): ?Plan
+    {
+        if (! $this->planResolved) {
+            $this->resolvedPlan = Plan::forKey($this->plan) ?: Plan::forKey('trial');
+            $this->planResolved = true;
+        }
+
+        return $this->resolvedPlan;
     }
 
+    public function planKey(): string
+    {
+        $p = $this->planModel();
+
+        return $p ? $p->key : 'trial';
+    }
+
+    /**
+     * The plan as an array — sourced from the DB (dynamic plans), falling back to
+     * the static config only if the plans table isn't populated yet. Keeps every
+     * historical caller (seatLimit / hasFeature / MRR / views) working unchanged.
+     */
     public function planConfig(): array
     {
-        return config('plans.plans.' . $this->planKey(), []);
+        $p = $this->planModel();
+
+        if ($p) {
+            return $p->toConfigArray();
+        }
+
+        return config('plans.plans.' . ($this->plan ?: 'trial'), config('plans.plans.trial', []));
     }
 
     public function onTrial(): bool

@@ -62,8 +62,8 @@
                             <form action="{{ route('operator.plan', $t) }}" method="POST" class="inline">
                                 @csrf
                                 <select name="plan" onchange="this.form.submit()" class="rounded-lg border-slate-300 text-xs py-1 dark:bg-slate-900 dark:border-slate-600 dark:text-white">
-                                    @foreach(config('plans.plans') as $pk => $p)
-                                        <option value="{{ $pk }}" @selected($t->planKey()===$pk)>{{ $p['name'] }}</option>
+                                    @foreach($plans as $p)
+                                        <option value="{{ $p->key }}" @selected($t->planKey()===$p->key)>{{ $p->name }}</option>
                                     @endforeach
                                 </select>
                             </form>

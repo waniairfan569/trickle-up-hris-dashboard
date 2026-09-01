@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Plan;
 use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -36,6 +37,7 @@ class OperatorController extends Controller
         return view('operator.index', [
             'tenants' => $tenants,
             'stats' => $stats,
+            'plans' => Plan::active()->ordered()->get(),
             'symbol' => config('plans.currency_symbol', '$'),
         ]);
     }
@@ -57,11 +59,12 @@ class OperatorController extends Controller
     public function updatePlan(Request $request, Tenant $tenant)
     {
         $data = $request->validate(['plan' => 'required|string']);
-        abort_unless(config("plans.plans.{$data['plan']}"), 422, 'Unknown plan.');
+        $plan = Plan::forKey($data['plan']);
+        abort_unless($plan, 422, 'Unknown plan.');
 
-        $tenant->update(['plan' => $data['plan']]);
+        $tenant->update(['plan' => $plan->key]);
 
-        return back()->with('success', "{$tenant->name} moved to the " . config("plans.plans.{$data['plan']}.name") . ' plan.');
+        return back()->with('success', "{$tenant->name} moved to the {$plan->name} plan.");
     }
 
     /** Log in as a tenant's admin for support; remembers the operator to return. */

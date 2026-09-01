@@ -367,6 +367,14 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
         Route::post('tenants/{tenant}/activate', [\App\Http\Controllers\OperatorController::class, 'activate'])->name('activate');
         Route::post('tenants/{tenant}/plan', [\App\Http\Controllers\OperatorController::class, 'updatePlan'])->name('plan');
         Route::post('tenants/{tenant}/impersonate', [\App\Http\Controllers\OperatorController::class, 'impersonate'])->name('impersonate');
+
+        // Dynamic plans — the owner creates/edits/archives plans anytime.
+        Route::get('plans', [\App\Http\Controllers\PlanController::class, 'index'])->name('plans');
+        Route::post('plans', [\App\Http\Controllers\PlanController::class, 'store'])->name('plans.store');
+        Route::put('plans/{plan}', [\App\Http\Controllers\PlanController::class, 'update'])->name('plans.update');
+        Route::post('plans/{plan}/duplicate', [\App\Http\Controllers\PlanController::class, 'duplicate'])->name('plans.duplicate');
+        Route::post('plans/{plan}/toggle', [\App\Http\Controllers\PlanController::class, 'toggleActive'])->name('plans.toggle');
+        Route::delete('plans/{plan}', [\App\Http\Controllers\PlanController::class, 'destroy'])->name('plans.destroy');
     });
     // Return from impersonation — allowed while acting as a tenant admin (session-guarded).
     Route::post('operator/stop-impersonating', [\App\Http\Controllers\OperatorController::class, 'stopImpersonating'])->name('operator.stop-impersonating');

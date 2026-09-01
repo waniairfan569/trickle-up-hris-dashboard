@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Plan;
 use App\Tenancy\TenantManager;
 use Illuminate\Http\Request;
 
@@ -12,9 +13,14 @@ class BillingController extends Controller
         $tenant = $this->resolveTenant($tenants);
         abort_unless($tenant, 404, 'No active workspace.');
 
+        // Dynamic, DB-backed plans — shaped like the old config array so the view
+        // is unchanged. Only public + active plans are offered to customers.
+        $plans = Plan::public()->ordered()->get()
+            ->mapWithKeys(fn ($p) => [$p->key => $p->toConfigArray()]);
+
         return view('billing.index', [
             'tenant' => $tenant,
-            'plans' => config('plans.plans'),
+            'plans' => $plans,
             'featureLabels' => config('plans.feature_labels'),
             'symbol' => config('plans.currency_symbol', '$'),
         ]);
@@ -34,10 +40,10 @@ class BillingController extends Controller
         abort_unless($tenant, 404);
 
         $validated = $request->validate(['plan' => 'required|string']);
-        $key = $validated['plan'];
-        $plan = config("plans.plans.$key");
+        $plan = Plan::forKey($validated['plan']);
 
-        abort_unless($plan && ($plan['selectable'] ?? false), 422, 'Unknown plan.');
+        abort_unless($plan && $plan->is_public && $plan->is_active, 422, 'Unknown plan.');
+        $key = $plan->key;
 
         // === STRIPE CHECKOUT GOES HERE (Cashier) ===
         // return $tenant->newSubscription('default', $plan['stripe_price'])
