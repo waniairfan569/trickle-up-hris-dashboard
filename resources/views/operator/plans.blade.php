@@ -144,15 +144,24 @@
                 <div class="rounded-xl border border-slate-200 p-3 dark:border-slate-600">
                     <label class="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
                         <input type="hidden" name="all_features" value="0">
-                        <input type="checkbox" name="all_features" value="1" x-model="form.all_features" class="rounded border-slate-300 text-indigo-600"> All features (full access)
+                        <input type="checkbox" name="all_features" value="1" x-model="form.all_features" class="rounded border-slate-300 text-indigo-600"> All modules (full access)
                     </label>
-                    <div x-show="!form.all_features" x-cloak class="mt-2 grid grid-cols-2 gap-1">
-                        @foreach($featureLabels as $key => $label)
-                            <label class="flex items-center gap-2 rounded-lg px-2 py-1 text-xs hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer">
-                                <input type="checkbox" name="features[]" value="{{ $key }}" x-model="form.features" class="rounded border-slate-300 text-indigo-600">
-                                <span class="text-slate-700 dark:text-slate-200">{{ $label }}</span>
-                            </label>
-                        @endforeach
+                    <div x-show="!form.all_features" x-cloak class="mt-2">
+                        <div class="flex items-center justify-between mb-1.5">
+                            <span class="text-[11px] text-slate-400" x-text="form.features.length + ' of {{ count($featureLabels) }} modules selected'"></span>
+                            <div class="flex gap-2 text-[11px] font-bold">
+                                <button type="button" class="text-indigo-600 hover:underline" @click="form.features = {{ Illuminate\Support\Js::from(array_keys($featureLabels)) }}">Select all</button>
+                                <button type="button" class="text-slate-400 hover:underline" @click="form.features = []">Clear</button>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-0.5 max-h-56 overflow-y-auto rounded-lg border border-slate-100 p-1 dark:border-slate-700">
+                            @foreach($featureLabels as $key => $label)
+                                <label class="flex items-center gap-2 rounded-lg px-2 py-1 text-xs hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer">
+                                    <input type="checkbox" name="features[]" value="{{ $key }}" x-model="form.features" class="rounded border-slate-300 text-indigo-600">
+                                    <span class="text-slate-700 dark:text-slate-200">{{ $label }}</span>
+                                </label>
+                            @endforeach
+                        </div>
                     </div>
                 </div>
 
