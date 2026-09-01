@@ -330,9 +330,20 @@
                                         {{ $req->employee->department->name ?? 'Core' }} &bull; {{ $req->policy->name ?? 'Time Off' }}
                                     </p>
                                     @if($req->reason)
-                                        <p class="text-[11px] text-slate-600 dark:text-slate-300 mt-0.5 italic max-w-xs truncate" title="{{ $req->reason }}">
-                                            <i data-lucide="message-square-text" class="h-3 w-3 inline -mt-0.5 text-slate-400"></i> {{ $req->reason }}
-                                        </p>
+                                        {{-- Reason: truncated inline; hover shows the full text (only when it's actually cut off). --}}
+                                        <div class="relative mt-0.5 max-w-xs" x-data="{ show: false }">
+                                            <p x-ref="reason{{ $req->id }}"
+                                               @mouseenter="show = ($refs.reason{{ $req->id }}.scrollWidth > $refs.reason{{ $req->id }}.clientWidth)"
+                                               @mouseleave="show = false"
+                                               class="text-[11px] text-slate-600 dark:text-slate-300 italic truncate" style="cursor:help;">
+                                                <i data-lucide="message-square-text" class="h-3 w-3 inline -mt-0.5 text-slate-400"></i> {{ $req->reason }}
+                                            </p>
+                                            <div x-show="show" x-cloak x-transition.opacity
+                                                 class="absolute left-0 top-full z-50"
+                                                 style="margin-top:.3rem;width:max-content;max-width:20rem;background:#0f172a;color:#fff;font-size:11px;line-height:1.5;padding:.5rem .7rem;border-radius:.5rem;box-shadow:0 10px 28px -10px rgba(0,0,0,.5);white-space:normal;word-break:break-word;">
+                                                {{ $req->reason }}
+                                            </div>
+                                        </div>
                                     @endif
                                 </div>
                             </div>
