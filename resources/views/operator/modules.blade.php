@@ -25,7 +25,7 @@
     <div class="rounded-2xl border border-slate-200/80 bg-white shadow-sm overflow-hidden dark:bg-slate-800 dark:border-slate-700">
         <div class="divide-y divide-slate-100 dark:divide-slate-700/60">
             @forelse($features as $f)
-                @php $fns = \App\Support\ModuleCatalog::functions($f->key); @endphp
+                @php $fns = $f->functions ?? []; @endphp
                 <div x-data="{ fnOpen: false }" class="{{ $f->is_active ? '' : 'opacity-60' }}">
                     <div class="flex flex-wrap items-center gap-3 px-5 py-3.5">
                         <span class="grid place-items-center h-9 w-9 shrink-0 rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400"><i data-lucide="box" class="h-4 w-4"></i></span>
@@ -41,7 +41,7 @@
                         </div>
                         <span class="text-[11px] text-slate-400">{{ $f->plans_count }} plan{{ $f->plans_count===1?'':'s' }}</span>
                         <div class="flex items-center gap-1">
-                            <button type="button" title="Edit" @click="openEdit({{ Illuminate\Support\Js::from(['id'=>$f->id,'label'=>$f->label,'description'=>$f->description]) }})" class="inline-grid place-items-center h-8 w-8 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-indigo-600 dark:hover:bg-slate-700"><i data-lucide="pencil" class="h-4 w-4"></i></button>
+                            <button type="button" title="Edit" @click="openEdit({{ Illuminate\Support\Js::from(['id'=>$f->id,'label'=>$f->label,'description'=>$f->description,'functions'=>$f->functions ?? []]) }})" class="inline-grid place-items-center h-8 w-8 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-indigo-600 dark:hover:bg-slate-700"><i data-lucide="pencil" class="h-4 w-4"></i></button>
                             <form action="{{ route('operator.modules.toggle', $f) }}" method="POST">@csrf
                                 <button title="{{ $f->is_active ? 'Archive' : 'Activate' }}" class="inline-grid place-items-center h-8 w-8 rounded-lg text-slate-400 hover:bg-amber-50 hover:text-amber-600 dark:hover:bg-amber-500/10"><i data-lucide="{{ $f->is_active ? 'archive' : 'archive-restore' }}" class="h-4 w-4"></i></button>
                             </form>
@@ -80,6 +80,19 @@
                     <label class="block text-[11px] font-bold text-slate-500 mb-1">Description <span class="font-normal text-slate-400">(optional)</span></label>
                     <input type="text" name="description" x-model="form.description" maxlength="255" placeholder="What this module covers" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
                 </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-500 mb-1">Functions <span class="font-normal text-slate-400">(what this module includes)</span></label>
+                    <div class="space-y-2 max-h-56 overflow-y-auto pr-1">
+                        <template x-for="(fn, i) in form.functions" :key="i">
+                            <div class="flex items-center gap-2">
+                                <input type="text" :name="'functions['+i+']'" x-model="form.functions[i]" maxlength="120" placeholder="e.g. Clock in / out" class="flex-1 rounded-xl border border-slate-300 px-3 py-2 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                                <button type="button" @click="form.functions.splice(i,1)" title="Remove" class="shrink-0 grid place-items-center h-8 w-8 rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600 text-lg leading-none">&times;</button>
+                            </div>
+                        </template>
+                        <p x-show="form.functions.length === 0" class="text-xs text-slate-400 italic">No functions yet — add the capabilities this module includes.</p>
+                    </div>
+                    <button type="button" @click="form.functions.push('')" class="mt-2 inline-flex items-center gap-1 text-xs font-bold text-indigo-600 hover:underline"><i data-lucide="plus" class="h-3.5 w-3.5"></i> Add function</button>
+                </div>
                 <div class="flex items-center justify-end gap-2 pt-1">
                     <button type="button" @click="open=false" class="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700">Cancel</button>
                     <button type="submit" class="rounded-xl bg-indigo-600 px-5 py-2 text-sm font-bold text-white hover:bg-indigo-700" x-text="isEdit ? 'Save' : 'Add module'"></button>
@@ -91,13 +104,13 @@
 
 <script>
     function modulesManager() {
-        const blank = { label:'', description:'' };
         return {
             open:false, isEdit:false,
             storeUrl:'{{ route('operator.modules.store') }}',
-            form:{...blank}, formAction:'{{ route('operator.modules.store') }}',
-            openCreate(){ this.isEdit=false; this.form={...blank}; this.formAction=this.storeUrl; this.open=true; },
-            openEdit(f){ this.isEdit=true; this.form={label:f.label||'',description:f.description||''}; this.formAction='{{ url('operator/modules') }}/'+f.id; this.open=true; },
+            form:{ label:'', description:'', functions:[] },
+            formAction:'{{ route('operator.modules.store') }}',
+            openCreate(){ this.isEdit=false; this.form={ label:'', description:'', functions:[] }; this.formAction=this.storeUrl; this.open=true; },
+            openEdit(f){ this.isEdit=true; this.form={ label:f.label||'', description:f.description||'', functions: Array.isArray(f.functions) ? [...f.functions] : [] }; this.formAction='{{ url('operator/modules') }}/'+f.id; this.open=true; this.$nextTick(()=>window.lucide&&lucide.createIcons()); },
         };
     }
 </script>

@@ -31,6 +31,7 @@ class ModulesController extends Controller
             'key'         => PlanFeature::makeKey($data['label']),
             'label'       => $data['label'],
             'description' => $data['description'] ?? null,
+            'functions'   => $this->cleanFunctions($data['functions'] ?? []),
             'is_active'   => true,
             'sort_order'  => (int) (PlanFeature::max('sort_order') + 1),
         ]);
@@ -42,10 +43,11 @@ class ModulesController extends Controller
     {
         $data = $this->validated($request);
 
-        // Key stays stable (plans reference it); only label/description change.
+        // Key stays stable (plans reference it); label/description/functions change.
         $feature->update([
             'label'       => $data['label'],
             'description' => $data['description'] ?? null,
+            'functions'   => $this->cleanFunctions($data['functions'] ?? []),
         ]);
 
         return redirect()->route('operator.modules')->with('success', "Module “{$feature->label}” updated.");
@@ -80,8 +82,19 @@ class ModulesController extends Controller
     private function validated(Request $request): array
     {
         return $request->validate([
-            'label'       => 'required|string|max:100',
-            'description' => 'nullable|string|max:255',
+            'label'         => 'required|string|max:100',
+            'description'   => 'nullable|string|max:255',
+            'functions'     => 'nullable|array|max:30',
+            'functions.*'   => 'nullable|string|max:120',
         ]);
+    }
+
+    /** Trim, drop blanks, and re-index the submitted function list. */
+    private function cleanFunctions(array $functions): array
+    {
+        return array_values(array_filter(array_map(
+            fn ($f) => trim((string) $f),
+            $functions
+        ), fn ($f) => $f !== ''));
     }
 }

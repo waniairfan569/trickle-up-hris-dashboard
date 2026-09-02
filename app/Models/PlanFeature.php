@@ -11,10 +11,11 @@ use Illuminate\Support\Str;
  */
 class PlanFeature extends Model
 {
-    protected $fillable = ['key', 'label', 'description', 'sort_order', 'is_active'];
+    protected $fillable = ['key', 'label', 'description', 'functions', 'sort_order', 'is_active'];
 
     protected $casts = [
         'is_active'  => 'boolean',
+        'functions'  => 'array',
         'sort_order' => 'integer',
     ];
 
