@@ -438,6 +438,12 @@ Route::middleware(['auth', 'verified', 'force.password.change'])->group(function
         Route::post('security/recovery', [\App\Http\Controllers\TwoFactorController::class, 'regenerateRecovery'])->name('security.recovery');
         Route::delete('security', [\App\Http\Controllers\TwoFactorController::class, 'disable'])->name('security.disable');
 
+        // Application errors — see what clients hit.
+        Route::get('errors', [\App\Http\Controllers\OperatorErrorController::class, 'index'])->name('errors');
+        Route::post('errors/{error}/resolve', [\App\Http\Controllers\OperatorErrorController::class, 'resolve'])->name('errors.resolve');
+        Route::post('errors/{error}/reopen', [\App\Http\Controllers\OperatorErrorController::class, 'reopen'])->name('errors.reopen');
+        Route::delete('errors/{error}', [\App\Http\Controllers\OperatorErrorController::class, 'destroy'])->name('errors.destroy');
+
         // ── Owner only (pricing, destructive/financial, operator team) ──
         Route::middleware('operator.owner')->group(function () {
             Route::post('tenants/{tenant}/suspend', [\App\Http\Controllers\OperatorController::class, 'suspend'])->name('suspend');

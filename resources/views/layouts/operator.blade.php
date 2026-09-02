@@ -43,6 +43,7 @@
         $isOwner ? ['label'=>'Plans', 'icon'=>'layers', 'route'=>'operator.plans', 'active'=>str_starts_with($rn,'operator.plans')] : null,
         $isOwner ? ['label'=>'Modules', 'icon'=>'layout-grid', 'route'=>'operator.modules', 'active'=>str_starts_with($rn,'operator.modules')] : null,
         $isOwner ? ['label'=>'Operators', 'icon'=>'shield', 'route'=>'operator.operators', 'active'=>str_starts_with($rn,'operator.operators')] : null,
+        ['label'=>'Errors', 'icon'=>'bug', 'route'=>'operator.errors', 'active'=>str_starts_with($rn,'operator.errors')],
     ]));
     $navSoon = [];
 @endphp

@@ -52,6 +52,13 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        // Capture real errors (5xx / unexpected) for the operator error viewer.
+        // ApplicationError::log filters out normal outcomes (404/403/419/validation)
+        // and never throws, so this is safe on every request.
+        $exceptions->report(function (\Throwable $e) {
+            \App\Models\ApplicationError::log($e, request());
+        });
+
         // Return JSON 401 for unauthenticated API requests instead of redirecting to 'login' route
         $exceptions->shouldRenderJsonWhen(fn($request, $e) => $request->is('api/*') || $request->expectsJson());
         $exceptions->renderable(function (\Illuminate\Auth\AuthenticationException $e, $request) {
