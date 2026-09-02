@@ -159,6 +159,12 @@ Route::middleware(['auth', 'verified', 'force.password.change'])->group(function
     Route::put('settings/notifications', [\App\Http\Controllers\SettingsController::class, 'updateNotifications'])->name('settings.notifications');
     Route::put('settings/appearance', [\App\Http\Controllers\SettingsController::class, 'updateAppearance'])->name('settings.appearance');
     Route::put('settings/password', [\App\Http\Controllers\SettingsController::class, 'updatePassword'])->name('settings.password');
+
+    // Personal two-factor authentication (any account — reuses the login challenge).
+    Route::post('settings/2fa/enable', [\App\Http\Controllers\Account\TwoFactorController::class, 'enable'])->name('settings.2fa.enable');
+    Route::post('settings/2fa/confirm', [\App\Http\Controllers\Account\TwoFactorController::class, 'confirm'])->name('settings.2fa.confirm');
+    Route::post('settings/2fa/recovery', [\App\Http\Controllers\Account\TwoFactorController::class, 'regenerateRecovery'])->name('settings.2fa.recovery');
+    Route::delete('settings/2fa', [\App\Http\Controllers\Account\TwoFactorController::class, 'disable'])->name('settings.2fa.disable');
     Route::put('settings/preferences', [\App\Http\Controllers\SettingsController::class, 'updatePreferences'])->name('settings.preferences');
 
     // Equipment Requests — employee asks to take company equipment home.

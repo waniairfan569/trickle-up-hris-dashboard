@@ -148,6 +148,78 @@
                 </form>
             </div>
 
+            {{-- ── TWO-FACTOR AUTHENTICATION ─────────────────────── --}}
+            <div x-show="tab === 'security'" x-cloak class="mt-4 bg-white rounded-2xl border border-slate-200/80 shadow-sm dark:bg-slate-800 dark:border-slate-700">
+                <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-700/60 flex items-start justify-between gap-3">
+                    <div>
+                        <h2 class="text-base font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                            <i data-lucide="shield-check" class="h-4 w-4 text-brand-500"></i> Two-factor authentication
+                        </h2>
+                        <p class="text-xs text-slate-400 mt-0.5">Add a one-time code from an authenticator app to your login. Strongly recommended for admins.</p>
+                    </div>
+                    @if($tfaState === 'enabled')
+                        <span class="shrink-0 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-bold text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300"><i data-lucide="check-circle" class="h-3.5 w-3.5"></i> On</span>
+                    @elseif($tfaState === 'pending')
+                        <span class="shrink-0 inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-bold text-amber-700 dark:bg-amber-500/10 dark:text-amber-300"><i data-lucide="clock" class="h-3.5 w-3.5"></i> Finish setup</span>
+                    @else
+                        <span class="shrink-0 inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-bold text-slate-500 dark:bg-slate-700 dark:text-slate-300">Off</span>
+                    @endif
+                </div>
+
+                <div class="p-6">
+                    @if($tfaState === 'disabled')
+                        <form method="POST" action="{{ route('settings.2fa.enable') }}">
+                            @csrf
+                            <button type="submit" class="btn-brand btn-sm inline-flex items-center gap-2"><i data-lucide="shield-plus" class="h-4 w-4"></i> Enable two-factor</button>
+                        </form>
+
+                    @elseif($tfaState === 'pending')
+                        <div class="grid gap-6 md:grid-cols-[auto,1fr] items-start max-w-2xl">
+                            <div class="rounded-xl bg-white p-3 ring-1 ring-slate-200 dark:ring-slate-600 w-fit">
+                                <div id="settings-tfa-qr"></div>
+                            </div>
+                            <div class="space-y-3">
+                                <p class="text-sm text-slate-600 dark:text-slate-300">Scan the QR with Google Authenticator, 1Password, Authy, etc. Can't scan? Enter this key:</p>
+                                <code class="block text-sm font-mono font-bold text-slate-800 dark:text-white break-all bg-slate-50 dark:bg-slate-900 rounded-lg px-3 py-2">{{ $tfaSecret }}</code>
+                                <form method="POST" action="{{ route('settings.2fa.confirm') }}" class="flex items-end gap-2 pt-1">
+                                    @csrf
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">6-digit code</label>
+                                        <input type="text" name="code" inputmode="numeric" autocomplete="one-time-code" placeholder="123456" class="w-36 rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm tracking-widest font-mono shadow-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                                    </div>
+                                    <button type="submit" class="btn-brand btn-sm">Verify &amp; turn on</button>
+                                </form>
+                                @error('code')<p class="text-xs font-semibold text-rose-600">{{ $message }}</p>@enderror
+                            </div>
+                        </div>
+                        <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+                        <script>(function(){var el=document.getElementById('settings-tfa-qr');
+                            if(el && window.QRCode){ new QRCode(el,{text:@json($tfaQrUri),width:168,height:168,correctLevel:QRCode.CorrectLevel.M}); }})();</script>
+
+                    @else
+                        <p class="text-sm text-slate-600 dark:text-slate-300">Two-factor is protecting your account. Keep these recovery codes somewhere safe — each works once if you lose your device:</p>
+                        <div class="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2 font-mono text-xs max-w-lg">
+                            @foreach($recoveryCodes as $code)<span class="rounded bg-slate-50 px-2 py-1 text-slate-700 dark:bg-slate-900 dark:text-slate-200 text-center">{{ $code }}</span>@endforeach
+                        </div>
+                        <div class="mt-5 flex flex-wrap items-center gap-3">
+                            <form method="POST" action="{{ route('settings.2fa.recovery') }}">
+                                @csrf
+                                <button type="submit" class="rounded-xl border border-slate-300 px-4 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700/40">Regenerate recovery codes</button>
+                            </form>
+                            <form method="POST" action="{{ route('settings.2fa.disable') }}" class="flex items-end gap-2">
+                                @csrf @method('DELETE')
+                                <div>
+                                    <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Password to disable</label>
+                                    <input type="password" name="password" autocomplete="current-password" class="w-48 rounded-xl border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-rose-500 focus:ring-1 focus:ring-rose-500 dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                                </div>
+                                <button type="submit" class="rounded-xl bg-rose-600 px-4 py-2 text-xs font-bold text-white transition hover:bg-rose-700">Turn off</button>
+                            </form>
+                        </div>
+                        @error('password')<p class="mt-2 text-xs font-semibold text-rose-600">{{ $message }}</p>@enderror
+                    @endif
+                </div>
+            </div>
+
             {{-- ── PREFERENCES ────────────────────────────────────── --}}
             <div x-show="tab === 'preferences'" x-cloak class="bg-white rounded-2xl border border-slate-200/80 shadow-sm dark:bg-slate-800 dark:border-slate-700">
                 <form method="POST" action="{{ route('settings.preferences') }}">

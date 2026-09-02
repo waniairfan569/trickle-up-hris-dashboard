@@ -14,10 +14,22 @@ class SettingsController extends Controller
     public function index(Request $request)
     {
         $tzList = app(\App\Services\TimezoneService::class)->getTimezoneList();
+        $user = $request->user();
+
+        // Two-factor state for the Security tab.
+        $tfaState = $user->hasTwoFactorEnabled() ? 'enabled'
+            : (!empty($user->two_factor_secret) ? 'pending' : 'disabled');
+        $tfaQrUri = $tfaState === 'pending'
+            ? app(\App\Services\TwoFactorService::class)->otpauthUri($user->two_factor_secret, $user->email)
+            : null;
 
         return view('settings.index', [
-            'user'   => $request->user(),
-            'tzList' => $tzList,
+            'user'          => $user,
+            'tzList'        => $tzList,
+            'tfaState'      => $tfaState,
+            'tfaQrUri'      => $tfaQrUri,
+            'tfaSecret'     => $tfaState === 'pending' ? $user->two_factor_secret : null,
+            'recoveryCodes' => $tfaState === 'enabled' ? ($user->two_factor_recovery_codes ?? []) : [],
         ]);
     }
 
