@@ -46,9 +46,15 @@
         }
         .pulse-slow { animation: pulse 3s cubic-bezier(0.4,0,0.6,1) infinite; }
         @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.6;transform:scale(1.15)} }
+        /* Accessibility: visible keyboard focus, skip link, reduced motion. */
+        :focus-visible{outline:2px solid #fcd82f!important;outline-offset:2px!important;border-radius:6px}
+        .skip-link{position:absolute;left:-999px;top:0;z-index:100}
+        .skip-link:focus{left:12px;top:12px;background:#fcd82f;color:#0a0a0f;padding:8px 14px;border-radius:10px;font-weight:800}
+        @media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
     </style>
 </head>
 <body class="h-full font-sans text-slate-200 relative overflow-x-hidden">
+    <a href="#main" class="skip-link">Skip to content</a>
 
     <!-- Background layers -->
     <div class="fixed inset-0 grid-bg pointer-events-none"></div>
@@ -76,7 +82,7 @@
     </header>
 
     <!-- ===== Hero ===== -->
-    <main class="relative z-10 flex items-center justify-center min-h-[calc(100vh-160px)]">
+    <main id="main" class="relative z-10 flex items-center justify-center min-h-[calc(100vh-160px)]">
         <section class="max-w-2xl mx-auto px-6 text-center flex flex-col items-center">
             <img src="{{ asset('images/logo.png') }}" alt="Trickle Up" class="h-16 w-16 object-contain mb-6">
 

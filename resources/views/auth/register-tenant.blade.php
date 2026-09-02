@@ -24,7 +24,7 @@
     @if($turnstileSiteKey ?? null)
         <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
     @endif
-    <style>.glow-effect{box-shadow:0 0 50px -10px rgba(84,94,255,0.2)}.backdrop-blur-xl{backdrop-filter:blur(24px)}</style>
+    <style>.glow-effect{box-shadow:0 0 50px -10px rgba(84,94,255,0.2)}.backdrop-blur-xl{backdrop-filter:blur(24px)}:focus-visible{outline:2px solid #fcd82f!important;outline-offset:2px!important;border-radius:6px}@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}</style>
 </head>
 <body class="min-h-full font-sans text-slate-100 flex flex-col justify-center items-center overflow-x-hidden relative bg-slate-950 px-6 py-10">
 

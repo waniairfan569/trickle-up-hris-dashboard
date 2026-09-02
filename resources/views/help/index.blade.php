@@ -6,7 +6,7 @@
     <p class="mt-2 text-sm text-slate-500">Guides for getting the most out of {{ config('legal.company', 'Trickle Hub') }}.</p>
     <div class="mt-5 relative">
         <i data-lucide="search" class="h-4 w-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
-        <input id="helpSearch" type="text" placeholder="Search the help centre…" autocomplete="off"
+        <input id="helpSearch" type="text" placeholder="Search the help centre…" autocomplete="off" aria-label="Search the help centre"
                class="w-full rounded-xl border border-slate-300 bg-white pl-10 pr-3 py-3 text-sm shadow-sm focus:border-brand-500 focus:ring-1 focus:ring-indigo-500">
     </div>
 </div>

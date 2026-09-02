@@ -11,6 +11,7 @@
     <script>
         tailwind.config = { theme: { extend: { fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] } } } };
     </script>
+    <style>:focus-visible{outline:2px solid #6366f1!important;outline-offset:2px!important;border-radius:6px}@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}</style>
 </head>
 <body class="h-full font-sans text-slate-200 flex items-center justify-center p-4" style="background:radial-gradient(1200px 600px at 50% -10%, #1e293b, #020617);">
     <div class="w-full max-w-md">

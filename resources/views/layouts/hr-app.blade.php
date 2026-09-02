@@ -152,8 +152,16 @@
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         .no-scrollbar::-webkit-scrollbar { display: none; width: 0; height: 0; }
     </style>
+    <style>
+        /* Accessibility baseline: visible keyboard focus, skip link, reduced motion. */
+        :focus-visible{outline:2px solid #6366f1!important;outline-offset:2px!important;border-radius:6px}
+        .skip-link{position:absolute;left:-999px;top:0;z-index:200}
+        .skip-link:focus{left:12px;top:12px;background:#6366f1;color:#fff;padding:8px 14px;border-radius:10px;font-weight:800}
+        @media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
+    </style>
 </head>
 <body class="h-full font-sans text-slate-800 antialiased bg-slate-50/50 dark:bg-slate-900 dark:text-slate-100" x-data="{ sidebarOpen: false }">
+    <a href="#main" class="skip-link">Skip to content</a>
     
     <div class="min-h-full flex">
         
@@ -350,7 +358,7 @@
             </header>
 
             <!-- Main Content Grid -->
-            <main class="flex-1 py-8 px-4 sm:px-6 lg:px-8">
+            <main id="main" class="flex-1 py-8 px-4 sm:px-6 lg:px-8">
 
                 {{-- Impersonation banner --}}
                 @if(session()->has('operator_impersonator_id'))

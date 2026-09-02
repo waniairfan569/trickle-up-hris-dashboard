@@ -10,6 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>tailwind.config = { theme: { extend: { fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] } } } };</script>
+    <style>:focus-visible{outline:2px solid #4f46e5!important;outline-offset:2px!important;border-radius:6px}@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important}}</style>
 </head>
 @php
     // status key -> [label, dot colour, text colour]

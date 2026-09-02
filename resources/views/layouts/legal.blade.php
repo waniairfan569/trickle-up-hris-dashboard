@@ -15,10 +15,15 @@
         .prose p,.prose li{font-size:.9rem;line-height:1.7;color:#334155;margin:.4rem 0}
         .prose ul{list-style:disc;padding-left:1.25rem;margin:.4rem 0}
         .prose a{color:#4f46e5;text-decoration:underline}
+        :focus-visible{outline:2px solid #4f46e5!important;outline-offset:2px!important;border-radius:6px}
+        .skip-link{position:absolute;left:-999px;top:0;z-index:100}
+        .skip-link:focus{left:12px;top:12px;background:#4f46e5;color:#fff;padding:8px 14px;border-radius:10px;font-weight:800}
+        @media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
     </style>
 </head>
 <body class="h-full bg-slate-50 font-sans text-slate-800">
-    <div class="max-w-3xl mx-auto px-5 py-10">
+    <a href="#main" class="skip-link">Skip to content</a>
+    <main id="main" class="max-w-3xl mx-auto px-5 py-10">
         <div class="flex items-center justify-between mb-6">
             <a href="{{ url('/') }}" class="inline-flex items-center gap-2 text-sm font-bold text-slate-700 hover:text-slate-900">
                 <img src="{{ asset('images/logo.png') }}" onerror="this.style.display='none'" class="h-7 w-7 rounded-lg" alt="">
@@ -51,6 +56,6 @@
         </div>
 
         <p class="text-center text-xs text-slate-400 mt-6">© {{ date('Y') }} {{ config('legal.legal_entity') }}. All rights reserved.</p>
-    </div>
+    </main>
 </body>
 </html>

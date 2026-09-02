@@ -24,9 +24,14 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         .grid-bg{background-image:linear-gradient(to right,rgba(148,163,184,.06) 1px,transparent 1px),linear-gradient(to bottom,rgba(148,163,184,.06) 1px,transparent 1px);background-size:46px 46px;mask-image:radial-gradient(ellipse 80% 60% at 50% 0%,#000 40%,transparent 100%);-webkit-mask-image:radial-gradient(ellipse 80% 60% at 50% 0%,#000 40%,transparent 100%)}
+        :focus-visible{outline:2px solid #fcd82f!important;outline-offset:2px!important;border-radius:6px}
+        .skip-link{position:absolute;left:-999px;top:0;z-index:100}
+        .skip-link:focus{left:12px;top:12px;background:#fcd82f;color:#0a0a0f;padding:8px 14px;border-radius:10px;font-weight:800}
+        @media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
     </style>
 </head>
 <body class="h-full font-sans text-slate-200 relative overflow-x-hidden">
+    <a href="#main" class="skip-link">Skip to content</a>
     <div class="fixed inset-0 grid-bg pointer-events-none"></div>
     <div class="fixed top-[-15%] left-[-10%] w-[45%] h-[45%] rounded-full bg-brand-500/10 blur-[130px] pointer-events-none"></div>
     <div class="fixed bottom-[-25%] right-[-10%] w-[45%] h-[45%] rounded-full bg-indigo-600/10 blur-[130px] pointer-events-none"></div>
@@ -46,7 +51,7 @@
         </div>
     </header>
 
-    <main class="relative z-10 max-w-6xl mx-auto px-6 pb-24">
+    <main id="main" class="relative z-10 max-w-6xl mx-auto px-6 pb-24">
         <section class="text-center max-w-2xl mx-auto pt-10 pb-12">
             <span class="inline-flex items-center gap-1.5 rounded-full border border-slate-700 bg-slate-900/60 px-3 py-1 text-xs font-bold text-brand-300">
                 <i data-lucide="sparkles" class="h-3.5 w-3.5"></i> Pricing
