@@ -178,6 +178,13 @@ Route::middleware(['auth', 'verified', 'force.password.change'])->group(function
     Route::post('settings/2fa/confirm', [\App\Http\Controllers\Account\TwoFactorController::class, 'confirm'])->name('settings.2fa.confirm');
     Route::post('settings/2fa/recovery', [\App\Http\Controllers\Account\TwoFactorController::class, 'regenerateRecovery'])->name('settings.2fa.recovery');
     Route::delete('settings/2fa', [\App\Http\Controllers\Account\TwoFactorController::class, 'disable'])->name('settings.2fa.disable');
+
+    // Developer — personal API tokens (Sanctum). Admin-gated.
+    Route::middleware('role:super_admin,hr_admin')->group(function () {
+        Route::get('developer/api-tokens', [\App\Http\Controllers\ApiTokenController::class, 'index'])->name('developer.api-tokens');
+        Route::post('developer/api-tokens', [\App\Http\Controllers\ApiTokenController::class, 'store'])->name('developer.api-tokens.store');
+        Route::delete('developer/api-tokens/{id}', [\App\Http\Controllers\ApiTokenController::class, 'destroy'])->name('developer.api-tokens.destroy');
+    });
     Route::put('settings/preferences', [\App\Http\Controllers\SettingsController::class, 'updatePreferences'])->name('settings.preferences');
 
     // Equipment Requests — employee asks to take company equipment home.
