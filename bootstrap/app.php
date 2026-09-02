@@ -37,6 +37,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // (the middleware no-ops for guests).
         $middleware->web(append: [
             \App\Http\Middleware\SetCurrentTenant::class,
+            \App\Http\Middleware\EnsureTrialActive::class,
             \App\Http\Middleware\EnforcePlanFeatures::class,
             \App\Http\Middleware\SetUserTimezone::class,
             \App\Http\Middleware\SecurityHeaders::class,

@@ -10,6 +10,13 @@ return [
     'currency' => 'USD',
     'currency_symbol' => '$',
 
+    // Days a workspace stays reachable (upgrade wall only) after its trial ends,
+    // before it is hard-suspended. 0 = suspend immediately on expiry.
+    'trial_grace_days' => 14,
+
+    // Days-left thresholds at which trialing workspaces get an expiry reminder.
+    'trial_reminder_days' => [7, 3, 1],
+
     'plans' => [
         'trial' => [
             'name' => 'Trial',

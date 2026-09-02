@@ -40,6 +40,8 @@ class SubscriptionEvent extends Model
             'canceled'        => 'x-circle',
             'reactivated'     => 'refresh-cw',
             'trial_extended'  => 'clock',
+            'trial_reminder'  => 'bell',
+            'trial_expired'   => 'alarm-clock-off',
             'discount_applied'=> 'badge-percent',
             'suspended'       => 'ban',
             'activated'       => 'check-circle',

@@ -57,3 +57,7 @@ Schedule::call(function () {
 
 // Redact one-time login codes a week after they were sent (privacy / least retention).
 Schedule::command('code-requests:purge-codes')->dailyAt('03:30')->withoutOverlapping();
+
+// SaaS trial lifecycle — remind before expiry, wall expired workspaces, and
+// hard-suspend once the post-trial grace period has elapsed.
+Schedule::command('subscriptions:check-trials')->dailyAt('02:30')->withoutOverlapping();
