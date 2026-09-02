@@ -25,22 +25,40 @@
     <div class="rounded-2xl border border-slate-200/80 bg-white shadow-sm overflow-hidden dark:bg-slate-800 dark:border-slate-700">
         <div class="divide-y divide-slate-100 dark:divide-slate-700/60">
             @forelse($features as $f)
-                <div class="flex flex-wrap items-center gap-3 px-5 py-3.5 {{ $f->is_active ? '' : 'opacity-60' }}">
-                    <span class="grid place-items-center h-9 w-9 shrink-0 rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400"><i data-lucide="box" class="h-4 w-4"></i></span>
-                    <div class="min-w-0 flex-1">
-                        <p class="font-bold text-slate-800 dark:text-white">{{ $f->label }} @unless($f->is_active)<span class="text-[10px] font-bold uppercase text-amber-600">· archived</span>@endunless</p>
-                        <p class="text-[11px] text-slate-400">{{ $f->key }}@if($f->description) · {{ $f->description }}@endif</p>
+                @php $fns = \App\Support\ModuleCatalog::functions($f->key); @endphp
+                <div x-data="{ fnOpen: false }" class="{{ $f->is_active ? '' : 'opacity-60' }}">
+                    <div class="flex flex-wrap items-center gap-3 px-5 py-3.5">
+                        <span class="grid place-items-center h-9 w-9 shrink-0 rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400"><i data-lucide="box" class="h-4 w-4"></i></span>
+                        <div class="min-w-0 flex-1">
+                            <p class="font-bold text-slate-800 dark:text-white">{{ $f->label }} @unless($f->is_active)<span class="text-[10px] font-bold uppercase text-amber-600">· archived</span>@endunless</p>
+                            <p class="text-[11px] text-slate-400">{{ $f->key }}@if($f->description) · {{ $f->description }}@endif</p>
+                            @if(count($fns))
+                                <button type="button" @click="fnOpen = !fnOpen" class="mt-1 inline-flex items-center gap-1 text-[11px] font-bold text-indigo-600 hover:underline dark:text-indigo-400">
+                                    <i data-lucide="list-tree" class="h-3 w-3"></i> {{ count($fns) }} function{{ count($fns)===1?'':'s' }}
+                                    <i data-lucide="chevron-down" class="h-3 w-3 transition" :class="fnOpen ? 'rotate-180' : ''"></i>
+                                </button>
+                            @endif
+                        </div>
+                        <span class="text-[11px] text-slate-400">{{ $f->plans_count }} plan{{ $f->plans_count===1?'':'s' }}</span>
+                        <div class="flex items-center gap-1">
+                            <button type="button" title="Edit" @click="openEdit({{ Illuminate\Support\Js::from(['id'=>$f->id,'label'=>$f->label,'description'=>$f->description]) }})" class="inline-grid place-items-center h-8 w-8 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-indigo-600 dark:hover:bg-slate-700"><i data-lucide="pencil" class="h-4 w-4"></i></button>
+                            <form action="{{ route('operator.modules.toggle', $f) }}" method="POST">@csrf
+                                <button title="{{ $f->is_active ? 'Archive' : 'Activate' }}" class="inline-grid place-items-center h-8 w-8 rounded-lg text-slate-400 hover:bg-amber-50 hover:text-amber-600 dark:hover:bg-amber-500/10"><i data-lucide="{{ $f->is_active ? 'archive' : 'archive-restore' }}" class="h-4 w-4"></i></button>
+                            </form>
+                            <form action="{{ route('operator.modules.destroy', $f) }}" method="POST" onsubmit="return confirm('Delete “{{ $f->label }}”? It will be removed from {{ $f->plans_count }} plan(s).')">@csrf @method('DELETE')
+                                <button title="Delete" class="inline-grid place-items-center h-8 w-8 rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-500/10"><i data-lucide="trash-2" class="h-4 w-4"></i></button>
+                            </form>
+                        </div>
                     </div>
-                    <span class="text-[11px] text-slate-400">{{ $f->plans_count }} plan{{ $f->plans_count===1?'':'s' }}</span>
-                    <div class="flex items-center gap-1">
-                        <button type="button" title="Edit" @click="openEdit({{ Illuminate\Support\Js::from(['id'=>$f->id,'label'=>$f->label,'description'=>$f->description]) }})" class="inline-grid place-items-center h-8 w-8 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-indigo-600 dark:hover:bg-slate-700"><i data-lucide="pencil" class="h-4 w-4"></i></button>
-                        <form action="{{ route('operator.modules.toggle', $f) }}" method="POST">@csrf
-                            <button title="{{ $f->is_active ? 'Archive' : 'Activate' }}" class="inline-grid place-items-center h-8 w-8 rounded-lg text-slate-400 hover:bg-amber-50 hover:text-amber-600 dark:hover:bg-amber-500/10"><i data-lucide="{{ $f->is_active ? 'archive' : 'archive-restore' }}" class="h-4 w-4"></i></button>
-                        </form>
-                        <form action="{{ route('operator.modules.destroy', $f) }}" method="POST" onsubmit="return confirm('Delete “{{ $f->label }}”? It will be removed from {{ $f->plans_count }} plan(s).')">@csrf @method('DELETE')
-                            <button title="Delete" class="inline-grid place-items-center h-8 w-8 rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-500/10"><i data-lucide="trash-2" class="h-4 w-4"></i></button>
-                        </form>
-                    </div>
+                    @if(count($fns))
+                        <div x-show="fnOpen" x-cloak class="px-5 pb-4 sm:pl-[4.25rem]">
+                            <div class="flex flex-wrap gap-1.5">
+                                @foreach($fns as $fn)
+                                    <span class="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-600 dark:bg-slate-700 dark:text-slate-300"><i data-lucide="check" class="h-3 w-3 text-indigo-400"></i>{{ $fn }}</span>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
                 </div>
             @empty
                 <p class="px-5 py-10 text-center text-sm text-slate-400">No modules yet. Add one to start building plans.</p>
