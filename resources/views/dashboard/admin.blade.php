@@ -214,6 +214,9 @@
         </div>
     </div>
 
+    <!-- New-workspace setup checklist (admins, until complete/dismissed) -->
+    @include('dashboard.partials.getting-started-card')
+
     <!-- Unread-announcement bar + auto-popup -->
     @include('partials.announcement-alert')
 

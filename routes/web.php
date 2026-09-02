@@ -384,6 +384,10 @@ Route::middleware(['auth', 'verified', 'force.password.change'])->group(function
         Route::get('workspace/branding', [\App\Http\Controllers\WorkspaceBrandingController::class, 'edit'])->name('workspace.branding');
         Route::put('workspace/branding', [\App\Http\Controllers\WorkspaceBrandingController::class, 'update'])->name('workspace.branding.update');
 
+        // New-workspace setup wizard.
+        Route::get('getting-started', [\App\Http\Controllers\GettingStartedController::class, 'show'])->name('getting-started');
+        Route::post('getting-started/dismiss', [\App\Http\Controllers\GettingStartedController::class, 'dismiss'])->name('getting-started.dismiss');
+
         // Billing & plans
         Route::get('billing', [\App\Http\Controllers\BillingController::class, 'index'])->name('billing.index');
         Route::post('billing/subscribe', [\App\Http\Controllers\BillingController::class, 'subscribe'])->name('billing.subscribe');

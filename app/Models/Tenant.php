@@ -9,13 +9,14 @@ class Tenant extends Model
     protected $fillable = [
         'name', 'slug', 'subdomain', 'status', 'plan', 'discount_percent',
         'brand_name', 'logo_url', 'primary_color', 'from_email', 'timezone', 'currency',
-        'trial_ends_at', 'canceled_at',
+        'trial_ends_at', 'canceled_at', 'onboarding_dismissed_at',
         'stripe_customer_id', 'stripe_subscription_id', 'card_brand', 'card_last_four',
     ];
 
     protected $casts = [
         'trial_ends_at' => 'datetime',
         'canceled_at' => 'datetime',
+        'onboarding_dismissed_at' => 'datetime',
         'discount_percent' => 'integer',
     ];
 
