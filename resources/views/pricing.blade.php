@@ -118,6 +118,7 @@
                 <a href="{{ route('legal.terms') }}" class="hover:text-slate-300">Terms</a>
                 <a href="{{ route('legal.privacy') }}" class="hover:text-slate-300">Privacy</a>
                 <a href="{{ route('legal.dpa') }}" class="hover:text-slate-300">DPA</a>
+                <a href="{{ route('status') }}" class="hover:text-slate-300">Status</a>
                 <a href="{{ url('/login') }}" class="hover:text-slate-300">Sign in</a>
             </nav>
         </div>

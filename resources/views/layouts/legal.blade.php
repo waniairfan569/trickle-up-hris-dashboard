@@ -28,6 +28,7 @@
                 <a href="{{ route('legal.terms') }}" class="hover:text-slate-800">Terms</a>
                 <a href="{{ route('legal.privacy') }}" class="hover:text-slate-800">Privacy</a>
                 <a href="{{ route('legal.dpa') }}" class="hover:text-slate-800">DPA</a>
+                <a href="{{ route('status') }}" class="hover:text-slate-800">Status</a>
             </nav>
         </div>
 

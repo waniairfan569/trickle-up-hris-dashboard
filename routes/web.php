@@ -39,6 +39,9 @@ Route::post('/stripe/webhook', [\App\Http\Controllers\StripeWebhookController::c
 // uptime monitors and load balancers. Richer than the framework's /up.
 Route::get('/health', \App\Http\Controllers\HealthController::class)->name('health');
 
+// Public system status page (friendly view of the health probes).
+Route::get('/status', [\App\Http\Controllers\StatusController::class, 'show'])->name('status');
+
 // Public legal documents.
 Route::get('/terms', [\App\Http\Controllers\LegalController::class, 'terms'])->name('legal.terms');
 Route::get('/privacy', [\App\Http\Controllers\LegalController::class, 'privacy'])->name('legal.privacy');
