@@ -1,8 +1,35 @@
 <?php
 
+use App\Models\Tenant;
 use App\Models\User;
 use App\Services\TimezoneService;
+use App\Tenancy\TenantManager;
 use Carbon\Carbon;
+
+if (!function_exists('plan_allows')) {
+    /**
+     * Does the current workspace's subscription plan include this feature?
+     * Mirrors EnforcePlanFeatures' tenant resolution and fails OPEN (returns
+     * true) when no tenant can be resolved — so nav on a single-tenant/pre-SaaS
+     * install is never hidden. Use it to hide plan-gated nav items:
+     *   @if (plan_allows('sheets')) ... @endif
+     */
+    function plan_allows(string $feature): bool
+    {
+        $tenant = app(TenantManager::class)->get();
+
+        if (!$tenant) {
+            $user = auth()->user();
+            if ($user && $user->tenant_id) {
+                $tenant = Tenant::find($user->tenant_id);
+            } elseif (Tenant::query()->count() === 1) {
+                $tenant = Tenant::query()->first();
+            }
+        }
+
+        return !$tenant || $tenant->hasFeature($feature);
+    }
+}
 
 if (!function_exists('usertime')) {
     /**

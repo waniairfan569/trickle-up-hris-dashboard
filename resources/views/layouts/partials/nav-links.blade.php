@@ -84,17 +84,21 @@
            class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ request()->routeIs('announcements.all') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">
             <i data-lucide="megaphone" class="h-4 w-4 shrink-0"></i><span class="flex-1">Announcements</span>
         </a>
+        @if(plan_allows('feedback'))
         <a href="{{ route('feedback.mine') }}"
            class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ request()->routeIs('feedback.mine') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">
             <i data-lucide="message-square-heart" class="h-4 w-4 shrink-0"></i><span class="flex-1">Feedback &amp; Suggestions</span>
         </a>
+        @endif
         @endunless
+        @if(plan_allows('forms'))
         <a href="{{ route('my-forms.index') }}"
            class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ (Str::startsWith($routeName, 'my-forms') || Str::startsWith($routeName, 'forms.')) ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">
             <i data-lucide="clipboard-list" class="h-4 w-4 shrink-0"></i><span class="flex-1">My Forms</span>
             {!! $navBadge($nav['forms']) !!}
         </a>
-        @if(!auth()->user()->isAdmin() && auth()->user()->reviewableForms()->exists())
+        @endif
+        @if(!auth()->user()->isAdmin() && plan_allows('forms') && auth()->user()->reviewableForms()->exists())
         <a href="{{ route('company-forms.my-reviews') }}"
            class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'company-forms.my-reviews') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">
             <i data-lucide="clipboard-check" class="h-4 w-4 shrink-0"></i><span class="flex-1">Form Reviews</span>
@@ -104,15 +108,19 @@
            class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ (Str::startsWith($routeName, 'my-policies') || Str::startsWith($routeName, 'policies.')) ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">
             <i data-lucide="book-text" class="h-4 w-4 shrink-0"></i><span class="flex-1">My Policies</span>
         </a>
+        @if(plan_allows('hr_documents'))
         <a href="{{ route('hr-documents.to-sign') }}"
            class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ (Str::startsWith($routeName, 'hr-documents.to-sign') || Str::startsWith($routeName, 'hr-documents.sign')) ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">
             <i data-lucide="file-signature" class="h-4 w-4 shrink-0"></i><span class="flex-1">To Sign</span>
             {!! $navBadge($nav['hr_to_sign'] ?? 0) !!}
         </a>
+        @endif
+        @if(plan_allows('equipment'))
         <a href="{{ route('equipment.index') }}"
            class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ request()->routeIs('equipment.index') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">
             <i data-lucide="package" class="h-4 w-4 shrink-0"></i><span class="flex-1">Equipment</span>
         </a>
+        @endif
         @php $docLibActive = Str::startsWith($routeName, 'document-library') || Str::startsWith($routeName, 'documents.'); @endphp
         <a href="{{ route('document-library.index') }}"
            class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ $docLibActive ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">
@@ -153,7 +161,7 @@
            class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'attendance.team') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">
             <i data-lucide="clipboard-list" class="h-4 w-4 shrink-0"></i><span class="flex-1">Team Attendance</span>
         </a>
-        @if(auth()->user()->isAdmin())
+        @if(auth()->user()->isAdmin() && plan_allows('probation'))
         <a href="{{ route('probation.index') }}"
            class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'probation') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">
             <i data-lucide="clipboard-check" class="h-4 w-4 shrink-0"></i><span class="flex-1">Probation</span>
@@ -236,9 +244,9 @@
                 </button>
                 <div x-show="open" x-cloak class="mt-1 ml-3 pl-3 border-l border-slate-800/60 space-y-1">
                     <a href="{{ route('company-entities.index') }}" class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'company-entities') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}"><i data-lucide="building-2" class="h-4 w-4 shrink-0"></i><span class="flex-1">General</span></a>
-                    <a href="{{ route('company-forms.index') }}" class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'company-forms') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}"><i data-lucide="clipboard-list" class="h-4 w-4 shrink-0"></i><span class="flex-1">Company Forms</span></a>
+                    @if(plan_allows('forms'))<a href="{{ route('company-forms.index') }}" class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'company-forms') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}"><i data-lucide="clipboard-list" class="h-4 w-4 shrink-0"></i><span class="flex-1">Company Forms</span></a>@endif
                     <a href="{{ route('company-policies.index') }}" class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'company-policies') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}"><i data-lucide="book-text" class="h-4 w-4 shrink-0"></i><span class="flex-1">Company Policies</span></a>
-                    <a href="{{ route('company-documents.admin') }}" class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ (Str::startsWith($routeName, 'company-documents') || Str::startsWith($routeName, 'document-categories')) ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}"><i data-lucide="file-text" class="h-4 w-4 shrink-0"></i><span class="flex-1">Company Documents</span></a>
+                    @if(plan_allows('esign'))<a href="{{ route('company-documents.admin') }}" class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ (Str::startsWith($routeName, 'company-documents') || Str::startsWith($routeName, 'document-categories')) ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}"><i data-lucide="file-text" class="h-4 w-4 shrink-0"></i><span class="flex-1">Company Documents</span></a>@endif
                     <a href="{{ route('workspace.branding') }}" class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'workspace.branding') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}"><i data-lucide="palette" class="h-4 w-4 shrink-0"></i><span class="flex-1">Workspace Branding</span></a>
                     <a href="{{ route('billing.index') }}" class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'billing') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}"><i data-lucide="credit-card" class="h-4 w-4 shrink-0"></i><span class="flex-1">Billing &amp; Plans</span></a>
                 </div>
@@ -277,9 +285,9 @@
                 <div x-show="open" x-cloak class="mt-1 ml-3 pl-3 border-l border-slate-800/60 space-y-1">
                     <a href="{{ route('time-off-policies.index') }}" class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'time-off-policies') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}"><i data-lucide="calendar" class="h-4 w-4 shrink-0"></i><span class="flex-1">Time Off Policies</span></a>
                     <a href="{{ route('leave-year-settings.index') }}" class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'leave-year-settings') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}"><i data-lucide="calendar-days" class="h-4 w-4 shrink-0"></i><span class="flex-1">Leave Year &amp; Encashment</span></a>
-                    <a href="{{ route('leave-encashments.index') }}" class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'leave-encashments.index') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}"><i data-lucide="wallet" class="h-4 w-4 shrink-0"></i><span class="flex-1">Encashment Records</span></a>
+                    @if(plan_allows('leave_encashment'))<a href="{{ route('leave-encashments.index') }}" class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'leave-encashments.index') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}"><i data-lucide="wallet" class="h-4 w-4 shrink-0"></i><span class="flex-1">Encashment Records</span></a>@endif
                     <a href="{{ route('time-tracking-policies.index') }}" class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'time-tracking-policies') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}"><i data-lucide="clock" class="h-4 w-4 shrink-0"></i><span class="flex-1">Time Tracking</span></a>
-                    <a href="{{ route('shifts.index') }}" class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'shifts.index') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}"><i data-lucide="calendar-clock" class="h-4 w-4 shrink-0"></i><span class="flex-1">Shift Management</span></a>
+                    @if(plan_allows('shifts'))<a href="{{ route('shifts.index') }}" class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'shifts.index') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}"><i data-lucide="calendar-clock" class="h-4 w-4 shrink-0"></i><span class="flex-1">Shift Management</span></a>@endif
                 </div>
             </div>
             <div x-data="{ open: {{ $attnOpen ? 'true' : 'false' }} }">
@@ -288,12 +296,12 @@
                     <i data-lucide="chevron-down" class="h-3.5 w-3.5 shrink-0 transition-transform" :class="open ? 'rotate-180' : ''"></i>
                 </button>
                 <div x-show="open" x-cloak class="mt-1 ml-3 pl-3 border-l border-slate-800/60 space-y-1">
-                    <a href="{{ route('attendance-reports.settings') }}" class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'attendance-reports') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}"><i data-lucide="bar-chart-3" class="h-4 w-4 shrink-0"></i><span class="flex-1">Attendance Reports</span></a>
+                    @if(plan_allows('reports'))<a href="{{ route('attendance-reports.settings') }}" class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'attendance-reports') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}"><i data-lucide="bar-chart-3" class="h-4 w-4 shrink-0"></i><span class="flex-1">Attendance Reports</span></a>@endif
                     <a href="{{ route('employees.attendance-mode') }}" class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'employees.attendance-mode') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}"><i data-lucide="sliders-horizontal" class="h-4 w-4 shrink-0"></i><span class="flex-1">Attendance Mode</span></a>
                     <a href="{{ route('company-wfh-days.index') }}" class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'company-wfh-days') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}"><i data-lucide="house-wifi" class="h-4 w-4 shrink-0"></i><span class="flex-1">Company WFH Days</span></a>
                 </div>
             </div>
-            <a href="{{ route('hr-documents.index') }}" class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ $hrDocsOpen ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}"><i data-lucide="file-signature" class="h-4 w-4 shrink-0"></i><span class="flex-1">Documents</span></a>
+            @if(plan_allows('hr_documents'))<a href="{{ route('hr-documents.index') }}" class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ $hrDocsOpen ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}"><i data-lucide="file-signature" class="h-4 w-4 shrink-0"></i><span class="flex-1">Documents</span></a>@endif
         </div>
     </div>
 
@@ -325,20 +333,26 @@
     </div>
 </div>
 
+@if(plan_allows('report_generator') || plan_allows('sheets'))
 <!-- Navigation Group: Reports -->
 <div class="mt-6 pt-6 border-t border-slate-850 space-y-1">
     <div class="px-3 mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">Reports</div>
+    @if(plan_allows('report_generator'))
     <a href="{{ route('reports.generate') }}"
        class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ Str::startsWith($routeName, 'reports.') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">
         <i data-lucide="file-bar-chart-2" class="h-4 w-4 shrink-0"></i>
         <span class="flex-1">Report Generator</span>
     </a>
+    @endif
+    @if(plan_allows('sheets'))
     <a href="{{ route('sheets.index') }}"
        class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ Str::startsWith($routeName, 'sheets') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">
         <i data-lucide="sheet" class="h-4 w-4 shrink-0"></i>
         <span class="flex-1">Sheets</span>
     </a>
+    @endif
 </div>
+@endif
 
 <!-- Navigation Group: Requests -->
 @php
@@ -346,27 +360,35 @@
     $pendingEquipment = \App\Models\EquipmentRequest::where('status', 'pending')->count();
     $openFeedback = \App\Models\Feedback::where('status', 'open')->count();
 @endphp
+@if(plan_allows('equipment') || plan_allows('code_requests') || plan_allows('feedback'))
 <div class="mt-6 pt-6 border-t border-slate-850 space-y-1">
     <div class="px-3 mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">Requests</div>
+    @if(plan_allows('equipment'))
     <a href="{{ route('equipment.admin') }}"
        class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ request()->routeIs('equipment.admin') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">
         <i data-lucide="package" class="h-4 w-4 shrink-0"></i>
         <span class="flex-1">Equipment Requests</span>
         @if($pendingEquipment > 0)<span class="inline-flex items-center justify-center rounded-full bg-rose-500 text-white text-[10px] font-bold h-5 min-w-5 px-1">{{ $pendingEquipment }}</span>@endif
     </a>
+    @endif
+    @if(plan_allows('code_requests'))
     <a href="{{ route('code-requests.pending') }}"
        class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ Str::startsWith($routeName, 'code-requests.pending') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">
         <i data-lucide="key-round" class="h-4 w-4 shrink-0"></i>
         <span class="flex-1">Code Requests</span>
         @if($pendingCodes > 0)<span class="inline-flex items-center justify-center rounded-full bg-rose-500 text-white text-[10px] font-bold h-5 min-w-5 px-1">{{ $pendingCodes }}</span>@endif
     </a>
+    @endif
+    @if(plan_allows('feedback'))
     <a href="{{ route('feedback.admin') }}"
        class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ request()->routeIs('feedback.admin') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">
         <i data-lucide="message-square-heart" class="h-4 w-4 shrink-0"></i>
         <span class="flex-1">Feedback &amp; Suggestions</span>
         @if($openFeedback > 0)<span class="inline-flex items-center justify-center rounded-full bg-rose-500 text-white text-[10px] font-bold h-5 min-w-5 px-1">{{ $openFeedback }}</span>@endif
     </a>
+    @endif
 </div>
+@endif
 
 <!-- Navigation Group: Invitations -->
 <div class="mt-6 pt-6 border-t border-slate-850 space-y-1">
