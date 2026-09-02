@@ -42,6 +42,7 @@ class SubscriptionEvent extends Model
             'trial_extended'  => 'clock',
             'trial_reminder'  => 'bell',
             'trial_expired'   => 'alarm-clock-off',
+            'payment_failed'  => 'credit-card',
             'discount_applied'=> 'badge-percent',
             'suspended'       => 'ban',
             'activated'       => 'check-circle',

@@ -10,6 +10,7 @@ class Tenant extends Model
         'name', 'slug', 'subdomain', 'status', 'plan', 'discount_percent',
         'brand_name', 'logo_url', 'primary_color', 'from_email', 'timezone', 'currency',
         'trial_ends_at', 'canceled_at',
+        'stripe_customer_id', 'stripe_subscription_id', 'card_brand', 'card_last_four',
     ];
 
     protected $casts = [
@@ -26,6 +27,34 @@ class Tenant extends Model
     public function subscriptionEvents()
     {
         return $this->hasMany(SubscriptionEvent::class)->latest();
+    }
+
+    /** Is this workspace backed by a live Stripe subscription? */
+    public function onStripe(): bool
+    {
+        return filled($this->stripe_subscription_id);
+    }
+
+    /** Move the workspace onto a paid plan (used by checkout success + webhooks). Idempotent. */
+    public function markActive(string $planKey, ?string $subscriptionId = null, ?string $customerId = null): void
+    {
+        $this->forceFill([
+            'plan' => $planKey,
+            'status' => 'active',
+            'canceled_at' => null,
+            'stripe_subscription_id' => $subscriptionId ?: $this->stripe_subscription_id,
+            'stripe_customer_id' => $customerId ?: $this->stripe_customer_id,
+        ])->save();
+    }
+
+    /** Mark the workspace canceled (subscription ended). */
+    public function markCanceled(): void
+    {
+        $this->forceFill([
+            'status' => 'canceled',
+            'canceled_at' => now(),
+            'stripe_subscription_id' => null,
+        ])->save();
     }
 
     /** The default tenant that owns all pre-SaaS data. */

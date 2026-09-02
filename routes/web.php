@@ -30,6 +30,10 @@ Route::match(['get', 'post'], '/iclock/getrequest', [\App\Http\Controllers\Zktec
 Route::match(['get', 'post'], '/iclock/devicecmd', [\App\Http\Controllers\ZktecoPushController::class, 'devicecmd']);
 Route::match(['get', 'post'], '/iclock/ping', [\App\Http\Controllers\ZktecoPushController::class, 'ping']);
 
+// Stripe webhooks — server-to-server, unauthenticated + CSRF-exempt. Verified
+// by signature inside the controller. Source of truth for subscription state.
+Route::post('/stripe/webhook', [\App\Http\Controllers\StripeWebhookController::class, 'handle'])->name('stripe.webhook');
+
 // Web Session Authentication Routes
 Route::get('/login', [\App\Http\Controllers\PageController::class, 'showLogin'])->name('login');
 Route::post('/login', [\App\Http\Controllers\PageController::class, 'login'])->name('login.post');
@@ -362,6 +366,9 @@ Route::middleware(['auth', 'force.password.change'])->group(function() {
         // Billing & plans
         Route::get('billing', [\App\Http\Controllers\BillingController::class, 'index'])->name('billing.index');
         Route::post('billing/subscribe', [\App\Http\Controllers\BillingController::class, 'subscribe'])->name('billing.subscribe');
+        Route::get('billing/success', [\App\Http\Controllers\BillingController::class, 'success'])->name('billing.success');
+        Route::get('billing/cancel', [\App\Http\Controllers\BillingController::class, 'cancel'])->name('billing.cancel');
+        Route::post('billing/portal', [\App\Http\Controllers\BillingController::class, 'portal'])->name('billing.portal');
     });
 
     // SaaS operator console — platform owner manages all agencies.

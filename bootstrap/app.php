@@ -48,6 +48,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->validateCsrfTokens(except: [
             'api/*',
             'iclock/*', // ZKTeco ADMS push endpoints — devices can't send CSRF tokens
+            'stripe/webhook', // Stripe posts server-to-server; verified by signature
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
