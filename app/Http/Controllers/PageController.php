@@ -20,6 +20,17 @@ class PageController extends Controller
         return view('welcome');
     }
 
+    /** Public pricing page, driven by the live plans. */
+    public function pricing()
+    {
+        return view('pricing', [
+            'plans' => \App\Models\Plan::public()->ordered()->get(),
+            'featureLabels' => \App\Models\PlanFeature::labels(),
+            'symbol' => config('plans.currency_symbol', '$'),
+            'currency' => config('plans.currency', 'USD'),
+        ]);
+    }
+
     public function showLogin()
     {
         return view('auth.login');

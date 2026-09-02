@@ -22,6 +22,7 @@ use App\Http\Controllers\ShiftController;
 use App\Http\Controllers\ShiftAssignmentController;
 
 Route::get('/', [\App\Http\Controllers\PageController::class, 'welcome']);
+Route::get('/pricing', [\App\Http\Controllers\PageController::class, 'pricing'])->name('pricing');
 
 // ZKTeco ADMS / push endpoints — devices POST punches here over the internet.
 // No auth (devices can't log in) and CSRF-excepted (see bootstrap/app.php).
