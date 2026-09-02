@@ -71,9 +71,15 @@ jobs:
             sleep 2
           done
 
-      # The tenant-isolation safety net + unit tests are the verified suite. The
-      # older ad-hoc Feature tests (ViewRenderTest / RBACTest / HrisRbacTest /
-      # PerformanceTest) predate the current auth + tenant + verified middleware
-      # and need triage before they can gate CI — tracked separately.
-      - name: Run tenant-isolation safety net + unit tests
-        run: php artisan test tests/Feature/TenantIsolationTest.php tests/Unit
+      # Required gate — the verified safety net. A failure here fails the build.
+      - name: Safety-net suite (required)
+        run: php artisan test tests/Unit tests/Feature/TenantIsolationTest.php tests/Feature/ExampleTest.php
+
+      # Informational — the older authorization tests (RBAC / performance / time-off /
+      # HRIS RBAC). They test real behaviour and now benefit from the auto-verify
+      # default, but predate other current middleware, so their state is surfaced
+      # here WITHOUT failing the build. Promote each to the required step above as
+      # it goes green. The brittle full-route smoke tests are skipped in-code.
+      - name: Legacy authorization tests (informational)
+        continue-on-error: true
+        run: php artisan test tests/Feature/RBACTest.php tests/Feature/HrisRbacTest.php tests/Feature/PerformanceTest.php tests/Feature/TimeOffTest.php
