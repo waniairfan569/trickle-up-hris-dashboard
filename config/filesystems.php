@@ -56,7 +56,9 @@ return [
             'url' => env('AWS_URL'),
             'endpoint' => env('AWS_ENDPOINT'),
             'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
-            'throw' => false,
+            // Surface S3 errors (auth/bucket/network) instead of silently losing
+            // an upload — a silent storage failure is far worse than a 500.
+            'throw' => true,
             'report' => false,
         ],
 
