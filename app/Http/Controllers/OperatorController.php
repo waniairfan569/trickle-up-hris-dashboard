@@ -108,6 +108,42 @@ class OperatorController extends Controller
         return back()->with('success', "{$tenant->name} moved to the {$plan->name} plan.");
     }
 
+    /** GDPR data portability — download a workspace's full data as JSON. */
+    public function exportWorkspace(Tenant $tenant, \App\Services\WorkspaceExporter $exporter)
+    {
+        \App\Models\OperatorAudit::record('workspace_exported', "Exported all data for {$tenant->name}.", $tenant->id);
+
+        $json = $exporter->toJson($tenant);
+        $filename = 'workspace-' . $tenant->slug . '-' . now()->format('Y-m-d') . '.json';
+
+        return response()->streamDownload(function () use ($json) {
+            echo $json;
+        }, $filename, ['Content-Type' => 'application/json']);
+    }
+
+    /** GDPR right-to-erasure — permanently delete a workspace and all its data. */
+    public function destroyWorkspace(Request $request, Tenant $tenant, \App\Services\WorkspaceExporter $exporter)
+    {
+        abort_if($tenant->slug === 'trickle-up', 403, 'The primary workspace cannot be deleted.');
+
+        $request->validate(['confirm_slug' => 'required|string']);
+        if (trim($request->confirm_slug) !== $tenant->slug) {
+            return back()->withErrors(['confirm_slug' => 'The typed slug does not match. Deletion canceled.']);
+        }
+
+        // Keep a backup export + an audit trail (both survive the deletion).
+        \Illuminate\Support\Facades\Storage::disk('local')
+            ->put('exports/purged-' . $tenant->slug . '-' . now()->format('Y-m-d_His') . '.json', $exporter->toJson($tenant));
+
+        $name = $tenant->name;
+        \App\Models\OperatorAudit::record('workspace_purged', "Permanently deleted workspace {$name} and all its data.", null);
+
+        $deleted = $exporter->purge($tenant);
+
+        return redirect()->route('operator.index')
+            ->with('success', "Workspace “{$name}” permanently deleted (" . array_sum($deleted) . ' records).');
+    }
+
     /** Log in as a tenant's admin for support; remembers the operator to return. */
     public function impersonate(Tenant $tenant, Request $request)
     {

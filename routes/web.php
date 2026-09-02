@@ -390,6 +390,8 @@ Route::middleware(['auth', 'verified', 'force.password.change'])->group(function
         Route::get('billing/success', [\App\Http\Controllers\BillingController::class, 'success'])->name('billing.success');
         Route::get('billing/cancel', [\App\Http\Controllers\BillingController::class, 'cancel'])->name('billing.cancel');
         Route::post('billing/portal', [\App\Http\Controllers\BillingController::class, 'portal'])->name('billing.portal');
+        // GDPR self-service — an admin exports their own workspace's data.
+        Route::get('billing/export-data', [\App\Http\Controllers\BillingController::class, 'exportData'])->name('billing.export-data');
     });
 
     // SaaS operator console — platform owner manages all agencies.
@@ -401,6 +403,8 @@ Route::middleware(['auth', 'verified', 'force.password.change'])->group(function
         Route::get('companies/{tenant}', [\App\Http\Controllers\SubscriptionController::class, 'show'])->name('companies.show');
         Route::post('companies/{tenant}/trial', [\App\Http\Controllers\SubscriptionController::class, 'extendTrial'])->name('companies.trial');
         Route::post('companies/{tenant}/reactivate', [\App\Http\Controllers\SubscriptionController::class, 'reactivate'])->name('companies.reactivate');
+        // GDPR data export (data portability) — any operator.
+        Route::get('companies/{tenant}/export', [\App\Http\Controllers\OperatorController::class, 'exportWorkspace'])->name('companies.export');
         Route::post('tenants/{tenant}/activate', [\App\Http\Controllers\OperatorController::class, 'activate'])->name('activate');
 
         // Each operator manages their own two-factor auth.
@@ -415,6 +419,8 @@ Route::middleware(['auth', 'verified', 'force.password.change'])->group(function
             Route::post('tenants/{tenant}/suspend', [\App\Http\Controllers\OperatorController::class, 'suspend'])->name('suspend');
             Route::post('tenants/{tenant}/plan', [\App\Http\Controllers\OperatorController::class, 'updatePlan'])->name('plan');
             Route::post('companies/{tenant}/cancel', [\App\Http\Controllers\SubscriptionController::class, 'cancel'])->name('companies.cancel');
+            // GDPR right-to-erasure — owner-only, permanent.
+            Route::delete('companies/{tenant}', [\App\Http\Controllers\OperatorController::class, 'destroyWorkspace'])->name('companies.destroy');
             Route::post('companies/{tenant}/discount', [\App\Http\Controllers\SubscriptionController::class, 'applyDiscount'])->name('companies.discount');
 
             // Dynamic plans.

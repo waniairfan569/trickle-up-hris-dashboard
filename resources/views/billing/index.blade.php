@@ -112,6 +112,12 @@
         @endforeach
     </div>
 
+    <div class="text-center">
+        <a href="{{ route('billing.export-data') }}" class="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200">
+            <i data-lucide="download" class="h-3.5 w-3.5"></i> Export all workspace data (JSON)
+        </a>
+    </div>
+
     <p class="text-center text-[11px] text-slate-400">Prices in {{ config('plans.currency', 'USD') }}. @if($stripeReady ?? false)Payments are securely processed by Stripe.@else Card payment via Stripe is being connected — plan changes are recorded now and billed once live.@endif</p>
 </div>
 @endsection

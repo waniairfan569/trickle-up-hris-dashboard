@@ -122,11 +122,33 @@
                     @elseif($isOwner)
                         <form action="{{ route('operator.companies.cancel', $tenant) }}" method="POST" onsubmit="return confirm('Cancel {{ $tenant->name }}\'s subscription?');">@csrf<button class="rounded-xl border border-rose-200 px-3 py-2 text-sm font-bold text-rose-600 hover:bg-rose-50 dark:border-rose-500/30 dark:hover:bg-rose-500/10">Cancel</button></form>
                     @endif
+                    <a href="{{ route('operator.companies.export', $tenant) }}" class="rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold text-slate-600 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700 inline-flex items-center gap-1.5"><i data-lucide="download" class="h-4 w-4"></i> Export data</a>
                     @if(!$isOwner)<span class="text-[11px] text-slate-400 self-center">Support role — pricing &amp; suspend/cancel are owner-only.</span>@endif
                 </div>
             </div>
         </div>
     </div>
+
+    @if($isOwner)
+    {{-- Danger zone --}}
+    <div class="rounded-2xl border border-rose-200 bg-rose-50/40 shadow-sm dark:border-rose-500/30 dark:bg-rose-500/5">
+        <div class="px-5 py-4 border-b border-rose-100 dark:border-rose-500/20">
+            <h2 class="text-sm font-bold text-rose-700 dark:text-rose-300 flex items-center gap-2"><i data-lucide="alert-triangle" class="h-4 w-4"></i> Danger zone</h2>
+        </div>
+        <div class="p-5">
+            <p class="text-xs text-slate-600 dark:text-slate-300 mb-3">Permanently delete this workspace and <b>all</b> its data — employees, attendance, documents, everything. A backup export is saved first and the action is audited. This cannot be undone.</p>
+            <form action="{{ route('operator.companies.destroy', $tenant) }}" method="POST" onsubmit="return confirm('Delete {{ $tenant->name }} and ALL its data permanently? This cannot be undone.');" class="flex flex-wrap items-end gap-2">
+                @csrf @method('DELETE')
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-500 mb-1">Type <code class="text-rose-600 dark:text-rose-400">{{ $tenant->slug }}</code> to confirm</label>
+                    <input type="text" name="confirm_slug" autocomplete="off" placeholder="{{ $tenant->slug }}" class="w-56 rounded-xl border border-rose-300 px-3 py-2 text-sm dark:bg-slate-900 dark:border-rose-500/40 dark:text-white">
+                </div>
+                <button type="submit" class="rounded-xl bg-rose-600 px-4 py-2 text-sm font-bold text-white hover:bg-rose-700">Delete workspace</button>
+            </form>
+            @error('confirm_slug')<p class="mt-2 text-xs font-semibold text-rose-600">{{ $message }}</p>@enderror
+        </div>
+    </div>
+    @endif
 
     {{-- History --}}
     <div class="rounded-2xl border border-slate-200/80 bg-white shadow-sm dark:bg-slate-800 dark:border-slate-700">

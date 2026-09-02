@@ -112,6 +112,20 @@ class BillingController extends Controller
             ->with('error', 'Checkout canceled — no charge was made.');
     }
 
+    /** GDPR data portability — an admin downloads their own workspace's data. */
+    public function exportData(TenantManager $tenants, \App\Services\WorkspaceExporter $exporter)
+    {
+        $tenant = $this->resolveTenant($tenants);
+        abort_unless($tenant, 404);
+
+        $json = $exporter->toJson($tenant);
+        $filename = 'my-workspace-' . $tenant->slug . '-' . now()->format('Y-m-d') . '.json';
+
+        return response()->streamDownload(function () use ($json) {
+            echo $json;
+        }, $filename, ['Content-Type' => 'application/json']);
+    }
+
     /** Send an existing customer to the Stripe Billing Portal to manage/cancel. */
     public function portal(TenantManager $tenants, StripeBilling $stripe)
     {
