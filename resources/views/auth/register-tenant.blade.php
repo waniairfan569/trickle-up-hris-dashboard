@@ -91,6 +91,15 @@
                                class="block w-full text-sm border border-slate-800 rounded-xl px-3.5 py-3 bg-slate-950/60 text-white placeholder-slate-600 focus:border-brand-500 focus:outline-none transition">
                     </div>
                 </div>
+                <label class="flex items-start gap-2.5 text-xs text-slate-400 cursor-pointer">
+                    <input type="checkbox" name="terms" value="1" @checked(old('terms')) required
+                           class="mt-0.5 h-4 w-4 rounded border-slate-700 bg-slate-950 text-brand-500 focus:ring-brand-500">
+                    <span>I agree to the
+                        <a href="{{ route('legal.terms') }}" target="_blank" class="text-brand-400 hover:underline">Terms of Service</a> and
+                        <a href="{{ route('legal.privacy') }}" target="_blank" class="text-brand-400 hover:underline">Privacy Policy</a>.
+                    </span>
+                </label>
+                @error('terms')<p class="text-xs font-semibold text-rose-400">{{ $message }}</p>@enderror
                 @if($turnstileSiteKey ?? null)
                     <div class="cf-turnstile mt-1" data-sitekey="{{ $turnstileSiteKey }}" data-theme="dark"></div>
                 @endif

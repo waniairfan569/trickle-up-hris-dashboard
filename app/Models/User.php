@@ -72,7 +72,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'notice_period_days', 'years_of_experience',
         'education', 'specialization', 'skills',
         'two_factor_enabled', 'sso_provider', 'admin_notes',
-        'last_login_at',
+        'last_login_at', 'terms_accepted_at', 'terms_version',
         // HRIS access system fields:
         'company_entity_id', 'job_location_id', 'department_id', 'employee_status', 'joined_at',
         // Invitation system fields:
@@ -86,6 +86,7 @@ class User extends Authenticatable implements MustVerifyEmail
 
     protected $casts = [
         'email_verified_at' => 'datetime',
+        'terms_accepted_at' => 'datetime',
         'password' => 'hashed',
         'status' => 'string',
         'skills'             => 'array',

@@ -34,11 +34,19 @@ class RegisterTenantController extends Controller
             'last_name' => 'required|string|max:80',
             'email' => 'required|email|max:150|unique:users,email',
             'password' => ['required', 'confirmed', Password::min(8)->letters()->numbers()->symbols()],
+            'terms' => 'accepted',
         ], [
             'email.unique' => 'That email is already registered. Try logging in instead.',
+            'terms.accepted' => 'Please accept the Terms of Service and Privacy Policy to continue.',
         ]);
 
         [$tenant, $admin] = $provisioner->provision($data);
+
+        // Record acceptance of the current Terms & Privacy version.
+        $admin->forceFill([
+            'terms_accepted_at' => now(),
+            'terms_version' => config('legal.version'),
+        ])->save();
 
         Auth::login($admin, true);
         $request->session()->regenerate();
