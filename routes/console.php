@@ -61,3 +61,6 @@ Schedule::command('code-requests:purge-codes')->dailyAt('03:30')->withoutOverlap
 // SaaS trial lifecycle — remind before expiry, wall expired workspaces, and
 // hard-suspend once the post-trial grace period has elapsed.
 Schedule::command('subscriptions:check-trials')->dailyAt('02:30')->withoutOverlapping();
+
+// Daily off-site backup — database (+ uploaded files), pruned by retention.
+Schedule::command('backup:run')->dailyAt('01:30')->withoutOverlapping()->runInBackground();
