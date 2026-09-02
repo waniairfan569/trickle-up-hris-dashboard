@@ -64,3 +64,8 @@ Schedule::command('subscriptions:check-trials')->dailyAt('02:30')->withoutOverla
 
 // Daily off-site backup — database (+ uploaded files), pruned by retention.
 Schedule::command('backup:run')->dailyAt('01:30')->withoutOverlapping()->runInBackground();
+
+// Scheduler heartbeat — proves the cron is actually running, surfaced by /health.
+Schedule::call(fn () => \Illuminate\Support\Facades\Cache::put(
+    \App\Http\Controllers\HealthController::HEARTBEAT_KEY, now()->toIso8601String(), 900
+))->everyMinute()->name('scheduler-heartbeat');

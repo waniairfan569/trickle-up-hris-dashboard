@@ -34,6 +34,10 @@ Route::match(['get', 'post'], '/iclock/ping', [\App\Http\Controllers\ZktecoPushC
 // by signature inside the controller. Source of truth for subscription state.
 Route::post('/stripe/webhook', [\App\Http\Controllers\StripeWebhookController::class, 'handle'])->name('stripe.webhook');
 
+// Public operational health check (db / cache / storage / scheduler / queue) for
+// uptime monitors and load balancers. Richer than the framework's /up.
+Route::get('/health', \App\Http\Controllers\HealthController::class)->name('health');
+
 // Web Session Authentication Routes
 Route::get('/login', [\App\Http\Controllers\PageController::class, 'showLogin'])->name('login');
 Route::post('/login', [\App\Http\Controllers\PageController::class, 'login'])->middleware('throttle:10,1')->name('login.post');
