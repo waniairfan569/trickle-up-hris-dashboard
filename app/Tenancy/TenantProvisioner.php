@@ -56,6 +56,10 @@ class TenantProvisioner
                 'joined_at' => now()->toDateString(),
             ]);
             $admin->company_id = $company->id;
+            // Public self-signup: the owner must confirm their email before the
+            // workspace is usable (opts out of the auto-verify default).
+            $admin->requiresEmailVerification = true;
+            $admin->email_verified_at = null;
             $admin->save();
 
             // Owner record — flagged is_system so it isn't counted as a real

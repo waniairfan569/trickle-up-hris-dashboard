@@ -35,6 +35,13 @@ return [
         ],
     ],
 
+    // Cloudflare Turnstile captcha on public signup. Leave empty to disable —
+    // the signup form + verification then behave exactly as before.
+    'turnstile' => [
+        'site_key' => env('TURNSTILE_SITE_KEY'),
+        'secret' => env('TURNSTILE_SECRET'),
+    ],
+
     // SaaS card billing. Leave the keys empty to run without charging — the
     // billing flow falls back to instant plan activation. Set them (and run
     // `composer require stripe/stripe-php`) to take real payments.

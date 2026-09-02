@@ -21,6 +21,9 @@
         }
     </script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    @if($turnstileSiteKey ?? null)
+        <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+    @endif
     <style>.glow-effect{box-shadow:0 0 50px -10px rgba(84,94,255,0.2)}.backdrop-blur-xl{backdrop-filter:blur(24px)}</style>
 </head>
 <body class="min-h-full font-sans text-slate-100 flex flex-col justify-center items-center overflow-x-hidden relative bg-slate-950 px-6 py-10">
@@ -88,6 +91,9 @@
                                class="block w-full text-sm border border-slate-800 rounded-xl px-3.5 py-3 bg-slate-950/60 text-white placeholder-slate-600 focus:border-brand-500 focus:outline-none transition">
                     </div>
                 </div>
+                @if($turnstileSiteKey ?? null)
+                    <div class="cf-turnstile mt-1" data-sitekey="{{ $turnstileSiteKey }}" data-theme="dark"></div>
+                @endif
                 <button type="submit" class="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-brand-500 px-4 py-3 text-sm font-extrabold text-slate-900 hover:bg-brand-400 transition">
                     <i data-lucide="rocket" class="h-4 w-4"></i> Create workspace
                 </button>

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Services\Turnstile;
 use App\Tenancy\TenantProvisioner;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -11,14 +12,22 @@ use Illuminate\Validation\Rules\Password;
 class RegisterTenantController extends Controller
 {
     /** Public "Create your workspace" signup form. */
-    public function show()
+    public function show(Turnstile $turnstile)
     {
-        return view('auth.register-tenant');
+        return view('auth.register-tenant', [
+            'turnstileSiteKey' => $turnstile->enabled() ? $turnstile->siteKey() : null,
+        ]);
     }
 
     /** Provision a new agency (tenant + admin + defaults) and sign them in. */
-    public function store(Request $request, TenantProvisioner $provisioner)
+    public function store(Request $request, TenantProvisioner $provisioner, Turnstile $turnstile)
     {
+        // Bot / abuse check on the public form (no-op until Turnstile is configured).
+        if (!$turnstile->verify($request->input('cf-turnstile-response'), $request->ip())) {
+            return back()->withInput($request->except('password', 'password_confirmation'))
+                ->withErrors(['email' => 'Please complete the “I’m human” check and try again.']);
+        }
+
         $data = $request->validate([
             'company_name' => 'required|string|max:150',
             'first_name' => 'required|string|max:80',
@@ -34,7 +43,15 @@ class RegisterTenantController extends Controller
         Auth::login($admin, true);
         $request->session()->regenerate();
 
-        return redirect('/dashboard')
-            ->with('success', "Welcome to {$tenant->name}! Your workspace is ready — start by adding your team.");
+        // Ask the owner to confirm their email. Never let a mail hiccup block
+        // signup — they can resend from the notice page.
+        try {
+            $admin->sendEmailVerificationNotification();
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
+        return redirect()->route('verification.notice')
+            ->with('success', "Welcome to {$tenant->name}! We've emailed a link to confirm your address — click it to unlock your workspace.");
     }
 }

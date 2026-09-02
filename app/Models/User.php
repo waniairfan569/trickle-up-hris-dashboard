@@ -5,18 +5,35 @@ use App\Tenancy\BelongsToTenant;
 
 use App\Traits\RoleChecker;
 use App\Traits\HasHRAccess;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail
 {
     use BelongsToTenant;
     use HasApiTokens, HasFactory, Notifiable, RoleChecker, HasHRAccess;
 
+    /**
+     * When true, this user is exempt from the auto-verify-on-create default
+     * below — used ONLY by public self-signup, where the workspace owner must
+     * confirm their email. Every other creation path (admin-invited, seeded,
+     * operator) is trusted and auto-verified, so no one is ever locked out.
+     */
+    public bool $requiresEmailVerification = false;
+
     protected static function booted()
     {
+        static::creating(function ($user) {
+            // Default: a newly created user is considered email-verified. Public
+            // self-signup opts out via $requiresEmailVerification to force it.
+            if ($user->email_verified_at === null && !$user->requiresEmailVerification) {
+                $user->email_verified_at = now();
+            }
+        });
+
         static::created(function ($user) {
             $defaultShift = \App\Models\Shift::getDefault();
             if ($defaultShift && $defaultShift->auto_assign_to_new_employees) {

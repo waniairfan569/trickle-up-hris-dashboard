@@ -36,31 +36,41 @@ Route::post('/stripe/webhook', [\App\Http\Controllers\StripeWebhookController::c
 
 // Web Session Authentication Routes
 Route::get('/login', [\App\Http\Controllers\PageController::class, 'showLogin'])->name('login');
-Route::post('/login', [\App\Http\Controllers\PageController::class, 'login'])->name('login.post');
+Route::post('/login', [\App\Http\Controllers\PageController::class, 'login'])->middleware('throttle:10,1')->name('login.post');
 
 // Two-factor challenge — the second login step (session holds the pending user id).
 Route::get('/two-factor-challenge', [\App\Http\Controllers\TwoFactorChallengeController::class, 'show'])->name('two-factor.challenge');
-Route::post('/two-factor-challenge', [\App\Http\Controllers\TwoFactorChallengeController::class, 'verify'])->name('two-factor.verify');
+Route::post('/two-factor-challenge', [\App\Http\Controllers\TwoFactorChallengeController::class, 'verify'])->middleware('throttle:6,1')->name('two-factor.verify');
 
 // SaaS: public agency signup ("Create your workspace")
 Route::middleware('guest')->group(function () {
     Route::get('/register', [\App\Http\Controllers\Auth\RegisterTenantController::class, 'show'])->name('register');
-    Route::post('/register', [\App\Http\Controllers\Auth\RegisterTenantController::class, 'store'])->name('register.post');
+    Route::post('/register', [\App\Http\Controllers\Auth\RegisterTenantController::class, 'store'])->middleware('throttle:5,60')->name('register.post');
 });
 Route::post('/logout', [\App\Http\Controllers\PageController::class, 'logout'])->name('logout');
+
+// Email verification (public self-signup owners only — everyone else is
+// auto-verified). Reachable while signed-in but not yet verified.
+Route::middleware('auth')->group(function () {
+    Route::get('/email/verify', [\App\Http\Controllers\Auth\VerifyEmailController::class, 'notice'])->name('verification.notice');
+    Route::get('/email/verify/{id}/{hash}', [\App\Http\Controllers\Auth\VerifyEmailController::class, 'verify'])
+        ->middleware(['signed', 'throttle:6,1'])->name('verification.verify');
+    Route::post('/email/verification-notification', [\App\Http\Controllers\Auth\VerifyEmailController::class, 'resend'])
+        ->middleware('throttle:6,1')->name('verification.send');
+});
 
 // Forgot / reset password (self-service — works for any account, employee or admin)
 Route::middleware('guest')->group(function () {
     Route::get('/forgot-password', [\App\Http\Controllers\Auth\PasswordResetController::class, 'showRequestForm'])->name('password.request');
-    Route::post('/forgot-password', [\App\Http\Controllers\Auth\PasswordResetController::class, 'sendResetLink'])->name('password.email');
+    Route::post('/forgot-password', [\App\Http\Controllers\Auth\PasswordResetController::class, 'sendResetLink'])->middleware('throttle:5,15')->name('password.email');
     Route::get('/reset-password/{token}', [\App\Http\Controllers\Auth\PasswordResetController::class, 'showResetForm'])->name('password.reset');
-    Route::post('/reset-password', [\App\Http\Controllers\Auth\PasswordResetController::class, 'reset'])->name('password.store');
+    Route::post('/reset-password', [\App\Http\Controllers\Auth\PasswordResetController::class, 'reset'])->middleware('throttle:6,1')->name('password.store');
 });
 
 // Guest Invitation Routes
 Route::middleware('guest')->group(function () {
     Route::get('invitation/{token}', [\App\Http\Controllers\InvitationController::class, 'showAcceptForm'])->name('invitation.accept');
-    Route::post('invitation/{token}', [\App\Http\Controllers\InvitationController::class, 'accept'])->name('invitation.submit');
+    Route::post('invitation/{token}', [\App\Http\Controllers\InvitationController::class, 'accept'])->middleware('throttle:6,1')->name('invitation.submit');
 });
 
 // Authenticated Routes (No Force Password Change Required)
@@ -84,9 +94,10 @@ Route::middleware(['auth'])->group(function() {
     });
 });
 
-// Authenticated Routes
-Route::middleware(['auth', 'force.password.change'])->group(function() {
-    
+// Authenticated Routes — `verified` gates only unverified public self-signup
+// owners (everyone else is auto-verified) to the email-confirmation notice.
+Route::middleware(['auth', 'verified', 'force.password.change'])->group(function() {
+
     // 1. Dashboard
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
 
