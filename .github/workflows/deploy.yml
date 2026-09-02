@@ -1,0 +1,35 @@
+# Deploy to your server over SSH. TEMPLATE — fill in the repository secrets
+# (Settings → Secrets and variables → Actions) before enabling:
+#   SSH_HOST, SSH_USER, SSH_KEY (a private deploy key), DEPLOY_PATH
+#
+# Triggers on a version tag (git tag v1.2.3 && git push --tags) or manually.
+# It runs deploy.sh on the server, which handles pull → install → migrate →
+# cache → queue restart with maintenance mode.
+name: Deploy
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to production
+    runs-on: ubuntu-latest
+    environment: production   # add required reviewers here for a manual gate
+    steps:
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            set -e
+            cd "${{ secrets.DEPLOY_PATH }}"
+            chmod +x deploy.sh
+            ./deploy.sh

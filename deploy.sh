@@ -1,47 +1,45 @@
-#!/usr/bin/env bash
-# ============================================================
-# TrickleUp Hub — Plesk Git deployment script
-# Paste the body of this into:
-#   Plesk > Domain > Git > (your repo) > "Enable additional deployment actions"
-# OR run it manually over SSH from the project root after a git pull.
+#!/bin/bash
 #
-# IMPORTANT: the app's dependencies (Symfony 8) require PHP >= 8.4.
-# Plesk's deployment-action shell may default to an older PHP (e.g. 8.3),
-# so we PIN the 8.4 binary explicitly and run composer THROUGH it.
-# ============================================================
-set -e
+# Safe zero-fuss deploy for a traditional host (Plesk / VPS).
+# Run from the project root on the server:  ./deploy.sh
+#
+# It puts the app into maintenance mode, pulls, installs, migrates, rebuilds the
+# production caches, restarts the queue worker, and always lifts maintenance
+# mode again — even if a step fails.
+set -euo pipefail
 
-# Pin PHP 8.4 (the version the website + SSH use). Try the common Plesk paths.
-if   [ -x /opt/plesk/php/8.4/bin/php ]; then PHP="/opt/plesk/php/8.4/bin/php"
-elif [ -x /opt/plesk/php/8.5/bin/php ]; then PHP="/opt/plesk/php/8.5/bin/php"
-else PHP="php"; fi
-echo "Using PHP: $($PHP -v | head -n1)"
+PHP="${PHP_BIN:-php}"
+COMPOSER="${COMPOSER_BIN:-composer}"
+BRANCH="${DEPLOY_BRANCH:-main}"
 
-# Resolve Composer, then ALWAYS invoke it via $PHP so it runs on 8.4
-# regardless of Composer's own shebang / the shell's default php.
-COMPOSER="$(command -v composer 2>/dev/null || true)"
-if [ -z "$COMPOSER" ]; then
-  $PHP -r "copy('https://getcomposer.org/installer','composer-setup.php');"
-  $PHP composer-setup.php --quiet
-  rm -f composer-setup.php
-  COMPOSER="composer.phar"
-fi
+echo "▶ Deploying branch '$BRANCH'…"
 
-# 1. Install PHP dependencies (no dev deps, optimized autoloader)
-$PHP "$COMPOSER" install --no-dev --optimize-autoloader --no-interaction
+# Always bring the app back up on exit.
+cleanup() { $PHP artisan up || true; }
+trap cleanup EXIT
 
-# 2. Run database migrations (no prompts in production)
+# 1. Maintenance mode (with a secret bypass so you can preview).
+$PHP artisan down --render="errors::503" --retry=15 || true
+
+# 2. Pull the latest code.
+git fetch --all --prune
+git reset --hard "origin/$BRANCH"
+
+# 3. Install PHP deps (production).
+$COMPOSER install --no-dev --optimize-autoloader --no-interaction --prefer-dist
+
+# 4. Run migrations.
 $PHP artisan migrate --force
 
-# 3. Link storage so uploaded files / avatars are publicly served
+# 5. Rebuild caches (clear first so stale caches never linger).
+$PHP artisan optimize:clear
+$PHP artisan config:cache
+$PHP artisan route:cache
+$PHP artisan view:cache
 $PHP artisan storage:link || true
 
-# 4. Clear ALL caches so the freshly pulled code, views and config take effect.
-#    We deliberately do NOT run route:cache: the auth routes in routes/web.php
-#    use closures, which Laravel cannot serialize — `route:cache` throws and,
-#    with `set -e`, would abort the deploy and leave stale caches behind (the
-#    cause of new pages 500-ing and fixes not applying on live). Clearing is
-#    fast enough for this app and guarantees every deploy actually takes effect.
-$PHP artisan optimize:clear
+# 6. Restart the queue worker so it picks up new code.
+$PHP artisan queue:restart || true
 
-echo "Deploy complete."
+echo "✔ Deploy complete."
+# `trap cleanup` lifts maintenance mode here.
