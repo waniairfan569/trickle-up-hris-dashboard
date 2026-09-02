@@ -42,6 +42,10 @@ Route::get('/health', \App\Http\Controllers\HealthController::class)->name('heal
 // Public system status page (friendly view of the health probes).
 Route::get('/status', [\App\Http\Controllers\StatusController::class, 'show'])->name('status');
 
+// Public help centre.
+Route::get('/help', [\App\Http\Controllers\HelpController::class, 'index'])->name('help.index');
+Route::get('/help/{slug}', [\App\Http\Controllers\HelpController::class, 'show'])->name('help.show');
+
 // Public legal documents.
 Route::get('/terms', [\App\Http\Controllers\LegalController::class, 'terms'])->name('legal.terms');
 Route::get('/privacy', [\App\Http\Controllers\LegalController::class, 'privacy'])->name('legal.privacy');
