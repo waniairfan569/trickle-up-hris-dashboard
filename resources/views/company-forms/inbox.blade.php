@@ -16,7 +16,7 @@
 
 @section('content')
 <style>[x-cloak]{display:none!important}</style>
-<div class="max-w-5xl mx-auto space-y-5">
+<div class="w-full space-y-5">
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
             <h1 class="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
