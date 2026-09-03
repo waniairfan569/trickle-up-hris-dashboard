@@ -74,7 +74,7 @@
     <style type="text/tailwindcss">
         @layer components {
             .btn {
-                @apply inline-flex items-center justify-center gap-2 rounded-full px-4 py-2.5 text-sm font-bold leading-none transition disabled:opacity-60 disabled:cursor-not-allowed;
+                @apply inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full px-4 py-2.5 text-sm font-bold leading-none transition disabled:opacity-60 disabled:cursor-not-allowed;
             }
             .btn-sm    { @apply px-3 py-2 text-xs gap-1.5; }
             .btn-block { @apply w-full; }

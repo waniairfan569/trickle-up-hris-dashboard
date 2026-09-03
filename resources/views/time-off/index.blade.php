@@ -33,7 +33,7 @@
         <style>[x-cloak]{display:none!important}</style>
         <script>window.__calcPolicies = @json($calcPolicies);</script>
 
-        <div class="mt-4 sm:mt-0 flex gap-3">
+        <div class="mt-4 sm:mt-0 flex flex-wrap sm:justify-end items-center gap-3">
             <!-- Leave Balance Calculator -->
             <div x-data="{ open:false, policyId:'', start:'', end:'', policies: window.__calcPolicies || [],
                     workingDays(){ if(!this.start||!this.end) return 0; const s=new Date(this.start), e=new Date(this.end); if(e<s) return 0; let n=0; const d=new Date(s); while(d<=e){ const w=d.getDay(); if(w!==0&&w!==6) n++; d.setDate(d.getDate()+1);} return n; },
