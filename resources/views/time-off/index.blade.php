@@ -207,6 +207,13 @@
                 </template>
             </div>
 
+            {{-- Admin: jump straight to this form's responses in the review inbox --}}
+            @if($isTimeOffAdmin)
+                <a href="{{ route('company-forms.inbox', ['form' => $overtimeForm->id, 'status' => 'awaiting']) }}" class="btn-outline">
+                    <i data-lucide="inbox" class="h-4 w-4 mr-2"></i> Overtime Responses
+                </a>
+            @endif
+
             <script>
                 (function () {
                     let otIdx = 0;

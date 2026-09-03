@@ -4,9 +4,9 @@
 @section('breadcrumb', 'Form Responses')
 
 @php
-    // Status pill links preserve the current form + search filters.
+    // Status pill links preserve the current form + search + date filters.
     $pillUrl = fn ($s) => route('company-forms.inbox', array_filter([
-        'status' => $s, 'form' => $formId, 'q' => $search,
+        'status' => $s, 'form' => $formSelected, 'q' => $search, 'date' => $date,
     ], fn ($v) => $v !== null && $v !== ''));
     $pill = fn ($active) => 'inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold transition '
         . ($active ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700');
@@ -47,15 +47,19 @@
         <form method="GET" action="{{ route('company-forms.inbox') }}" class="flex flex-wrap items-center gap-2 sm:ml-auto">
             <input type="hidden" name="status" value="{{ $status }}">
             <select name="form" onchange="this.form.submit()" class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-600 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-200">
-                <option value="">All forms</option>
-                @foreach($forms as $f)<option value="{{ $f->id }}" @selected((string) $formId === (string) $f->id)>{{ $f->title }}</option>@endforeach
+                <option value="all" @selected($formSelected === 'all')>All forms</option>
+                @foreach($forms as $f)<option value="{{ $f->id }}" @selected($formSelected === (string) $f->id)>{{ $f->title }}</option>@endforeach
             </select>
+            <div class="relative">
+                <i data-lucide="calendar" class="h-3.5 w-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+                <input type="date" name="date" value="{{ $date }}" onchange="this.form.submit()" title="Filter by submission date" class="rounded-xl border border-slate-300 bg-white pl-8 pr-2 py-2 text-xs text-slate-600 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-200">
+            </div>
             <div class="relative">
                 <i data-lucide="search" class="h-3.5 w-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
                 <input type="text" name="q" value="{{ $search }}" placeholder="Search employee…" class="rounded-xl border border-slate-300 bg-white pl-8 pr-3 py-2 text-xs text-slate-600 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-200 w-44">
             </div>
-            @if($search || $formId)
-                <a href="{{ route('company-forms.inbox', ['status' => $status]) }}" class="text-xs font-semibold text-slate-400 hover:text-rose-600"><i data-lucide="x" class="h-3.5 w-3.5 inline"></i> Clear</a>
+            @if($search || $date || $formSelected !== 'all')
+                <a href="{{ route('company-forms.inbox', ['status' => $status, 'form' => 'all']) }}" class="text-xs font-semibold text-slate-400 hover:text-rose-600"><i data-lucide="x" class="h-3.5 w-3.5 inline"></i> Clear</a>
             @endif
         </form>
     </div>
@@ -145,7 +149,7 @@
             <div class="px-6 py-16 text-center">
                 <i data-lucide="inbox" class="h-10 w-10 text-slate-300 mx-auto mb-3"></i>
                 <p class="text-sm font-semibold text-slate-500 dark:text-slate-400">
-                    @if($status === 'awaiting') Nothing awaiting review. 🎉 @else No {{ $status === 'all' ? '' : $status }} responses{{ $search || $formId ? ' match your filters' : '' }}. @endif
+                    @if($status === 'awaiting') Nothing awaiting review. 🎉 @else No {{ $status === 'all' ? '' : $status }} responses{{ $search || $date || $formSelected !== 'all' ? ' match your filters' : '' }}. @endif
                 </p>
             </div>
         @endforelse

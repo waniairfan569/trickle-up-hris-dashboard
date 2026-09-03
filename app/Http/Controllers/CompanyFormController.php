@@ -392,23 +392,51 @@ class CompanyFormController extends Controller
         abort_if(!$user->isAdmin() && $formIds->isEmpty(), 403);
 
         $status = $request->get('status', 'awaiting');   // awaiting | approved | rejected | all
-        $formId = $request->get('form');
         $search = trim((string) $request->get('q', ''));
+        $date = $request->get('date');                   // YYYY-MM-DD (submitted on)
 
-        // A fresh "submitted rows for my forms" builder each time it's needed.
-        $submitted = fn () => FormSubmission::whereIn('form_id', $formIds)->where('status', 'submitted');
+        // Form filter: absent = default to the designated overtime form (so this
+        // team's overtime responses show first); 'all' = every form; else an id.
+        $formParam = $request->get('form');
+        if ($formParam === null) {
+            $overtime = CompanyForm::overtimeForm();
+            $formId = ($overtime && $formIds->contains($overtime->id)) ? (string) $overtime->id : null;
+        } elseif ($formParam === 'all') {
+            $formId = null;
+        } else {
+            $formId = $formParam;
+        }
+        $formSelected = $formId !== null ? (string) $formId : 'all';
+
+        if ($date) {
+            try {
+                $date = \Illuminate\Support\Carbon::parse($date)->toDateString();
+            } catch (\Throwable $e) {
+                $date = null;
+            }
+        }
+
+        // A fresh builder scoped to the active form + date filters (not status —
+        // the status pills each carry their own count).
+        $scoped = function () use ($formIds, $formId, $date) {
+            $q = FormSubmission::whereIn('form_id', $formIds)->where('status', 'submitted');
+            if ($formId) {
+                $q->where('form_id', $formId);
+            }
+            if ($date) {
+                $q->whereDate('submitted_at', $date);
+            }
+            return $q;
+        };
         $onlyAwaiting = fn ($q) => $q->where(fn ($w) => $w->whereNull('review_status')->orWhere('review_status', 'pending'));
 
         $counts = [
-            'awaiting' => $onlyAwaiting($submitted())->count(),
-            'approved' => $submitted()->where('review_status', 'approved')->count(),
-            'rejected' => $submitted()->where('review_status', 'rejected')->count(),
+            'awaiting' => $onlyAwaiting($scoped())->count(),
+            'approved' => $scoped()->where('review_status', 'approved')->count(),
+            'rejected' => $scoped()->where('review_status', 'rejected')->count(),
         ];
 
-        $q = $submitted()->with(['form.fields', 'employee', 'responses', 'reviewer']);
-        if ($formId) {
-            $q->where('form_id', $formId);
-        }
+        $q = $scoped()->with(['form.fields', 'employee', 'responses', 'reviewer']);
         if ($status === 'awaiting') {
             $onlyAwaiting($q);
         } elseif (in_array($status, ['approved', 'rejected'], true)) {
@@ -424,7 +452,7 @@ class CompanyFormController extends Controller
         $submissions = $q->latest('submitted_at')->latest('id')->paginate(20)->withQueryString();
         $forms = CompanyForm::whereIn('id', $formIds)->orderBy('title')->get(['id', 'title']);
 
-        return view('company-forms.inbox', compact('submissions', 'forms', 'counts', 'status', 'formId', 'search'));
+        return view('company-forms.inbox', compact('submissions', 'forms', 'counts', 'status', 'formSelected', 'search', 'date'));
     }
 
     public function viewSubmission(Request $request, FormSubmission $submission)
