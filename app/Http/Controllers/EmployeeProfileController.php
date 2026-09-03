@@ -63,14 +63,117 @@ class EmployeeProfileController extends Controller
             $employee->payReviews()->with('approver:id,first_name,last_name')->get()
         );
 
-        // E-signature documents involving this employee (as subject or a signer)
-        $signatureRequests = \App\Models\DocumentRequest::with(['template', 'signers.user'])
-            ->where('subject_employee_id', $employee->id)
-            ->orWhereHas('signers', fn ($q) => $q->where('user_id', $employee->id))
-            ->latest()
-            ->get();
+        // Signature documents involving this employee — unified across BOTH signing
+        // systems so everything they've signed shows in one place: the e-sign
+        // "DocumentRequest" flow AND the HR "To-Sign" (HrDocument) flow.
+        $auth = auth()->user();
 
-        return view('employees.profile.show', compact('employee', 'templates', 'canEdit', 'allUsers', 'signatureRequests', 'payReviews', 'probation'));
+        $esBadge = [
+            'in_progress' => 'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400',
+            'completed'   => 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400',
+            'declined'    => 'bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400',
+            'cancelled'   => 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300',
+        ];
+        $esLabel = ['in_progress' => 'In progress', 'completed' => 'Completed', 'declined' => 'Declined', 'cancelled' => 'Cancelled'];
+        $amber = 'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400';
+        $emerald = 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400';
+        $slate = 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300';
+
+        // 1) E-sign requests (Employee Contract, NDA, …). Conditions are grouped so
+        //    the tenant scope is never bypassed by the OR.
+        $requests = \App\Models\DocumentRequest::with(['template', 'signers.user'])
+            ->where(fn ($q) => $q->where('subject_employee_id', $employee->id)
+                ->orWhereHas('signers', fn ($s) => $s->where('user_id', $employee->id)))
+            ->latest()->get()
+            ->map(function ($req) use ($auth, $employee, $esBadge, $esLabel) {
+                $signed = $req->signers->where('status', 'signed')->count();
+                return (object) [
+                    'name'       => $req->template->name ?? 'Document',
+                    'meta'       => "{$signed}/{$req->signers->count()} signed · " . $req->created_at->format('d M Y'),
+                    'badge'      => $esBadge[$req->status] ?? 'bg-slate-100 text-slate-600',
+                    'label'      => $esLabel[$req->status] ?? ucfirst($req->status),
+                    'sortAt'     => $req->created_at,
+                    'awaitingMe' => $req->isAwaiting($auth),
+                    'signUrl'    => route('documents.sign', $req),
+                    'viewUrl'    => route('documents.show', $req),
+                    'deleteUrl'  => $auth->isAdmin() ? route('employees.signature-docs.destroy', [$employee, 'request', $req->id]) : null,
+                ];
+            });
+
+        // 2) HR "To-Sign" documents (Lateness Review, Unplanned Leave, …): the ones
+        //    the employee is a signer on, plus sent/completed ones about them.
+        $hrDocs = \App\Models\HrDocument::with('signers')
+            ->where(fn ($q) => $q->whereHas('signers', fn ($s) => $s->where('user_id', $employee->id))
+                ->orWhere(fn ($w) => $w->where('user_id', $employee->id)->whereIn('status', ['sent', 'completed'])))
+            ->latest()->get()
+            ->map(function ($doc) use ($auth, $employee, $amber, $emerald, $slate) {
+                $total    = $doc->signers->count();
+                $signed   = $doc->signers->whereNotNull('signed_at')->count();
+                $isSigned = $total > 0 && $signed === $total;
+                $mine     = $doc->signers->firstWhere('user_id', $auth->id);
+
+                if ($isSigned) {
+                    [$label, $badge] = ['Signed', $emerald];
+                } elseif ($signed > 0) {
+                    [$label, $badge] = ['Partially signed', $amber];
+                } elseif ($doc->status === 'sent') {
+                    [$label, $badge] = ['Awaiting signature', $amber];
+                } else {
+                    [$label, $badge] = [ucfirst($doc->status), $slate];
+                }
+
+                return (object) [
+                    'name'       => $doc->template_name ?: ($doc->title ?: 'HR document'),
+                    'meta'       => ($total ? "{$signed}/{$total} signed · " : 'Sent ') . $doc->created_at->format('d M Y'),
+                    'badge'      => $badge,
+                    'label'      => $label,
+                    'sortAt'     => $doc->created_at,
+                    'awaitingMe' => (bool) ($mine && ! $mine->signed_at),
+                    'signUrl'    => ($mine && ! $mine->signed_at) ? route('hr-documents.sign', $doc) : null,
+                    'viewUrl'    => $auth->isAdmin()
+                        ? route('hr-documents.show', $doc)
+                        : ($mine ? route('hr-documents.my-pdf', ['document' => $doc, 'preview' => 1]) : null),
+                    'deleteUrl'  => $auth->isAdmin() ? route('employees.signature-docs.destroy', [$employee, 'hr', $doc->id]) : null,
+                ];
+            });
+
+        $signatureDocs = $requests->concat($hrDocs)->sortByDesc('sortAt')->values();
+
+        return view('employees.profile.show', compact('employee', 'templates', 'canEdit', 'allUsers', 'signatureDocs', 'payReviews', 'probation'));
+    }
+
+    /**
+     * Admin: delete a signature document from an employee's profile — either an
+     * e-sign request (permanent, with its signers/events + any auto-filed copy)
+     * or an HR "To-Sign" document (soft-deleted to the HR documents trash).
+     */
+    public function destroySignatureDoc(Request $request, User $employee, string $type, int $id)
+    {
+        abort_unless(optional(auth()->user())->isAdmin(), 403, 'Only an admin can delete documents from a profile.');
+
+        if ($type === 'request') {
+            $req = \App\Models\DocumentRequest::where('id', $id)
+                ->where(fn ($q) => $q->where('subject_employee_id', $employee->id)
+                    ->orWhereHas('signers', fn ($s) => $s->where('user_id', $employee->id)))
+                ->firstOrFail();
+
+            \App\Models\EmployeeDocument::where('source_type', 'signature')
+                ->where('source_id', $req->id)->delete();
+            $req->signers()->delete();
+            $req->events()->delete();
+            $req->delete();
+        } elseif ($type === 'hr') {
+            $doc = \App\Models\HrDocument::where('id', $id)
+                ->where(fn ($q) => $q->where('user_id', $employee->id)
+                    ->orWhereHas('signers', fn ($s) => $s->where('user_id', $employee->id)))
+                ->firstOrFail();
+
+            $doc->delete(); // soft delete — recoverable from HR documents trash
+        } else {
+            abort(404);
+        }
+
+        return back()->with('success', 'Document removed from the profile.');
     }
 
     public function edit(User $employee)

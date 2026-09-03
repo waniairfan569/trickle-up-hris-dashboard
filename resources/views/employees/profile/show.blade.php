@@ -785,20 +785,11 @@
         </div>
 
         {{-- E-SIGNATURE SUB-TAB --}}
-        @php
-            $auth = auth()->user();
-            $esBadge = [
-                'in_progress' => 'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400',
-                'completed' => 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400',
-                'declined' => 'bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400',
-                'cancelled' => 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300',
-            ];
-            $esLabel = ['in_progress' => 'In progress', 'completed' => 'Completed', 'declined' => 'Declined', 'cancelled' => 'Cancelled'];
-        @endphp
+        @php $auth = auth()->user(); @endphp
         <div x-show="fileTab === 'esign'" x-cloak class="bg-white border border-slate-200/80 rounded-2xl shadow-sm dark:bg-slate-800 dark:border-slate-700">
-            @if(($signatureRequests ?? collect())->count())
+            @if(($signatureDocs ?? collect())->count())
                 <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-700/60">
-                    <span class="text-sm font-bold text-slate-700 dark:text-slate-200">Signature documents ({{ $signatureRequests->count() }})</span>
+                    <span class="text-sm font-bold text-slate-700 dark:text-slate-200">Signature documents ({{ $signatureDocs->count() }})</span>
                     @if($auth->isAdmin())
                         <a href="{{ route('company-documents.admin') }}" class="inline-flex items-center gap-1.5 rounded-xl bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-200">
                             <i data-lucide="send" class="h-3.5 w-3.5"></i> Send new
@@ -806,19 +797,24 @@
                     @endif
                 </div>
                 <div>
-                    @foreach($signatureRequests as $req)
-                        @php $awaitingMe = $req->isAwaiting($auth); @endphp
+                    @foreach($signatureDocs as $doc)
                         <div class="flex items-center gap-4 px-6 py-3.5 border-b border-slate-100 last:border-0 dark:border-slate-700/60">
                             <span class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-500/10"><i data-lucide="file-signature" class="h-4 w-4"></i></span>
                             <div class="flex-1 min-w-0">
-                                <p class="text-sm font-bold text-slate-800 dark:text-white truncate">{{ $req->template->name ?? 'Document' }}</p>
-                                <p class="text-xs text-slate-400 truncate">{{ $req->signers->where('status', 'signed')->count() }}/{{ $req->signers->count() }} signed · {{ $req->created_at->format('d M Y') }}</p>
+                                <p class="text-sm font-bold text-slate-800 dark:text-white truncate">{{ $doc->name }}</p>
+                                <p class="text-xs text-slate-400 truncate">{{ $doc->meta }}</p>
                             </div>
-                            <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold {{ $esBadge[$req->status] ?? 'bg-slate-100 text-slate-600' }}">{{ $esLabel[$req->status] ?? ucfirst($req->status) }}</span>
-                            @if($awaitingMe)
-                                <a href="{{ route('documents.sign', $req) }}" class="btn-brand btn-sm"><i data-lucide="pen-tool" class="h-3.5 w-3.5"></i> Sign</a>
-                            @else
-                                <a href="{{ route('documents.show', $req) }}" title="View" class="inline-flex h-8 w-8 items-center justify-center rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-700"><i data-lucide="eye" class="h-4 w-4"></i></a>
+                            <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold {{ $doc->badge }}">{{ $doc->label }}</span>
+                            @if($doc->awaitingMe && $doc->signUrl)
+                                <a href="{{ $doc->signUrl }}" class="btn-brand btn-sm"><i data-lucide="pen-tool" class="h-3.5 w-3.5"></i> Sign</a>
+                            @elseif($doc->viewUrl)
+                                <a href="{{ $doc->viewUrl }}" title="View" class="inline-flex h-8 w-8 items-center justify-center rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-700"><i data-lucide="eye" class="h-4 w-4"></i></a>
+                            @endif
+                            @if($auth->isAdmin() && $doc->deleteUrl)
+                                <form action="{{ $doc->deleteUrl }}" method="POST" onsubmit="return confirm('Delete this document from the profile? This cannot be undone.')">
+                                    @csrf @method('DELETE')
+                                    <button type="submit" title="Delete from profile" class="inline-flex h-8 w-8 items-center justify-center rounded-xl text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10"><i data-lucide="trash-2" class="h-4 w-4"></i></button>
+                                </form>
                             @endif
                         </div>
                     @endforeach

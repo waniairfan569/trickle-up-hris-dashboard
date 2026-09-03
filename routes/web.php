@@ -394,6 +394,8 @@ Route::middleware(['auth', 'verified', 'force.password.change'])->group(function
     Route::post('employees/{employee}/documents', [\App\Http\Controllers\EmployeeDocumentController::class, 'store'])->name('employees.documents.store');
     Route::get('employees/{employee}/documents/{document}/download', [\App\Http\Controllers\EmployeeDocumentController::class, 'download'])->name('employees.documents.download');
     Route::delete('employees/{employee}/documents/{document}', [\App\Http\Controllers\EmployeeDocumentController::class, 'destroy'])->name('employees.documents.destroy');
+    // Admin: delete a signature document (e-sign request or HR To-Sign doc) off a profile.
+    Route::delete('employees/{employee}/signature-documents/{type}/{id}', [\App\Http\Controllers\EmployeeProfileController::class, 'destroySignatureDoc'])->name('employees.signature-docs.destroy');
 
     // Pay reviews / salary history (Compensation tab) — admin records, self/admin view
     Route::post('employees/{employee}/pay-reviews', [\App\Http\Controllers\PayReviewController::class, 'store'])->name('employees.pay-reviews.store');
