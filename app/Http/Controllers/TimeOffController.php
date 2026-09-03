@@ -352,10 +352,24 @@ class TimeOffController extends Controller
             $pendingReturns = $rq->get();
         }
 
+        // Overtime: the designated form (if any) drives the "Overtime Approval"
+        // button + modal; also surface this employee's recent overtime + status.
+        $overtimeForm = \App\Models\CompanyForm::overtimeForm();
+        $myOvertime = collect();
+        if ($overtimeForm) {
+            $overtimeForm->loadMissing('fields');
+            $myOvertime = $overtimeForm->submissions()
+                ->where('user_id', $user->id)
+                ->with('responses')
+                ->latest('id')
+                ->limit(10)
+                ->get();
+        }
+
         return view('time-off.index', compact(
             'myPolicies', 'myBalances', 'timeOffBalances', 'myRequests',
             'teamRequests', 'allRequests', 'allPolicies', 'movePolicies',
-            'myReturns', 'pendingReturns'
+            'myReturns', 'pendingReturns', 'overtimeForm', 'myOvertime'
         ));
     }
 

@@ -124,6 +124,17 @@ class CompanyFormController extends Controller
             'requires_signature' => $request->boolean('requires_signature'),
         ]);
 
+        // Overtime designation is exclusive — only one form drives the Time-Off
+        // "Overtime Approval" button. Setting it here clears it from any other.
+        if ($request->boolean('is_overtime_form')) {
+            CompanyForm::where('system_key', 'overtime')
+                ->where('id', '!=', $companyForm->id)
+                ->update(['system_key' => null]);
+            $companyForm->update(['system_key' => 'overtime', 'allow_multiple_submissions' => true]);
+        } elseif ($companyForm->system_key === 'overtime') {
+            $companyForm->update(['system_key' => null]);
+        }
+
         return back()->with('success', 'Form settings saved.');
     }
 

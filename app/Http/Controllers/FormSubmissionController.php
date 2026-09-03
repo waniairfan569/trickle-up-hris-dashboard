@@ -122,6 +122,98 @@ class FormSubmissionController extends Controller
         return redirect()->route('my-forms.index')->with('success', 'Form submitted. Thank you!');
     }
 
+    /**
+     * Overtime quick-submit from the Time-Off page. The employee can add several
+     * overtime entries at once (the "+"); each entry becomes its own submitted
+     * FormSubmission so admins can approve/reject them individually via the
+     * existing Forms responses screen. Self-service — no assignment needed.
+     */
+    public function submitOvertime(Request $request)
+    {
+        $form = CompanyForm::where('system_key', 'overtime')->where('status', 'active')
+            ->with('fields')->first();
+        abort_unless($form, 404, 'No overtime form is configured.');
+
+        $user = $request->user();
+
+        // Only real input fields; signatures/uploads aren't part of quick-entry.
+        $fields = $form->fields->filter(
+            fn ($f) => $f->isInputField() && !in_array($f->type, ['signature', 'file_upload'], true)
+        )->values();
+
+        $raw = $request->input('entries', []);
+        $raw = is_array($raw) ? $raw : [];
+
+        // Keep only entries that actually have something filled in.
+        $entries = collect($raw)->filter(function ($entry) {
+            if (!is_array($entry)) {
+                return false;
+            }
+            return collect($entry)->contains(
+                fn ($v) => is_array($v) ? count($v) > 0 : ($v !== null && $v !== '')
+            );
+        })->values();
+
+        if ($entries->isEmpty()) {
+            return back()->withErrors(['overtime' => 'Add at least one overtime entry before submitting.']);
+        }
+
+        // Validate required fields for each entry.
+        $errors = [];
+        foreach ($entries as $i => $entry) {
+            foreach ($fields as $field) {
+                if (!$field->is_required) {
+                    continue;
+                }
+                $v = $entry[$field->field_key] ?? null;
+                $empty = is_array($v) ? count($v) === 0 : ($v === null || $v === '');
+                if ($empty) {
+                    $errors["overtime_{$i}_{$field->field_key}"] = 'Overtime #' . ($i + 1) . ": {$field->label} is required.";
+                }
+            }
+        }
+        if ($errors) {
+            return back()->withErrors($errors);
+        }
+
+        $created = 0;
+        foreach ($entries as $entry) {
+            $submission = FormSubmission::create([
+                'form_id' => $form->id,
+                'user_id' => $user->id,
+                'period' => $form->is_monthly ? $form->currentPeriod() : null,
+                'status' => 'submitted',
+                'started_at' => now(),
+                'submitted_at' => now(),
+                'ip_address' => $request->ip(),
+            ]);
+
+            foreach ($fields as $field) {
+                $v = $entry[$field->field_key] ?? null;
+                if ($field->type === 'multi_select') {
+                    $v = is_array($v) && count($v) ? json_encode(array_values($v)) : null;
+                }
+                $submission->responses()->create([
+                    'field_id' => $field->id,
+                    'field_key' => $field->field_key,
+                    'field_label' => $field->label,
+                    'value' => $v,
+                ]);
+            }
+            $created++;
+        }
+
+        try {
+            $this->notifyAdminsOfSubmission($form, $user);
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
+        return redirect()->route('time-off.index')->with('success', $created === 1
+            ? 'Overtime submitted for approval.'
+            : "{$created} overtime entries submitted for approval.");
+    }
+
     /** Download an uploaded file response (owner or admin). */
     public function downloadFile(Request $request, \App\Models\FormResponse $response)
     {

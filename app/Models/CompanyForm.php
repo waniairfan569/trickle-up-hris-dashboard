@@ -17,7 +17,7 @@ class CompanyForm extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'company_entity_id', 'title', 'description', 'slug', 'status',
+        'company_entity_id', 'title', 'description', 'slug', 'status', 'system_key',
         'is_anonymous', 'allow_multiple_submissions', 'is_monthly', 'show_progress_bar',
         'requires_signature', 'deadline', 'created_by',
     ];
@@ -89,6 +89,12 @@ class CompanyForm extends Model
     public function scopeActive(Builder $q): Builder { return $q->where('status', 'active'); }
     public function scopeDraft(Builder $q): Builder { return $q->where('status', 'draft'); }
     public function scopeClosed(Builder $q): Builder { return $q->where('status', 'closed'); }
+
+    /** The active form designated as this workspace's overtime form, if any. */
+    public static function overtimeForm(): ?self
+    {
+        return static::where('system_key', 'overtime')->where('status', 'active')->first();
+    }
 
     /** All users assigned to this form (department/all assignments expanded to users). */
     public function getAssignedUsersFor(): Collection

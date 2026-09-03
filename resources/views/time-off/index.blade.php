@@ -87,6 +87,157 @@
             <a href="{{ route('time-off.team-calendar') }}" class="btn-outline">
                 <i data-lucide="calendar" class="h-4 w-4 mr-2"></i> Team Calendar
             </a>
+
+            {{-- Overtime Approval: quick multi-entry submit against the designated overtime form --}}
+            @if(!empty($overtimeForm))
+            @php
+                $otInputFields = $overtimeForm->fields->filter(fn ($f) => $f->isInputField() && !in_array($f->type, ['signature','file_upload'], true))->values();
+            @endphp
+            <div x-data="{ open:false }">
+                <button type="button"
+                        @click="open=true; $nextTick(() => { if (!document.querySelector('#ot-entries .ot-entry')) window.otAddEntry(); })"
+                        class="btn-outline">
+                    <i data-lucide="clock" class="h-4 w-4 mr-2"></i> Overtime Approval
+                </button>
+
+                <div x-show="open" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4" style="display:none;">
+                    <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" @click="open=false"></div>
+                    <div class="relative w-full max-w-2xl max-h-[88vh] overflow-y-auto rounded-2xl bg-white shadow-xl dark:bg-slate-800">
+                        <div class="sticky top-0 z-10 flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-white/95 backdrop-blur dark:bg-slate-800/95 dark:border-slate-700/60">
+                            <div>
+                                <h3 class="text-lg font-extrabold text-slate-900 dark:text-white flex items-center gap-2"><i data-lucide="clock" class="h-5 w-5 text-amber-500"></i> Overtime Approval</h3>
+                                <p class="text-xs text-slate-500 dark:text-slate-400">{{ $overtimeForm->title }} · add one or more overtime entries — each is approved separately.</p>
+                            </div>
+                            <button type="button" @click="open=false" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="h-5 w-5"></i></button>
+                        </div>
+
+                        @if($errors->any())
+                            <div class="mx-6 mt-4 rounded-xl bg-rose-50 p-3 border border-rose-200 text-xs text-rose-700 dark:bg-rose-500/10 dark:border-rose-500/20"><ul class="list-disc pl-4 space-y-0.5">@foreach($errors->all() as $e)<li>{{ $e }}</li>@endforeach</ul></div>
+                        @endif
+
+                        <form method="POST" action="{{ route('overtime.submit') }}" class="p-6 space-y-4">
+                            @csrf
+                            <div id="ot-entries" class="space-y-4"></div>
+
+                            <button type="button" onclick="window.otAddEntry()" class="inline-flex items-center gap-1.5 rounded-xl border border-dashed border-brand-300 px-4 py-2.5 text-sm font-bold text-brand-600 hover:bg-brand-50 dark:border-brand-500/40 dark:text-brand-400 dark:hover:bg-brand-500/10 w-full justify-center">
+                                <i data-lucide="plus" class="h-4 w-4"></i> Add another overtime
+                            </button>
+
+                            <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-700/60">
+                                <button type="button" @click="open=false" class="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700">Cancel</button>
+                                <button type="submit" class="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-6 py-2.5 text-sm font-bold text-white hover:bg-brand-700"><i data-lucide="check" class="h-4 w-4"></i> Submit for approval</button>
+                            </div>
+                        </form>
+
+                        @if($myOvertime->isNotEmpty())
+                            <div class="px-6 pb-6">
+                                <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">Your recent overtime</p>
+                                <div class="space-y-1.5">
+                                    @foreach($myOvertime as $sub)
+                                        @php $summary = $sub->responses->filter(fn($r) => $r->value !== null && $r->value !== '')->take(3)->map(fn($r) => $r->value)->implode(' · '); @endphp
+                                        <div class="flex items-center justify-between gap-3 rounded-lg border border-slate-100 px-3 py-2 text-sm dark:border-slate-700/60">
+                                            <div class="min-w-0">
+                                                <p class="font-semibold text-slate-700 dark:text-slate-200 truncate">{{ $summary ?: 'Overtime entry' }}</p>
+                                                <p class="text-[11px] text-slate-400">{{ optional($sub->submitted_at)->format('M d, Y · g:i A') }}</p>
+                                            </div>
+                                            <span class="shrink-0 text-[11px] font-bold rounded-full px-2.5 py-0.5 {{ $sub->reviewBadgeClass() }}">{{ $sub->reviewLabel() }}</span>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+
+                {{-- One overtime entry, cloned by JS (__I__ → running index) --}}
+                <template id="ot-entry-tpl">
+                    <div class="ot-entry rounded-xl border border-slate-200 p-4 dark:border-slate-700 relative">
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="text-xs font-bold text-slate-500 dark:text-slate-300">Overtime <span class="ot-num">#1</span></span>
+                            <button type="button" class="ot-remove text-slate-300 hover:text-rose-500" title="Remove"><i data-lucide="trash-2" class="h-4 w-4"></i></button>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            @foreach($otInputFields as $field)
+                                @php
+                                    $name = 'entries[__I__][' . $field->field_key . ']';
+                                    $isReq = $field->is_required;
+                                    $base = 'w-full rounded-xl border border-slate-300 px-3 py-2 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white focus:border-brand-500 focus:ring-1 focus:ring-brand-500';
+                                    $col = ($field->width === 'half') ? 'sm:col-span-1' : 'sm:col-span-2';
+                                @endphp
+                                <div class="{{ $col }}">
+                                    <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">{{ $field->label }} @if($isReq)<span class="text-rose-500">*</span>@endif</label>
+                                    @switch($field->type)
+                                        @case('textarea')
+                                            <textarea name="{{ $name }}" rows="2" placeholder="{{ $field->placeholder }}" {{ $isReq ? 'required' : '' }} class="{{ $base }} resize-none"></textarea>
+                                            @break
+                                        @case('dropdown')
+                                            <select name="{{ $name }}" {{ $isReq ? 'required' : '' }} class="{{ $base }}">
+                                                <option value="">— Select —</option>
+                                                @foreach($field->options ?? [] as $opt)<option value="{{ $opt }}">{{ $opt }}</option>@endforeach
+                                            </select>
+                                            @break
+                                        @case('multi_select')
+                                            <div class="space-y-1 pt-0.5">
+                                                @foreach($field->options ?? [] as $opt)
+                                                    <label class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200"><input type="checkbox" name="{{ $name }}[]" value="{{ $opt }}" class="rounded border-slate-300 text-brand-600"> {{ $opt }}</label>
+                                                @endforeach
+                                            </div>
+                                            @break
+                                        @case('radio')
+                                            <div class="flex flex-wrap gap-x-4 gap-y-1 pt-1">
+                                                @foreach($field->options ?? [] as $opt)
+                                                    <label class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200"><input type="radio" name="{{ $name }}" value="{{ $opt }}" class="border-slate-300 text-brand-600"> {{ $opt }}</label>
+                                                @endforeach
+                                            </div>
+                                            @break
+                                        @case('checkbox')
+                                            <label class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200"><input type="hidden" name="{{ $name }}" value="0"><input type="checkbox" name="{{ $name }}" value="1" class="rounded border-slate-300 text-brand-600"> Yes</label>
+                                            @break
+                                        @case('date')
+                                            <input type="date" name="{{ $name }}" {{ $isReq ? 'required' : '' }} class="{{ $base }}">
+                                            @break
+                                        @default
+                                            <input type="{{ in_array($field->type, ['number','email']) ? $field->type : ($field->type === 'phone' ? 'tel' : 'text') }}" name="{{ $name }}" placeholder="{{ $field->placeholder }}" {{ $isReq ? 'required' : '' }} class="{{ $base }}">
+                                    @endswitch
+                                    @if($field->help_text)<p class="text-[11px] text-slate-400 mt-1">{{ $field->help_text }}</p>@endif
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                </template>
+            </div>
+
+            <script>
+                (function () {
+                    let otIdx = 0;
+                    const wrap = () => document.getElementById('ot-entries');
+                    function renumber() {
+                        const rows = document.querySelectorAll('#ot-entries .ot-entry');
+                        rows.forEach((el, n) => {
+                            const num = el.querySelector('.ot-num'); if (num) num.textContent = '#' + (n + 1);
+                            const rm = el.querySelector('.ot-remove'); if (rm) rm.style.display = rows.length > 1 ? '' : 'none';
+                        });
+                    }
+                    window.otAddEntry = function () {
+                        const tpl = document.getElementById('ot-entry-tpl');
+                        if (!tpl || !wrap()) return;
+                        const holder = document.createElement('div');
+                        holder.innerHTML = tpl.innerHTML.replace(/__I__/g, otIdx++);
+                        const node = holder.firstElementChild;
+                        wrap().appendChild(node);
+                        renumber();
+                        window.lucide && lucide.createIcons();
+                    };
+                    document.addEventListener('click', function (e) {
+                        const btn = e.target.closest && e.target.closest('#ot-entries .ot-remove');
+                        if (!btn) return;
+                        const row = btn.closest('.ot-entry');
+                        if (row && document.querySelectorAll('#ot-entries .ot-entry').length > 1) { row.remove(); renumber(); }
+                    });
+                })();
+            </script>
+            @endif
+
             <a href="{{ route('time-off.create') }}" class="btn-brand">
                 <i data-lucide="plus" class="h-4 w-4"></i>
                 Request Time Off

@@ -510,6 +510,8 @@ Route::middleware(['auth', 'verified', 'force.password.change'])->group(function
     Route::post('my-forms/{companyForm}/save', [\App\Http\Controllers\FormSubmissionController::class, 'save'])->name('forms.save');
     Route::post('my-forms/{companyForm}/submit', [\App\Http\Controllers\FormSubmissionController::class, 'submit'])->name('forms.submit');
     Route::get('form-responses/{response}/download', [\App\Http\Controllers\FormSubmissionController::class, 'downloadFile'])->name('forms.response.download');
+    // Quick overtime submit from the Time-Off page (one or more entries at once).
+    Route::post('overtime/submit', [\App\Http\Controllers\FormSubmissionController::class, 'submitOvertime'])->name('overtime.submit');
 
     // Company Policies — employee side (view, download, acknowledge / e-sign)
     Route::get('my-policies', [\App\Http\Controllers\PolicyAcknowledgmentController::class, 'myPolicies'])->name('my-policies.index');
