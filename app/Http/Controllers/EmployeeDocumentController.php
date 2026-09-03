@@ -44,7 +44,12 @@ class EmployeeDocumentController extends Controller
         $this->authorizeManage($employee);
         abort_unless($document->user_id === $employee->id, 404);
 
-        if (!Storage::exists($document->path)) {
+        // Linked signed documents have no stored file — open the document instead.
+        if ($document->isLinked() && $document->linkUrl()) {
+            return redirect($document->linkUrl());
+        }
+
+        if (!$document->path || !Storage::exists($document->path)) {
             abort(404, 'File not found.');
         }
 
@@ -57,7 +62,9 @@ class EmployeeDocumentController extends Controller
         $this->authorizeManage($employee);
         abort_unless($document->user_id === $employee->id, 404);
 
-        Storage::delete($document->path);
+        if ($document->path) {
+            Storage::delete($document->path);
+        }
         $document->delete();
 
         return redirect()->route('employees.profile', $employee->id)

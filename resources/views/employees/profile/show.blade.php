@@ -859,17 +859,19 @@
                         <div data-doc data-name="{{ strtolower($doc->name) }}"
                              x-show="fileSearch === '' || $el.dataset.name.includes(fileSearch.toLowerCase())"
                              class="flex items-center gap-4 px-6 py-3.5 border-b border-slate-100 last:border-0 dark:border-slate-700/60">
-                            <span class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-500/10"><i data-lucide="file" class="h-4 w-4"></i></span>
+                            <span class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl {{ $doc->isLinked() ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10' : 'bg-brand-50 text-brand-600 dark:bg-brand-500/10' }}"><i data-lucide="{{ $doc->isLinked() ? 'file-signature' : 'file' }}" class="h-4 w-4"></i></span>
                             <div class="flex-1 min-w-0">
-                                <p class="text-sm font-bold text-slate-800 dark:text-white truncate">{{ $doc->name }}</p>
-                                <p class="text-xs text-slate-400 truncate">{{ $doc->readable_size }} · {{ $doc->created_at->format('d M Y') }}@if($doc->uploader) · {{ $doc->uploader->full_name }}@endif</p>
+                                <p class="text-sm font-bold text-slate-800 dark:text-white truncate">{{ $doc->name }}@if($doc->isLinked())<span class="ml-1.5 align-middle inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">Signed</span>@endif</p>
+                                <p class="text-xs text-slate-400 truncate">@if($doc->isLinked())Signed document · {{ $doc->created_at->format('d M Y') }}@else{{ $doc->readable_size }} · {{ $doc->created_at->format('d M Y') }}@if($doc->uploader) · {{ $doc->uploader->full_name }}@endif @endif</p>
                             </div>
-                            <a href="{{ route('employees.documents.download', [$employee->id, $doc->id]) }}" title="Download" class="inline-flex h-8 w-8 items-center justify-center rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-700">
-                                <i data-lucide="download" class="h-4 w-4"></i>
-                            </a>
-                            <form action="{{ route('employees.documents.destroy', [$employee->id, $doc->id]) }}" method="POST" onsubmit="return confirm('Delete “{{ $doc->name }}”?');">
+                            @if($doc->isLinked())
+                                <a href="{{ $doc->linkUrl() }}" title="View signed document" class="inline-flex h-8 w-8 items-center justify-center rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-700"><i data-lucide="external-link" class="h-4 w-4"></i></a>
+                            @else
+                                <a href="{{ route('employees.documents.download', [$employee->id, $doc->id]) }}" title="Download" class="inline-flex h-8 w-8 items-center justify-center rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-700"><i data-lucide="download" class="h-4 w-4"></i></a>
+                            @endif
+                            <form action="{{ route('employees.documents.destroy', [$employee->id, $doc->id]) }}" method="POST" onsubmit="return confirm(@js($doc->isLinked() ? 'Remove this signed document from the profile?' : 'Delete “'.$doc->name.'”?'))">
                                 @csrf @method('DELETE')
-                                <button type="submit" title="Delete" class="inline-flex h-8 w-8 items-center justify-center rounded-xl text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10"><i data-lucide="trash-2" class="h-4 w-4"></i></button>
+                                <button type="submit" title="{{ $doc->isLinked() ? 'Remove from profile' : 'Delete' }}" class="inline-flex h-8 w-8 items-center justify-center rounded-xl text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10"><i data-lucide="trash-2" class="h-4 w-4"></i></button>
                             </form>
                         </div>
                     @endforeach

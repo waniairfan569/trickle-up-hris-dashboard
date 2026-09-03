@@ -20,6 +20,8 @@ class EmployeeDocument extends Model
         'mime',
         'size',
         'uploaded_by',
+        'source_type',
+        'source_id',
     ];
 
     protected $casts = [
@@ -29,6 +31,22 @@ class EmployeeDocument extends Model
     public function employee()
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    /** A linked signed e-signature document (not an uploaded file). */
+    public function isLinked(): bool
+    {
+        return $this->source_type !== null;
+    }
+
+    /** Where "view/download" points for a linked entry (the completed document). */
+    public function linkUrl(): ?string
+    {
+        if ($this->source_type === 'signature' && $this->source_id) {
+            return route('documents.show', $this->source_id);
+        }
+
+        return null;
     }
 
     public function uploader()

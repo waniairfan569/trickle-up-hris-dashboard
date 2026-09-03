@@ -322,6 +322,9 @@ class DocumentRequestController extends Controller
         $documentRequest->update(['status' => 'completed', 'completed_at' => now()]);
         $documentRequest->logEvent('completed', $user, null, $request->ip());
 
+        // Auto-file the completed document on the subject employee's profile.
+        $this->attachSignedToProfile($documentRequest);
+
         // Notify subject + creator that signing is complete (deduped so a
         // person who is both subject and creator isn't notified twice).
         $recipients = collect([$documentRequest->subject, $documentRequest->creator])->filter()->unique('id');
@@ -330,6 +333,43 @@ class DocumentRequestController extends Controller
         }
 
         return redirect()->route('documents.show', $documentRequest)->with('success', 'Document fully signed and completed.');
+    }
+
+    /**
+     * Once fully signed, drop a link to the completed document onto the subject
+     * employee's profile → Uploads, so their signed documents live with the rest
+     * of their files. Idempotent; never breaks the signing flow.
+     */
+    private function attachSignedToProfile(DocumentRequest $documentRequest): void
+    {
+        try {
+            $subjectId = $documentRequest->subject_employee_id;
+            if (!$subjectId) {
+                return;
+            }
+
+            $exists = \App\Models\EmployeeDocument::where('source_type', 'signature')
+                ->where('source_id', $documentRequest->id)->exists();
+            if ($exists) {
+                return;
+            }
+
+            $name = $documentRequest->template->name ?? 'Signed document';
+
+            \App\Models\EmployeeDocument::create([
+                'user_id'       => $subjectId,
+                'name'          => \Illuminate\Support\Str::limit($name, 70, ''),
+                'original_name' => $name,
+                'path'          => '',
+                'mime'          => 'application/pdf',
+                'size'          => 0,
+                'uploaded_by'   => null,
+                'source_type'   => 'signature',
+                'source_id'     => $documentRequest->id,
+            ]);
+        } catch (\Throwable $e) {
+            report($e); // never block completion
+        }
     }
 
     /** POST documents/{request}/decline — current signer declines. */
