@@ -50,7 +50,7 @@
                 <div class="flex flex-wrap gap-x-5 gap-y-2 pt-1.5">
                     @foreach($field['options'] ?? [] as $opt)
                         <label class="inline-flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200 cursor-pointer">
-                            <input type="checkbox" :checked='has(@js($id), @js($opt))' @change='toggle(@js($id), @js($opt))' class="rounded text-brand-500 border-slate-300 focus:ring-brand-500"> {{ $opt }}
+                            <input type="checkbox" :checked="has(@js($id), @js($opt))" @change="toggle(@js($id), @js($opt))" class="rounded text-brand-500 border-slate-300 focus:ring-brand-500"> {{ $opt }}
                         </label>
                     @endforeach
                 </div>
@@ -72,7 +72,7 @@
                                 <tr>
                                     @foreach($field['columns'] ?? [] as $col)
                                         <td class="p-1 border-b border-slate-100 dark:border-slate-700 align-top">
-                                            <input type="text" x-model='row[@js($col)]' class="w-full rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-sm dark:bg-slate-900 dark:border-slate-600 focus:border-brand-500 focus:ring-1 focus:ring-brand-500">
+                                            <input type="text" x-model="row[@js($col)]" class="w-full rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-sm dark:bg-slate-900 dark:border-slate-600 focus:border-brand-500 focus:ring-1 focus:ring-brand-500">
                                         </td>
                                     @endforeach
                                     <td class="text-center border-b border-slate-100 dark:border-slate-700">
@@ -86,7 +86,7 @@
                         </tbody>
                     </table>
                 </div>
-                <button type="button" @click='addRow(@js($id), @js($field["columns"] ?? []))' class="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700">
+                <button type="button" @click="addRow(@js($id), @js($field['columns'] ?? []))" class="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700">
                     <i data-lucide="plus" class="h-3.5 w-3.5"></i> Add row
                 </button>
                 @break
