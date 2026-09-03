@@ -15,7 +15,10 @@
             <h1 class="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">Company Forms</h1>
             <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Build dynamic forms, assign them to employees, and collect responses.</p>
         </div>
-        <button @click="createOpen = true" class="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-bold text-slate-900 shadow-md shadow-brand-500/20 hover:bg-brand-700"><i data-lucide="plus" class="h-4 w-4"></i> Create new form</button>
+        <div class="flex items-center gap-2">
+            <a href="{{ route('company-forms.inbox') }}" class="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-700"><i data-lucide="inbox" class="h-4 w-4"></i> Review responses</a>
+            <button @click="createOpen = true" class="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-bold text-slate-900 shadow-md shadow-brand-500/20 hover:bg-brand-700"><i data-lucide="plus" class="h-4 w-4"></i> Create new form</button>
+        </div>
     </div>
 
     @if(session('success'))<div class="rounded-xl bg-emerald-50 p-4 border border-emerald-200 text-sm text-emerald-800 dark:bg-emerald-500/10 dark:border-emerald-500/20 dark:text-emerald-400 flex items-center gap-2"><i data-lucide="check-circle" class="h-5 w-5"></i>{{ session('success') }}</div>@endif

@@ -376,6 +376,57 @@ class CompanyFormController extends Controller
         ]);
     }
 
+    /**
+     * A single "Form Responses" inbox across every form the user may review, so
+     * admins can triage, comment on, and approve/reject submissions inline (via
+     * a slide-over) without opening each form and each submission one at a time.
+     */
+    public function inbox(Request $request)
+    {
+        $user = $request->user();
+
+        $formIds = $user->isAdmin()
+            ? CompanyForm::pluck('id')
+            : CompanyForm::whereHas('reviewers', fn ($q) => $q->where('users.id', $user->id))->pluck('id');
+
+        abort_if(!$user->isAdmin() && $formIds->isEmpty(), 403);
+
+        $status = $request->get('status', 'awaiting');   // awaiting | approved | rejected | all
+        $formId = $request->get('form');
+        $search = trim((string) $request->get('q', ''));
+
+        // A fresh "submitted rows for my forms" builder each time it's needed.
+        $submitted = fn () => FormSubmission::whereIn('form_id', $formIds)->where('status', 'submitted');
+        $onlyAwaiting = fn ($q) => $q->where(fn ($w) => $w->whereNull('review_status')->orWhere('review_status', 'pending'));
+
+        $counts = [
+            'awaiting' => $onlyAwaiting($submitted())->count(),
+            'approved' => $submitted()->where('review_status', 'approved')->count(),
+            'rejected' => $submitted()->where('review_status', 'rejected')->count(),
+        ];
+
+        $q = $submitted()->with(['form.fields', 'employee', 'responses', 'reviewer']);
+        if ($formId) {
+            $q->where('form_id', $formId);
+        }
+        if ($status === 'awaiting') {
+            $onlyAwaiting($q);
+        } elseif (in_array($status, ['approved', 'rejected'], true)) {
+            $q->where('review_status', $status);
+        }
+        if ($search !== '') {
+            $q->whereHas('employee', fn ($e) => $e->where(fn ($w) => $w
+                ->where('first_name', 'like', "%{$search}%")
+                ->orWhere('last_name', 'like', "%{$search}%")
+                ->orWhere('email', 'like', "%{$search}%")));
+        }
+
+        $submissions = $q->latest('submitted_at')->latest('id')->paginate(20)->withQueryString();
+        $forms = CompanyForm::whereIn('id', $formIds)->orderBy('title')->get(['id', 'title']);
+
+        return view('company-forms.inbox', compact('submissions', 'forms', 'counts', 'status', 'formId', 'search'));
+    }
+
     public function viewSubmission(Request $request, FormSubmission $submission)
     {
         $submission->load(['form.fields', 'employee', 'responses', 'reviewer']);

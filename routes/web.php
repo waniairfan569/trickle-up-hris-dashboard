@@ -505,6 +505,8 @@ Route::middleware(['auth', 'verified', 'force.password.change'])->group(function
 
     // Company-form review — admins OR employees granted reviewer access (checked in controller).
     Route::get('my-reviews', [\App\Http\Controllers\CompanyFormController::class, 'myReviews'])->name('company-forms.my-reviews');
+    // Unified inbox: review responses across every form in one place.
+    Route::get('form-responses', [\App\Http\Controllers\CompanyFormController::class, 'inbox'])->name('company-forms.inbox');
     Route::get('company-forms/{companyForm}/responses', [\App\Http\Controllers\CompanyFormController::class, 'responses'])->name('company-forms.responses');
     Route::get('form-submissions/{submission}', [\App\Http\Controllers\CompanyFormController::class, 'viewSubmission'])->name('company-forms.submission');
     Route::post('form-submissions/{submission}/review', [\App\Http\Controllers\CompanyFormController::class, 'reviewSubmission'])->name('company-forms.submission.review');
