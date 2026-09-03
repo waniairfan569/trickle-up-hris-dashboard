@@ -408,6 +408,11 @@ Route::middleware(['auth', 'verified', 'force.password.change'])->group(function
         Route::get('getting-started', [\App\Http\Controllers\GettingStartedController::class, 'show'])->name('getting-started');
         Route::post('getting-started/dismiss', [\App\Http\Controllers\GettingStartedController::class, 'dismiss'])->name('getting-started.dismiss');
 
+        // Daily admin reminders — WFH tomorrow / late today, configurable.
+        Route::get('reminders', [\App\Http\Controllers\AdminReminderController::class, 'index'])->name('admin.reminders');
+        Route::put('reminders/settings', [\App\Http\Controllers\AdminReminderController::class, 'updateSettings'])->name('admin.reminders.settings');
+        Route::post('reminders/send-now', [\App\Http\Controllers\AdminReminderController::class, 'sendNow'])->name('admin.reminders.send-now');
+
         // Billing & plans
         Route::get('billing', [\App\Http\Controllers\BillingController::class, 'index'])->name('billing.index');
         Route::post('billing/subscribe', [\App\Http\Controllers\BillingController::class, 'subscribe'])->name('billing.subscribe');

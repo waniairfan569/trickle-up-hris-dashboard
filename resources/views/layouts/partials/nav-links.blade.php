@@ -172,6 +172,12 @@
             <i data-lucide="file-check-2" class="h-4 w-4 shrink-0"></i><span class="flex-1">Pending Corrections</span>
             {!! $navBadge($nav['corrections']) !!}
         </a>
+        @if(auth()->user()->isAdmin())
+        <a href="{{ route('admin.reminders') }}"
+           class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'admin.reminders') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">
+            <i data-lucide="bell-ring" class="h-4 w-4 shrink-0"></i><span class="flex-1">Reminders</span>
+        </a>
+        @endif
     </div>
 </div>
 @endrole

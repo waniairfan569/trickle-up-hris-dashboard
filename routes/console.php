@@ -65,6 +65,10 @@ Schedule::command('subscriptions:check-trials')->dailyAt('02:30')->withoutOverla
 // Daily off-site backup — database (+ uploaded files), pruned by retention.
 Schedule::command('backup:run')->dailyAt('01:30')->withoutOverlapping()->runInBackground();
 
+// Configurable daily admin reminders (WFH tomorrow / late today) — fire at the
+// time each workspace's super-admin set; each sends once a day.
+Schedule::command('reminders:admin-daily')->everyMinute()->withoutOverlapping();
+
 // Scheduler heartbeat — proves the cron is actually running, surfaced by /health.
 Schedule::call(fn () => \Illuminate\Support\Facades\Cache::put(
     \App\Http\Controllers\HealthController::HEARTBEAT_KEY, now()->toIso8601String(), 900
