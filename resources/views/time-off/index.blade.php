@@ -252,13 +252,28 @@
                         <td class="px-6 py-4 text-sm font-medium text-slate-900 dark:text-white align-top">
                             <div>{{ $request->policy->name }}</div>
                             @if($request->reason)
-                                <div x-data="{ show:false, x:0, y:0 }" class="mt-1 max-w-[240px]">
-                                    <div x-ref="r{{ $request->id }}" style="cursor:help;"
-                                         @mouseenter="x=$event.clientX; y=$event.clientY; show = ($refs.r{{ $request->id }}.scrollHeight > $refs.r{{ $request->id }}.clientHeight)"
+                                @php $pc = ['approved'=>'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300','pending'=>'bg-amber-50 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300','rejected'=>'bg-rose-50 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300'][$request->status] ?? 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300'; @endphp
+                                <div x-data="{ show:false, top:0, left:0 }" class="mt-1 max-w-[240px]">
+                                    <div style="cursor:help;"
+                                         @mouseenter="const r=$el.getBoundingClientRect(); top=r.bottom+8; left=r.left; show=true"
                                          @mouseleave="show=false"
                                          class="text-xs font-normal text-slate-500 italic line-clamp-2 dark:text-slate-400">“{{ $request->reason }}”</div>
-                                    <div x-show="show" x-cloak
-                                         :style="`position:fixed; left:${Math.min(x+14, window.innerWidth-330)}px; top:${y+18}px; z-index:60; width:max-content; max-width:20rem; background:#0f172a; color:#fff; font-size:11px; line-height:1.5; padding:.5rem .7rem; border-radius:.5rem; box-shadow:0 10px 28px -10px rgba(0,0,0,.5); white-space:normal; word-break:break-word;`">“{{ $request->reason }}”</div>
+                                    <div x-show="show" x-cloak x-transition.opacity.duration.150ms
+                                         :style="`position:fixed; top:${top}px; left:${Math.min(left, window.innerWidth-340)}px; z-index:60; width:20rem;`"
+                                         class="rounded-xl border border-slate-200 bg-white p-4 text-left shadow-2xl dark:bg-slate-800 dark:border-slate-700">
+                                        <div class="flex items-center justify-between gap-2 pb-2 mb-2.5 border-b border-slate-100 dark:border-slate-700/60">
+                                            <p class="text-sm font-bold text-slate-800 dark:text-white truncate">{{ $request->policy->name }}</p>
+                                            <span class="shrink-0 text-[10px] font-bold rounded-full px-2 py-0.5 {{ $pc }}">{{ ucfirst($request->status) }}</span>
+                                        </div>
+                                        <dl class="space-y-2 text-xs">
+                                            <div class="flex gap-2"><dt class="w-16 shrink-0 font-bold uppercase tracking-wide text-slate-400">Dates</dt><dd class="text-slate-700 dark:text-slate-200">{{ $request->start_date->format('M d, Y') }}@if($request->start_date != $request->end_date) – {{ $request->end_date->format('M d, Y') }}@endif · {{ $request->duration_label }}</dd></div>
+                                            <div class="flex gap-2"><dt class="w-16 shrink-0 font-bold uppercase tracking-wide text-slate-400">Applied</dt><dd class="text-slate-700 dark:text-slate-200">{{ $request->created_at->format('M d, Y · g:i A') }}</dd></div>
+                                            @if($request->status === 'approved' && $request->approved_at)
+                                                <div class="flex gap-2"><dt class="w-16 shrink-0 font-bold uppercase tracking-wide text-slate-400">Approved</dt><dd class="text-emerald-600 dark:text-emerald-400">{{ $request->approved_at->format('M d, Y · g:i A') }}</dd></div>
+                                            @endif
+                                            <div class="pt-1 border-t border-slate-100 dark:border-slate-700/60"><dt class="font-bold uppercase tracking-wide text-slate-400 mb-0.5">Reason</dt><dd class="text-slate-600 dark:text-slate-300 italic">“{{ $request->reason }}”</dd></div>
+                                        </dl>
+                                    </div>
                                 </div>
                             @endif
                         </td>
@@ -269,6 +284,7 @@
                             @elseif($request->is_half_day)
                                 <span class="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md ml-2 dark:bg-slate-700 dark:text-slate-300">Half Day ({{ ucfirst($request->half_day_period) }})</span>
                             @endif
+                            <div class="text-[11px] text-slate-400 mt-1 flex items-center gap-1"><i data-lucide="clock" class="h-3 w-3"></i> Applied {{ $request->created_at->format('M d, Y · g:i A') }}</div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">
                             {{ $request->duration_label }}
@@ -564,13 +580,31 @@
                                 </div>
                             @endif
                             @if($request->reason)
-                                <div x-data="{ show:false, x:0, y:0 }" class="mt-1 max-w-[240px]">
-                                    <div x-ref="ra{{ $request->id }}" style="cursor:help;"
-                                         @mouseenter="x=$event.clientX; y=$event.clientY; show = ($refs.ra{{ $request->id }}.scrollHeight > $refs.ra{{ $request->id }}.clientHeight)"
+                                @php $pc = ['approved'=>'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300','pending'=>'bg-amber-50 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300','rejected'=>'bg-rose-50 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300'][$request->status] ?? 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300'; @endphp
+                                <div x-data="{ show:false, top:0, left:0 }" class="mt-1 max-w-[240px]">
+                                    <div style="cursor:help;"
+                                         @mouseenter="const r=$el.getBoundingClientRect(); top=r.bottom+8; left=r.left; show=true"
                                          @mouseleave="show=false"
                                          class="text-xs text-slate-500 italic line-clamp-2 dark:text-slate-400">“{{ $request->reason }}”</div>
-                                    <div x-show="show" x-cloak
-                                         :style="`position:fixed; left:${Math.min(x+14, window.innerWidth-330)}px; top:${y+18}px; z-index:60; width:max-content; max-width:20rem; background:#0f172a; color:#fff; font-size:11px; line-height:1.5; padding:.5rem .7rem; border-radius:.5rem; box-shadow:0 10px 28px -10px rgba(0,0,0,.5); white-space:normal; word-break:break-word;`">“{{ $request->reason }}”</div>
+                                    <div x-show="show" x-cloak x-transition.opacity.duration.150ms
+                                         :style="`position:fixed; top:${top}px; left:${Math.min(left, window.innerWidth-340)}px; z-index:60; width:20rem;`"
+                                         class="rounded-xl border border-slate-200 bg-white p-4 text-left shadow-2xl dark:bg-slate-800 dark:border-slate-700">
+                                        <div class="flex items-center justify-between gap-2 pb-2 mb-2.5 border-b border-slate-100 dark:border-slate-700/60">
+                                            <p class="text-sm font-bold text-slate-800 dark:text-white truncate">{{ $request->employee->first_name }} {{ $request->employee->last_name }}</p>
+                                            <span class="shrink-0 text-[10px] font-bold rounded-full px-2 py-0.5 {{ $pc }}">{{ ucfirst($request->status) }}</span>
+                                        </div>
+                                        <dl class="space-y-2 text-xs">
+                                            <div class="flex gap-2"><dt class="w-16 shrink-0 font-bold uppercase tracking-wide text-slate-400">Type</dt><dd class="text-slate-700 dark:text-slate-200">{{ $request->policy->name }}</dd></div>
+                                            <div class="flex gap-2"><dt class="w-16 shrink-0 font-bold uppercase tracking-wide text-slate-400">Dates</dt><dd class="text-slate-700 dark:text-slate-200">{{ $request->start_date->format('M d, Y') }}@if($request->start_date != $request->end_date) – {{ $request->end_date->format('M d, Y') }}@endif · {{ $request->duration_label }}</dd></div>
+                                            <div class="flex gap-2"><dt class="w-16 shrink-0 font-bold uppercase tracking-wide text-slate-400">Applied</dt><dd class="text-slate-700 dark:text-slate-200">{{ $request->created_at->format('M d, Y · g:i A') }}</dd></div>
+                                            @if($request->status === 'approved' && $request->approved_at)
+                                                <div class="flex gap-2"><dt class="w-16 shrink-0 font-bold uppercase tracking-wide text-slate-400">Approved</dt><dd class="text-emerald-600 dark:text-emerald-400">{{ $request->approved_at->format('M d, Y · g:i A') }}@if($request->approver) by {{ $request->approver->first_name }}@endif</dd></div>
+                                            @elseif($request->status === 'rejected' && $request->rejected_at)
+                                                <div class="flex gap-2"><dt class="w-16 shrink-0 font-bold uppercase tracking-wide text-slate-400">Rejected</dt><dd class="text-rose-600 dark:text-rose-400">{{ $request->rejected_at->format('M d, Y · g:i A') }}</dd></div>
+                                            @endif
+                                            <div class="pt-1 border-t border-slate-100 dark:border-slate-700/60"><dt class="font-bold uppercase tracking-wide text-slate-400 mb-0.5">Reason</dt><dd class="text-slate-600 dark:text-slate-300 italic">“{{ $request->reason }}”</dd></div>
+                                        </dl>
+                                    </div>
                                 </div>
                             @endif
                         </td>
@@ -581,6 +615,7 @@
                             @elseif($request->is_half_day)
                                 <span class="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md ml-2 dark:bg-slate-700 dark:text-slate-300">Half Day ({{ ucfirst($request->half_day_period) }})</span>
                             @endif
+                            <div class="text-[11px] text-slate-400 mt-1 flex items-center gap-1"><i data-lucide="clock" class="h-3 w-3"></i> Applied {{ $request->created_at->format('M d, Y · g:i A') }}</div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-slate-700 tabular-nums dark:text-slate-300">
                             {{ $request->duration_label }}
