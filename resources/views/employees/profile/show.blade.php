@@ -8,6 +8,10 @@
     $auth = auth()->user();
     $isSelf = $auth->id === $employee->id;
     $editing = request('edit') == 1 && $canEdit;
+    // "Records viewer": a non-admin granted the employee_records feature — may
+    // see others' Time-off & Time-tracking, but never the Information or Files
+    // tabs (personal details / documents stay confidential).
+    $recordsViewer = !$isSelf && !$auth->isAdmin() && $auth->canFeature('employee_records');
     
     // Lucide Icons Map
     $lucideIcons = [
@@ -24,7 +28,14 @@
 
 <style>[x-cloak]{display:none!important}</style>
 
-@php $initialSection = in_array(request('section'), ['information', 'files', 'timeoff', 'timetracking'], true) ? request('section') : 'information'; @endphp
+@php
+    if ($recordsViewer) {
+        // No Information/Files for records viewers — default to Time off.
+        $initialSection = in_array(request('section'), ['timeoff', 'timetracking'], true) ? request('section') : 'timeoff';
+    } else {
+        $initialSection = in_array(request('section'), ['information', 'files', 'timeoff', 'timetracking'], true) ? request('section') : 'information';
+    }
+@endphp
 <div class="space-y-8" id="profile-page-root" x-data="{ tab: 'personal', section: '{{ $initialSection }}', showSensitive: false, fileTab: 'upload', uploadOpen: false, fileSearch: '', payReviewOpen: false }">
     <!-- Back Button -->
     <div>
@@ -176,11 +187,15 @@
         <!-- Top-level tabs -->
         <div class="flex items-center border-t border-slate-100 px-6 dark:border-slate-700/60">
             <div class="flex overflow-x-auto select-none">
+                @unless($recordsViewer)
                 <button @click="section = 'information'" :class="section === 'information' ? 'border-brand-500 text-brand-600 dark:text-brand-400' : 'border-transparent text-slate-400 hover:text-slate-650'"
                     class="whitespace-nowrap border-b-2 py-4 px-4 text-sm font-bold transition">Information</button>
+                @endunless
                 @if($isSelf || $auth->isAdmin() || $auth->hasRole('hr_admin'))
                     <button @click="section = 'files'" :class="section === 'files' ? 'border-brand-500 text-brand-600 dark:text-brand-400' : 'border-transparent text-slate-400 hover:text-slate-650'"
                         class="whitespace-nowrap border-b-2 py-4 px-4 text-sm font-bold transition">Files</button>
+                @endif
+                @if($isSelf || $auth->isAdmin() || $auth->hasRole('hr_admin') || $recordsViewer)
                     <button @click="section = 'timeoff'" :class="section === 'timeoff' ? 'border-brand-500 text-brand-600 dark:text-brand-400' : 'border-transparent text-slate-400 hover:text-slate-650'"
                         class="whitespace-nowrap border-b-2 py-4 px-4 text-sm font-bold transition">Time off</button>
                     <button @click="section = 'timetracking'" :class="section === 'timetracking' ? 'border-brand-500 text-brand-600 dark:text-brand-400' : 'border-transparent text-slate-400 hover:text-slate-650'"
@@ -233,9 +248,9 @@
     @endif
 
     {{-- ======================================================= --}}
-    {{-- SELF / ADMIN ONLY TABS --}}
+    {{-- SELF / ADMIN ONLY TABS (Time-off & Time-tracking also open to records viewers) --}}
     {{-- ======================================================= --}}
-    @if($isSelf || $auth->isAdmin() || $auth->hasRole('hr_admin'))
+    @if($isSelf || $auth->isAdmin() || $auth->hasRole('hr_admin') || $recordsViewer)
 
     {{-- TIME OFF TAB --}}
     <div x-show="section === 'timeoff'" x-cloak class="space-y-6">
@@ -783,6 +798,7 @@
         </div>
     </div>
 
+    @unless($recordsViewer)
     {{-- FILES TAB — E-signature + Upload sub-tabs --}}
     <script>window.__empDocNames = @json($employee->documents->pluck('name')->map(fn ($n) => strtolower($n))->values());</script>
     <div x-show="section === 'files'" x-cloak class="space-y-4">
@@ -937,6 +953,7 @@
             </div>
         </div>
     </div>
+    @endunless {{-- end Files (hidden from records viewers) --}}
 
     @endif {{-- end self/admin-only tabs --}}
 

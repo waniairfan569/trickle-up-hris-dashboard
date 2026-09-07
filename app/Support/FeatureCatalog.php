@@ -25,6 +25,9 @@ class FeatureCatalog
      * `routes` — route-name prefixes the `feature:` middleware protects
      */
     private const GROUPS = [
+        'People' => [
+            'employee_records' => ['label' => 'Employee profiles — time-off & attendance (no personal info/files)', 'plan' => null, 'routes' => ['employees.index']],
+        ],
         'Forms & documents' => [
             'forms_admin'        => ['label' => 'Build & assign forms',                'plan' => 'forms',              'routes' => ['company-forms.']],
             'form_responses'     => ['label' => 'Review form responses (inbox)',       'plan' => 'forms',              'routes' => ['company-forms.inbox', 'company-forms.responses', 'company-forms.submission']],
@@ -51,6 +54,7 @@ class FeatureCatalog
 
     /** The primary landing route name for each feature (for nav links). */
     private const HOMES = [
+        'employee_records'    => 'employees.index',
         'forms_admin'         => 'company-forms.index',
         'form_responses'      => 'company-forms.inbox',
         'company_documents'   => 'company-documents.admin',
