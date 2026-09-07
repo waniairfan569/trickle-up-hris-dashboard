@@ -499,8 +499,9 @@
     {{-- ATTENDANCE TAB --}}
     <div x-show="section === 'timetracking'" x-cloak class="space-y-6">
 
-        {{-- Add/edit attendance + Fix status also open to records viewers; Hide-from-sheets stays admin-only. --}}
+        {{-- Fix status is open to records viewers; Add/edit attendance and Hide-from-sheets stay admin-only. --}}
         @if($auth->isAdmin() || $recordsViewer)
+            @if($auth->isAdmin())
             <div class="bg-white border border-brand-200 rounded-2xl shadow-sm dark:bg-slate-800 dark:border-brand-500/30 overflow-hidden">
                 <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700">
                     <h2 class="text-sm font-bold text-slate-800 dark:text-white">Add / edit attendance</h2>
@@ -523,6 +524,7 @@
                     <button type="submit" class="btn-brand"><i data-lucide="check" class="h-4 w-4"></i> Save</button>
                 </form>
             </div>
+            @endif {{-- add/edit attendance: admin only --}}
 
             {{-- Fix late & overtime status from their shift --}}
             <form method="POST" action="{{ route('attendance.employee-recalc', $employee->id) }}"
