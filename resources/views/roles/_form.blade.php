@@ -64,6 +64,41 @@
         </div>
     </div>
 
+    {{-- Feature access (grantable modules) --}}
+    @isset($featureGroups)
+    <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm dark:bg-slate-800 dark:border-slate-700">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-700/60">
+            <div>
+                <h2 class="text-sm font-bold text-slate-800 dark:text-white">Feature access</h2>
+                <p class="text-[11px] text-slate-400 mt-0.5">Modules anyone with this role can open. Confidential profile info &amp; pay are never included.</p>
+            </div>
+            @unless($isSuper)
+                <div class="flex items-center gap-3 text-xs font-semibold">
+                    <button type="button" @click="document.querySelectorAll('.feat-cb:not(:disabled)').forEach(c => c.checked = true)" class="text-brand-600 hover:text-brand-700">Select all</button>
+                    <span class="text-slate-300">·</span>
+                    <button type="button" @click="document.querySelectorAll('.feat-cb:not(:disabled)').forEach(c => c.checked = false)" class="text-slate-500 hover:text-slate-700">Clear</button>
+                </div>
+            @endunless
+        </div>
+        <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+            @foreach($featureGroups as $group => $features)
+                <div>
+                    <h3 class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2 flex items-center gap-1.5"><i data-lucide="layers" class="h-3.5 w-3.5"></i> {{ $group }}</h3>
+                    <div class="space-y-1.5">
+                        @foreach($features as $key => $label)
+                            <label class="flex items-center gap-2.5 rounded-lg px-2 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-700/40 cursor-pointer">
+                                <input type="checkbox" name="features[]" value="{{ $key }}" class="feat-cb rounded border-slate-300 text-brand-600"
+                                       @checked(in_array($key, $roleFeatures)) @if($isSuper) disabled checked @endif>
+                                <span class="text-sm text-slate-700 dark:text-slate-200">{{ $label }}</span>
+                            </label>
+                        @endforeach
+                    </div>
+                </div>
+            @endforeach
+        </div>
+    </div>
+    @endisset
+
     <div class="flex items-center justify-end gap-2">
         <a href="{{ route('roles.index') }}" class="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-200">Cancel</a>
         <button type="submit" class="rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-bold text-slate-900 hover:bg-brand-700"><i data-lucide="save" class="h-4 w-4 inline"></i> Save</button>

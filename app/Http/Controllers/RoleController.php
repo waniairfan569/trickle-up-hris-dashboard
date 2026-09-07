@@ -36,7 +36,10 @@ class RoleController extends Controller
 
         $modules = Permission::orderBy('module')->orderBy('name')->get()->groupBy('module');
 
-        return view('roles.create', ['role' => new Role, 'modules' => $modules, 'granted' => []]);
+        return view('roles.create', [
+            'role' => new Role, 'modules' => $modules, 'granted' => [],
+            'featureGroups' => \App\Support\FeatureCatalog::grouped(), 'roleFeatures' => [],
+        ]);
     }
 
     public function store(Request $request)
@@ -48,6 +51,7 @@ class RoleController extends Controller
             'description' => 'nullable|string|max:255',
             'permissions' => 'nullable|array',
             'permissions.*' => 'integer|exists:permissions,id',
+            'features' => 'nullable|array',
         ]);
 
         $role = Role::create([
@@ -58,6 +62,7 @@ class RoleController extends Controller
         ]);
 
         $role->permissions()->sync($data['permissions'] ?? []);
+        $role->syncFeatures((array) $request->input('features', []));
 
         return redirect()->route('roles.index')->with('success', "Role “{$role->name}” created.");
     }
@@ -71,7 +76,10 @@ class RoleController extends Controller
             ? Permission::pluck('id')->all()
             : $role->permissions->pluck('id')->all();
 
-        return view('roles.edit', compact('role', 'modules', 'granted'));
+        return view('roles.edit', compact('role', 'modules', 'granted') + [
+            'featureGroups' => \App\Support\FeatureCatalog::grouped(),
+            'roleFeatures' => $role->slug === Role::SUPER_ADMIN ? \App\Support\FeatureCatalog::keys() : $role->featureKeys(),
+        ]);
     }
 
     public function update(Request $request, Role $role)
@@ -84,6 +92,7 @@ class RoleController extends Controller
             'description' => 'nullable|string|max:255',
             'permissions' => 'nullable|array',
             'permissions.*' => 'integer|exists:permissions,id',
+            'features' => 'nullable|array',
         ]);
 
         if (!$role->is_system && !empty($data['name'])) {
@@ -99,6 +108,7 @@ class RoleController extends Controller
         // the editor lock it out of anything.
         if ($role->slug !== Role::SUPER_ADMIN) {
             $role->permissions()->sync($data['permissions'] ?? []);
+            $role->syncFeatures((array) $request->input('features', []));
         }
 
         return redirect()->route('roles.index')->with('success', "Permissions for “{$role->name}” updated.");
