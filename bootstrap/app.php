@@ -18,6 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'check_permission' => \App\Http\Middleware\CheckPermission::class,
             'role'             => \App\Http\Middleware\CheckRole::class,
             'permission'       => \App\Http\Middleware\CheckPermission::class,
+            'feature'          => \App\Http\Middleware\CheckFeature::class,
             'employee.access'  => \App\Http\Middleware\EnsureEmployeeAccess::class,
             'force.password.change' => \App\Http\Middleware\ForcePasswordChange::class,
             'user.timezone'    => \App\Http\Middleware\SetUserTimezone::class,

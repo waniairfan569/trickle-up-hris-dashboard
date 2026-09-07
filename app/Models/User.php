@@ -321,6 +321,58 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasRole([Role::SUPER_ADMIN, Role::HR_ADMIN]);
     }
 
+    /** Per-request cache of resolved feature keys (roles + direct grants). */
+    protected ?array $featureKeyCache = null;
+
+    /** Features granted directly to this employee. */
+    public function featureGrants()
+    {
+        return $this->hasMany(\App\Models\FeatureGrant::class, 'user_id');
+    }
+
+    /**
+     * Every feature key this user has been granted — via a custom role
+     * (role_feature) or directly (feature_user). Admins are not listed here;
+     * their all-access is handled by canFeature().
+     */
+    public function grantedFeatureKeys(): array
+    {
+        if ($this->featureKeyCache !== null) {
+            return $this->featureKeyCache;
+        }
+
+        $direct = \Illuminate\Support\Facades\DB::table('feature_user')
+            ->where('user_id', $this->id)->pluck('feature_key');
+
+        $roleIds = $this->roles()->pluck('roles.id');
+        $viaRoles = $roleIds->isEmpty()
+            ? collect()
+            : \Illuminate\Support\Facades\DB::table('role_feature')
+                ->whereIn('role_id', $roleIds)->pluck('feature_key');
+
+        return $this->featureKeyCache = $direct->merge($viaRoles)
+            ->unique()->values()->all();
+    }
+
+    /**
+     * Whether this user may access a grantable feature. Admins (super_admin /
+     * hr_admin) always pass; everyone else needs an explicit grant. Note plan
+     * gating (plan_allows / EnforcePlanFeatures) still applies on top of this.
+     */
+    public function canFeature(string $key): bool
+    {
+        if ($this->isAdmin()) {
+            return true;
+        }
+        return in_array($key, $this->grantedFeatureKeys(), true);
+    }
+
+    /** Forget the cached feature keys (after granting/revoking). */
+    public function forgetFeatureCache(): void
+    {
+        $this->featureKeyCache = null;
+    }
+
     /**
      * Whether this user clocks in/out from the dashboard (remote) rather than
      * only on the biometric device. Defaults to biometric when unset.

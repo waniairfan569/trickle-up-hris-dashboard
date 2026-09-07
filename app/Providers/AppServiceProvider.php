@@ -138,6 +138,16 @@ class AppServiceProvider extends ServiceProvider
             return "<?php endif; ?>";
         });
 
+        // @feature('key') — show when the user may access a grantable feature
+        // (admins always; others via a custom role or a direct grant).
+        \Illuminate\Support\Facades\Blade::directive('feature', function ($key) {
+            return "<?php if(auth()->check() && auth()->user()->canFeature($key)): ?>";
+        });
+
+        \Illuminate\Support\Facades\Blade::directive('endfeature', function () {
+            return "<?php endif; ?>";
+        });
+
         // @usertime($timestamp) — render a canonical-stored timestamp in the
         // authenticated user's effective timezone, e.g. "09:28 AM".
         \Illuminate\Support\Facades\Blade::directive('usertime', function ($expression) {

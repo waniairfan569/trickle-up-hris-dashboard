@@ -40,4 +40,35 @@ class Role extends Model
     {
         return $this->belongsToMany(User::class);
     }
+
+    /** Grantable feature keys attached to this role (role_feature table). */
+    public function featureKeys(): array
+    {
+        return \Illuminate\Support\Facades\DB::table('role_feature')
+            ->where('role_id', $this->id)->pluck('feature_key')->all();
+    }
+
+    /** Replace this role's feature set with the given (sanitized) keys. */
+    public function syncFeatures(array $keys): void
+    {
+        $keys = \App\Support\FeatureCatalog::sanitize($keys);
+        $now = now();
+        $rows = array_map(fn ($k) => [
+            'role_id' => $this->id, 'feature_key' => $k,
+            'created_at' => $now, 'updated_at' => $now,
+        ], $keys);
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($rows) {
+            \Illuminate\Support\Facades\DB::table('role_feature')->where('role_id', $this->id)->delete();
+            if ($rows) {
+                \Illuminate\Support\Facades\DB::table('role_feature')->insert($rows);
+            }
+        });
+    }
+
+    /** True for the built-in roles that can't be deleted/renamed. */
+    public function isSystem(): bool
+    {
+        return (bool) $this->is_system;
+    }
 }
