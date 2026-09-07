@@ -80,7 +80,7 @@ class CompanyForm extends Model
         if (!$user) {
             return false;
         }
-        if ($user->isAdmin()) {
+        if ($user->isAdmin() || $user->canFeature('form_responses')) {
             return true;
         }
         return $this->reviewers()->where('users.id', $user->id)->exists();

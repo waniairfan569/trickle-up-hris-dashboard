@@ -25,43 +25,51 @@ class FeatureCatalog
      * `routes` — route-name prefixes the `feature:` middleware protects
      */
     private const GROUPS = [
-        'People & teams' => [
-            'employee_directory' => ['label' => 'Employee directory (view everyone)', 'plan' => 'employee_directory', 'routes' => ['employees.index']],
-            'org_chart'          => ['label' => 'Org chart',                           'plan' => 'org_chart',          'routes' => ['org-chart']],
-            'team_management'    => ['label' => 'Team management',                     'plan' => 'team_management',    'routes' => ['team.']],
-            'onboarding'         => ['label' => 'Onboarding',                          'plan' => 'onboarding',         'routes' => ['onboarding.']],
-            'probation'          => ['label' => 'Probation reviews',                   'plan' => 'probation',          'routes' => ['probation.']],
-            'performance'        => ['label' => 'Performance reviews',                 'plan' => 'performance',        'routes' => ['performance.']],
-        ],
-        'Time & attendance' => [
-            'time_off_admin'     => ['label' => 'Time-off approvals & requests',       'plan' => 'leave',              'routes' => []],
-            'time_off_policies'  => ['label' => 'Time-off policies',                   'plan' => 'leave',              'routes' => ['time-off-policies.']],
-            'attendance_admin'   => ['label' => 'Attendance management',               'plan' => 'attendance',         'routes' => ['attendance-manager.']],
-            'shifts'             => ['label' => 'Shift management',                     'plan' => 'shifts',             'routes' => ['shifts.']],
-            'calendar_admin'     => ['label' => 'Calendar & events management',        'plan' => 'calendar_events',    'routes' => []],
-        ],
         'Forms & documents' => [
             'forms_admin'        => ['label' => 'Build & assign forms',                'plan' => 'forms',              'routes' => ['company-forms.']],
             'form_responses'     => ['label' => 'Review form responses (inbox)',       'plan' => 'forms',              'routes' => ['company-forms.inbox', 'company-forms.responses', 'company-forms.submission']],
             'company_documents'  => ['label' => 'Company documents (e-signature)',     'plan' => 'esign',              'routes' => ['company-documents.']],
             'hr_documents'       => ['label' => 'HR documents',                        'plan' => 'hr_documents',       'routes' => ['hr-documents.']],
             'policies_admin'     => ['label' => 'Company policies',                    'plan' => 'policies',           'routes' => ['company-policies.']],
-            'document_library'   => ['label' => 'Document library management',         'plan' => 'documents',          'routes' => []],
         ],
-        'Communication' => [
-            'announcements_admin' => ['label' => 'Manage announcements',               'plan' => 'announcements',      'routes' => []],
-            'feedback_admin'      => ['label' => 'Feedback & suggestions (admin)',     'plan' => 'feedback',           'routes' => []],
-        ],
-        'Assets & tools' => [
-            'equipment_admin'    => ['label' => 'Equipment management',                'plan' => 'equipment',          'routes' => ['equipment.']],
-            'code_requests'      => ['label' => 'Code requests (send codes)',          'plan' => 'code_requests',      'routes' => ['code-requests.']],
-            'sheets'             => ['label' => 'Sheets',                              'plan' => 'sheets',             'routes' => ['sheets.']],
+        'Time & attendance' => [
+            'shifts'             => ['label' => 'Shift management',                     'plan' => 'shifts',             'routes' => ['shifts.']],
+            'time_off_policies'  => ['label' => 'Time-off policies',                   'plan' => 'leave',              'routes' => ['time-off-policies.']],
         ],
         'Reports' => [
             'reports'            => ['label' => 'Reports',                             'plan' => 'reports',            'routes' => ['reports.', 'attendance-reports.']],
             'report_generator'   => ['label' => 'Report generator',                   'plan' => 'report_generator',   'routes' => ['reports.generate', 'reports.history']],
         ],
+        'Assets & tools' => [
+            'equipment_admin'    => ['label' => 'Equipment management',                'plan' => 'equipment',          'routes' => ['equipment.']],
+            'sheets'             => ['label' => 'Sheets',                              'plan' => 'sheets',             'routes' => ['sheets.']],
+        ],
+        'Communication' => [
+            'announcements_admin' => ['label' => 'Manage announcements',               'plan' => 'announcements',      'routes' => ['announcements.']],
+        ],
     ];
+
+    /** The primary landing route name for each feature (for nav links). */
+    private const HOMES = [
+        'forms_admin'         => 'company-forms.index',
+        'form_responses'      => 'company-forms.inbox',
+        'company_documents'   => 'company-documents.admin',
+        'hr_documents'        => 'hr-documents.index',
+        'policies_admin'      => 'company-policies.index',
+        'shifts'              => 'shifts.index',
+        'time_off_policies'   => 'time-off-policies.index',
+        'reports'             => 'reports.index',
+        'report_generator'    => 'reports.generate',
+        'equipment_admin'     => 'equipment.admin',
+        'sheets'              => 'sheets.index',
+        'announcements_admin' => 'announcements.index',
+    ];
+
+    /** Primary route name to link to for a feature, or null. */
+    public static function homeRoute(string $key): ?string
+    {
+        return self::HOMES[$key] ?? null;
+    }
 
     /** All feature metadata, flattened: key => [label, group, plan, routes]. */
     public static function all(): array

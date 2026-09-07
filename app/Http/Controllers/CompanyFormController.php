@@ -385,11 +385,14 @@ class CompanyFormController extends Controller
     {
         $user = $request->user();
 
-        $formIds = $user->isAdmin()
+        // Admins and anyone granted the "form_responses" feature see every form;
+        // other reviewers see only the forms they're assigned to.
+        $seesAll = $user->isAdmin() || $user->canFeature('form_responses');
+        $formIds = $seesAll
             ? CompanyForm::pluck('id')
             : CompanyForm::whereHas('reviewers', fn ($q) => $q->where('users.id', $user->id))->pluck('id');
 
-        abort_if(!$user->isAdmin() && $formIds->isEmpty(), 403);
+        abort_if(!$seesAll && $formIds->isEmpty(), 403);
 
         $status = $request->get('status', 'awaiting');   // awaiting | approved | rejected | all
         $search = trim((string) $request->get('q', ''));

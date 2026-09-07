@@ -35,6 +35,15 @@ class CheckRole
         $roleArray = $roles;
 
         if (!$user->hasRole($roleArray)) {
+            // Granular feature access: if this route belongs to a grantable
+            // feature the user holds (via a custom role or a direct grant),
+            // let them in even without the role. Routes not mapped to any
+            // catalog feature stay role-only (e.g. deactivate, role changes).
+            $feature = \App\Support\FeatureCatalog::featureForRoute(optional($request->route())->getName());
+            if ($feature && $user->canFeature($feature)) {
+                return $next($request);
+            }
+
             if ($request->expectsJson() || $request->is('api/*')) {
                 return response()->json(['message' => 'Forbidden: You do not have the required role.'], 403);
             }
