@@ -181,7 +181,8 @@ class TimeOffController extends Controller
     public function onBehalf(Request $request)
     {
         $auth = $request->user();
-        abort_unless($auth && $auth->isAdmin(), 403);
+        // Admins, or anyone granted the employee_records feature, may file leave on behalf.
+        abort_unless($auth && ($auth->isAdmin() || $auth->canFeature('employee_records')), 403);
 
         $validated = $request->validate([
             'employee_id' => 'required|exists:users,id',

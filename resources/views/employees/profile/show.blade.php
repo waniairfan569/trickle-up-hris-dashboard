@@ -29,12 +29,9 @@
 <style>[x-cloak]{display:none!important}</style>
 
 @php
-    if ($recordsViewer) {
-        // No Information/Files for records viewers — default to Time off.
-        $initialSection = in_array(request('section'), ['timeoff', 'timetracking'], true) ? request('section') : 'timeoff';
-    } else {
-        $initialSection = in_array(request('section'), ['information', 'files', 'timeoff', 'timetracking'], true) ? request('section') : 'information';
-    }
+    // Records viewers get Information (Personal + Job only) + Time off + Time tracking, but not Files.
+    $allowedSections = $recordsViewer ? ['information', 'timeoff', 'timetracking'] : ['information', 'files', 'timeoff', 'timetracking'];
+    $initialSection = in_array(request('section'), $allowedSections, true) ? request('section') : 'information';
 @endphp
 <div class="space-y-8" id="profile-page-root" x-data="{ tab: 'personal', section: '{{ $initialSection }}', showSensitive: false, fileTab: 'upload', uploadOpen: false, fileSearch: '', payReviewOpen: false }">
     <!-- Back Button -->
@@ -187,10 +184,8 @@
         <!-- Top-level tabs -->
         <div class="flex items-center border-t border-slate-100 px-6 dark:border-slate-700/60">
             <div class="flex overflow-x-auto select-none">
-                @unless($recordsViewer)
                 <button @click="section = 'information'" :class="section === 'information' ? 'border-brand-500 text-brand-600 dark:text-brand-400' : 'border-transparent text-slate-400 hover:text-slate-650'"
                     class="whitespace-nowrap border-b-2 py-4 px-4 text-sm font-bold transition">Information</button>
-                @endunless
                 @if($isSelf || $auth->isAdmin() || $auth->hasRole('hr_admin'))
                     <button @click="section = 'files'" :class="section === 'files' ? 'border-brand-500 text-brand-600 dark:text-brand-400' : 'border-transparent text-slate-400 hover:text-slate-650'"
                         class="whitespace-nowrap border-b-2 py-4 px-4 text-sm font-bold transition">Files</button>
@@ -255,7 +250,7 @@
     {{-- TIME OFF TAB --}}
     <div x-show="section === 'timeoff'" x-cloak class="space-y-6">
 
-        @if($auth->isAdmin() && !$isSelf)
+        @if(($auth->isAdmin() || $recordsViewer) && !$isSelf)
             @php
                 $emPolicyIds = $employee->timeOffPolicies()->pluck('time_off_policies.id')
                     ->merge(\App\Models\TimeOffBalance::where('user_id', $employee->id)->pluck('policy_id'))->unique();
@@ -504,7 +499,8 @@
     {{-- ATTENDANCE TAB --}}
     <div x-show="section === 'timetracking'" x-cloak class="space-y-6">
 
-        @if($auth->isAdmin())
+        {{-- Add/edit attendance + Fix status also open to records viewers; Hide-from-sheets stays admin-only. --}}
+        @if($auth->isAdmin() || $recordsViewer)
             <div class="bg-white border border-brand-200 rounded-2xl shadow-sm dark:bg-slate-800 dark:border-brand-500/30 overflow-hidden">
                 <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700">
                     <h2 class="text-sm font-bold text-slate-800 dark:text-white">Add / edit attendance</h2>
@@ -547,7 +543,8 @@
                 </div>
             </form>
 
-            {{-- Hide from attendance sheets & reports --}}
+            {{-- Hide from attendance sheets & reports (admin-only, even for records viewers) --}}
+            @if($auth->isAdmin())
             @php $isHidden = (bool) ($employee->exclude_from_attendance ?? false); @endphp
             <form method="POST" action="{{ route('employees.update-attendance-visibility', $employee->id) }}"
                   class="bg-white border {{ $isHidden ? 'border-amber-300 dark:border-amber-500/40' : 'border-slate-200/80 dark:border-slate-700' }} rounded-2xl shadow-sm dark:bg-slate-800 overflow-hidden">
@@ -575,6 +572,7 @@
                     </button>
                 </div>
             </form>
+            @endif {{-- end hide-from-attendance (admin only) --}}
         @endif
 
         <div class="bg-white border border-slate-200/80 rounded-2xl shadow-sm dark:bg-slate-800 dark:border-slate-700 overflow-hidden">

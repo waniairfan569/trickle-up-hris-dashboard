@@ -26,7 +26,7 @@ class FeatureCatalog
      */
     private const GROUPS = [
         'People' => [
-            'employee_records' => ['label' => 'Employee profiles — time-off & attendance (no personal info/files)', 'plan' => null, 'routes' => ['employees.index']],
+            'employee_records' => ['label' => 'Employee profiles — time-off & attendance (no personal info/files)', 'plan' => null, 'routes' => ['employees.index', 'attendance.employee-entry', 'attendance.employee-recalc']],
         ],
         'Forms & documents' => [
             'forms_admin'        => ['label' => 'Build & assign forms',                'plan' => 'forms',              'routes' => ['company-forms.']],

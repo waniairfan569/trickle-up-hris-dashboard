@@ -175,7 +175,7 @@ class AttendanceManagerController extends Controller
      */
     public function recalcEmployee(Request $request, User $employee)
     {
-        abort_unless($request->user() && $request->user()->isAdmin(), 403);
+        abort_unless($request->user() && ($request->user()->isAdmin() || $request->user()->canFeature('employee_records')), 403);
 
         $count = 0;
         $changed = 0;
@@ -520,7 +520,7 @@ class AttendanceManagerController extends Controller
      */
     public function profileAttendance(Request $request, User $employee)
     {
-        abort_unless($request->user() && $request->user()->isAdmin(), 403);
+        abort_unless($request->user() && ($request->user()->isAdmin() || $request->user()->canFeature('employee_records')), 403);
 
         $validated = $request->validate([
             'date' => 'required|date',
