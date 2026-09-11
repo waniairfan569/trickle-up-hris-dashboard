@@ -28,7 +28,8 @@ class FeatureCatalog
      */
     private const GROUPS = [
         'People' => [
-            'employee_records' => ['label' => 'Employee profiles — time-off & attendance (no personal info/files)', 'nav' => 'Employee profiles', 'plan' => null, 'routes' => ['employees.index', 'attendance.employee-recalc']],
+            // hr-documents.pdf: read-only view of lateness reviews / return-to-work forms from the profile's Time-off tab.
+            'employee_records' => ['label' => 'Employee profiles — time-off, attendance & HR documents, view only (no personal info/files)', 'nav' => 'Employee profiles', 'plan' => null, 'routes' => ['employees.index', 'attendance.employee-recalc', 'hr-documents.pdf']],
         ],
         'Forms & documents' => [
             'forms_admin'        => ['label' => 'Build & assign forms',                'plan' => 'forms',              'routes' => ['company-forms.']],
@@ -134,7 +135,7 @@ class FeatureCatalog
         return array_values(array_intersect(array_map('strval', $keys), self::keys()));
     }
 
-    /** The feature key(s) a given route name falls under (longest prefix wins). */
+    /** The single feature a route name best falls under (longest prefix wins). */
     public static function featureForRoute(?string $routeName): ?string
     {
         if (!$routeName) {
@@ -151,5 +152,28 @@ class FeatureCatalog
             }
         }
         return $best;
+    }
+
+    /**
+     * Every feature whose routes cover this route name. A route can belong to
+     * more than one feature (hr-documents.pdf is part of the full HR-documents
+     * feature AND the view-only employee-records grant), so access checks
+     * should pass if the user holds ANY of them.
+     */
+    public static function featuresForRoute(?string $routeName): array
+    {
+        if (!$routeName) {
+            return [];
+        }
+        $keys = [];
+        foreach (self::all() as $key => $meta) {
+            foreach (($meta['routes'] ?? []) as $prefix) {
+                if (str_starts_with($routeName, $prefix)) {
+                    $keys[] = $key;
+                    break;
+                }
+            }
+        }
+        return $keys;
     }
 }

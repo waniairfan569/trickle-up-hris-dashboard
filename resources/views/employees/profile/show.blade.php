@@ -512,8 +512,9 @@
         </div>
 
         {{-- HR documents (lateness reviews, return-to-work, …) sent to this employee for signature.
-             Confidential: only HR / super admins and the employee themself see this. --}}
-        @if($auth->isAdmin() || $isSelf)
+             Visible to HR / super admins, the employee themself, and records viewers (the
+             "Employee profiles" grant) — the latter get a read-only PDF, never the edit page. --}}
+        @if($auth->isAdmin() || $isSelf || $recordsViewer)
             @php
                 $hrDocs = \App\Models\HrDocument::where('user_id', $employee->id)
                     ->whereNull('archived_at')
@@ -540,7 +541,9 @@
                             $mySigner = $isSelf ? $doc->signers->firstWhere('user_id', $auth->id) : null;
                             $link = $auth->isAdmin()
                                 ? route('hr-documents.show', $doc)
-                                : ($mySigner ? ($mySigner->signed_at ? route('hr-documents.my-pdf', $doc) : route('hr-documents.sign', $doc)) : null);
+                                : ($recordsViewer
+                                    ? route('hr-documents.pdf', [$doc, 'preview' => 1])   // read-only, opens inline
+                                    : ($mySigner ? ($mySigner->signed_at ? route('hr-documents.my-pdf', $doc) : route('hr-documents.sign', $doc)) : null));
                             $dsc = match ($doc->status) {
                                 'completed' => 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400',
                                 'sent' => 'bg-sky-50 text-sky-700 dark:bg-sky-500/10 dark:text-sky-400',
@@ -549,7 +552,7 @@
                             $dsl = match ($doc->status) { 'completed' => 'Completed', 'sent' => ($mySigner && !$mySigner->signed_at ? 'Needs your signature' : 'Awaiting signature'), default => 'Draft' };
                         @endphp
                         @if(!$auth->isAdmin() && $doc->status === 'draft')
-                            @continue {{-- employees only see documents that were actually sent to them --}}
+                            @continue {{-- employees and records viewers only see documents that were actually sent --}}
                         @endif
                         <div class="px-6 py-4 flex items-center justify-between gap-4">
                             <div class="min-w-0">
@@ -571,7 +574,7 @@
                             <div class="flex items-center gap-2 shrink-0">
                                 <span class="inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-bold {{ $dsc }}">{{ $dsl }}</span>
                                 @if($link)
-                                    <a href="{{ $link }}" class="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1 text-[11px] font-semibold text-slate-600 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700">
+                                    <a href="{{ $link }}" @if($recordsViewer) target="_blank" @endif class="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1 text-[11px] font-semibold text-slate-600 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700">
                                         <i data-lucide="{{ $mySigner && !$mySigner->signed_at ? 'pen-line' : 'eye' }}" class="h-3 w-3"></i> {{ $mySigner && !$mySigner->signed_at ? 'Sign' : 'View' }}
                                     </a>
                                 @endif

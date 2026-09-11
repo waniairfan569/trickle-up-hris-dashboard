@@ -39,9 +39,11 @@ class CheckRole
             // feature the user holds (via a custom role or a direct grant),
             // let them in even without the role. Routes not mapped to any
             // catalog feature stay role-only (e.g. deactivate, role changes).
-            $feature = \App\Support\FeatureCatalog::featureForRoute(optional($request->route())->getName());
-            if ($feature && $user->canFeature($feature)) {
-                return $next($request);
+            // A route may sit under several features — any one of them will do.
+            foreach (\App\Support\FeatureCatalog::featuresForRoute(optional($request->route())->getName()) as $feature) {
+                if ($user->canFeature($feature)) {
+                    return $next($request);
+                }
             }
 
             if ($request->expectsJson() || $request->is('api/*')) {
