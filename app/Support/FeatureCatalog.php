@@ -20,13 +20,15 @@ namespace App\Support;
 class FeatureCatalog
 {
     /**
-     * group label => [ feature key => [label, plan?, routes?] ]
+     * group label => [ feature key => [label, nav?, plan?, routes?] ]
+     * `label`  — full description shown on the grant screens (say what's included/excluded)
+     * `nav`    — short name for the sidebar link (defaults to `label`)
      * `plan`   — plan feature key that must also be enabled (null = always on)
      * `routes` — route-name prefixes the `feature:` middleware protects
      */
     private const GROUPS = [
         'People' => [
-            'employee_records' => ['label' => 'Employee profiles — time-off & attendance (no personal info/files)', 'plan' => null, 'routes' => ['employees.index', 'attendance.employee-recalc']],
+            'employee_records' => ['label' => 'Employee profiles — time-off & attendance (no personal info/files)', 'nav' => 'Employee profiles', 'plan' => null, 'routes' => ['employees.index', 'attendance.employee-recalc']],
         ],
         'Forms & documents' => [
             'forms_admin'        => ['label' => 'Build & assign forms',                'plan' => 'forms',              'routes' => ['company-forms.']],
@@ -112,6 +114,12 @@ class FeatureCatalog
     public static function label(string $key): string
     {
         return self::all()[$key]['label'] ?? ucfirst(str_replace('_', ' ', $key));
+    }
+
+    /** Short name for the sidebar link — falls back to the full label. */
+    public static function navLabel(string $key): string
+    {
+        return self::all()[$key]['nav'] ?? self::label($key);
     }
 
     /** The plan feature that must also be enabled, or null if always available. */

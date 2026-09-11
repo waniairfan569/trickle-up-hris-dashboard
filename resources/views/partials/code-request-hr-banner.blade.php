@@ -1,7 +1,7 @@
 @php
     $pendingCodeCount = \App\Models\CodeRequest::where('status', 'pending')->count();
-    // Only super admins / HR admins may hit the pending-json endpoint, so only they poll it live.
-    $canPollCodes = auth()->check() && (auth()->user()->hasRole('super_admin') || auth()->user()->hasRole('hr_admin'));
+    // The pending-json endpoint admits admins and delegated senders (users.can_send_codes) — same gate as the page.
+    $canPollCodes = auth()->check() && (auth()->user()->isAdmin() || auth()->user()->can_send_codes);
 @endphp
 <a x-data="codeRequestHrBanner({{ $pendingCodeCount }}, {{ $canPollCodes ? 'true' : 'false' }})" x-init="init()"
    x-show="count > 0" x-cloak x-transition

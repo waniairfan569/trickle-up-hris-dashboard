@@ -32,10 +32,12 @@ class CodeRequestController extends Controller
             'status' => 'pending',
         ]);
 
-        // Ping every HR / super admin (bell + email).
-        $admins = User::whereHas('roles', function ($q) {
-            $q->whereIn('slug', ['hr_admin', 'super_admin'])
-              ->orWhereIn('name', ['hr_admin', 'super_admin']);
+        // Ping every HR / super admin plus anyone delegated code-send access (bell + email).
+        $admins = User::where(function ($q) {
+            $q->whereHas('roles', function ($r) {
+                $r->whereIn('slug', ['hr_admin', 'super_admin'])
+                  ->orWhereIn('name', ['hr_admin', 'super_admin']);
+            })->orWhere('can_send_codes', true);
         })->where('account_status', '!=', 'deactivated')->get();
 
         foreach ($admins as $admin) {

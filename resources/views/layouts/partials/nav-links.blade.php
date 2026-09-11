@@ -140,12 +140,15 @@
                     $__home = \App\Support\FeatureCatalog::homeRoute($__fk);
                     $__plan = \App\Support\FeatureCatalog::planFeature($__fk);
                     if ($__home && \Illuminate\Support\Facades\Route::has($__home) && (!$__plan || plan_allows($__plan))) {
-                        $__grantLinks[$__home] = \App\Support\FeatureCatalog::label($__fk);
+                        $__grantLinks[$__home] = \App\Support\FeatureCatalog::navLabel($__fk);
                     }
                 }
             }
+            // Code-send delegation lives on users.can_send_codes (not the feature catalog) — surface it here too.
+            $__canSendCodes = auth()->check() && !auth()->user()->isAdmin() && auth()->user()->can_send_codes && plan_allows('code_requests');
+            $__pendingCodesGranted = $__canSendCodes ? \App\Models\CodeRequest::where('status', 'pending')->count() : 0;
         @endphp
-        @if(!empty($__grantLinks))
+        @if(!empty($__grantLinks) || $__canSendCodes)
             <div class="mt-4 pt-3 border-t border-slate-800">
                 <p class="px-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">Granted access</p>
                 @foreach($__grantLinks as $__route => $__label)
@@ -153,6 +156,12 @@
                         <i data-lucide="key-round" class="h-4 w-4 shrink-0"></i><span class="flex-1">{{ $__label }}</span>
                     </a>
                 @endforeach
+                @if($__canSendCodes)
+                    <a href="{{ route('code-requests.pending') }}" class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'code-requests.pending') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">
+                        <i data-lucide="key-round" class="h-4 w-4 shrink-0"></i><span class="flex-1">Code Requests</span>
+                        @if($__pendingCodesGranted > 0)<span class="inline-flex items-center justify-center rounded-full bg-rose-500 text-white text-[10px] font-bold h-5 min-w-5 px-1">{{ $__pendingCodesGranted }}</span>@endif
+                    </a>
+                @endif
             </div>
         @endif
 

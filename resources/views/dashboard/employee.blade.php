@@ -42,6 +42,11 @@
     <!-- Unread-announcement bar + auto-popup -->
     @include('partials.announcement-alert')
 
+    <!-- Employees waiting for a login code — only for people a super admin delegated code-sending to -->
+    @if(auth()->user()->can_send_codes && plan_allows('code_requests'))
+        @include('partials.code-request-hr-banner')
+    @endif
+
     <!-- Main Grid -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 
