@@ -47,6 +47,29 @@ class HrDocument extends Model
             ->values()->all();
     }
 
+    /**
+     * The meeting date recorded on the form, if its template has one — the
+     * built-in `date_of_meeting` field, or any date field labelled "meeting".
+     */
+    public function getMeetingDateAttribute(): ?\Illuminate\Support\Carbon
+    {
+        $field = collect($this->schema)
+            ->flatMap(fn ($s) => $s['fields'] ?? [])
+            ->first(fn ($f) => ($f['id'] ?? null) === 'date_of_meeting'
+                || (($f['type'] ?? null) === 'date' && str_contains(strtolower($f['label'] ?? ''), 'meeting')));
+
+        $value = $field ? trim((string) (($this->data ?? [])[$field['id']] ?? '')) : '';
+        if ($value === '') {
+            return null;
+        }
+
+        try {
+            return \Illuminate\Support\Carbon::parse($value);
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
     /** True once every assigned signer has signed. */
     public function getFullySignedAttribute(): bool
     {

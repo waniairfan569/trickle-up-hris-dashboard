@@ -24,6 +24,8 @@
                     ·
                     @if($document->status === 'completed')
                         <span class="text-emerald-600 font-semibold">Completed</span>
+                    @elseif($document->status === 'sent')
+                        <span class="text-sky-600 font-semibold">Awaiting signature</span>@if($document->sent_at) · sent {{ $document->sent_at->format('d M Y') }}@endif
                     @else
                         <span class="text-amber-600 font-semibold">Draft</span>
                     @endif

@@ -71,26 +71,36 @@
         <div class="flex items-center justify-between gap-4 flex-wrap mb-3">
             <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400">{{ $showArchived ? 'Archived documents' : 'Recent documents' }}</h2>
             <div class="flex items-center gap-3">
-                <form method="GET" action="{{ route('hr-documents.index') }}" class="flex items-center gap-2">
-                    @if($showArchived)<input type="hidden" name="archived" value="1">@endif
-                    <label class="text-xs font-semibold text-slate-500">Month</label>
-                    <input type="month" name="month" value="{{ $month }}" onchange="this.form.submit()" class="rounded-lg border border-slate-300 bg-white text-sm px-3 py-1.5 dark:bg-slate-900 dark:border-slate-600">
-                    @if($month)
-                        <a href="{{ route('hr-documents.index', $showArchived ? ['archived' => 1] : []) }}" class="text-xs font-semibold text-slate-400 hover:text-slate-600">Clear</a>
-                    @endif
-                </form>
                 <div class="inline-flex rounded-lg border border-slate-200 p-0.5 dark:border-slate-700">
-                    <a href="{{ route('hr-documents.index', $month ? ['month' => $month] : []) }}" class="rounded-md px-3 py-1 text-xs font-semibold transition {{ $showArchived ? 'text-slate-500 hover:text-slate-700' : 'bg-slate-900 text-white dark:bg-white dark:text-slate-900' }}">Active</a>
-                    <a href="{{ route('hr-documents.index', array_filter(['archived' => 1, 'month' => $month])) }}" class="rounded-md px-3 py-1 text-xs font-semibold transition {{ $showArchived ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900' : 'text-slate-500 hover:text-slate-700' }}">Archived @if($archivedCount) ({{ $archivedCount }}) @endif</a>
+                    <a href="{{ route('hr-documents.index', $filters) }}" class="rounded-md px-3 py-1 text-xs font-semibold transition {{ $showArchived ? 'text-slate-500 hover:text-slate-700' : 'bg-slate-900 text-white dark:bg-white dark:text-slate-900' }}">Active</a>
+                    <a href="{{ route('hr-documents.index', ['archived' => 1] + $filters) }}" class="rounded-md px-3 py-1 text-xs font-semibold transition {{ $showArchived ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900' : 'text-slate-500 hover:text-slate-700' }}">Archived @if($archivedCount) ({{ $archivedCount }}) @endif</a>
                 </div>
                 <a href="{{ route('hr-documents.deleted') }}" class="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-slate-700 dark:text-slate-400"><i data-lucide="trash-2" class="h-3.5 w-3.5"></i> Deleted</a>
             </div>
         </div>
+
+        {{-- Search by employee / document + sent-date range --}}
+        <form method="GET" action="{{ route('hr-documents.index') }}" class="flex flex-wrap items-center gap-2 mb-3">
+            @if($showArchived)<input type="hidden" name="archived" value="1">@endif
+            <div class="relative flex-1 min-w-[180px] max-w-xs">
+                <i data-lucide="search" class="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                <input type="text" name="q" value="{{ $search }}" placeholder="Search by employee or document…" class="w-full rounded-xl border border-slate-300 py-2 pl-9 pr-3 text-sm shadow-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+            </div>
+            <div class="flex items-center gap-1 text-xs">
+                <span class="text-slate-400 font-semibold">From</span>
+                <input type="date" name="date_from" value="{{ $dateFrom }}" onchange="this.form.submit()" class="rounded-xl border border-slate-300 px-2 py-1.5 text-xs dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                <span class="text-slate-400 font-semibold">To</span>
+                <input type="date" name="date_to" value="{{ $dateTo }}" onchange="this.form.submit()" class="rounded-xl border border-slate-300 px-2 py-1.5 text-xs dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+            </div>
+            <button type="submit" class="btn-dark btn-sm">Search</button>
+            @if($filters)<a href="{{ route('hr-documents.index', $showArchived ? ['archived' => 1] : []) }}" class="btn-outline btn-sm">Clear</a>@endif
+        </form>
+
         <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden dark:bg-slate-800 dark:border-slate-700">
             @if($documents->isEmpty())
                 <div class="p-8 text-center text-sm text-slate-500">
-                    @if($month)
-                        No {{ $showArchived ? 'archived ' : '' }}documents for {{ \Illuminate\Support\Carbon::createFromFormat('Y-m', $month)->format('F Y') }}.
+                    @if($filters)
+                        No {{ $showArchived ? 'archived ' : '' }}documents match{{ $search !== '' ? " “{$search}”" : '' }}{{ $dateFrom || $dateTo ? ' in that date range' : '' }}.
                     @else
                         {{ $showArchived ? 'No archived documents.' : 'No documents on file yet.' }}
                     @endif
@@ -102,9 +112,10 @@
                             <th class="px-5 py-3">Employee</th>
                             <th class="px-5 py-3">Document</th>
                             <th class="px-5 py-3">Period</th>
+                            <th class="px-5 py-3">Meeting</th>
                             <th class="px-5 py-3">Status</th>
-                            <th class="px-5 py-3">Created</th>
-                            <th class="px-5 py-3 text-right">Actions</th>
+                            <th class="px-5 py-3">Sent</th>
+                            <th class="px-5 py-3 text-right"><span class="sr-only">Actions</span></th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
@@ -113,33 +124,56 @@
                                 <td class="px-5 py-3 font-semibold text-slate-800 dark:text-slate-200">{{ optional($doc->employee)->full_name ?? '—' }}</td>
                                 <td class="px-5 py-3 text-slate-600 dark:text-slate-300">{{ $doc->template_name }}</td>
                                 <td class="px-5 py-3 text-slate-500">{{ optional($doc->period_start)->format('M Y') ?? '—' }}</td>
+                                <td class="px-5 py-3 text-slate-500">{{ optional($doc->meeting_date)->format('d M Y') ?? '—' }}</td>
+                                @php
+                                    // Legacy rows were marked sent before sent_at existed — fall back to the first signer row.
+                                    $sentAt = $doc->sent_at ?? ($doc->status !== 'draft' && $doc->first_signer_at ? \Illuminate\Support\Carbon::parse($doc->first_signer_at) : null);
+                                @endphp
                                 <td class="px-5 py-3">
                                     @if($doc->status === 'completed')
                                         <span class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400">Completed</span>
+                                    @elseif($doc->status === 'sent')
+                                        <span class="inline-flex items-center gap-1 rounded-full bg-sky-50 px-2.5 py-0.5 text-xs font-semibold text-sky-700 dark:bg-sky-500/10 dark:text-sky-400">Awaiting signature</span>
                                     @else
                                         <span class="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-700 dark:bg-amber-500/10 dark:text-amber-400">Draft</span>
                                     @endif
                                 </td>
-                                <td class="px-5 py-3 text-slate-500">{{ $doc->created_at->format('d M Y') }}</td>
-                                <td class="px-5 py-3">
-                                    <div class="flex items-center justify-end gap-1">
-                                        <a href="{{ route('hr-documents.show', $doc) }}" class="rounded-lg p-2 text-slate-400 hover:text-brand-600 hover:bg-brand-50 transition dark:hover:bg-brand-500/10" title="View"><i data-lucide="eye" class="h-4 w-4"></i></a>
-                                        <a href="{{ route('hr-documents.pdf', $doc) }}" class="rounded-lg p-2 text-slate-400 hover:text-brand-600 hover:bg-brand-50 transition dark:hover:bg-brand-500/10" title="Download PDF"><i data-lucide="download" class="h-4 w-4"></i></a>
-                                        @if($doc->archived_at)
-                                            <form method="POST" action="{{ route('hr-documents.unarchive', $doc) }}">
-                                                @csrf
-                                                <button class="rounded-lg p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition dark:hover:bg-emerald-500/10" title="Restore from archive"><i data-lucide="archive-restore" class="h-4 w-4"></i></button>
-                                            </form>
-                                        @else
-                                            <form method="POST" action="{{ route('hr-documents.archive', $doc) }}">
-                                                @csrf
-                                                <button class="rounded-lg p-2 text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition dark:hover:bg-amber-500/10" title="Archive"><i data-lucide="archive" class="h-4 w-4"></i></button>
-                                            </form>
-                                        @endif
-                                        <form method="POST" action="{{ route('hr-documents.destroy', $doc) }}" onsubmit="return confirm('Move this document to Deleted? You can restore it later.')">
-                                            @csrf @method('DELETE')
-                                            <button class="rounded-lg p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition dark:hover:bg-rose-500/10" title="Delete (recoverable)"><i data-lucide="trash-2" class="h-4 w-4"></i></button>
-                                        </form>
+                                <td class="px-5 py-3 text-slate-500">
+                                    @if($sentAt)
+                                        {{ $sentAt->format('d M Y') }}
+                                    @else
+                                        <span class="text-slate-400">Not sent</span>
+                                        <span class="block text-[11px] text-slate-400">Created {{ $doc->created_at->format('d M Y') }}</span>
+                                    @endif
+                                </td>
+                                <td class="px-5 py-3 text-right">
+                                    {{-- Actions live in a ⋮ menu (teleported to <body> so the table's overflow-hidden doesn't clip it) --}}
+                                    <div class="inline-block text-left" x-data="{
+                                        open: false, style: '',
+                                        toggle() { this.open = !this.open; if (this.open) this.$nextTick(() => { this.place(); if (window.lucide) lucide.createIcons(); }); },
+                                        place() {
+                                            const r = this.$refs.btn.getBoundingClientRect(), W = 184, H = 200;
+                                            let left = r.right - W; if (left < 8) left = 8;
+                                            let top = (r.bottom + H > window.innerHeight) ? (r.top - H - 4) : (r.bottom + 4);
+                                            this.style = `position:fixed;left:${left}px;top:${top}px;width:${W}px;`;
+                                        }
+                                    }">
+                                        <button type="button" x-ref="btn" @click.stop="toggle()" title="Actions"
+                                                class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-700 dark:hover:text-white"><i data-lucide="more-vertical" class="h-4 w-4"></i></button>
+                                        <template x-teleport="body">
+                                            <div x-show="open" x-cloak x-transition.opacity.duration.100ms @click.outside="open = false" @keydown.escape.window="open = false"
+                                                 :style="style" class="z-[60] overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-xl dark:bg-slate-800 dark:border-slate-700">
+                                                <a href="{{ route('hr-documents.show', $doc) }}" class="flex items-center gap-2.5 px-3.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-700"><i data-lucide="eye" class="h-3.5 w-3.5"></i> View</a>
+                                                <a href="{{ route('hr-documents.edit', $doc) }}" class="flex items-center gap-2.5 px-3.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-700"><i data-lucide="pencil" class="h-3.5 w-3.5"></i> Edit</a>
+                                                <a href="{{ route('hr-documents.pdf', $doc) }}" class="flex items-center gap-2.5 px-3.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-700"><i data-lucide="download" class="h-3.5 w-3.5"></i> Download PDF</a>
+                                                @if($doc->archived_at)
+                                                    <form method="POST" action="{{ route('hr-documents.unarchive', $doc) }}">@csrf<button type="submit" class="flex w-full items-center gap-2.5 px-3.5 py-2 text-xs font-bold text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-500/10"><i data-lucide="archive-restore" class="h-3.5 w-3.5"></i> Restore from archive</button></form>
+                                                @else
+                                                    <form method="POST" action="{{ route('hr-documents.archive', $doc) }}">@csrf<button type="submit" class="flex w-full items-center gap-2.5 px-3.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-700"><i data-lucide="archive" class="h-3.5 w-3.5"></i> Archive</button></form>
+                                                @endif
+                                                <form method="POST" action="{{ route('hr-documents.destroy', $doc) }}" onsubmit="return confirm('Move this document to Deleted? You can restore it later.')">@csrf @method('DELETE')<button type="submit" class="flex w-full items-center gap-2.5 px-3.5 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10"><i data-lucide="trash-2" class="h-3.5 w-3.5"></i> Delete</button></form>
+                                            </div>
+                                        </template>
                                     </div>
                                 </td>
                             </tr>

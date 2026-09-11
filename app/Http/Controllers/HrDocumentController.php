@@ -26,23 +26,40 @@ class HrDocumentController extends Controller
             ->orderBy('sort_order')->orderBy('name')->get();
 
         $showArchived = $request->boolean('archived');
-        $month        = $request->input('month');   // YYYY-MM filter on the document period
+
+        // Search by employee name or document/template name.
+        $search = trim((string) $request->input('q', ''));
+
+        // Date range on the document's date — when it was sent, or created for drafts.
+        $parseDate = function ($v) {
+            try { return $v ? Carbon::createFromFormat('Y-m-d', $v)->toDateString() : null; } catch (\Throwable $e) { return null; }
+        };
+        $dateFrom = $parseDate($request->input('date_from'));
+        $dateTo   = $parseDate($request->input('date_to'));
 
         $documents = HrDocument::with('employee')
+            // Legacy rows were marked "sent" before sent_at existed — the first signer row marks the send.
+            ->withMin('signers as first_signer_at', 'created_at')
             ->when($showArchived, fn ($q) => $q->whereNotNull('archived_at'), fn ($q) => $q->whereNull('archived_at'))
-            ->when($month, function ($q) use (&$month) {
-                try {
-                    $start = Carbon::createFromFormat('Y-m', $month)->startOfMonth();
-                    $q->whereBetween('period_start', [$start->copy()->startOfMonth(), $start->copy()->endOfMonth()]);
-                } catch (\Throwable $e) {
-                    $month = null;
-                }
+            ->when($search !== '', function ($q) use ($search) {
+                $q->where(function ($qq) use ($search) {
+                    $qq->where('template_name', 'like', "%{$search}%")
+                        ->orWhere('title', 'like', "%{$search}%")
+                        ->orWhereHas('employee', fn ($e) => $e
+                            ->where('first_name', 'like', "%{$search}%")
+                            ->orWhere('last_name', 'like', "%{$search}%")
+                            ->orWhereRaw("CONCAT(first_name, ' ', last_name) LIKE ?", ["%{$search}%"]));
+                });
             })
+            ->when($dateFrom, fn ($q) => $q->whereRaw('DATE(COALESCE(hr_documents.sent_at, hr_documents.created_at)) >= ?', [$dateFrom]))
+            ->when($dateTo,   fn ($q) => $q->whereRaw('DATE(COALESCE(hr_documents.sent_at, hr_documents.created_at)) <= ?', [$dateTo]))
             ->latest()->limit(100)->get();
 
         $archivedCount = HrDocument::whereNotNull('archived_at')->count();
 
-        return view('hr-documents.index', compact('templates', 'documents', 'showArchived', 'archivedCount', 'month'));
+        $filters = array_filter(['q' => $search, 'date_from' => $dateFrom, 'date_to' => $dateTo]);
+
+        return view('hr-documents.index', compact('templates', 'documents', 'showArchived', 'archivedCount', 'search', 'dateFrom', 'dateTo', 'filters'));
     }
 
     // ── Template builder ───────────────────────────────────────────
