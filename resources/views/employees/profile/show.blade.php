@@ -485,9 +485,25 @@
                 @php $recentReqs=\App\Models\TimeOffRequest::where('user_id',$employee->id)->with('policy')->orderByDesc('created_at')->limit(5)->get(); @endphp
                 @forelse($recentReqs as $req)
                     @php $rsc=match($req->status){'approved'=>'bg-emerald-50 text-emerald-700','pending'=>'bg-amber-50 text-amber-700','rejected'=>'bg-red-50 text-red-700',default=>'bg-slate-50 text-slate-600'}; @endphp
-                    <div class="px-6 py-4 flex items-center justify-between">
-                        <div><p class="text-sm font-semibold text-slate-800 dark:text-white">{{ optional($req->policy)->name??'Leave' }}</p><p class="text-xs text-slate-400 mt-0.5">{{ \Carbon\Carbon::parse($req->start_date)->format('d M Y') }} → {{ \Carbon\Carbon::parse($req->end_date)->format('d M Y') }}</p></div>
-                        <span class="inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-bold capitalize {{ $rsc }}">{{ $req->status }}</span>
+                    @php $sameDay = \Carbon\Carbon::parse($req->start_date)->isSameDay(\Carbon\Carbon::parse($req->end_date)); @endphp
+                    <div class="px-6 py-4 flex items-center justify-between gap-4">
+                        <div class="min-w-0">
+                            <p class="text-sm font-semibold text-slate-800 dark:text-white">{{ optional($req->policy)->name??'Leave' }}</p>
+                            <p class="text-xs text-slate-400 mt-0.5">
+                                {{ \Carbon\Carbon::parse($req->start_date)->format('d M Y') }}@if(!$sameDay) → {{ \Carbon\Carbon::parse($req->end_date)->format('d M Y') }}@endif
+                                {{-- Hourly: the time window; half day: which half --}}
+                                @if($req->duration_type === 'hourly' && $req->time_range)
+                                    <span class="ml-1 inline-flex items-center rounded-md bg-indigo-50 px-1.5 py-0.5 text-[10px] font-semibold text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300"><i data-lucide="clock" class="h-3 w-3 mr-1"></i>{{ $req->time_range }}</span>
+                                @elseif($req->duration_type === 'half_day' || $req->is_half_day)
+                                    <span class="ml-1 inline-flex items-center rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600 dark:bg-slate-700 dark:text-slate-300">{{ $req->half_day_period ? ucfirst($req->half_day_period) : 'Half day' }}</span>
+                                @endif
+                            </p>
+                        </div>
+                        <div class="flex items-center gap-3 shrink-0">
+                            {{-- Total taken: "3 hours" / "Half day" / "1 day" / "3 days" --}}
+                            <span class="text-sm font-bold text-slate-700 dark:text-slate-200 tabular-nums">{{ $req->duration_label }}</span>
+                            <span class="inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-bold capitalize {{ $rsc }}">{{ $req->status }}</span>
+                        </div>
                     </div>
                 @empty
                     <div class="px-6 py-8 text-center text-sm text-slate-400 italic">No time-off requests yet.</div>
