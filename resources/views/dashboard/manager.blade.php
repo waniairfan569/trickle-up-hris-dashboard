@@ -174,9 +174,12 @@
                                     
                                     <div class="flex items-center gap-4 pl-13 sm:pl-0">
                                         <div class="text-left sm:text-right">
-                                            <span class="text-xs font-bold text-slate-900 dark:text-white">{{ $req->days_requested }} days</span>
+                                            <span class="text-xs font-bold text-slate-900 dark:text-white">{{ $req->duration_label }}</span>
                                             <p class="text-[10px] text-slate-400 font-medium">
-                                                {{ $req->start_date->format('M d') }} - {{ $req->end_date->format('M d') }}
+                                                {{ $req->start_date->format('M d') }}@if($req->start_date->ne($req->end_date)) - {{ $req->end_date->format('M d') }}@endif
+                                            </p>
+                                            <p class="text-[10px] text-slate-400" title="Applied {{ $req->created_at->format('D, d M Y · g:i A') }}">
+                                                <i data-lucide="clock" class="h-2.5 w-2.5 inline -mt-0.5"></i> Applied {{ $req->created_at->format('d M') }} · {{ $req->created_at->diffForHumans(null, true) }} ago
                                             </p>
                                         </div>
                                         

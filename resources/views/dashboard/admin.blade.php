@@ -371,6 +371,9 @@
                                     <p class="text-[10px] text-slate-400 font-medium">
                                         {{ $req->start_date->format('M d') }}@if($req->start_date->ne($req->end_date)) – {{ $req->end_date->format('M d') }}@endif
                                     </p>
+                                    <p class="text-[10px] text-slate-400" title="Applied {{ $req->created_at->format('D, d M Y · g:i A') }}">
+                                        <i data-lucide="clock" class="h-2.5 w-2.5 inline -mt-0.5"></i> Applied {{ $req->created_at->format('d M') }} · {{ $req->created_at->diffForHumans(null, true) }} ago
+                                    </p>
                                 </div>
 
                                 <!-- Inline Action Forms -->
