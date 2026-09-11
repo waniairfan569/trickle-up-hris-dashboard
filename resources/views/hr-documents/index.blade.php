@@ -129,7 +129,7 @@
                             <th class="px-5 py-3">Employee</th>
                             <th class="px-5 py-3">Document</th>
                             <th class="px-5 py-3">Period</th>
-                            <th class="px-5 py-3">Meeting</th>
+                            <th class="px-5 py-3">Leave date</th>
                             <th class="px-5 py-3">Status</th>
                             <th class="px-5 py-3">Sent</th>
                             <th class="px-5 py-3 text-right"><span class="sr-only">Actions</span></th>
@@ -149,7 +149,22 @@
                                 <td class="px-5 py-3 font-semibold text-slate-800 dark:text-slate-200">{{ optional($doc->employee)->full_name ?? '—' }}</td>
                                 <td class="px-5 py-3 text-slate-600 dark:text-slate-300">{{ $doc->template_name }}</td>
                                 <td class="px-5 py-3 text-slate-500">{{ optional($doc->period_start)->format('M Y') ?? '—' }}</td>
-                                <td class="px-5 py-3 text-slate-500">{{ optional($doc->meeting_date)->format('d M Y') ?? '—' }}</td>
+                                {{-- The leave / lateness date the form is about (→ return date on return-to-work forms); meeting date as a fallback --}}
+                                @php $ld = $doc->leave_dates; @endphp
+                                <td class="px-5 py-3 text-slate-500">
+                                    @if($ld['from'] && $ld['to'] && !$ld['to']->isSameDay($ld['from']))
+                                        {{ $ld['from']->format('d M') }} → {{ $ld['to']->format('d M Y') }}
+                                        <span class="block text-[11px] text-slate-400">back {{ $ld['to']->format('D') }}</span>
+                                    @elseif($ld['from'])
+                                        {{ $ld['from']->format('d M Y') }}
+                                    @elseif($ld['text'])
+                                        <span title="{{ $ld['text'] }}">{{ $ld['text'] }}</span>
+                                    @elseif($doc->meeting_date)
+                                        {{ $doc->meeting_date->format('d M Y') }} <span class="block text-[11px] text-slate-400">meeting</span>
+                                    @else
+                                        —
+                                    @endif
+                                </td>
                                 @php
                                     // Legacy rows were marked sent before sent_at existed — fall back to the first signer row.
                                     $sentAt = $doc->sent_at ?? ($doc->status !== 'draft' && $doc->first_signer_at ? \Illuminate\Support\Carbon::parse($doc->first_signer_at) : null);

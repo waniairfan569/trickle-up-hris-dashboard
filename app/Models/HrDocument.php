@@ -53,12 +53,51 @@ class HrDocument extends Model
      */
     public function getMeetingDateAttribute(): ?\Illuminate\Support\Carbon
     {
-        $field = collect($this->schema)
-            ->flatMap(fn ($s) => $s['fields'] ?? [])
-            ->first(fn ($f) => ($f['id'] ?? null) === 'date_of_meeting'
-                || (($f['type'] ?? null) === 'date' && str_contains(strtolower($f['label'] ?? ''), 'meeting')));
+        $field = $this->dateFields()->first(fn ($f) => ($f['id'] ?? null) === 'date_of_meeting'
+            || str_contains(strtolower($f['label'] ?? ''), 'meeting'));
 
-        $value = $field ? trim((string) (($this->data ?? [])[$field['id']] ?? '')) : '';
+        return $field ? $this->dateValue($field['id']) : null;
+    }
+
+    /**
+     * The leave / absence / lateness date(s) the form is about, read from its
+     * own fields: e.g. "Date of unplanned leave" → "Date of return" on a
+     * return-to-work form, or "Date of lateness" on a lateness review.
+     *
+     * @return array{from: ?\Illuminate\Support\Carbon, to: ?\Illuminate\Support\Carbon, text: ?string}
+     */
+    public function getLeaveDatesAttribute(): array
+    {
+        $label = fn ($f) => strtolower($f['label'] ?? '');
+        $isLeave = fn ($f) => \Illuminate\Support\Str::contains($label($f), ['leave', 'absence', 'absent', 'lateness', 'late', 'unplanned', 'off'])
+            && ! \Illuminate\Support\Str::contains($label($f), ['return', 'meeting', 'notified', 'total']);
+
+        $fromField = $this->dateFields()->first($isLeave);
+        $toField = $this->dateFields()->first(fn ($f) => str_contains($label($f), 'return'));
+
+        $from = $fromField ? $this->dateValue($fromField['id']) : null;
+        $to = $toField ? $this->dateValue($toField['id']) : null;
+
+        // Free text such as "10 Sep, 12 Sep" that isn't a single parseable date.
+        $raw = $fromField ? trim((string) (($this->data ?? [])[$fromField['id']] ?? '')) : '';
+        $text = (! $from && $raw !== '') ? \Illuminate\Support\Str::limit($raw, 40) : null;
+
+        return ['from' => $from, 'to' => $to, 'text' => $text];
+    }
+
+    /** Fields that hold a date: typed as date, or labelled "Date of …". */
+    private function dateFields(): \Illuminate\Support\Collection
+    {
+        return collect($this->schema)
+            ->flatMap(fn ($s) => $s['fields'] ?? [])
+            ->filter(fn ($f) => ($f['type'] ?? null) === 'date' || str_starts_with(strtolower($f['label'] ?? ''), 'date'))
+            ->values();
+    }
+
+    /** A field's stored value as a Carbon date, or null if empty / not a date. */
+    private function dateValue(string $fieldId): ?\Illuminate\Support\Carbon
+    {
+        $value = trim((string) (($this->data ?? [])[$fieldId] ?? ''));
         if ($value === '') {
             return null;
         }

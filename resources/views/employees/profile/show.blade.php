@@ -568,7 +568,11 @@
                                     @else
                                         Not sent yet · created {{ $doc->created_at->format('d M Y') }}
                                     @endif
-                                    @if($doc->meeting_date) · Meeting {{ $doc->meeting_date->format('d M Y') }}@endif
+                                    @php $ld = $doc->leave_dates; @endphp
+                                    @if($ld['from'] && $ld['to'] && !$ld['to']->isSameDay($ld['from'])) · Leave {{ $ld['from']->format('d M') }} → back {{ $ld['to']->format('d M Y') }}
+                                    @elseif($ld['from']) · Leave {{ $ld['from']->format('d M Y') }}
+                                    @elseif($ld['text']) · Leave {{ $ld['text'] }}
+                                    @elseif($doc->meeting_date) · Meeting {{ $doc->meeting_date->format('d M Y') }}@endif
                                 </p>
                             </div>
                             <div class="flex items-center gap-2 shrink-0">
