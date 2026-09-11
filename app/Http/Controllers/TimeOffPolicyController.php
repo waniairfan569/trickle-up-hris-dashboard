@@ -36,7 +36,7 @@ class TimeOffPolicyController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'type' => 'required|in:annual,sick,unpaid,maternity,paternity,bereavement,custom',
+            'type' => 'required|in:annual,sick,unpaid,maternity,paternity,bereavement,compensatory,custom',
             'accrual_type' => 'required|in:none,monthly,annually',
             'days_per_year' => 'required|numeric|min:0|max:365',
             'max_balance' => 'nullable|numeric|min:0',
@@ -81,7 +81,7 @@ class TimeOffPolicyController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'type' => 'required|in:annual,sick,unpaid,maternity,paternity,bereavement,custom',
+            'type' => 'required|in:annual,sick,unpaid,maternity,paternity,bereavement,compensatory,custom',
             'accrual_type' => 'required|in:none,monthly,annually',
             'days_per_year' => 'required|numeric|min:0|max:365',
             'max_balance' => 'nullable|numeric|min:0',
@@ -275,6 +275,7 @@ class TimeOffPolicyController extends Controller
         $amount = (float) $request->amount;
         $note = $request->note ?: 'Manual adjustment';
 
+        // Enrols the employee on the policy if needed (first compensation credit).
         $this->balanceService->manualAdjust($user, $timeOffPolicy, $amount, $note, $admin);
 
         // Record it in the activity feed so the change is traceable everywhere.
@@ -292,6 +293,6 @@ class TimeOffPolicyController extends Controller
             report($e);
         }
 
-        return back()->with('success', ($amount >= 0 ? 'Added ' : 'Subtracted ') . abs($amount) . ' day(s) — balance updated.');
+        return back()->with('success', ($amount >= 0 ? 'Added ' : 'Subtracted ') . abs($amount) . " day(s) of {$timeOffPolicy->name} for {$user->full_name} — balance updated.");
     }
 }

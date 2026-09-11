@@ -245,6 +245,122 @@
             </script>
             @endif
 
+            {{-- Compensation leave claim: any employee asks for time off in lieu of overtime they worked --}}
+            @if(!empty($compPolicy))
+            @php $claimErrors = $errors->hasAny(['worked_date', 'hours_worked', 'days_claimed', 'reason']); @endphp
+            <div x-data="{ open:{{ $claimErrors ? 'true' : 'false' }}, workedDate:'{{ old('worked_date') }}', hours:'{{ old('hours_worked') }}', days:'{{ old('days_claimed', '1') }}', otDays: {{ Illuminate\Support\Js::from($myOvertimeDays) }},
+                    hrs(m){ return Math.floor(m/60) + 'h' + (m%60 ? ' ' + (m%60) + 'm' : ''); },
+                    pick(d){ this.workedDate = d.date; this.hours = (Math.round(d.minutes/30)/2).toFixed(1); } }">
+                <button type="button" @click="open=true" class="btn-outline" title="Claim compensation leave for overtime you worked">
+                    <i data-lucide="timer" class="h-4 w-4 mr-2"></i> Claim Comp Leave
+                </button>
+
+                <div x-show="open" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4" style="display:none;">
+                    <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" @click="open=false"></div>
+                    <form method="POST" action="{{ route('time-off.comp-claims.store') }}" class="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-xl dark:bg-slate-800 text-left">
+                        @csrf
+                        <div class="flex items-center justify-between mb-1">
+                            <h3 class="text-lg font-extrabold text-slate-900 dark:text-white">Claim {{ $compPolicy->name }}</h3>
+                            <button type="button" @click="open=false" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="h-5 w-5"></i></button>
+                        </div>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">Worked overtime? Claim time off in lieu — HR approves and the days are added to your balance to request as leave.</p>
+                        @if($claimErrors)
+                            <div class="mb-4 rounded-xl bg-rose-50 p-3 border border-rose-200 text-xs text-rose-700 dark:bg-rose-500/10 dark:border-rose-500/20"><ul class="list-disc pl-4 space-y-0.5">@foreach($errors->all() as $e)<li>{{ $e }}</li>@endforeach</ul></div>
+                        @endif
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Overtime worked on</label>
+                                <input type="date" name="worked_date" x-model="workedDate" max="{{ now()->toDateString() }}" required class="w-full rounded-xl border-slate-300 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                                <template x-if="otDays.length">
+                                    <div class="mt-2">
+                                        <p class="text-[11px] text-slate-400 mb-1">Your recorded overtime (last 60 days) — tap to fill in:</p>
+                                        <div class="flex flex-wrap gap-1.5">
+                                            <template x-for="d in otDays" :key="d.date">
+                                                <button type="button" @click="pick(d)" :class="workedDate === d.date ? 'bg-brand-500 text-white border-brand-500' : 'bg-slate-50 text-slate-600 border-slate-200 hover:border-brand-400 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-600'" class="rounded-lg border px-2 py-1 text-[11px] font-semibold transition"><span x-text="d.label"></span> · <span x-text="hrs(d.minutes)"></span></button>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Extra hours</label>
+                                    <input type="number" name="hours_worked" x-model="hours" min="0.5" max="24" step="0.5" placeholder="e.g. 8" class="w-full rounded-xl border-slate-300 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                                    <p class="mt-1 text-[11px] text-slate-400">Optional</p>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Days claimed</label>
+                                    <input type="number" name="days_claimed" x-model="days" min="0.5" max="10" step="0.5" required class="w-full rounded-xl border-slate-300 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                                    <p class="mt-1 text-[11px] text-slate-400">Half days allowed</p>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">What did you work?</label>
+                                <textarea name="reason" rows="2" required maxlength="500" placeholder="e.g. Covered the Saturday shift for the client go-live" class="w-full rounded-xl border-slate-300 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white"></textarea>
+                            </div>
+                        </div>
+                        <div class="mt-5 flex justify-end gap-2">
+                            <button type="button" @click="open=false" class="btn-outline">Cancel</button>
+                            <button type="submit" class="btn-brand"><i data-lucide="send" class="h-4 w-4 mr-1"></i> Submit claim</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            @endif
+
+            {{-- Compensation leave: HR / super admin credits days directly against overtime worked --}}
+            @if(!empty($compPolicy) && $isTimeOffAdmin)
+            <div x-data="{ open:false, userId:'', days:'1', employees: {{ Illuminate\Support\Js::from($compEmployees) }},
+                    emp(){ return this.employees.find(e => e.id == this.userId) || null; },
+                    hours(m){ return Math.floor(m/60) + 'h' + (m%60 ? ' ' + (m%60) + 'm' : ''); } }">
+                <button type="button" @click="open=true" class="btn-outline" title="Credit compensation leave for overtime worked">
+                    <i data-lucide="timer" class="h-4 w-4 mr-2"></i> Credit Comp Leave
+                </button>
+
+                <div x-show="open" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4" style="display:none;">
+                    <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" @click="open=false"></div>
+                    <form method="POST" action="{{ route('time-off-policies.adjust-balance', $compPolicy) }}" class="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-xl dark:bg-slate-800 text-left">
+                        @csrf
+                        <div class="flex items-center justify-between mb-1">
+                            <h3 class="text-lg font-extrabold text-slate-900 dark:text-white">Credit {{ $compPolicy->name }}</h3>
+                            <button type="button" @click="open=false" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="h-5 w-5"></i></button>
+                        </div>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">Time off in lieu of overtime. The employee can then request it like any other leave.</p>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Employee</label>
+                                <select name="user_id" x-model="userId" required class="w-full rounded-xl border-slate-300 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                                    <option value="">Select…</option>
+                                    <template x-for="e in employees" :key="e.id">
+                                        <option :value="e.id" x-text="e.name + (e.overtime_minutes ? ' — ' + hours(e.overtime_minutes) + ' overtime' : '')"></option>
+                                    </template>
+                                </select>
+                                <template x-if="emp()">
+                                    <div class="mt-2 rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-600 dark:bg-slate-900 dark:text-slate-300 space-y-0.5">
+                                        <div><span class="font-semibold">Overtime (last 60 days):</span> <span x-text="emp().overtime_minutes ? hours(emp().overtime_minutes) + ' across ' + emp().overtime_days + ' day' + (emp().overtime_days === 1 ? '' : 's') : 'none recorded'"></span></div>
+                                        <div><span class="font-semibold">Current comp balance:</span> <span x-text="emp().balance + ' day' + (emp().balance === 1 ? '' : 's')"></span></div>
+                                    </div>
+                                </template>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Days to credit</label>
+                                <input type="number" name="amount" x-model="days" min="0.5" step="0.5" required class="w-full rounded-xl border-slate-300 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                                <p class="mt-1 text-[11px] text-slate-400">Half days allowed (0.5).</p>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Reason</label>
+                                <input type="text" name="note" required maxlength="255" placeholder="e.g. Worked Sat 5 Sep — 8h overtime" class="w-full rounded-xl border-slate-300 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                            </div>
+                        </div>
+                        <div class="mt-5 flex justify-end gap-2">
+                            <button type="button" @click="open=false" class="btn-outline">Cancel</button>
+                            <button type="submit" class="btn-brand"><i data-lucide="plus" class="h-4 w-4 mr-1"></i> Credit</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            @endif
+
             <a href="{{ route('time-off.create') }}" class="btn-brand">
                 <i data-lucide="plus" class="h-4 w-4"></i>
                 Request Time Off
@@ -274,8 +390,12 @@
                 $unit = optional(auth()->user()->company)->leave_unit ?? 'days';
             @endphp
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-6 dark:bg-slate-800 dark:border-slate-700/80">
+                @php $isComp = optional($balance->policy)->type === 'compensatory'; @endphp
                 <div class="flex justify-between items-start mb-4">
-                    <h3 class="text-lg font-bold text-slate-900 dark:text-white">{{ optional($balance->policy)->name ?? 'Leave' }}</h3>
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-900 dark:text-white">{{ optional($balance->policy)->name ?? 'Leave' }}</h3>
+                        @if($isComp)<p class="text-[11px] text-slate-400">Earned for overtime worked</p>@endif
+                    </div>
                     <div class="text-2xl font-extrabold text-brand-600 dark:text-brand-400">{{ (float) $remaining }}</div>
                 </div>
                 <div class="text-xs text-slate-500 dark:text-slate-400 text-right mb-2">{{ $unit === 'hours' ? 'Hours' : 'Days' }} Remaining</div>
@@ -288,7 +408,7 @@
                 <div class="flex justify-between text-xs text-slate-500 dark:text-slate-400">
                     <div>Used: <span class="font-bold text-slate-900 dark:text-white">{{ (float) $used }}</span></div>
                     <div>Pending: <span class="font-bold text-slate-900 dark:text-white">{{ (float) $pending }}</span></div>
-                    <div>Allowance: <span class="font-bold text-slate-900 dark:text-white">{{ (float) $total }}</span></div>
+                    <div>{{ $isComp ? 'Earned' : 'Allowance' }}: <span class="font-bold text-slate-900 dark:text-white">{{ (float) $total }}</span></div>
                 </div>
             </div>
         @empty
@@ -304,8 +424,9 @@
         @if($teamRequests->isNotEmpty() || $isTimeOffAdmin)
             <button @click="activeTab = 'team_requests'" :class="activeTab === 'team_requests' ? 'bg-white text-brand-600 shadow-sm dark:bg-slate-700 dark:text-brand-400' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'" class="{{ $tabBase }}">
                 <i data-lucide="inbox" class="h-4 w-4"></i> Approvals
-                @if($teamRequests->count() > 0)
-                    <span class="rounded-full bg-brand-500 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">{{ $teamRequests->count() }}</span>
+                @php $approvalsCount = $teamRequests->count() + ($pendingCompClaims ?? collect())->count() + ($pendingReturns ?? collect())->count(); @endphp
+                @if($approvalsCount > 0)
+                    <span class="rounded-full bg-brand-500 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">{{ $approvalsCount }}</span>
                 @endif
             </button>
         @endif
@@ -372,6 +493,49 @@
             };
         }
     </script>
+
+    {{-- My compensation leave claims (time off in lieu of overtime) --}}
+    @if(($myCompClaims ?? collect())->isNotEmpty())
+    <div x-show="activeTab === 'my_requests'" style="display:none;" class="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden dark:bg-slate-800 dark:border-slate-700/80">
+        <div class="px-5 py-4 border-b border-slate-100 dark:border-slate-700/60">
+            <h3 class="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                <i data-lucide="timer" class="h-4 w-4 text-brand-500"></i> My compensation leave claims
+            </h3>
+            <p class="text-xs text-slate-400 mt-0.5">Approved claims are added to your {{ $compPolicy->name ?? 'Compensation Leave' }} balance above.</p>
+        </div>
+        <div class="divide-y divide-slate-100 dark:divide-slate-700/60">
+            @foreach($myCompClaims as $claim)
+                <div class="flex flex-col gap-2 px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between">
+                    <div class="min-w-0">
+                        <p class="text-sm text-slate-800 dark:text-slate-200">
+                            <span class="font-semibold">Overtime on {{ $claim->worked_date->format('D, d M Y') }}</span>@if($claim->hours_worked) · {{ (float) $claim->hours_worked }}h @endif
+                            · {{ (float) $claim->days_claimed }} day(s) claimed
+                            @if($claim->status === 'approved' && $claim->days_credited !== null && abs((float) $claim->days_credited - (float) $claim->days_claimed) > 0.01)
+                                <span class="text-emerald-600 dark:text-emerald-400">→ {{ (float) $claim->days_credited }} credited</span>
+                            @endif
+                        </p>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 italic mt-0.5">“{{ $claim->reason }}”</p>
+                        <p class="text-[11px] text-slate-400 mt-0.5 flex items-center gap-1">
+                            <i data-lucide="clock" class="h-3 w-3"></i> Applied {{ $claim->created_at->format('M d, Y · g:i A') }}
+                            @if($claim->reviewed_at) · {{ ucfirst($claim->status) }} {{ $claim->reviewed_at->format('M d, Y') }}@if($claim->reviewer) by {{ $claim->reviewer->first_name }}@endif @endif
+                            @if($claim->status === 'rejected' && $claim->review_note) · “{{ $claim->review_note }}” @endif
+                        </p>
+                    </div>
+                    <div class="flex items-center gap-2 shrink-0">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold {{ $claim->status_color }}">{{ ucfirst($claim->status) }}</span>
+                        @if($claim->status === 'pending')
+                            <form action="{{ route('time-off.comp-claims.cancel', $claim) }}" method="POST" onsubmit="return confirm('Withdraw this compensation leave claim?')">
+                                @csrf
+                                <button type="submit" class="text-xs font-semibold text-slate-400 hover:text-rose-600">Withdraw</button>
+                            </form>
+                        @endif
+                    </div>
+                </div>
+            @endforeach
+        </div>
+    </div>
+    @endif
+
     <div x-show="activeTab === 'my_requests'" x-data="myRequestsFilter()" class="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden dark:bg-slate-800 dark:border-slate-700/80">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-6 py-4 border-b border-slate-200/80 dark:border-slate-700/60">
             <h3 class="text-sm font-bold text-slate-800 dark:text-white">My Requests</h3>
@@ -503,6 +667,49 @@
     @if($teamRequests->isNotEmpty() || auth()->user()->hasRole('hr_admin') || auth()->user()->hasRole('super_admin'))
     <div x-show="activeTab === 'team_requests'" style="display: none;" class="space-y-4">
 
+        {{-- Compensation leave claims (time off in lieu of overtime) awaiting HR --}}
+        @if(($pendingCompClaims ?? collect())->isNotEmpty())
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden dark:bg-slate-800 dark:border-slate-700/80">
+                <div class="px-5 py-4 border-b border-slate-100 dark:border-slate-700/60">
+                    <h3 class="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                        <i data-lucide="timer" class="h-4 w-4 text-brand-500"></i> Compensation leave claims
+                        <span class="rounded-full bg-amber-100 text-amber-700 px-2 py-0.5 text-[10px] font-bold dark:bg-amber-500/20 dark:text-amber-300">{{ $pendingCompClaims->count() }}</span>
+                    </h3>
+                    <p class="text-xs text-slate-400 mt-0.5">Approving credits the days to the employee's {{ $compPolicy->name ?? 'Compensation Leave' }} balance. You can change the number of days before approving.</p>
+                </div>
+                <div class="divide-y divide-slate-100 dark:divide-slate-700/60">
+                    @foreach($pendingCompClaims as $claim)
+                        <div class="px-5 py-4" x-data="{ showReject: false, days: '{{ (float) $claim->days_claimed }}' }">
+                            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                <div class="min-w-0">
+                                    <p class="text-sm font-bold text-slate-800 dark:text-white">{{ optional($claim->employee)->full_name ?? 'Employee' }}</p>
+                                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                                        Overtime on {{ $claim->worked_date->format('D, d M Y') }}@if($claim->hours_worked) · {{ (float) $claim->hours_worked }}h extra @endif ·
+                                        <span class="font-semibold text-brand-600 dark:text-brand-400">{{ (float) $claim->days_claimed }} day(s) claimed</span>
+                                    </p>
+                                    <p class="text-xs text-slate-600 dark:text-slate-300 mt-1 italic">“{{ $claim->reason }}”</p>
+                                    <p class="text-[11px] text-slate-400 mt-1 flex items-center gap-1"><i data-lucide="clock" class="h-3 w-3"></i> Applied {{ $claim->created_at->format('D, M d Y · g:i A') }} · {{ $claim->created_at->diffForHumans() }}</p>
+                                </div>
+                                <div class="flex items-center gap-2 shrink-0">
+                                    <form action="{{ route('time-off.comp-claims.approve', $claim) }}" method="POST" class="flex items-center gap-1.5">
+                                        @csrf
+                                        <input type="number" name="days_credited" x-model="days" min="0.5" max="10" step="0.5" title="Days to credit" class="w-20 rounded-xl border border-slate-300 px-2 py-1.5 text-xs text-center dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                                        <button type="submit" class="rounded-xl bg-emerald-50 px-3 py-1.5 text-[11px] font-bold text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-400">Approve &amp; credit</button>
+                                    </form>
+                                    <button type="button" @click="showReject = !showReject" class="rounded-xl bg-rose-50 px-3 py-1.5 text-[11px] font-bold text-rose-700 hover:bg-rose-100 dark:bg-rose-500/10 dark:text-rose-400">Decline</button>
+                                </div>
+                            </div>
+                            <form x-show="showReject" x-cloak action="{{ route('time-off.comp-claims.reject', $claim) }}" method="POST" class="mt-3 flex items-center gap-2">
+                                @csrf
+                                <input type="text" name="review_note" maxlength="500" placeholder="Reason (optional)" class="flex-1 rounded-xl border border-slate-300 px-3 py-1.5 text-xs dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                                <button type="submit" class="rounded-xl bg-rose-600 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-rose-700">Confirm decline</button>
+                            </form>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        @endif
+
         {{-- Early-return (curtailment) requests awaiting a decision --}}
         @if(($pendingReturns ?? collect())->isNotEmpty())
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden dark:bg-slate-800 dark:border-slate-700/80">
@@ -595,6 +802,9 @@
                             @elseif($request->is_half_day)
                                 <span class="text-xs bg-slate-200 text-slate-700 px-2 py-0.5 rounded ml-2 dark:bg-slate-700 dark:text-slate-300">Half Day ({{ ucfirst($request->half_day_period) }})</span>
                             @endif
+                        </div>
+                        <div class="mt-1.5 flex items-center gap-1 text-[11px] text-slate-400">
+                            <i data-lucide="clock" class="h-3 w-3"></i> Applied {{ $request->created_at->format('D, M d Y · g:i A') }} <span class="text-slate-300 dark:text-slate-600">·</span> {{ $request->created_at->diffForHumans() }}
                         </div>
                     </div>
                     @if($request->reason)

@@ -287,6 +287,16 @@ Route::middleware(['auth', 'verified', 'force.password.change'])->group(function
     Route::post('time-off/returns/{leaveReturn}/reject', [TimeOffController::class, 'rejectReturn'])
         ->name('time-off.return.reject');
 
+    // Compensation leave claims (time off in lieu of overtime): employee claims, HR / super admin decides.
+    Route::post('time-off/compensation-claims', [\App\Http\Controllers\CompensationClaimController::class, 'store'])
+        ->name('time-off.comp-claims.store');
+    Route::post('time-off/compensation-claims/{claim}/cancel', [\App\Http\Controllers\CompensationClaimController::class, 'cancel'])
+        ->name('time-off.comp-claims.cancel');
+    Route::post('time-off/compensation-claims/{claim}/approve', [\App\Http\Controllers\CompensationClaimController::class, 'approve'])
+        ->name('time-off.comp-claims.approve');
+    Route::post('time-off/compensation-claims/{claim}/reject', [\App\Http\Controllers\CompensationClaimController::class, 'reject'])
+        ->name('time-off.comp-claims.reject');
+
     Route::get('time-off/team-calendar', [TimeOffController::class, 'teamCalendar'])
         ->name('time-off.team-calendar');
 

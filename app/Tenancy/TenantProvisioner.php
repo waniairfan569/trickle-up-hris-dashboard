@@ -121,6 +121,21 @@ class TenantProvisioner
                 'is_paid' => true,
             ]);
         }
+
+        // Time off in lieu: no entitlement — HR credits days for overtime worked,
+        // and the policy attaches to an employee on their first credit.
+        TimeOffPolicy::create([
+            'name' => 'Compensation Leave',
+            'type' => 'compensatory',
+            'description' => 'Time off in lieu of overtime. Days are credited by HR for overtime worked and can be taken as paid leave.',
+            'accrual_type' => 'none',
+            'days_per_year' => 0,
+            'requires_approval' => true,
+            'approval_type' => 'manager',
+            'allow_half_days' => true,
+            'is_paid' => true,
+            'auto_assign_to_new_employees' => false,
+        ]);
     }
 
     private function uniqueSlug(string $name): string

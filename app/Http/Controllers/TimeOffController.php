@@ -367,10 +367,54 @@ class TimeOffController extends Controller
                 ->get();
         }
 
+        // Compensation leave (time off in lieu of overtime). Anyone can CLAIM it for
+        // an overtime day they worked; HR / super admins decide claims and can also
+        // credit days directly. Overtime figures come from attendance (last 60 days)
+        // so both sides can see what's being claimed against.
+        $compPolicy = TimeOffPolicy::active()->where('type', 'compensatory')->orderBy('id')->first();
+        $compEmployees = collect();
+        $myCompClaims = collect();
+        $pendingCompClaims = collect();
+        $myOvertimeDays = collect();
+        if ($compPolicy) {
+            $myCompClaims = \App\Models\CompensationClaim::where('user_id', $user->id)
+                ->latest('id')->limit(20)->get();
+            $myOvertimeDays = \App\Models\AttendanceRecord::where('user_id', $user->id)
+                ->where('date', '>=', now()->subDays(60)->toDateString())
+                ->where('overtime_minutes', '>', 0)
+                ->orderByDesc('date')->limit(15)
+                ->get(['date', 'overtime_minutes'])
+                ->map(fn ($r) => ['date' => Carbon::parse($r->date)->toDateString(), 'label' => Carbon::parse($r->date)->format('D d M'), 'minutes' => (int) $r->overtime_minutes])
+                ->values();
+        }
+        if ($compPolicy && ($user->hasRole('super_admin') || $user->hasRole('hr_admin'))) {
+            $pendingCompClaims = \App\Models\CompensationClaim::pending()->with('employee')->oldest('id')->get();
+            $overtime = \App\Models\AttendanceRecord::where('date', '>=', now()->subDays(60)->toDateString())
+                ->where('overtime_minutes', '>', 0)
+                ->groupBy('user_id')
+                ->selectRaw('user_id, SUM(overtime_minutes) AS minutes, COUNT(*) AS days')
+                ->get()->keyBy('user_id');
+            $compBalances = $compPolicy->balances()->where('year', Carbon::now()->year)->get()->keyBy('user_id');
+            $compEmployees = User::where('account_status', 'active')
+                ->orderBy('first_name')->orderBy('last_name')
+                ->get(['id', 'first_name', 'last_name'])
+                ->map(function ($e) use ($overtime, $compBalances) {
+                    $ot = $overtime->get($e->id);
+                    return [
+                        'id' => $e->id,
+                        'name' => trim($e->first_name . ' ' . $e->last_name),
+                        'overtime_minutes' => (int) ($ot->minutes ?? 0),
+                        'overtime_days' => (int) ($ot->days ?? 0),
+                        'balance' => (float) optional($compBalances->get($e->id))->remaining,
+                    ];
+                });
+        }
+
         return view('time-off.index', compact(
             'myPolicies', 'myBalances', 'timeOffBalances', 'myRequests',
             'teamRequests', 'allRequests', 'allPolicies', 'movePolicies',
-            'myReturns', 'pendingReturns', 'overtimeForm', 'myOvertime'
+            'myReturns', 'pendingReturns', 'overtimeForm', 'myOvertime',
+            'compPolicy', 'compEmployees', 'myCompClaims', 'pendingCompClaims', 'myOvertimeDays'
         ));
     }
 

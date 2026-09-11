@@ -55,6 +55,7 @@
                             <option value="maternity" {{ old('type') == 'maternity' ? 'selected' : '' }}>Maternity</option>
                             <option value="paternity" {{ old('type') == 'paternity' ? 'selected' : '' }}>Paternity</option>
                             <option value="bereavement" {{ old('type') == 'bereavement' ? 'selected' : '' }}>Bereavement</option>
+                            <option value="compensatory" {{ old('type') == 'compensatory' ? 'selected' : '' }}>Compensation Leave (time off in lieu of overtime)</option>
                             <option value="custom" {{ old('type') == 'custom' ? 'selected' : '' }}>Custom</option>
                         </select>
                     </div>

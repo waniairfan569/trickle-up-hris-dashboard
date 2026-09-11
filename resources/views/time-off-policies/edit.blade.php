@@ -50,8 +50,8 @@
                     <div class="md:col-span-1">
                         <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 dark:text-slate-300">Policy Type <span class="text-red-500">*</span></label>
                         <select name="type" required class="w-full rounded-xl border-slate-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
-                            @foreach(['annual', 'sick', 'unpaid', 'maternity', 'paternity', 'bereavement', 'custom'] as $type)
-                                <option value="{{ $type }}" {{ old('type', $timeOffPolicy->type) == $type ? 'selected' : '' }}>{{ ucfirst($type) }}</option>
+                            @foreach(['annual' => 'Annual', 'sick' => 'Sick', 'unpaid' => 'Unpaid', 'maternity' => 'Maternity', 'paternity' => 'Paternity', 'bereavement' => 'Bereavement', 'compensatory' => 'Compensation Leave (time off in lieu of overtime)', 'custom' => 'Custom'] as $type => $typeLabel)
+                                <option value="{{ $type }}" {{ old('type', $timeOffPolicy->type) == $type ? 'selected' : '' }}>{{ $typeLabel }}</option>
                             @endforeach
                         </select>
                     </div>

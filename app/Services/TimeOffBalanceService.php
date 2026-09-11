@@ -154,6 +154,16 @@ class TimeOffBalanceService
      */
     public function manualAdjust(User $user, TimeOffPolicy $policy, float $days, string $note, User $adjustedBy): void
     {
+        // Crediting someone not yet on the policy (e.g. their first compensation
+        // day) enrols them, so the leave shows up in their request options.
+        if (! $policy->employees()->where('users.id', $user->id)->exists()) {
+            $policy->employees()->attach($user->id, [
+                'assigned_by' => $adjustedBy->id,
+                'assigned_at' => now(),
+                'custom_days_per_year' => $policy->days_per_year,
+            ]);
+        }
+
         $year = Carbon::now()->year;
         $balance = $this->getOrCreateBalance($user, $policy, $year);
 
