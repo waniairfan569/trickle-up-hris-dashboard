@@ -510,6 +510,80 @@
                 @endforelse
             </div>
         </div>
+
+        {{-- HR documents (lateness reviews, return-to-work, …) sent to this employee for signature.
+             Confidential: only HR / super admins and the employee themself see this. --}}
+        @if($auth->isAdmin() || $isSelf)
+            @php
+                $hrDocs = \App\Models\HrDocument::where('user_id', $employee->id)
+                    ->whereNull('archived_at')
+                    ->with('signers.user')
+                    ->withMin('signers as first_signer_at', 'created_at')
+                    ->orderByDesc('created_at')->limit(8)->get();
+            @endphp
+            @if($hrDocs->isNotEmpty() || $auth->isAdmin())
+            <div class="bg-white border border-slate-200/80 rounded-2xl shadow-sm dark:bg-slate-800 dark:border-slate-700 overflow-hidden">
+                <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between gap-3">
+                    <div>
+                        <h2 class="text-sm font-bold text-slate-800 dark:text-white">Documents sent for signature</h2>
+                        <p class="text-xs text-slate-400 mt-0.5">Lateness reviews, return-to-work forms and other HR documents about {{ $isSelf ? 'you' : $employee->first_name }}.</p>
+                    </div>
+                    @if($auth->isAdmin())
+                        <a href="{{ route('hr-documents.index', ['q' => trim($employee->first_name . ' ' . $employee->last_name)]) }}" class="text-xs font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400 whitespace-nowrap">All documents →</a>
+                    @endif
+                </div>
+                <div class="divide-y divide-slate-100 dark:divide-slate-700">
+                    @forelse($hrDocs as $doc)
+                        @php
+                            // Legacy rows were marked sent before sent_at existed — fall back to the first signer row.
+                            $sentAt = $doc->sent_at ?? ($doc->status !== 'draft' && $doc->first_signer_at ? \Carbon\Carbon::parse($doc->first_signer_at) : null);
+                            $mySigner = $isSelf ? $doc->signers->firstWhere('user_id', $auth->id) : null;
+                            $link = $auth->isAdmin()
+                                ? route('hr-documents.show', $doc)
+                                : ($mySigner ? ($mySigner->signed_at ? route('hr-documents.my-pdf', $doc) : route('hr-documents.sign', $doc)) : null);
+                            $dsc = match ($doc->status) {
+                                'completed' => 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400',
+                                'sent' => 'bg-sky-50 text-sky-700 dark:bg-sky-500/10 dark:text-sky-400',
+                                default => 'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400',
+                            };
+                            $dsl = match ($doc->status) { 'completed' => 'Completed', 'sent' => ($mySigner && !$mySigner->signed_at ? 'Needs your signature' : 'Awaiting signature'), default => 'Draft' };
+                        @endphp
+                        @if(!$auth->isAdmin() && $doc->status === 'draft')
+                            @continue {{-- employees only see documents that were actually sent to them --}}
+                        @endif
+                        <div class="px-6 py-4 flex items-center justify-between gap-4">
+                            <div class="min-w-0">
+                                <p class="text-sm font-semibold text-slate-800 dark:text-white">
+                                    {{ $doc->template_name }}@if($doc->period_start) <span class="font-normal text-slate-400">· {{ $doc->period_start->format('M Y') }}</span>@endif
+                                </p>
+                                <p class="text-xs text-slate-400 mt-0.5">
+                                    @if($sentAt)
+                                        Sent {{ $sentAt->format('d M Y') }}
+                                        @foreach($doc->signers as $signer)
+                                            · <span class="{{ $signer->signed_at ? 'text-emerald-600 dark:text-emerald-400' : '' }}">{{ $signer->user_id === $employee->id ? ($isSelf ? 'you' : $employee->first_name) : (optional($signer->user)->first_name ?? 'Signer') . ($signer->role === 'manager' ? ' (manager)' : '') }} {{ $signer->signed_at ? 'signed ' . $signer->signed_at->format('d M') : 'not signed yet' }}</span>
+                                        @endforeach
+                                    @else
+                                        Not sent yet · created {{ $doc->created_at->format('d M Y') }}
+                                    @endif
+                                    @if($doc->meeting_date) · Meeting {{ $doc->meeting_date->format('d M Y') }}@endif
+                                </p>
+                            </div>
+                            <div class="flex items-center gap-2 shrink-0">
+                                <span class="inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-bold {{ $dsc }}">{{ $dsl }}</span>
+                                @if($link)
+                                    <a href="{{ $link }}" class="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1 text-[11px] font-semibold text-slate-600 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700">
+                                        <i data-lucide="{{ $mySigner && !$mySigner->signed_at ? 'pen-line' : 'eye' }}" class="h-3 w-3"></i> {{ $mySigner && !$mySigner->signed_at ? 'Sign' : 'View' }}
+                                    </a>
+                                @endif
+                            </div>
+                        </div>
+                    @empty
+                        <div class="px-6 py-8 text-center text-sm text-slate-400 italic">No HR documents on file{{ $isSelf ? '' : ' for ' . $employee->first_name }}.</div>
+                    @endforelse
+                </div>
+            </div>
+            @endif
+        @endif
     </div>
 
     {{-- ATTENDANCE TAB --}}
