@@ -96,11 +96,28 @@
             @if($filters)<a href="{{ route('hr-documents.index', $showArchived ? ['archived' => 1] : []) }}" class="btn-outline btn-sm">Clear</a>@endif
         </form>
 
+        @php
+            // Plain-language description of the current filter, e.g. "sent between 1 and 31 Aug 2026".
+            $fmt = fn ($d) => \Illuminate\Support\Carbon::parse($d)->format('d M Y');
+            $rangeText = $dateFrom && $dateTo ? "sent between {$fmt($dateFrom)} and {$fmt($dateTo)}"
+                : ($dateFrom ? "sent since {$fmt($dateFrom)}" : ($dateTo ? "sent up to {$fmt($dateTo)}" : ''));
+            $matchText = $search !== '' ? "matching “{$search}”" : '';
+            $filterText = trim(implode(' · ', array_filter([$matchText, $rangeText])));
+            // Month the document belongs to on this list: when it was sent, or created for drafts.
+            $docDate = fn ($d) => $d->sent_at ?? ($d->status !== 'draft' && $d->first_signer_at ? \Illuminate\Support\Carbon::parse($d->first_signer_at) : $d->created_at);
+        @endphp
+
+        @if($filters && $documents->isNotEmpty())
+            <p class="mb-2 text-xs text-slate-500 dark:text-slate-400">
+                <span class="font-semibold text-slate-700 dark:text-slate-200">{{ $documents->count() }}</span> {{ $showArchived ? 'archived ' : '' }}{{ Str::plural('document', $documents->count()) }} {{ $filterText }}
+            </p>
+        @endif
+
         <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden dark:bg-slate-800 dark:border-slate-700">
             @if($documents->isEmpty())
                 <div class="p-8 text-center text-sm text-slate-500">
                     @if($filters)
-                        No {{ $showArchived ? 'archived ' : '' }}documents match{{ $search !== '' ? " “{$search}”" : '' }}{{ $dateFrom || $dateTo ? ' in that date range' : '' }}.
+                        No {{ $showArchived ? 'archived ' : '' }}documents {{ $filterText }}.
                     @else
                         {{ $showArchived ? 'No archived documents.' : 'No documents on file yet.' }}
                     @endif
@@ -119,7 +136,15 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
-                        @foreach($documents as $doc)
+                        @foreach($documents->groupBy(fn ($d) => $docDate($d)->format('Y-m')) as $ym => $monthDocs)
+                            {{-- Month header: the list is grouped by when each document was sent (created, for drafts) --}}
+                            <tr class="bg-slate-50/80 dark:bg-slate-900/40">
+                                <td colspan="7" class="px-5 py-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                                    {{ \Illuminate\Support\Carbon::createFromFormat('Y-m', $ym)->format('F Y') }}
+                                    <span class="ml-1 font-semibold normal-case tracking-normal text-slate-400/80">· {{ $monthDocs->count() }} {{ Str::plural('document', $monthDocs->count()) }}</span>
+                                </td>
+                            </tr>
+                        @foreach($monthDocs as $doc)
                             <tr class="hover:bg-slate-50/70 dark:hover:bg-slate-700/40">
                                 <td class="px-5 py-3 font-semibold text-slate-800 dark:text-slate-200">{{ optional($doc->employee)->full_name ?? '—' }}</td>
                                 <td class="px-5 py-3 text-slate-600 dark:text-slate-300">{{ $doc->template_name }}</td>
@@ -140,7 +165,14 @@
                                 </td>
                                 <td class="px-5 py-3 text-slate-500">
                                     @if($sentAt)
-                                        {{ $sentAt->format('d M Y') }}
+                                        <div class="text-slate-700 dark:text-slate-200">{{ $sentAt->format('d M Y') }} <span class="text-[11px] text-slate-400">{{ $sentAt->format('g:i A') }}</span></div>
+                                        {{-- Who it went to and where each signature stands --}}
+                                        @foreach($doc->signers as $signer)
+                                            <div class="mt-0.5 flex items-center gap-1 text-[11px] {{ $signer->signed_at ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400' }}">
+                                                <i data-lucide="{{ $signer->signed_at ? 'check-circle-2' : 'clock' }}" class="h-3 w-3 shrink-0"></i>
+                                                <span>to {{ optional($signer->user)->full_name ?? 'Signer' }}@if($signer->role === 'manager') (manager)@endif — {{ $signer->signed_at ? 'signed ' . $signer->signed_at->format('d M') : 'not signed yet' }}</span>
+                                            </div>
+                                        @endforeach
                                     @else
                                         <span class="text-slate-400">Not sent</span>
                                         <span class="block text-[11px] text-slate-400">Created {{ $doc->created_at->format('d M Y') }}</span>
@@ -177,6 +209,7 @@
                                     </div>
                                 </td>
                             </tr>
+                        @endforeach
                         @endforeach
                     </tbody>
                 </table>

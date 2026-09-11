@@ -37,7 +37,7 @@ class HrDocumentController extends Controller
         $dateFrom = $parseDate($request->input('date_from'));
         $dateTo   = $parseDate($request->input('date_to'));
 
-        $documents = HrDocument::with('employee')
+        $documents = HrDocument::with(['employee', 'signers.user'])
             // Legacy rows were marked "sent" before sent_at existed — the first signer row marks the send.
             ->withMin('signers as first_signer_at', 'created_at')
             ->when($showArchived, fn ($q) => $q->whereNotNull('archived_at'), fn ($q) => $q->whereNull('archived_at'))
