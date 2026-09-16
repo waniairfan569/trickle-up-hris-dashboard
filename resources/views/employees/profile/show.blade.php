@@ -346,8 +346,9 @@
                                 </div>
                                 @if($isWfhP)
                                     @php
-                                        $wfhUsed = \App\Models\AttendanceRecord::where('user_id', $employee->id)->where('work_location', 'remote')->whereYear('date', now()->year)->count();
-                                        $wfhPending = (float) \App\Models\TimeOffRequest::where('user_id', $employee->id)->where('policy_id', $b->policy_id)->where('status', 'pending')->sum('days_requested');
+                                        $wfhReq = \App\Models\TimeOffRequest::where('user_id', $employee->id)->where('policy_id', $b->policy_id)->whereYear('start_date', now()->year);
+                                        $wfhUsed = (float) (clone $wfhReq)->where('status', 'approved')->sum('days_requested');
+                                        $wfhPending = (float) (clone $wfhReq)->where('status', 'pending')->sum('days_requested');
                                     @endphp
                                     <p class="text-base font-extrabold text-brand-600 dark:text-brand-400">As per approval</p>
                                     <p class="text-[11px] text-slate-400 mt-0.5">Used: <span class="font-bold text-slate-700 dark:text-slate-200">{{ $wfhUsed }}</span> · Pending: <span class="font-bold text-slate-700 dark:text-slate-200">{{ $wfhPending }}</span></p>
