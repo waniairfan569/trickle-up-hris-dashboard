@@ -737,6 +737,7 @@ Route::middleware(['auth', 'verified', 'force.password.change'])->group(function
         Route::resource('time-off-policies', TimeOffPolicyController::class);
         Route::post('time-off-policies/{policy}/assign', [TimeOffPolicyController::class, 'assign'])->name('time-off-policies.assign');
         Route::post('time-off-policies/{policy}/unassign', [TimeOffPolicyController::class, 'unassign'])->name('time-off-policies.unassign');
+        Route::post('time-off-policies/{timeOffPolicy}/unassign-all', [TimeOffPolicyController::class, 'unassignAll'])->name('time-off-policies.unassign-all');
         Route::get('time-off-policies/{time_off_policy}/balances', [TimeOffPolicyController::class, 'balances'])->name('time-off-policies.balances');
         Route::post('time-off-policies/{time_off_policy}/adjust-balance', [TimeOffPolicyController::class, 'adjustBalance'])->name('time-off-policies.adjust-balance');
 

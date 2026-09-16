@@ -433,9 +433,20 @@ class TimeOffController extends Controller
         $ids = $assignedIds->merge($balancePolicyIds)->unique()->values();
         $myPolicies = TimeOffPolicy::whereIn('id', $ids)->get();
 
+        // Work From Home is approval-based and available to everyone — always offer the
+        // active WFH policy, even without an assignment or balance, so nobody (including
+        // new hires) is blocked and per-employee WFH balances are unnecessary.
+        $wfhPolicy = TimeOffPolicy::active()->workFromHome()->first();
+        if ($wfhPolicy && ! $myPolicies->contains('id', $wfhPolicy->id)) {
+            $myPolicies->push($wfhPolicy);
+        }
+
         $balances = [];
         foreach ($myPolicies as $policy) {
-            $balances[$policy->id] = $this->balanceService->getOrCreateBalance($user, $policy, $year);
+            // WFH shows "As per approval" and has no allowance, so it needs no balance record.
+            $balances[$policy->id] = $policy->isWorkFromHome()
+                ? null
+                : $this->balanceService->getOrCreateBalance($user, $policy, $year);
         }
 
         return view('time-off.create', compact('myPolicies', 'balances'));

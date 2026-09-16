@@ -110,6 +110,15 @@
             </form>
         </div>
 
+        @if($timeOffPolicy->isWorkFromHome() && $assignedUsers->count())
+            <div class="px-6 py-3 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between gap-3 flex-wrap">
+                <p class="text-xs text-slate-500 dark:text-slate-400">Work From Home is approval-based and available to everyone — per-employee assignment and balances are not needed.</p>
+                <form method="POST" action="{{ route('time-off-policies.unassign-all', $timeOffPolicy) }}" onsubmit="return confirm('Unassign all {{ $assignedUsers->count() }} employees from Work From Home? It stays available to everyone as an approval-based request; balances are kept as history.');">
+                    @csrf
+                    <button type="submit" class="inline-flex items-center gap-1.5 rounded-lg bg-red-50 px-3 py-1.5 text-sm font-bold text-red-600 hover:bg-red-100 transition dark:bg-red-500/10 dark:text-red-400"><i data-lucide="user-minus" class="h-4 w-4"></i> Unassign all</button>
+                </form>
+            </div>
+        @endif
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse">
                 <thead>

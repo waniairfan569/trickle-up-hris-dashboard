@@ -151,6 +151,22 @@ class TimeOffPolicyController extends Controller
         return back()->with('success', 'Policy assigned and balances created.');
     }
 
+    /**
+     * Unassign every employee from an approval-based Work From Home policy at once.
+     * Only allowed for WFH: it is available to everyone regardless of assignment, so
+     * detaching does not remove anyone's ability to request it. Balances are kept as
+     * historical record (WFH no longer consumes a balance).
+     */
+    public function unassignAll(TimeOffPolicy $timeOffPolicy)
+    {
+        abort_unless($timeOffPolicy->isWorkFromHome(), 422, 'Bulk unassign is only available for the approval-based Work From Home policy.');
+
+        $count = $timeOffPolicy->employees()->count();
+        $timeOffPolicy->employees()->detach();
+
+        return back()->with('success', "Unassigned {$count} employee(s) from Work From Home. It stays available to everyone as an approval-based request.");
+    }
+
     public function unassign(Request $request, TimeOffPolicy $policy)
     {
         $request->validate([

@@ -42,6 +42,7 @@
                     $policyName = optional($b->policy)->name ?? 'Unpaid Leave';
                     $displayName = stripos($policyName, 'Annual') !== false ? 'Planned Leaves'
                         : (stripos($policyName, 'Casual') !== false ? 'Unplanned Leaves' : $policyName);
+                    $isWfh = optional($b->policy)->isWorkFromHome();
                     $isUnpaid = !$b->policy || !$b->policy->is_paid;
                     $unit = optional($auth->company)->leave_unit ?? 'days';
                     $pct = $total > 0 ? min(100, max(0, round($remaining / $total * 100))) : 0;
@@ -50,17 +51,18 @@
                 <div class="rounded-xl border border-slate-100/80 dark:border-slate-700/60 bg-slate-50/60 dark:bg-slate-900/40 p-4">
                     <p class="text-[11px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400 truncate" title="{{ $policyName }}">{{ $displayName }}</p>
                     <div class="mt-1 flex items-baseline gap-1.5">
-                        <span class="text-2xl font-extrabold text-slate-900 dark:text-white">@if($isUnpaid)&infin;@else{{ $remaining + 0 }}@endif</span>
-                        @unless($isUnpaid)<span class="text-[11px] font-medium text-slate-400">of {{ $total + 0 }} {{ $unit }}</span>@endunless
+                        @if($isWfh)<span class="text-base font-extrabold text-slate-900 dark:text-white">As per approval</span>@elseif($isUnpaid)<span class="text-2xl font-extrabold text-slate-900 dark:text-white">&infin;</span>@else<span class="text-2xl font-extrabold text-slate-900 dark:text-white">{{ $remaining + 0 }}</span><span class="text-[11px] font-medium text-slate-400">of {{ $total + 0 }} {{ $unit }}</span>@endif
                     </div>
-                    @unless($isUnpaid)
+                    @if($isWfh)
+                        <p class="mt-2.5 text-[11px] text-slate-400">Approved per request</p>
+                    @elseif(!$isUnpaid)
                         <div class="mt-2.5 h-1.5 rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden">
                             <div class="h-full rounded-full {{ $bar }}" style="width: {{ $pct }}%"></div>
                         </div>
                         <p class="mt-1.5 text-[11px] text-slate-400">{{ $used + 0 }} used</p>
                     @else
                         <p class="mt-2.5 text-[11px] text-slate-400">Unlimited</p>
-                    @endunless
+                    @endif
                 </div>
             @endforeach
         </div>

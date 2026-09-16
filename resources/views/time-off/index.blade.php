@@ -390,16 +390,17 @@
                 $unit = optional(auth()->user()->company)->leave_unit ?? 'days';
             @endphp
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-6 dark:bg-slate-800 dark:border-slate-700/80">
-                @php $isComp = optional($balance->policy)->type === 'compensatory'; @endphp
+                @php $isComp = optional($balance->policy)->type === 'compensatory'; $isWfh = optional($balance->policy)->isWorkFromHome(); @endphp
                 <div class="flex justify-between items-start mb-4">
                     <div>
                         <h3 class="text-lg font-bold text-slate-900 dark:text-white">{{ optional($balance->policy)->name ?? 'Leave' }}</h3>
                         @if($isComp)<p class="text-[11px] text-slate-400">Earned for overtime worked</p>@endif
                     </div>
-                    <div class="text-2xl font-extrabold text-brand-600 dark:text-brand-400">{{ (float) $remaining }}</div>
+                    <div class="font-extrabold text-brand-600 dark:text-brand-400 {{ $isWfh ? 'text-sm' : 'text-2xl' }}">{{ $isWfh ? 'As per approval' : (float) $remaining }}</div>
                 </div>
-                <div class="text-xs text-slate-500 dark:text-slate-400 text-right mb-2">{{ $unit === 'hours' ? 'Hours' : 'Days' }} Remaining</div>
+                <div class="text-xs text-slate-500 dark:text-slate-400 text-right mb-2">{{ $isWfh ? 'Approved per request' : ($unit === 'hours' ? 'Hours' : 'Days') . ' Remaining' }}</div>
 
+                @unless($isWfh)
                 <div class="w-full bg-slate-100 rounded-full h-2.5 mb-4 dark:bg-slate-700 flex overflow-hidden">
                     <div class="bg-brand-600 h-2.5 rounded-l-full" style="width: {{ $percentUsed }}%"></div>
                     <div class="bg-amber-400 h-2.5" style="width: {{ $percentPending }}%"></div>
@@ -410,6 +411,7 @@
                     <div>Pending: <span class="font-bold text-slate-900 dark:text-white">{{ (float) $pending }}</span></div>
                     <div>{{ $isComp ? 'Earned' : 'Allowance' }}: <span class="font-bold text-slate-900 dark:text-white">{{ (float) $total }}</span></div>
                 </div>
+                @endunless
             </div>
         @empty
             <div class="md:col-span-2 lg:col-span-3 bg-white rounded-2xl shadow-sm border border-slate-200/80 p-8 text-center text-sm text-slate-500 dark:bg-slate-800 dark:border-slate-700/80">
