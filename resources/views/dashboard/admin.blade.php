@@ -336,8 +336,8 @@
             @else
                 <div class="divide-y divide-slate-100 dark:divide-slate-700/60 -my-4">
                     @foreach($pendingRequests as $req)
-                        <div class="flex flex-col gap-4 py-4 sm:flex-row sm:items-center sm:justify-between">
-                            <div class="flex items-center space-x-3">
+                        <div class="py-4 space-y-3">
+                            <div class="flex items-center space-x-3 min-w-0">
                                 <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-slate-100 to-slate-200 text-sm font-bold text-slate-700 dark:from-slate-700 dark:to-slate-600 dark:text-slate-200">
                                     {{ $req->employee->initials ?? 'EM' }}
                                 </div>
@@ -348,7 +348,7 @@
                                     </p>
                                     @if($req->reason)
                                         {{-- Reason: truncated inline; hover shows the full text (only when it's actually cut off). --}}
-                                        <div class="relative mt-0.5 max-w-xs" x-data="{ show: false }">
+                                        <div class="relative mt-0.5 max-w-full" x-data="{ show: false }">
                                             <p x-ref="reason{{ $req->id }}"
                                                @mouseenter="show = ($refs.reason{{ $req->id }}.scrollWidth > $refs.reason{{ $req->id }}.clientWidth)"
                                                @mouseleave="show = false"
@@ -365,8 +365,8 @@
                                 </div>
                             </div>
 
-                            <div class="flex items-center gap-4 pl-13 sm:pl-0 shrink-0">
-                                <div class="text-left sm:text-right whitespace-nowrap">
+                            <div class="flex items-center justify-between gap-3 pl-13">
+                                <div class="text-left whitespace-nowrap">
                                     <span class="text-sm font-extrabold text-slate-900 dark:text-white">{{ $req->duration_label }}</span>
                                     <p class="text-[10px] text-slate-400 font-medium">
                                         {{ $req->start_date->format('M d') }}@if($req->start_date->ne($req->end_date)) – {{ $req->end_date->format('M d') }}@endif
