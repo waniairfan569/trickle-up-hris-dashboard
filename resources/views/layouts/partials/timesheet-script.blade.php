@@ -9,7 +9,7 @@
     var goal = {{ (int) ($tsGoalSeconds ?? 28800) }};
     var running = {{ ($tsClockedIn ?? false) ? 'true' : 'false' }};
 
-    function fmt(s) { return Math.floor(s/3600) + 'h ' + Math.floor((s%3600)/60) + 'm'; }
+    function fmt(s) { return Math.floor(s/3600) + 'h ' + Math.floor((s%3600)/60) + 'm ' + Math.floor(s%60) + 's'; }
     function paint() {
         var p = Math.min(100, Math.max(0, Math.round(worked / goal * 100)));
         document.querySelectorAll('.ts-worked-timer').forEach(function (e) { e.textContent = fmt(worked); });

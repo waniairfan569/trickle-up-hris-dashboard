@@ -34,7 +34,7 @@
             @if($tsLate)<span class="rounded-full bg-amber-400/15 px-2 py-0.5 text-[10px] font-bold text-amber-400">LATE</span>@endif
         </div>
 
-        <div class="mt-1.5 text-3xl font-black tabular-nums leading-none text-white ts-worked-timer">{{ intdiv($tsWorked,3600) }}h {{ intdiv($tsWorked%3600,60) }}m</div>
+        <div class="mt-1.5 text-3xl font-black tabular-nums leading-none text-white ts-worked-timer">{{ intdiv($tsWorked,3600) }}h {{ intdiv($tsWorked%3600,60) }}m {{ $tsWorked%60 }}s</div>
 
         @if($tsStatus['clock_in'])
             <div class="mt-3 h-2 w-full overflow-hidden rounded-full bg-slate-700">

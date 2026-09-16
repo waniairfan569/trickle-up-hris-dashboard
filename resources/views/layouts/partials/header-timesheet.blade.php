@@ -37,7 +37,7 @@
                 @if($htLate)<span class="text-[9px] font-bold text-amber-600 dark:text-amber-400">LATE</span>@endif
             </div>
             <div class="flex items-baseline gap-2 whitespace-nowrap">
-                <span class="text-lg font-black tabular-nums leading-none text-slate-900 dark:text-white ts-worked-timer">{{ intdiv($htWorked,3600) }}h {{ intdiv($htWorked%3600,60) }}m</span>
+                <span class="text-lg font-black tabular-nums leading-none text-slate-900 dark:text-white ts-worked-timer">{{ intdiv($htWorked,3600) }}h {{ intdiv($htWorked%3600,60) }}m {{ $htWorked%60 }}s</span>
                 @if($htStatus['clock_in'])
                     <span class="text-[11px] font-semibold text-slate-400 dark:text-slate-500">
                         @if($htClockedIn)<span class="text-emerald-500">●</span> Ongoing @elseif($htStatus['clock_out'])Completed @else Paused @endif · <span class="ts-worked-pct">{{ $htGoalPct }}</span>% of {{ $htGoalLabel }}
