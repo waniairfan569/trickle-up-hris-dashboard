@@ -188,7 +188,7 @@
              class="fixed inset-y-0 left-0 z-50 flex w-72 flex-col bg-slate-900 text-slate-100 lg:hidden x-cloak">
             
             <!-- Mobile Header Logo -->
-            <div class="flex h-20 shrink-0 items-center justify-between px-6 border-b border-slate-800">
+            <div class="flex h-16 shrink-0 items-center justify-between px-6 border-b border-slate-800">
                 <a href="{{ route('dashboard') }}" class="flex items-center space-x-3">
                     <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-transparent">
                         <img src="{{ $brandLogo }}" alt="{{ $brandName }} Logo" class="h-8 w-8 object-contain">
@@ -213,7 +213,7 @@
         <!-- Desktop Sidebar (Fixed) -->
         <div class="hidden lg:flex lg:w-72 lg:flex-col lg:fixed lg:inset-y-0 lg:z-40 bg-slate-900 text-slate-100 shadow-xl border-r border-slate-800">
             <!-- Brand Logo -->
-            <div class="flex h-20 shrink-0 items-center px-6 border-b border-slate-800">
+            <div class="flex h-16 shrink-0 items-center px-6 border-b border-slate-800">
                 <a href="{{ route('dashboard') }}" class="flex items-center space-x-3">
                     <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-transparent">
                         <img src="{{ $brandLogo }}" alt="{{ $brandName }} Logo" class="h-8 w-8 object-contain">
@@ -236,7 +236,7 @@
         <div class="flex-1 flex flex-col lg:pl-72 min-w-0">
             
             <!-- Topbar Header -->
-            <header class="flex h-20 shrink-0 items-center gap-x-4 border-b border-slate-200/80 bg-white px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8 dark:bg-slate-800 dark:border-slate-800">
+            <header class="flex h-16 shrink-0 items-center gap-x-4 border-b border-slate-200/80 bg-white px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8 dark:bg-slate-800 dark:border-slate-800">
                 
                 <!-- Mobile Toggle button -->
                 <button type="button" @click="sidebarOpen = true" class="-m-2.5 p-2.5 text-slate-500 hover:text-slate-800 lg:hidden focus:outline-none dark:text-slate-400 dark:hover:text-slate-200">
@@ -257,8 +257,6 @@
                 <!-- Right Header Actions -->
                 <div class="flex items-center gap-x-4 lg:gap-x-6">
 
-                    {{-- Live timesheet in the top bar (before the bell), mirrors the dashboard card --}}
-                    @include('layouts.partials.header-timesheet')
 
                     <!-- Notification Indicator Dropdown (kept last so the bell sits at the far right) -->
                     <div x-data="{ open: false }" class="relative order-last">
