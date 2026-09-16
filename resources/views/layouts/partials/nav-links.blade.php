@@ -47,80 +47,80 @@
 <div class="space-y-1">
     {{-- Personal menu — top-level items (no "My Workspace" dropdown) --}}
         <a href="{{ route('employees.profile', auth()->id()) }}"
-           class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ (Str::startsWith($routeName, 'employees.profile') || request()->is('employees/' . auth()->id() . '/profile*')) ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">
-            <i data-lucide="user" class="h-4 w-4 shrink-0"></i><span class="flex-1">My Profile</span>
+           class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ (Str::startsWith($routeName, 'employees.profile') || request()->is('employees/' . auth()->id() . '/profile*')) ? 'text-brand-400 bg-slate-800' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
+            <i data-lucide="user" class="h-5 w-5 shrink-0"></i><span class="flex-1">My Profile</span>
         </a>
         {{-- Employees get the Org Chart here; admins/managers get the full Employees Directory under Team Management. --}}
         @unless(auth()->user()->isAdmin() || auth()->user()->isManager())
         <a href="{{ route('org-chart') }}"
-           class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ request()->routeIs('org-chart') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">
-            <i data-lucide="network" class="h-4 w-4 shrink-0"></i><span class="flex-1">Org Chart</span>
+           class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ request()->routeIs('org-chart') ? 'text-brand-400 bg-slate-800' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
+            <i data-lucide="network" class="h-5 w-5 shrink-0"></i><span class="flex-1">Org Chart</span>
         </a>
         @endunless
         <a href="{{ route('attendance.my-history') }}"
-           class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'attendance.my-history') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">
-            <i data-lucide="clock" class="h-4 w-4 shrink-0"></i><span class="flex-1">My Attendance</span>
+           class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'attendance.my-history') ? 'text-brand-400 bg-slate-800' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
+            <i data-lucide="clock" class="h-5 w-5 shrink-0"></i><span class="flex-1">My Attendance</span>
         </a>
         <a href="{{ route('time-off.index') }}"
-           class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ (Str::startsWith($routeName, 'time-off') && !Str::contains($routeName, 'policies')) ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">
-            <i data-lucide="calendar" class="h-4 w-4 shrink-0"></i><span class="flex-1">Time Off Requests</span>
+           class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ (Str::startsWith($routeName, 'time-off') && !Str::contains($routeName, 'policies')) ? 'text-brand-400 bg-slate-800' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
+            <i data-lucide="calendar" class="h-5 w-5 shrink-0"></i><span class="flex-1">Time Off Requests</span>
             {!! $navBadge($nav['timeoff']) !!}
         </a>
         <a href="{{ route('events.employee-calendar') }}"
-           class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ request()->routeIs('events.employee-calendar') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">
-            <i data-lucide="calendar-days" class="h-4 w-4 shrink-0"></i><span class="flex-1">Calendar</span>
+           class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ request()->routeIs('events.employee-calendar') ? 'text-brand-400 bg-slate-800' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
+            <i data-lucide="calendar-days" class="h-5 w-5 shrink-0"></i><span class="flex-1">Calendar</span>
         </a>
         @unless(auth()->user()->isAdmin())
         <a href="{{ route('announcements.all') }}"
-           class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ request()->routeIs('announcements.all') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">
-            <i data-lucide="megaphone" class="h-4 w-4 shrink-0"></i><span class="flex-1">Announcements</span>
+           class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ request()->routeIs('announcements.all') ? 'text-brand-400 bg-slate-800' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
+            <i data-lucide="megaphone" class="h-5 w-5 shrink-0"></i><span class="flex-1">Announcements</span>
         </a>
         @if(plan_allows('feedback'))
         <a href="{{ route('feedback.mine') }}"
-           class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ request()->routeIs('feedback.mine') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">
-            <i data-lucide="message-square-heart" class="h-4 w-4 shrink-0"></i><span class="flex-1">Feedback &amp; Suggestions</span>
+           class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ request()->routeIs('feedback.mine') ? 'text-brand-400 bg-slate-800' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
+            <i data-lucide="message-square-heart" class="h-5 w-5 shrink-0"></i><span class="flex-1">Feedback &amp; Suggestions</span>
         </a>
         @endif
         @endunless
         @if(plan_allows('forms'))
         <a href="{{ route('my-forms.index') }}"
-           class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ (Str::startsWith($routeName, 'my-forms') || Str::startsWith($routeName, 'forms.')) ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">
-            <i data-lucide="clipboard-list" class="h-4 w-4 shrink-0"></i><span class="flex-1">My Forms</span>
+           class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ (Str::startsWith($routeName, 'my-forms') || Str::startsWith($routeName, 'forms.')) ? 'text-brand-400 bg-slate-800' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
+            <i data-lucide="clipboard-list" class="h-5 w-5 shrink-0"></i><span class="flex-1">My Forms</span>
             {!! $navBadge($nav['forms']) !!}
         </a>
         @endif
         @if(!auth()->user()->isAdmin() && plan_allows('forms') && auth()->user()->reviewableForms()->exists())
         <a href="{{ route('company-forms.my-reviews') }}"
-           class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'company-forms.my-reviews') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">
-            <i data-lucide="clipboard-check" class="h-4 w-4 shrink-0"></i><span class="flex-1">Form Reviews</span>
+           class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'company-forms.my-reviews') ? 'text-brand-400 bg-slate-800' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
+            <i data-lucide="clipboard-check" class="h-5 w-5 shrink-0"></i><span class="flex-1">Form Reviews</span>
         </a>
         @endif
         <a href="{{ route('my-policies.index') }}"
-           class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ (Str::startsWith($routeName, 'my-policies') || Str::startsWith($routeName, 'policies.')) ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">
-            <i data-lucide="book-text" class="h-4 w-4 shrink-0"></i><span class="flex-1">My Policies</span>
+           class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ (Str::startsWith($routeName, 'my-policies') || Str::startsWith($routeName, 'policies.')) ? 'text-brand-400 bg-slate-800' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
+            <i data-lucide="book-text" class="h-5 w-5 shrink-0"></i><span class="flex-1">My Policies</span>
         </a>
         @if(plan_allows('hr_documents'))
         <a href="{{ route('hr-documents.to-sign') }}"
-           class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ (Str::startsWith($routeName, 'hr-documents.to-sign') || Str::startsWith($routeName, 'hr-documents.sign')) ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">
-            <i data-lucide="file-signature" class="h-4 w-4 shrink-0"></i><span class="flex-1">To Sign</span>
+           class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ (Str::startsWith($routeName, 'hr-documents.to-sign') || Str::startsWith($routeName, 'hr-documents.sign')) ? 'text-brand-400 bg-slate-800' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
+            <i data-lucide="file-signature" class="h-5 w-5 shrink-0"></i><span class="flex-1">To Sign</span>
             {!! $navBadge($nav['hr_to_sign'] ?? 0) !!}
         </a>
         @endif
         @if(plan_allows('equipment'))
         <a href="{{ route('equipment.index') }}"
-           class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ request()->routeIs('equipment.index') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">
-            <i data-lucide="package" class="h-4 w-4 shrink-0"></i><span class="flex-1">Equipment</span>
+           class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ request()->routeIs('equipment.index') ? 'text-brand-400 bg-slate-800' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
+            <i data-lucide="package" class="h-5 w-5 shrink-0"></i><span class="flex-1">Equipment</span>
         </a>
         @endif
         @php $docLibActive = Str::startsWith($routeName, 'document-library') || Str::startsWith($routeName, 'documents.'); @endphp
         <a href="{{ route('document-library.index') }}"
-           class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ $docLibActive ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">
-            <i data-lucide="library" class="h-4 w-4 shrink-0"></i><span class="flex-1">Document Library</span>
+           class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ $docLibActive ? 'text-brand-400 bg-slate-800' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
+            <i data-lucide="library" class="h-5 w-5 shrink-0"></i><span class="flex-1">Document Library</span>
             {!! $navBadge($nav['sign'] ?? 0) !!}
         </a>
         <a href="{{ route('settings.index') }}"
-           class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'settings') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">
-            <i data-lucide="settings" class="h-4 w-4 shrink-0"></i><span class="flex-1">Settings</span>
+           class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'settings') ? 'text-brand-400 bg-slate-800' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
+            <i data-lucide="settings" class="h-5 w-5 shrink-0"></i><span class="flex-1">Settings</span>
         </a>
 
         {{-- Granted access: features a super admin has granted this employee (non-admins only) --}}
@@ -143,13 +143,13 @@
             <div class="mt-4 pt-3 border-t border-slate-800">
                 <p class="px-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">Granted access</p>
                 @foreach($__grantLinks as $__route => $__label)
-                    <a href="{{ route($__route) }}" class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ request()->routeIs($__route) ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">
-                        <i data-lucide="key-round" class="h-4 w-4 shrink-0"></i><span class="flex-1">{{ $__label }}</span>
+                    <a href="{{ route($__route) }}" class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ request()->routeIs($__route) ? 'text-brand-400 bg-slate-800' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
+                        <i data-lucide="key-round" class="h-5 w-5 shrink-0"></i><span class="flex-1">{{ $__label }}</span>
                     </a>
                 @endforeach
                 @if($__canSendCodes)
-                    <a href="{{ route('code-requests.pending') }}" class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'code-requests.pending') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">
-                        <i data-lucide="key-round" class="h-4 w-4 shrink-0"></i><span class="flex-1">Code Requests</span>
+                    <a href="{{ route('code-requests.pending') }}" class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'code-requests.pending') ? 'text-brand-400 bg-slate-800' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
+                        <i data-lucide="key-round" class="h-5 w-5 shrink-0"></i><span class="flex-1">Code Requests</span>
                         @if($__pendingCodesGranted > 0)<span class="inline-flex items-center justify-center rounded-full bg-rose-500 text-white text-[10px] font-bold h-5 min-w-5 px-1">{{ $__pendingCodesGranted }}</span>@endif
                     </a>
                 @endif
@@ -166,8 +166,8 @@
 {{-- Team Management for managers who are not admins — admins get it under Administration instead --}}
 @if(auth()->user()->isManager() && !auth()->user()->isAdmin())
 <a href="{{ route('team.index') }}"
-   class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ $teamActive ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">
-    <i data-lucide="users-round" class="h-4 w-4 shrink-0 transition {{ $teamActive ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>
+   class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ $teamActive ? 'text-brand-400 bg-slate-800' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
+    <i data-lucide="users-round" class="h-5 w-5 shrink-0 transition {{ $teamActive ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>
     <span class="flex-1">Team Management</span>
     {!! $navBadge($nav['corrections']) !!}
 </a>
@@ -196,37 +196,37 @@
 
     {{-- Team Management — single link to the hub page; the team tools live there as tiles --}}
     <a href="{{ route('team.index') }}"
-       class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ $teamActive ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">
-        <i data-lucide="users-round" class="h-4 w-4 shrink-0 transition {{ $teamActive ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>
+       class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ $teamActive ? 'text-brand-400 bg-slate-800' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
+        <i data-lucide="users-round" class="h-5 w-5 shrink-0 transition {{ $teamActive ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>
         <span class="flex-1">Team Management</span>
         {!! $navBadge($nav['corrections'] + $nav['invites']) !!}
     </a>
 
     {{-- Communication — single link to the hub page; Announcements + Events live there as tiles --}}
     <a href="{{ route('communication.index') }}"
-       class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ $commActive ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">
-        <i data-lucide="megaphone" class="h-4 w-4 shrink-0 transition {{ $commActive ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>
+       class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ $commActive ? 'text-brand-400 bg-slate-800' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
+        <i data-lucide="megaphone" class="h-5 w-5 shrink-0 transition {{ $commActive ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>
         <span class="flex-1">Communication</span>
     </a>
 
     {{-- Company — single link to the hub page; all company settings live there as tiles --}}
     <a href="{{ route('company.index') }}"
-       class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ $companyGroupOpen ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">
-        <i data-lucide="building" class="h-4 w-4 shrink-0 transition {{ $companyGroupOpen ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>
+       class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ $companyGroupOpen ? 'text-brand-400 bg-slate-800' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
+        <i data-lucide="building" class="h-5 w-5 shrink-0 transition {{ $companyGroupOpen ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>
         <span class="flex-1">Company</span>
     </a>
 
     {{-- Templates — single link to the hub page; Profile + Signature templates live there as tiles --}}
     <a href="{{ route('templates.index') }}"
-       class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ $templatesOpen ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">
-        <i data-lucide="layout-template" class="h-4 w-4 shrink-0 transition {{ $templatesOpen ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>
+       class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ $templatesOpen ? 'text-brand-400 bg-slate-800' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
+        <i data-lucide="layout-template" class="h-5 w-5 shrink-0 transition {{ $templatesOpen ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>
         <span class="flex-1">Templates</span>
     </a>
 
     {{-- Time & Attendance — single link to the hub page; time settings, attendance and documents live there as tiles --}}
     <a href="{{ route('time-attendance.index') }}"
-       class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ $timeAttGroupOpen ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">
-        <i data-lucide="calendar-clock" class="h-4 w-4 shrink-0 transition {{ $timeAttGroupOpen ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>
+       class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ $timeAttGroupOpen ? 'text-brand-400 bg-slate-800' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
+        <i data-lucide="calendar-clock" class="h-5 w-5 shrink-0 transition {{ $timeAttGroupOpen ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>
         <span class="flex-1">Time &amp; Attendance</span>
     </a>
 
@@ -239,8 +239,8 @@
             + (plan_allows('feedback') ? \App\Models\Feedback::where('status', 'open')->count() : 0);
     @endphp
     <a href="{{ route('requests.index') }}"
-       class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ $requestsActive ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">
-        <i data-lucide="inbox" class="h-4 w-4 shrink-0 transition {{ $requestsActive ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>
+       class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ $requestsActive ? 'text-brand-400 bg-slate-800' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
+        <i data-lucide="inbox" class="h-5 w-5 shrink-0 transition {{ $requestsActive ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>
         <span class="flex-1">Requests</span>
         {!! $navBadge($requestsBadge) !!}
     </a>
@@ -249,8 +249,8 @@
     {{-- Linked Sheets — bookmarks to external Google Sheets / spreadsheets (a library of links, not reports) --}}
     @if(plan_allows('sheets'))
     <a href="{{ route('sheets.index') }}"
-       class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ Str::startsWith($routeName, 'sheets') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">
-        <i data-lucide="sheet" class="h-4 w-4 shrink-0 transition {{ Str::startsWith($routeName, 'sheets') ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>
+       class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ Str::startsWith($routeName, 'sheets') ? 'text-brand-400 bg-slate-800' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
+        <i data-lucide="sheet" class="h-5 w-5 shrink-0 transition {{ Str::startsWith($routeName, 'sheets') ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>
         <span class="flex-1">Linked Sheets</span>
     </a>
     @endif
