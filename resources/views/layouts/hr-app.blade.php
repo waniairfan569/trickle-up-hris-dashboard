@@ -202,6 +202,7 @@
 
             <!-- Mobile Nav Links -->
             <nav class="flex-1 space-y-1 px-4 py-4 overflow-y-auto">
+                @include('layouts.partials.sidebar-timesheet')
                 @include('layouts.partials.nav-links')
             </nav>
 
@@ -223,6 +224,7 @@
 
             <!-- Navigation Links -->
             <nav class="flex-1 space-y-1 px-4 py-6 overflow-y-auto">
+                @include('layouts.partials.sidebar-timesheet')
                 @include('layouts.partials.nav-links')
             </nav>
 
@@ -254,9 +256,6 @@
 
                 <!-- Right Header Actions -->
                 <div class="flex items-center gap-x-4 lg:gap-x-6">
-
-                    {{-- Live timesheet — visible on every page --}}
-                    @include('layouts.partials.header-timesheet')
 
                     <!-- Notification Indicator Dropdown (kept last so the bell sits at the far right) -->
                     <div x-data="{ open: false }" class="relative order-last">
