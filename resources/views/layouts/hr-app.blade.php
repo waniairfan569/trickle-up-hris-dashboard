@@ -257,6 +257,9 @@
                 <!-- Right Header Actions -->
                 <div class="flex items-center gap-x-4 lg:gap-x-6">
 
+                    {{-- Live timesheet in the top bar (before the bell), mirrors the dashboard card --}}
+                    @include('layouts.partials.header-timesheet')
+
                     <!-- Notification Indicator Dropdown (kept last so the bell sits at the far right) -->
                     <div x-data="{ open: false }" class="relative order-last">
                         <button @click="open = !open" @click.away="open = false" type="button" class="relative rounded-full p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 focus:outline-none dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-700">
