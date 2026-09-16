@@ -1,7 +1,7 @@
 @extends('layouts.hr-app')
 
-@section('title', 'Sheets')
-@section('breadcrumb', 'Sheets')
+@section('title', 'Linked Sheets')
+@section('breadcrumb', 'Linked Sheets')
 
 @php
     $providerIcon = ['google' => 'sheet', 'excel' => 'table-2', 'airtable' => 'grid-3x3', 'link' => 'link'];
@@ -18,7 +18,7 @@
     <div class="flex flex-wrap items-start justify-between gap-3">
         <div>
             <h1 class="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
-                <i data-lucide="sheet" class="h-6 w-6 text-brand-500"></i> Sheets
+                <i data-lucide="sheet" class="h-6 w-6 text-brand-500"></i> Linked Sheets
             </h1>
             <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Quick links to your Google Sheets &amp; spreadsheets — open or preview them right here.</p>
         </div>

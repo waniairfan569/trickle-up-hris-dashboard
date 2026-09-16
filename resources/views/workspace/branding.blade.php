@@ -5,6 +5,7 @@
 
 @section('content')
 <div class="max-w-2xl mx-auto space-y-6">
+    @include('partials.company-general-tabs')
     <div>
         <h1 class="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
             <i data-lucide="palette" class="h-6 w-6 text-brand-500"></i> Workspace Branding

@@ -5,6 +5,7 @@
 
 @section('content')
 <div class="max-w-7xl mx-auto space-y-6">
+    @include('partials.company-general-tabs')
     <!-- Header -->
     <div class="sm:flex sm:items-center sm:justify-between border-b border-slate-200/80 pb-5 dark:border-slate-700/60">
         <div>

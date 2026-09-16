@@ -2,6 +2,7 @@
 
 @section('content')
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="mb-6">@include('partials.company-general-tabs')</div>
     <div class="flex justify-between items-center mb-6">
         <h1 class="text-2xl font-bold text-slate-800">Office Locations & Geofences</h1>
         <div class="flex space-x-3">

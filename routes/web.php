@@ -124,6 +124,9 @@ Route::middleware(['auth', 'verified', 'force.password.change'])->group(function
     Route::post('announcements/read-all', [\App\Http\Controllers\AnnouncementController::class, 'markAllRead'])->name('announcements.read-all');
     Route::post('announcements/{announcement}/read', [\App\Http\Controllers\AnnouncementController::class, 'markRead'])->name('announcements.read');
     Route::middleware('role:super_admin,hr_admin')->group(function () {
+        // Communication hub — single landing page for Announcements + Events (replaces two sidebar dropdowns).
+        Route::get('communication', [\App\Http\Controllers\CommunicationController::class, 'index'])->name('communication.index');
+
         Route::get('announcements', [\App\Http\Controllers\AnnouncementController::class, 'index'])->name('announcements.index');
         Route::get('announcements/archived', [\App\Http\Controllers\AnnouncementController::class, 'archived'])->name('announcements.archived');
         Route::post('announcements', [\App\Http\Controllers\AnnouncementController::class, 'store'])->name('announcements.store');
@@ -191,6 +194,9 @@ Route::middleware(['auth', 'verified', 'force.password.change'])->group(function
     Route::get('equipment', [\App\Http\Controllers\EquipmentRequestController::class, 'index'])->name('equipment.index');
     Route::post('equipment', [\App\Http\Controllers\EquipmentRequestController::class, 'store'])->name('equipment.store');
     Route::middleware('role:super_admin,hr_admin')->group(function () {
+        // Requests hub — single landing page for Equipment / Code / Feedback queues (replaces the sidebar section).
+        Route::get('admin/requests', [\App\Http\Controllers\RequestsController::class, 'index'])->name('requests.index');
+
         Route::get('admin/equipment', [\App\Http\Controllers\EquipmentRequestController::class, 'adminIndex'])->name('equipment.admin');
         Route::get('admin/equipment/export', [\App\Http\Controllers\EquipmentRequestController::class, 'export'])->name('equipment.export');
         Route::get('admin/equipment/export-pdf', [\App\Http\Controllers\EquipmentRequestController::class, 'exportPdf'])->name('equipment.export-pdf');
@@ -576,6 +582,9 @@ Route::middleware(['auth', 'verified', 'force.password.change'])->group(function
         Route::post('invitation/{employee}/update-email', [\App\Http\Controllers\InvitationController::class, 'updateEmailAndResend'])->name('invitation.update-email');
         Route::post('invitation/{employee}/cancel', [\App\Http\Controllers\InvitationController::class, 'cancelInvitation'])->name('invitation.cancel');
 
+        // Security hub — single landing page for sessions, roles and audit logs (replaces the sidebar dropdown).
+        Route::get('/admin/security', [\App\Http\Controllers\SecurityController::class, 'index'])->name('security.index');
+
         Route::get('/admin/audit-logs', [\App\Http\Controllers\AuditLogController::class, 'index'])->name('admin.audit-logs');
         // Roles & Permissions manager (super-admin only — enforced in controller).
         // User↔role assignment still happens via EmployeeController::updateRole.
@@ -601,10 +610,16 @@ Route::middleware(['auth', 'verified', 'force.password.change'])->group(function
         Route::get('company-documents/{document}/send', [\App\Http\Controllers\CompanyDocumentController::class, 'sendForm'])->name('company-documents.send-form');
         Route::post('company-documents/{document}/send', [\App\Http\Controllers\CompanyDocumentController::class, 'send'])->name('company-documents.send');
 
+        // Templates hub — single landing page for Profile + Signature templates (replaces the sidebar dropdown).
+        Route::get('templates', [\App\Http\Controllers\TemplatesController::class, 'index'])->name('templates.index');
+
         // Reusable saved signatures (email signatures) — stamped onto documents.
         Route::get('signature-templates', [\App\Http\Controllers\SignatureTemplateController::class, 'index'])->name('signature-templates.index');
         Route::post('signature-templates', [\App\Http\Controllers\SignatureTemplateController::class, 'store'])->name('signature-templates.store');
         Route::delete('signature-templates/{signatureTemplate}', [\App\Http\Controllers\SignatureTemplateController::class, 'destroy'])->name('signature-templates.destroy');
+
+        // Company hub — single landing page for all company settings (replaces the nested sidebar dropdown).
+        Route::get('company', [\App\Http\Controllers\CompanyController::class, 'index'])->name('company.index');
 
         // Entities are the company's legal entities — created/edited, not deleted
         // (there is no destroy() and no delete UI). Exclude the broken DELETE route.
@@ -621,6 +636,9 @@ Route::middleware(['auth', 'verified', 'force.password.change'])->group(function
         Route::delete('holiday-calendars/{holiday_calendar}/remove-holiday/{holiday}', [HolidayCalendarController::class, 'removeHoliday'])->name('holiday-calendars.remove-holiday');
         Route::post('holiday-calendars/{holiday_calendar}/assign', [HolidayCalendarController::class, 'assign'])->name('holiday-calendars.assign');
         Route::delete('holiday-calendars/{holiday_calendar}/unassign/{user}', [HolidayCalendarController::class, 'unassign'])->name('holiday-calendars.unassign');
+
+        // Time & Attendance hub — single landing page for time settings, attendance and HR documents (replaces the two-level sidebar dropdown).
+        Route::get('time-attendance', [\App\Http\Controllers\TimeAttendanceController::class, 'index'])->name('time-attendance.index');
 
         // Time Tracking Policies (how employees log hours; scoped to entities/departments)
         Route::resource('time-tracking-policies', \App\Http\Controllers\TimeTrackingPolicyController::class)
@@ -744,6 +762,11 @@ Route::middleware(['auth', 'verified', 'force.password.change'])->group(function
         Route::post('onboarding/tasks/{task}/skip', [EmployeeOnboardingController::class, 'skipTask'])->name('onboarding.tasks.skip');
     });
 
+    // Team Management hub — single landing page for the manager tools (replaces the sidebar dropdown).
+    Route::get('team', [\App\Http\Controllers\TeamManagementController::class, 'index'])
+        ->middleware(['role:manager,hr_admin,super_admin'])
+        ->name('team.index');
+
     // 8. Attendance Module
     Route::prefix('attendance')->name('attendance.')->group(function () {
         Route::get('office-status', [AttendanceController::class, 'officeStatus'])->name('office-status');
@@ -798,6 +821,9 @@ Route::middleware(['auth', 'verified', 'force.password.change'])->group(function
         Route::get('office-locations-assign', [OfficeLocationController::class, 'assignView'])->name('office-locations.assignView');
         Route::post('office-locations/assign', [OfficeLocationController::class, 'assign'])->name('office-locations.assign');
         Route::post('office-locations/unassign', [OfficeLocationController::class, 'unassign'])->name('office-locations.unassign');
+
+        // Devices hub — single landing page for hardware integrations (replaces the sidebar dropdown).
+        Route::get('devices', [\App\Http\Controllers\DevicesController::class, 'index'])->name('devices.index');
 
         // ZKTeco Device Integration
         Route::prefix('zkteco')->name('zkteco.')->group(function() {
