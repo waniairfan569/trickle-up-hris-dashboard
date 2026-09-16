@@ -333,6 +333,7 @@
                                 $total=$b->opening_balance+$b->accrued+$b->adjusted+$b->carried_over;
                                 $rem=max(0,$total-$b->used-$b->pending);
                                 $pN=$b->policy->name;
+                                $isWfhP=$b->policy->isWorkFromHome();
                                 $lbl=stripos($pN,'Annual')!==false?'Planned Leaves':(stripos($pN,'Casual')!==false?'Unplanned':$pN);
                                 $cc=['border-cyan-400','border-amber-400','border-rose-400','border-emerald-400','border-indigo-400'][$loop->index%5];
                             @endphp
@@ -343,9 +344,14 @@
                                         <button type="button" @click="adj = !adj" title="Adjust allocation" class="shrink-0 -mt-0.5 rounded-lg p-1 text-slate-300 hover:text-brand-600 hover:bg-white dark:hover:bg-slate-600 transition"><i data-lucide="sliders-horizontal" class="h-3.5 w-3.5"></i></button>
                                     @endif
                                 </div>
-                                <p class="text-2xl font-extrabold text-slate-800 dark:text-white">{{ floatval($rem) }}</p>
-                                <p class="text-[11px] text-slate-400 mt-0.5">of {{ floatval($total) }} days total</p>
-                                <p class="text-[10px] text-slate-400 mt-1">Used: {{ floatval($b->used) }} · Pending: {{ floatval($b->pending) }}</p>
+                                @if($isWfhP)
+                                    <p class="text-base font-extrabold text-brand-600 dark:text-brand-400">As per approval</p>
+                                    <p class="text-[11px] text-slate-400 mt-0.5">Approved per request — no allowance</p>
+                                @else
+                                    <p class="text-2xl font-extrabold text-slate-800 dark:text-white">{{ floatval($rem) }}</p>
+                                    <p class="text-[11px] text-slate-400 mt-0.5">of {{ floatval($total) }} days total</p>
+                                    <p class="text-[10px] text-slate-400 mt-1">Used: {{ floatval($b->used) }} · Pending: {{ floatval($b->pending) }}</p>
+                                @endif
 
                                 @if($canAdjust)
                                     <div x-show="adj" x-cloak class="mt-3 pt-3 border-t border-slate-200 dark:border-slate-600">

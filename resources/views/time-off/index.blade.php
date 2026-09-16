@@ -396,9 +396,14 @@
                         <h3 class="text-lg font-bold text-slate-900 dark:text-white">{{ optional($balance->policy)->name ?? 'Leave' }}</h3>
                         @if($isComp)<p class="text-[11px] text-slate-400">Earned for overtime worked</p>@endif
                     </div>
-                    <div class="font-extrabold text-brand-600 dark:text-brand-400 {{ $isWfh ? 'text-sm' : 'text-2xl' }}">{{ $isWfh ? 'As per approval' : (float) $remaining }}</div>
+                    @unless($isWfh)<div class="text-2xl font-extrabold text-brand-600 dark:text-brand-400">{{ (float) $remaining }}</div>@endunless
                 </div>
-                <div class="text-xs text-slate-500 dark:text-slate-400 text-right mb-2">{{ $isWfh ? 'Approved per request' : ($unit === 'hours' ? 'Hours' : 'Days') . ' Remaining' }}</div>
+                @if($isWfh)
+                    <p class="text-xl font-extrabold text-brand-600 dark:text-brand-400">As per approval</p>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Approved per request — no allowance</p>
+                @else
+                    <div class="text-xs text-slate-500 dark:text-slate-400 text-right mb-2">{{ ($unit === 'hours' ? 'Hours' : 'Days') . ' Remaining' }}</div>
+                @endif
 
                 @unless($isWfh)
                 <div class="w-full bg-slate-100 rounded-full h-2.5 mb-4 dark:bg-slate-700 flex overflow-hidden">
