@@ -400,9 +400,8 @@
                 </div>
                 @if($isWfh)
                     @php
-                        $wfhReq = \App\Models\TimeOffRequest::where('user_id', auth()->id())->where('policy_id', $balance->policy_id);
-                        $wfhUsed = (float) (clone $wfhReq)->where('status', 'approved')->sum('days_requested');
-                        $wfhPending = (float) (clone $wfhReq)->where('status', 'pending')->sum('days_requested');
+                        $wfhUsed = \App\Models\AttendanceRecord::where('user_id', auth()->id())->where('work_location', 'remote')->whereYear('date', now()->year)->count();
+                        $wfhPending = (float) \App\Models\TimeOffRequest::where('user_id', auth()->id())->where('policy_id', $balance->policy_id)->where('status', 'pending')->sum('days_requested');
                     @endphp
                     <p class="text-xl font-extrabold text-brand-600 dark:text-brand-400">As per approval</p>
                     <div class="text-xs text-slate-500 dark:text-slate-400 text-right mb-4">No allowance</div>
