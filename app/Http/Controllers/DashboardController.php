@@ -69,6 +69,7 @@ class DashboardController extends Controller
         $holidays = $this->companyHolidays();
         $outOfOffice = $this->outOfOffice();
         $workFromHome = $this->workFromHome();
+        $remoteWorkers = $this->remoteWorkers();
         $onLeavePeople = \App\Models\TimeOffRequest::onLeaveToday();
         $announcements = $this->dashboardAnnouncements();
 
@@ -92,7 +93,7 @@ class DashboardController extends Controller
             ];
         }
 
-        $shared = compact('upcomingTimeOff', 'outOfOfficeCount', 'outOfOffice', 'workFromHome', 'timeOffBalances', 'celebrations', 'events', 'holidays', 'onLeavePeople', 'upcomingEvents', 'eventStats', 'announcements');
+        $shared = compact('upcomingTimeOff', 'outOfOfficeCount', 'outOfOffice', 'workFromHome', 'remoteWorkers', 'timeOffBalances', 'celebrations', 'events', 'holidays', 'onLeavePeople', 'upcomingEvents', 'eventStats', 'announcements');
 
         // super_admin/hr_admin → dashboard.admin
         if ($user->isAdmin()) {
@@ -203,6 +204,7 @@ class DashboardController extends Controller
                 $name = $emp->last_name ? trim($emp->last_name . ', ' . $emp->first_name) : ($emp->first_name ?: 'Employee');
 
                 return [
+                    'id' => $emp->id,
                     'name' => $name,
                     'avatar' => $emp->avatar_url,
                     'initials' => $emp->initials,
@@ -213,6 +215,37 @@ class DashboardController extends Controller
                     // time window for an hourly request.
                     'duration' => $r->duration_label,
                     'time' => $r->time_range,
+                ];
+            })
+            ->values();
+    }
+
+    /**
+     * Employees who work remotely by their standing setup (not a one-off WFH request):
+     * a base attendance_mode of 'remote' (every working day) or hybrid remote weekdays.
+     * The popup evaluates these per viewed date (base = any day; hybrid = matching weekday).
+     */
+    protected function remoteWorkers()
+    {
+        $systemUserIds = \App\Models\Employee::where('is_system', true)->pluck('user_id')->filter();
+
+        return \App\Models\User::where('account_status', 'active')
+            ->whereNotIn('id', $systemUserIds->all())
+            ->where(function ($q) {
+                $q->where('attendance_mode', 'remote')
+                    ->orWhere(function ($w) { $w->whereNotNull('remote_days')->where('remote_days', '!=', '[]'); });
+            })
+            ->get(['id', 'first_name', 'last_name', 'avatar_url', 'attendance_mode', 'remote_days'])
+            ->map(function ($u) {
+                $name = $u->last_name ? trim($u->last_name . ', ' . $u->first_name) : ($u->first_name ?: 'Employee');
+
+                return [
+                    'id' => $u->id,
+                    'name' => $name,
+                    'avatar' => $u->avatar_url,
+                    'initials' => $u->initials,
+                    'everyday' => ($u->attendance_mode ?? 'biometric') === 'remote',
+                    'days' => array_values((array) ($u->remote_days ?? [])),
                 ];
             })
             ->values();
@@ -239,6 +272,7 @@ class DashboardController extends Controller
                 $name = $emp->last_name ? trim($emp->last_name . ', ' . $emp->first_name) : ($emp->first_name ?: 'Employee');
 
                 return [
+                    'id' => $emp->id,
                     'name' => $name,
                     'avatar' => $emp->avatar_url,
                     'initials' => $emp->initials,

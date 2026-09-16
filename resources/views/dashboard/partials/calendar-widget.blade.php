@@ -159,18 +159,30 @@
     window.__announcements = @json($announcements ?? []);
     window.__outOfOffice = @json($outOfOffice ?? []);
     window.__workFromHome = @json($workFromHome ?? []);
+    window.__remoteWorkers = @json($remoteWorkers ?? []);
     function celebrationsWidget() {
         return {
             current: '{{ now()->toDateString() }}',
             tab: 'celebrations',
             outOfOffice: window.__outOfOffice || [],
             workFromHome: window.__workFromHome || [],
+            remoteWorkers: window.__remoteWorkers || [],
             oooOpen: false,
             oooSearch: '',
             oooTab: 'leave',
             oooOnDate() { return this.outOfOffice.filter(o => this.current >= o.start && this.current <= o.end); },
             oooFiltered() { const q = this.oooSearch.toLowerCase(); return this.oooOnDate().filter(o => o.name.toLowerCase().includes(q)); },
-            wfhOnDate() { return this.workFromHome.filter(o => this.current >= o.start && this.current <= o.end); },
+            wfhOnDate() {
+                const d = this.current;
+                const wd = new Date(d + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short' });
+                const seen = {};
+                const out = [];
+                // One-off approved WFH requests covering the date.
+                this.workFromHome.forEach(o => { if (d >= o.start && d <= o.end) { seen[o.id] = 1; out.push(Object.assign({}, o, { detail: 'Working from home' })); } });
+                // Standing remote workers: base-remote (any day) or hybrid on this weekday.
+                this.remoteWorkers.forEach(o => { if (seen[o.id]) return; if (o.everyday || (o.days || []).indexOf(wd) !== -1) { out.push(Object.assign({}, o, { range: o.everyday ? 'Remote (default)' : 'Hybrid remote day', detail: 'Working remotely' })); } });
+                return out;
+            },
             wfhFiltered() { const q = this.oooSearch.toLowerCase(); return this.wfhOnDate().filter(o => o.name.toLowerCase().includes(q)); },
             tabs: [{ key: 'celebrations', label: 'Celebrations' }, { key: 'announcements', label: 'Announcements' }],
             celebrations: window.__celebrations || [],

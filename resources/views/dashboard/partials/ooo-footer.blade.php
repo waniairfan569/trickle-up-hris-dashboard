@@ -36,7 +36,7 @@
                     On leave <span class="bg-slate-100 text-slate-500 text-[10px] px-1.5 py-0.5 rounded-md dark:bg-slate-700 dark:text-slate-300" x-text="oooOnDate().length"></span>
                 </button>
                 <button type="button" @click="oooTab = 'wfh'" class="text-sm pb-2 border-b-2 flex items-center gap-1.5" :class="oooTab === 'wfh' ? 'font-bold text-slate-800 border-slate-800 dark:text-white dark:border-white' : 'font-medium text-slate-400 border-transparent hover:text-slate-600'">
-                    Work from home <span class="bg-indigo-50 text-indigo-600 text-[10px] px-1.5 py-0.5 rounded-md dark:bg-indigo-500/10 dark:text-indigo-300" x-text="wfhOnDate().length"></span>
+                    Working remotely <span class="bg-indigo-50 text-indigo-600 text-[10px] px-1.5 py-0.5 rounded-md dark:bg-indigo-500/10 dark:text-indigo-300" x-text="wfhOnDate().length"></span>
                 </button>
             </div>
             <div class="relative">
@@ -68,7 +68,7 @@
             </div>
             <!-- Work from home -->
             <div x-show="oooTab === 'wfh'">
-                <template x-if="wfhFiltered().length === 0"><p class="px-6 py-10 text-center text-sm text-slate-400">No one working from home on this day.</p></template>
+                <template x-if="wfhFiltered().length === 0"><p class="px-6 py-10 text-center text-sm text-slate-400">No one working remotely on this day.</p></template>
                 <template x-for="(o, i) in wfhFiltered()" :key="'wfh' + i">
                     <div class="flex items-center gap-3 px-6 py-3 border-b border-slate-100 last:border-0 dark:border-slate-700/60">
                         <span class="h-10 w-10 flex-shrink-0 inline-flex items-center justify-center rounded-full overflow-hidden bg-gradient-to-br from-indigo-400 to-indigo-600 text-white text-xs font-bold">

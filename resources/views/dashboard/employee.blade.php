@@ -238,7 +238,15 @@
                         oooTab: 'leave',
                         oooOnDate() { return this.outOfOffice.filter(o => this.current >= o.start && this.current <= o.end); },
                         oooFiltered() { const q = this.oooSearch.toLowerCase(); return this.oooOnDate().filter(o => o.name.toLowerCase().includes(q)); },
-                        wfhOnDate() { return this.workFromHome.filter(o => this.current >= o.start && this.current <= o.end); },
+                        wfhOnDate() {
+                            const d = this.current;
+                            const wd = new Date(d + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short' });
+                            const seen = {};
+                            const out = [];
+                            this.workFromHome.forEach(o => { if (d >= o.start && d <= o.end) { seen[o.id] = 1; out.push(Object.assign({}, o, { detail: 'Working from home' })); } });
+                            this.remoteWorkers.forEach(o => { if (seen[o.id]) return; if (o.everyday || (o.days || []).indexOf(wd) !== -1) { out.push(Object.assign({}, o, { range: o.everyday ? 'Remote (default)' : 'Hybrid remote day', detail: 'Working remotely' })); } });
+                            return out;
+                        },
                         wfhFiltered() { const q = this.oooSearch.toLowerCase(); return this.wfhOnDate().filter(o => o.name.toLowerCase().includes(q)); },
                         todaysCelebrations() {
                             const cur = this.current, md = cur.slice(5), yr = parseInt(cur.slice(0, 4), 10);
