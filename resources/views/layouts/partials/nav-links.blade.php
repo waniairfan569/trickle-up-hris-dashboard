@@ -43,15 +43,6 @@
         : '';
 @endphp
 
-<!-- Navigation Group: Primary -->
-<div class="space-y-1">
-    <a href="{{ route('dashboard') }}"
-       class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ Str::startsWith($routeName, 'dashboard') ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">
-        <i data-lucide="layout-dashboard" class="h-4 w-4 shrink-0 transition {{ Str::startsWith($routeName, 'dashboard') ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>
-        <span>Dashboard</span>
-    </a>
-</div>
-
 <!-- Navigation Group: Menu (personal / team / comms) — one divider, evenly spaced groups -->
 <div class="mt-6 pt-6 border-t border-slate-850 space-y-1">
     {{-- Personal menu — top-level items (no "My Workspace" dropdown) --}}
