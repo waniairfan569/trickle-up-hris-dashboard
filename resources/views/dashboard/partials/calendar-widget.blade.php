@@ -158,16 +158,20 @@
     window.__holidays = @json($holidays);
     window.__announcements = @json($announcements ?? []);
     window.__outOfOffice = @json($outOfOffice ?? []);
+    window.__workFromHome = @json($workFromHome ?? []);
     function celebrationsWidget() {
         return {
             current: '{{ now()->toDateString() }}',
             tab: 'celebrations',
             outOfOffice: window.__outOfOffice || [],
+            workFromHome: window.__workFromHome || [],
             oooOpen: false,
             oooSearch: '',
             oooTab: 'leave',
             oooOnDate() { return this.outOfOffice.filter(o => this.current >= o.start && this.current <= o.end); },
             oooFiltered() { const q = this.oooSearch.toLowerCase(); return this.oooOnDate().filter(o => o.name.toLowerCase().includes(q)); },
+            wfhOnDate() { return this.workFromHome.filter(o => this.current >= o.start && this.current <= o.end); },
+            wfhFiltered() { const q = this.oooSearch.toLowerCase(); return this.wfhOnDate().filter(o => o.name.toLowerCase().includes(q)); },
             tabs: [{ key: 'celebrations', label: 'Celebrations' }, { key: 'announcements', label: 'Announcements' }],
             celebrations: window.__celebrations || [],
             events: window.__events || [],

@@ -113,7 +113,14 @@ class EmployeeController extends Controller
         $entities = \App\Models\CompanyEntity::orderBy('name')->get(['id', 'name']);
         $jobLocations = \App\Models\JobLocation::orderBy('name')->get(['id', 'name']);
 
-        return view('employees.index', compact('employees', 'departments', 'rolesMap', 'entities', 'jobLocations'));
+        // Users on an approved Work-From-Home request today — for the "WFH today" pill in the Attendance column.
+        $wfhTodayIds = \App\Models\TimeOffRequest::where('status', 'approved')
+            ->workFromHomeOnly()
+            ->whereDate('start_date', '<=', today())
+            ->whereDate('end_date', '>=', today())
+            ->pluck('user_id')->flip();
+
+        return view('employees.index', compact('employees', 'departments', 'rolesMap', 'entities', 'jobLocations', 'wfhTodayIds'));
     }
 
     /**
@@ -781,7 +788,14 @@ class EmployeeController extends Controller
         $employees = $query->orderBy('first_name')->orderBy('last_name')
             ->get(['id', 'first_name', 'last_name', 'email', 'attendance_mode', 'zkteco_uid']);
 
-        return view('employees.attendance-mode', compact('employees'));
+        // Employees on an approved Work-From-Home request today — shown as "WFH today · Remote".
+        $wfhTodayIds = \App\Models\TimeOffRequest::where('status', 'approved')
+            ->workFromHomeOnly()
+            ->whereDate('start_date', '<=', today())
+            ->whereDate('end_date', '>=', today())
+            ->pluck('user_id')->flip();
+
+        return view('employees.attendance-mode', compact('employees', 'wfhTodayIds'));
     }
 
     /** Apply an attendance mode to every selected employee. Admins only. */

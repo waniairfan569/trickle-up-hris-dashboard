@@ -111,6 +111,20 @@ class AttendanceService
             }
         }
 
+        // Mark the day remote when it is covered by an approved Work-From-Home request,
+        // so a WFH day the employee clocked in on reads as "Work From Home" everywhere.
+        // WFH is a remote working day — the office late-cutoff does not apply, so a late
+        // clock-in is not penalised (it reads as present · remote, no late minutes).
+        if ($user->isWorkingFromHomeOn(Carbon::parse($record->date))) {
+            $record->work_location = 'remote';
+            if ($record->status === 'late') {
+                $record->status = 'present';
+                $record->late_minutes = 0;
+            }
+        } else {
+            $record->work_location = null;
+        }
+
         $record->save();
 
         // Apply the monthly lateness penalty (4 lates -> 0.5 day, 6 -> 1 day).

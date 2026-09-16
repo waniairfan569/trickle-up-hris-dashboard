@@ -816,6 +816,7 @@
                                 </div>
                                 @if($show)
                                     <span class="mt-1 inline-flex items-center rounded-md px-1.5 py-0.5 text-[9px] font-bold capitalize {{ $statusChip($st) }}">{{ str_replace('_',' ',$st) }}</span>
+                                    @if($rec && $rec->isRemote())<span class="mt-1 inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 text-[8px] font-bold text-indigo-600 dark:text-indigo-300"><i data-lucide="house-wifi" class="h-2.5 w-2.5"></i> WFH</span>@endif
                                     @if($ci)<div class="mt-1 text-[10px] leading-tight text-slate-500 dark:text-slate-400">{{ $ci }}@if($co) – {{ $co }}@endif</div>@endif
                                 @endif
                             </div>
@@ -850,8 +851,10 @@
                                 <td class="px-6 py-3 font-semibold text-slate-700 dark:text-slate-200">{{ $att->clock_in && $att->clock_out ? floor($att->total_minutes_worked / 60) . 'h ' . ($att->total_minutes_worked % 60) . 'm' : '-' }}</td>
                                 <td class="px-6 py-3">
                                     <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold {{ $asc }}">{{ $att->status_label }}</span>
-                                    @php $lv = $leaveOn($att->date); @endphp
-                                    @if($lv)
+                                    @php $lv = $leaveOn($att->date); $lvWfh = $lv && optional($lv->policy)->isWorkFromHome(); @endphp
+                                    @if($att->isRemote() || $lvWfh)
+                                        <div class="mt-0.5"><span class="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300"><i data-lucide="house-wifi" class="h-3 w-3"></i> Work From Home</span></div>
+                                    @elseif($lv)
                                         <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{{ $lv->duration_label }} leave{{ $lv->time_range ? ' · ' . $lv->time_range : '' }}</div>
                                     @endif
                                 </td>

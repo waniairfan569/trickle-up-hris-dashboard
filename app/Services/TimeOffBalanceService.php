@@ -121,6 +121,11 @@ class TimeOffBalanceService
      */
     public function deductBalance(User $user, TimeOffPolicy $policy, float $days): void
     {
+        // Work From Home is approval-based, not a balance — it never consumes or reserves days.
+        if ($policy->isWorkFromHome()) {
+            return;
+        }
+
         $year = Carbon::now()->year;
         $balance = $this->getOrCreateBalance($user, $policy, $year);
 
@@ -132,6 +137,11 @@ class TimeOffBalanceService
      */
     public function addPending(User $user, TimeOffPolicy $policy, float $days): void
     {
+        // Work From Home is approval-based, not a balance — it never consumes or reserves days.
+        if ($policy->isWorkFromHome()) {
+            return;
+        }
+
         $year = Carbon::now()->year;
         $balance = $this->getOrCreateBalance($user, $policy, $year);
 
@@ -143,6 +153,11 @@ class TimeOffBalanceService
      */
     public function removePending(User $user, TimeOffPolicy $policy, float $days): void
     {
+        // Work From Home is approval-based, not a balance — it never consumes or reserves days.
+        if ($policy->isWorkFromHome()) {
+            return;
+        }
+
         $year = Carbon::now()->year;
         $balance = $this->getOrCreateBalance($user, $policy, $year);
 

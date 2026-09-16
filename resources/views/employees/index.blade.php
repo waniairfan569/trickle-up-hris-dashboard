@@ -280,8 +280,15 @@
 
                             <!-- Attendance mode (biometric / remote) + hybrid remote days -->
                             <td class="py-4 px-6">
-                                @php $mode = $emp->user->attendance_mode ?? 'biometric'; $rdays = $emp->user->remote_days ?? []; @endphp
+                                @php $mode = $emp->user->attendance_mode ?? 'biometric'; $rdays = $emp->user->remote_days ?? []; $wfhToday = isset($wfhTodayIds) && $wfhTodayIds->has($emp->user_id); @endphp
+                                @if($wfhToday)
+                                    <span class="mr-1 inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-700 align-middle dark:bg-indigo-500/10 dark:text-indigo-300" title="Approved Work From Home today"><i data-lucide="house-wifi" class="h-3 w-3"></i> WFH today</span>
+                                @endif
                                 <div class="inline-flex items-center gap-1.5" x-data="{ hyb: false }">
+                                    @if($wfhToday)
+                                        {{-- On a WFH day the effective mode IS remote — show that instead of the editable default. --}}
+                                        <span class="inline-flex items-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300" title="Remote today (approved Work From Home)"><i data-lucide="laptop" class="h-3.5 w-3.5"></i> Remote · Dashboard</span>
+                                    @else
                                     {{-- Base mode (preserves current hybrid days) --}}
                                     <form action="{{ route('employees.update-attendance-mode', $emp->user_id) }}" method="POST" class="inline-flex">
                                         @csrf @method('PUT')
@@ -292,6 +299,7 @@
                                             <option value="remote" {{ $mode === 'remote' ? 'selected' : '' }}>Remote · Dashboard</option>
                                         </select>
                                     </form>
+                                    @endif
 
                                     {{-- Hybrid remote days --}}
                                     <button type="button" @click="hyb = true" title="Hybrid remote days"

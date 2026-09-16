@@ -68,6 +68,7 @@ class DashboardController extends Controller
         $events = $this->companyEvents($user);
         $holidays = $this->companyHolidays();
         $outOfOffice = $this->outOfOffice();
+        $workFromHome = $this->workFromHome();
         $onLeavePeople = \App\Models\TimeOffRequest::onLeaveToday();
         $announcements = $this->dashboardAnnouncements();
 
@@ -91,7 +92,7 @@ class DashboardController extends Controller
             ];
         }
 
-        $shared = compact('upcomingTimeOff', 'outOfOfficeCount', 'outOfOffice', 'timeOffBalances', 'celebrations', 'events', 'holidays', 'onLeavePeople', 'upcomingEvents', 'eventStats', 'announcements');
+        $shared = compact('upcomingTimeOff', 'outOfOfficeCount', 'outOfOffice', 'workFromHome', 'timeOffBalances', 'celebrations', 'events', 'holidays', 'onLeavePeople', 'upcomingEvents', 'eventStats', 'announcements');
 
         // super_admin/hr_admin → dashboard.admin
         if ($user->isAdmin()) {
@@ -210,6 +211,40 @@ class DashboardController extends Controller
                     'range' => $r->start_date->format('d M Y') . ' – ' . $r->end_date->format('d M Y'),
                     // How much leave — "2 hours" / "Half day" / "3 days" — plus the
                     // time window for an hourly request.
+                    'duration' => $r->duration_label,
+                    'time' => $r->time_range,
+                ];
+            })
+            ->values();
+    }
+
+    /**
+     * Approved Work-From-Home requests across the same window as outOfOffice(). WFH is
+     * NOT leave (the person is working remotely), so it is shown as its own list/tab.
+     */
+    protected function workFromHome()
+    {
+        $windowStart = today()->copy()->subDays(31)->toDateString();
+        $windowEnd = today()->copy()->addDays(180)->toDateString();
+
+        return \App\Models\TimeOffRequest::where('status', 'approved')
+            ->workFromHomeOnly()
+            ->whereDate('start_date', '<=', $windowEnd)
+            ->whereDate('end_date', '>=', $windowStart)
+            ->with('employee:id,first_name,last_name,avatar_url')
+            ->get()
+            ->filter(fn ($r) => $r->employee)
+            ->map(function ($r) {
+                $emp = $r->employee;
+                $name = $emp->last_name ? trim($emp->last_name . ', ' . $emp->first_name) : ($emp->first_name ?: 'Employee');
+
+                return [
+                    'name' => $name,
+                    'avatar' => $emp->avatar_url,
+                    'initials' => $emp->initials,
+                    'start' => $r->start_date->toDateString(),
+                    'end' => $r->end_date->toDateString(),
+                    'range' => $r->start_date->format('d M Y') . ' – ' . $r->end_date->format('d M Y'),
                     'duration' => $r->duration_label,
                     'time' => $r->time_range,
                 ];

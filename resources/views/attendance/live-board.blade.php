@@ -136,6 +136,9 @@
                                 <span class="px-2.5 py-1 rounded-full text-xs font-semibold {{ $record->status_color }}">
                                     {{ str_replace('_', ' ', Str::title($record->status)) }}
                                 </span>
+                                @if($record->isRemote())
+                                    <span class="ml-1 inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-700 align-middle dark:bg-indigo-500/10 dark:text-indigo-300" title="Approved Work From Home"><i data-lucide="house-wifi" class="h-3 w-3"></i> WFH</span>
+                                @endif
                             </td>
                         </tr>
                     @empty

@@ -15,7 +15,7 @@
         <h1 class="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
             <i data-lucide="fingerprint" class="h-6 w-6 text-brand-500"></i> Attendance Mode
         </h1>
-        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Select employees and set them all to Biometric or Remote at once.</p>
+        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Select employees and set them all to Biometric or Remote at once.@if(isset($wfhTodayIds) && $wfhTodayIds->count()) <span class="ml-1 inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-bold text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300"><i data-lucide="house-wifi" class="h-3.5 w-3.5"></i> {{ $wfhTodayIds->count() }} working from home today</span>@endif</p>
     </div>
 
     @if(session('success'))
@@ -85,6 +85,9 @@
                             </td>
                             <td class="px-4 py-3 font-mono text-xs">{{ $emp->zkteco_uid ?? '—' }}</td>
                             <td class="px-4 py-3">
+                                @if(isset($wfhTodayIds) && $wfhTodayIds->has($emp->id))
+                                    <span class="mr-1 inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-bold text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300" title="Approved Work From Home today"><i data-lucide="house-wifi" class="h-3.5 w-3.5"></i> WFH today</span>
+                                @endif
                                 @if($mode === 'remote')
                                     <span class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-bold text-emerald-700 dark:bg-emerald-500/10">Remote · Dashboard</span>
                                 @else

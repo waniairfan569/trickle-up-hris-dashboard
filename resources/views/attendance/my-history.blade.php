@@ -101,6 +101,9 @@
                         <span class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold {{ $trMeta['chip'] }}">
                             <span class="h-1.5 w-1.5 rounded-full {{ $trMeta['dot'] }}"></span>{{ $trMeta['label'] }}
                         </span>
+                        @if(optional($todayRecord)->isRemote())
+                            <span class="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300" title="Approved Work From Home"><i data-lucide="house-wifi" class="h-3.5 w-3.5"></i> Work From Home</span>
+                        @endif
                     </div>
                     <div class="grid grid-cols-3 gap-3 mt-5">
                         <div class="rounded-xl bg-slate-50 dark:bg-slate-900/40 p-4 text-center">
@@ -157,6 +160,9 @@
                         @else
                             <div class="rounded-lg bg-slate-100 dark:bg-slate-700/60 text-slate-400 text-[10px] font-bold py-2">—</div>
                         @endif
+                        @if($rec && $rec->isRemote())
+                            <div class="mt-1 inline-flex items-center justify-center gap-1 text-[9px] font-bold text-indigo-600 dark:text-indigo-300"><i data-lucide="house-wifi" class="h-3 w-3"></i> WFH</div>
+                        @endif
                     </div>
                 @endforeach
             </div>
@@ -208,6 +214,7 @@
                                     <div class="text-[11px] font-black text-slate-700 dark:text-slate-200">{{ intdiv($mins, 60) }}h {{ $mins % 60 }}m</div>
                                 @endif
                                 <div class="inline-flex items-center rounded-md px-1.5 py-0.5 text-[9px] font-bold {{ $meta['chip'] }}">{{ $meta['label'] }}</div>
+                                @if($rec->isRemote())<div class="inline-flex items-center gap-0.5 mt-0.5 text-[8px] font-bold text-indigo-600 dark:text-indigo-300"><i data-lucide="house-wifi" class="h-2.5 w-2.5"></i> WFH</div>@endif
                             </div>
                             @if($correctable)
                                 <i data-lucide="wrench" class="absolute right-1.5 bottom-1.5 h-3 w-3 text-brand-500 opacity-0 group-hover:opacity-100 transition"></i>

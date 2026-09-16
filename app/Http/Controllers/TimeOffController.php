@@ -511,7 +511,8 @@ class TimeOffController extends Controller
             }
         }
 
-        if (!$policy->allow_negative_balance && $balance->remaining < $days) {
+        // WFH is approval-based (not a balance), so it is never blocked for "insufficient balance".
+        if (!$policy->isWorkFromHome() && !$policy->allow_negative_balance && $balance->remaining < $days) {
             return back()->withErrors(['Insufficient balance. You cannot request more than you have remaining.'])->withInput();
         }
 

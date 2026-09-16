@@ -35,6 +35,7 @@ class AttendanceRecord extends Model
         'edited_by',
         'edited_at',
         'source',
+        'work_location',
         'zkteco_punch_id',
     ];
 
@@ -441,6 +442,12 @@ class AttendanceRecord extends Model
     }
 
     // Scopes
+    /** True when this day was worked remotely (approved WFH the employee clocked in on). */
+    public function isRemote(): bool
+    {
+        return $this->work_location === 'remote';
+    }
+
     public function scopeForDate(Builder $query, Carbon $date)
     {
         return $query->whereDate('date', $date->toDateString());

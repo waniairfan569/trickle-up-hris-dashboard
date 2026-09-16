@@ -49,7 +49,7 @@
                                 <span class="flex flex-col">
                                     <span class="block text-sm font-bold text-slate-900 dark:text-white">{{ $policy->name }}</span>
                                     <span class="mt-1 flex items-center text-xs text-slate-500 dark:text-slate-400">
-                                        {{ (float) $balance->remaining }} days remaining
+                                        {{ $policy->isWorkFromHome() ? 'As per approval' : (float) $balance->remaining . ' days remaining' }}
                                     </span>
                                 </span>
                             </span>

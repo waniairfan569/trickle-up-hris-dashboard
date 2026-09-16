@@ -378,6 +378,7 @@ class AttendanceManagerController extends Controller
         $calDays = collect();
         $calEmployees = collect();
         $calMatrix = [];
+        $wfhMatrix = []; // [user_id][Y-m-d] => true for days worked remotely (approved WFH)
         if ($view === 'calendar') {
             try {
                 $calMonth = $request->filled('month')
@@ -403,9 +404,13 @@ class AttendanceManagerController extends Controller
             // Recorded statuses this month → matrix[user_id][Y-m-d] = status
             AttendanceRecord::whereBetween('date', [$monthStart->toDateString(), $monthEnd->toDateString()])
                 ->whereIn('user_id', $empIds)
-                ->get(['user_id', 'date', 'status'])
-                ->each(function ($rec) use (&$calMatrix) {
-                    $calMatrix[$rec->user_id][Carbon::parse($rec->date)->toDateString()] = $rec->status;
+                ->get(['user_id', 'date', 'status', 'work_location'])
+                ->each(function ($rec) use (&$calMatrix, &$wfhMatrix) {
+                    $ds = Carbon::parse($rec->date)->toDateString();
+                    $calMatrix[$rec->user_id][$ds] = $rec->status;
+                    if ($rec->work_location === 'remote') {
+                        $wfhMatrix[$rec->user_id][$ds] = true;
+                    }
                 });
 
             // Approved leave → fill any blank day as "on_leave" (WFH is working,
@@ -428,7 +433,7 @@ class AttendanceManagerController extends Controller
                 });
         }
 
-        return view('attendance.team-history', compact('records', 'departments', 'teamMembers', 'onLeavePeople', 'view', 'calMonth', 'calDays', 'calEmployees', 'calMatrix'));
+        return view('attendance.team-history', compact('records', 'departments', 'teamMembers', 'onLeavePeople', 'view', 'calMonth', 'calDays', 'calEmployees', 'calMatrix', 'wfhMatrix'));
     }
 
     /** Export the (filtered) team attendance history as CSV. */

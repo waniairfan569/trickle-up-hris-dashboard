@@ -169,7 +169,7 @@
                                 <td class="px-6 py-4 whitespace-nowrap font-medium text-slate-800 dark:text-white">{{ $record->hours_worked ?? '-' }}</td>
                                 <td class="px-6 py-4 whitespace-nowrap text-amber-600 font-medium">{{ $record->late_minutes > 0 ? $record->late_minutes : '-' }}</td>
                                 <td class="px-6 py-4 whitespace-nowrap text-purple-600 font-medium">{{ $record->overtime_minutes > 0 ? $record->overtime_minutes : '-' }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap"><span class="px-2.5 py-1 rounded-full text-xs font-semibold {{ $record->status_color }}">{{ str_replace('_', ' ', Str::title($record->status)) }}</span></td>
+                                <td class="px-6 py-4 whitespace-nowrap"><span class="px-2.5 py-1 rounded-full text-xs font-semibold {{ $record->status_color }}">{{ str_replace('_', ' ', Str::title($record->status)) }}</span>@if($record->isRemote())<span class="ml-1 inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-700 align-middle dark:bg-indigo-500/10 dark:text-indigo-300" title="Approved Work From Home"><i data-lucide="house-wifi" class="h-3 w-3"></i> WFH</span>@endif</td>
                                 @if($canEdit)
                                 @php
                                     $tzSvc = app(\App\Services\TimezoneService::class);
@@ -296,9 +296,10 @@
                                             $st = $calMatrix[$emp->id][$ds] ?? null;
                                             $m = $calMeta($st);
                                             $wk = $day->isWeekend();
+                                            $isWfh = !empty($wfhMatrix[$emp->id][$ds]);
                                         @endphp
                                         <td class="p-0.5 text-center border-b border-slate-50 dark:border-slate-700/40 {{ $wk ? 'bg-slate-50/40 dark:bg-slate-900/20' : '' }}">
-                                            <span class="inline-block h-5 w-5 rounded {{ $m['bg'] }}" title="{{ $emp->first_name }} {{ $emp->last_name }} · {{ $day->format('D, d M') }} · {{ $m['label'] }}"></span>
+                                            <span class="inline-block h-5 w-5 rounded {{ $m['bg'] }} {{ $isWfh ? 'ring-2 ring-indigo-500 ring-offset-1 dark:ring-offset-slate-800' : '' }}" title="{{ $emp->first_name }} {{ $emp->last_name }} · {{ $day->format('D, d M') }} · {{ $m['label'] }}{{ $isWfh ? ' · Work From Home' : '' }}"></span>
                                         </td>
                                     @endforeach
                                 </tr>
@@ -313,6 +314,7 @@
                         @php $m = $calMeta($s); @endphp
                         <span class="inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-500 dark:text-slate-400"><span class="h-3 w-3 rounded {{ $m['bg'] }}"></span>{{ $m['label'] }}</span>
                     @endforeach
+                    <span class="inline-flex items-center gap-1.5 text-[11px] font-semibold text-indigo-500 dark:text-indigo-300"><span class="h-3 w-3 rounded bg-slate-200 ring-2 ring-indigo-500 dark:bg-slate-700"></span>Worked from home</span>
                     <span class="inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-400"><span class="h-3 w-3 rounded bg-slate-100 dark:bg-slate-700/50"></span>No record</span>
                 </div>
             @endif
