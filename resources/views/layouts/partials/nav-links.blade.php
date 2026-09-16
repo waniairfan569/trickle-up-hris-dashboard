@@ -44,7 +44,7 @@
 @endphp
 
 <!-- Navigation Group: Menu (personal / team / comms) — one divider, evenly spaced groups -->
-<div class="mt-6 pt-6 border-t border-slate-850 space-y-1">
+<div class="space-y-1">
     {{-- Personal menu — top-level items (no "My Workspace" dropdown) --}}
         <a href="{{ route('employees.profile', auth()->id()) }}"
            class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ (Str::startsWith($routeName, 'employees.profile') || request()->is('employees/' . auth()->id() . '/profile*')) ? 'text-brand-400' : 'text-slate-400 hover:text-white' }}">

@@ -26,7 +26,7 @@
         $tsLate = ($tsStatus['status'] ?? null) === 'late';
     @endphp
 
-    <div class="mb-4 rounded-2xl border border-slate-800 bg-slate-800/60 p-4">
+    <div class="rounded-2xl border border-slate-800 bg-slate-800/60 p-4">
         <div class="flex items-center justify-between">
             <span class="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-teal-400">
                 <i data-lucide="timer" class="h-4 w-4"></i> Timesheet
