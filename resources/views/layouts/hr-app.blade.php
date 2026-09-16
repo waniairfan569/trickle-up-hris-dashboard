@@ -334,25 +334,7 @@
                         </div>
                     </div>
 
-                    <!-- Vertical Separator -->
-                    <div class="hidden lg:block lg:h-6 lg:w-px lg:bg-slate-200 dark:lg:bg-slate-700" aria-hidden="true"></div>
-
-                    <!-- User Brief Profile -->
-                    <div class="flex items-center gap-3">
-                        <a href="{{ route('employees.profile', auth()->id()) }}" class="flex items-center gap-x-2 group">
-                            @if(auth()->user()->avatar_url)
-                                <img src="{{ auth()->user()->avatar_url }}" alt="{{ auth()->user()->full_name }}" class="h-9 w-9 rounded-xl object-cover ring-2 ring-slate-100 dark:ring-slate-700 group-hover:ring-brand-500 transition duration-150">
-                            @else
-                                <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-indigo-500 text-sm font-semibold text-white shadow-sm ring-2 ring-slate-100 dark:ring-slate-700 group-hover:ring-brand-500 transition duration-150">
-                                    {{ auth()->user()->initials }}
-                                </div>
-                            @endif
-                            <div class="flex flex-col text-left min-w-0">
-                                <span class="text-xs font-semibold text-slate-700 dark:text-slate-200 group-hover:text-brand-600 dark:group-hover:text-brand-400 transition truncate max-w-[110px] sm:max-w-[220px]">{{ auth()->user()->full_name }}</span>
-                                <span class="text-[10px] font-medium text-slate-400 dark:text-slate-500 truncate max-w-[110px] sm:max-w-[220px]">{{ auth()->user()->job_title ?: \Illuminate\Support\Str::headline(optional(auth()->user()->role)->name ?? '') }}</span>
-                            </div>
-                        </a>
-                    </div>
+                    {{-- The signed-in user block used to sit here; it now lives only in the sidebar footer (links to My Profile). --}}
 
                 </div>
 

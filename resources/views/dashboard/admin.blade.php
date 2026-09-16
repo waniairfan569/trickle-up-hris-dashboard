@@ -15,6 +15,13 @@
 
     $pendingApprovals = \App\Models\TimeOffRequest::where('status', 'pending')->count();
 
+    // Overtime requests are submissions to the designated overtime form; "awaiting" mirrors the Form Responses inbox.
+    $overtimeForm = plan_allows('forms') ? \App\Models\CompanyForm::overtimeForm() : null;
+    $pendingOvertime = $overtimeForm
+        ? \App\Models\FormSubmission::where('form_id', $overtimeForm->id)->where('status', 'submitted')
+            ->where(fn ($w) => $w->whereNull('review_status')->orWhere('review_status', 'pending'))->count()
+        : 0;
+
     // Today's snapshot. Work From Home is not leave — those people are working
     // (remotely) and still expected to clock in, so they're not counted here.
     $leaveToday = \App\Models\TimeOffRequest::where('status', 'approved')
@@ -191,27 +198,20 @@
         </div>
 
         <!-- Quick Actions Bar -->
+        @if(plan_allows('forms'))
         <div class="flex flex-wrap items-center gap-3">
-            @can('manage-employees')
-                <a href="{{ route('employees.create') }}" class="inline-flex items-center gap-x-2 rounded-xl bg-brand-600 px-4 py-2 text-xs font-semibold text-slate-900 shadow-md shadow-brand-500/20 hover:bg-brand-700 transition duration-150">
-                    <i data-lucide="user-plus" class="h-4 w-4"></i>
-                    <span>Add Employee</span>
-                </a>
-            @endcan
-            <a href="{{ route('time-off-policies.index') }}" class="inline-flex items-center gap-x-2 rounded-xl bg-white border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 hover:text-brand-600 transition dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-700 dark:hover:text-white">
-                <i data-lucide="sliders" class="h-4 w-4"></i>
-                <span>Manage Policies</span>
-            </a>
-            <a href="{{ route('time-off.index') }}" class="inline-flex items-center gap-x-2 rounded-xl bg-white border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 hover:text-brand-600 transition dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-700 dark:hover:text-white">
-                <i data-lucide="calendar-check" class="h-4 w-4"></i>
-                <span>Review Requests</span>
-                @if($pendingApprovals > 0)
+            {{-- Overtime requests land in the Form Responses inbox, which opens on the overtime form by default --}}
+            <a href="{{ route('company-forms.inbox') }}" class="inline-flex items-center gap-x-2 rounded-xl bg-brand-600 px-4 py-2 text-xs font-semibold text-slate-900 shadow-md shadow-brand-500/20 hover:bg-brand-700 transition">
+                <i data-lucide="clock-alert" class="h-4 w-4"></i>
+                <span>Overtime Approvals</span>
+                @if($pendingOvertime > 0)
                     <span class="ml-1.5 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white leading-none">
-                        {{ $pendingApprovals }}
+                        {{ $pendingOvertime }}
                     </span>
                 @endif
             </a>
         </div>
+        @endif
     </div>
 
     <!-- New-workspace setup checklist (admins, until complete/dismissed) -->
