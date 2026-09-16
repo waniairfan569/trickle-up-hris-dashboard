@@ -46,6 +46,7 @@
             }
         }
     </script>
+    @include('layouts.partials.type-scale')
     
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>

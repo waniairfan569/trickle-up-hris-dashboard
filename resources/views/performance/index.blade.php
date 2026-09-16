@@ -93,7 +93,7 @@
         <!-- My Manager Reviews (Shared) -->
         <div>
             <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-4">Feedback from Manager</h3>
-            <div class="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden dark:bg-slate-800 dark:border-slate-700">
+            <div class="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-x-auto dark:bg-slate-800 dark:border-slate-700">
                 <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
                     <thead class="bg-slate-50 dark:bg-slate-900/50">
                         <tr>
@@ -131,7 +131,7 @@
     @if(auth()->user()->isManager())
     <div x-show="activeTab === 'team-reviews'" x-cloak>
         <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-4">Team Performance</h3>
-        <div class="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden dark:bg-slate-800 dark:border-slate-700">
+        <div class="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-x-auto dark:bg-slate-800 dark:border-slate-700">
             <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
                 <thead class="bg-slate-50 dark:bg-slate-900/50">
                     <tr>
@@ -205,7 +205,7 @@
     @if(auth()->user()->isAdmin())
     <div x-show="activeTab === 'all-reviews'" x-cloak>
         <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-4">All Performance Reviews</h3>
-        <div class="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden dark:bg-slate-800 dark:border-slate-700">
+        <div class="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-x-auto dark:bg-slate-800 dark:border-slate-700">
             <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
                 <thead class="bg-slate-50 dark:bg-slate-900/50">
                     <tr>

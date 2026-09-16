@@ -31,7 +31,7 @@
             <p class="text-xs text-slate-400 mt-1">Start a probation from an employee's Job tab.</p>
         </div>
     @else
-        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden dark:bg-slate-800 dark:border-slate-700">
+        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-x-auto dark:bg-slate-800 dark:border-slate-700">
             <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
                 <thead class="bg-slate-50 dark:bg-slate-900/50">
                     <tr>

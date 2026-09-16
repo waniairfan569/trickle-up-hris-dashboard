@@ -13,6 +13,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>tailwind.config={darkMode:'class',theme:{extend:{fontFamily:{sans:['Plus Jakarta Sans','sans-serif']}}}}</script>
+    @include('layouts.partials.type-scale')
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body class="h-full font-sans antialiased text-slate-800 dark:text-slate-100 grid place-items-center p-4">

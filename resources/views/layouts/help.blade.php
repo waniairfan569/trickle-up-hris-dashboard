@@ -9,6 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>tailwind.config = { theme: { extend: { fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] } } } };</script>
+    @include('layouts.partials.type-scale')
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         .prose h2{font-size:1.15rem;font-weight:800;margin:1.9rem 0 .6rem;color:#0f172a}

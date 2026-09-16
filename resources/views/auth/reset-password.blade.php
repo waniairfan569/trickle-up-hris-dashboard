@@ -21,6 +21,7 @@
             } }
         }
     </script>
+    @include('layouts.partials.type-scale')
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>.glow-effect{box-shadow:0 0 50px -10px rgba(84,94,255,.2)}.backdrop-blur-xl{backdrop-filter:blur(24px)}</style>
 </head>

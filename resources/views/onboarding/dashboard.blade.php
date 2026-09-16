@@ -140,7 +140,7 @@
 
     <!-- All Onboarding Tab (HR) -->
     @if(auth()->user()->hasRole('hr_admin') || auth()->user()->hasRole('super_admin'))
-    <div x-show="activeTab === 'all_onboarding'" style="display: none;" class="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden dark:bg-slate-800 dark:border-slate-700/80">
+    <div x-show="activeTab === 'all_onboarding'" style="display: none;" class="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-x-auto dark:bg-slate-800 dark:border-slate-700/80">
         <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
             <thead class="bg-slate-50 dark:bg-slate-900/50">
                 <tr>

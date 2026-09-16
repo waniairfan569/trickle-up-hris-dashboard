@@ -20,6 +20,7 @@
             } }
         }
     </script>
+    @include('layouts.partials.type-scale')
     <script src="https://unpkg.com/lucide@latest"></script>
     @if($turnstileSiteKey ?? null)
         <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>

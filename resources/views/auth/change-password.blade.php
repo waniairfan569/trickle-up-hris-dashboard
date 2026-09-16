@@ -39,6 +39,7 @@
             }
         }
     </script>
+    @include('layouts.partials.type-scale')
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body class="bg-slate-50 text-slate-900 antialiased font-sans flex items-center justify-center min-h-screen">

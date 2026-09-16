@@ -27,6 +27,7 @@
             theme: { extend: { fontFamily: { sans: ['Plus Jakarta Sans', 'Inter', 'sans-serif'] } } }
         }
     </script>
+    @include('layouts.partials.type-scale')
 
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
