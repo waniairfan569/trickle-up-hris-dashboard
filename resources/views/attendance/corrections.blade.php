@@ -48,8 +48,13 @@
                                     <span class="font-mono text-brand-700 font-semibold">{{ $c->requested_clock_out ? $tzSvc->formatForUser($c->requested_clock_out, $c->employee, 'h:i A') : '--:--' }}</span>
                                 </div>
                             </td>
-                            <td class="px-6 py-4">
-                                <p class="text-sm text-slate-600 max-w-xs truncate" title="{{ $c->reason }}">{{ $c->reason }}</p>
+                            <td class="px-6 py-4 align-top">
+                                <div class="max-w-xs" x-data="{ open: false }">
+                                    <p class="text-sm text-slate-600 whitespace-pre-line break-words" :class="open ? '' : 'line-clamp-2'">{{ $c->reason }}</p>
+                                    @if(mb_strlen($c->reason) > 90)
+                                        <button type="button" @click="open = !open" class="mt-1 text-xs font-semibold text-brand-600 hover:text-brand-700" x-text="open ? 'Show less' : 'Show more'">Show more</button>
+                                    @endif
+                                </div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                                 {{ $c->created_at->diffForHumans() }}
