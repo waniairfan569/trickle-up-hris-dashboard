@@ -48,9 +48,6 @@
     <!-- Unread-announcement bar + auto-popup -->
     @include('partials.announcement-alert')
 
-    <!-- Attendance Clock Widget -->
-    @include('attendance.partials.clock-widget')
-
     <!-- Employees waiting for a login code -->
     @include('partials.code-request-hr-banner')
 
