@@ -77,10 +77,7 @@
                         </span>
                         <div class="min-w-0 flex-1">
                             <p class="text-sm font-bold text-slate-800 dark:text-white truncate" x-text="o.name"></p>
-                            <div class="flex items-center gap-2 flex-wrap">
-                                <p class="text-xs text-slate-500 dark:text-slate-400" x-text="o.range"></p>
-                                <span class="inline-flex items-center gap-1 text-[10px] font-bold rounded-md bg-indigo-50 px-1.5 py-0.5 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-300"><i data-lucide="house-wifi" class="h-3 w-3"></i> WFH</span>
-                            </div>
+                            <p class="text-xs text-slate-500 dark:text-slate-400" x-text="o.detail || 'Working remotely'"></p>
                         </div>
                     </div>
                 </template>

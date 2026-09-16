@@ -220,6 +220,7 @@
                 window.__announcements = @json($announcements ?? []);
                 window.__outOfOffice = @json($outOfOffice ?? []);
                 window.__workFromHome = @json($workFromHome ?? []);
+                window.__remoteWorkers = @json($remoteWorkers ?? []);
                 function celebrationsWidget() {
                     return {
                         current: '{{ now()->toDateString() }}',
@@ -231,6 +232,7 @@
                         holidays: window.__holidays || [],
                         outOfOffice: window.__outOfOffice || [],
                         workFromHome: window.__workFromHome || [],
+                        remoteWorkers: window.__remoteWorkers || [],
                         selected: null,
                         openView(a) { this.selected = a; },
                         oooOpen: false,
@@ -243,8 +245,8 @@
                             const wd = new Date(d + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short' });
                             const seen = {};
                             const out = [];
-                            this.workFromHome.forEach(o => { if (d >= o.start && d <= o.end) { seen[o.id] = 1; out.push(Object.assign({}, o, { detail: 'Working from home' })); } });
-                            this.remoteWorkers.forEach(o => { if (seen[o.id]) return; if (o.everyday || (o.days || []).indexOf(wd) !== -1) { out.push(Object.assign({}, o, { range: o.everyday ? 'Remote (default)' : 'Hybrid remote day', detail: 'Working remotely' })); } });
+                            this.workFromHome.forEach(o => { if (d >= o.start && d <= o.end) { seen[o.id] = 1; out.push(Object.assign({}, o, { detail: 'Working remotely' })); } });
+                            (this.remoteWorkers || []).forEach(o => { if (seen[o.id]) return; if (o.everyday || (o.days || []).indexOf(wd) !== -1) { out.push(Object.assign({}, o, { detail: 'Working remotely' })); } });
                             return out;
                         },
                         wfhFiltered() { const q = this.oooSearch.toLowerCase(); return this.wfhOnDate().filter(o => o.name.toLowerCase().includes(q)); },

@@ -178,9 +178,9 @@
                 const seen = {};
                 const out = [];
                 // One-off approved WFH requests covering the date.
-                this.workFromHome.forEach(o => { if (d >= o.start && d <= o.end) { seen[o.id] = 1; out.push(Object.assign({}, o, { detail: 'Working from home' })); } });
+                this.workFromHome.forEach(o => { if (d >= o.start && d <= o.end) { seen[o.id] = 1; out.push(Object.assign({}, o, { detail: 'Working remotely' })); } });
                 // Standing remote workers: base-remote (any day) or hybrid on this weekday.
-                this.remoteWorkers.forEach(o => { if (seen[o.id]) return; if (o.everyday || (o.days || []).indexOf(wd) !== -1) { out.push(Object.assign({}, o, { range: o.everyday ? 'Remote (default)' : 'Hybrid remote day', detail: 'Working remotely' })); } });
+                (this.remoteWorkers || []).forEach(o => { if (seen[o.id]) return; if (o.everyday || (o.days || []).indexOf(wd) !== -1) { out.push(Object.assign({}, o, { detail: 'Working remotely' })); } });
                 return out;
             },
             wfhFiltered() { const q = this.oooSearch.toLowerCase(); return this.wfhOnDate().filter(o => o.name.toLowerCase().includes(q)); },
