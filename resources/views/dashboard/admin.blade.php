@@ -261,12 +261,12 @@
     {{-- Approval queues — one row of three equal-height columns --}}
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-    <!-- Time Off Approval Queue -->
+    <!-- Time Off Requests -->
     <div class="flex flex-col rounded-2xl bg-white border border-slate-200/80 shadow-sm dark:bg-slate-800 dark:border-slate-800">
         <div class="flex items-center gap-3 border-b border-slate-100 p-6 dark:border-slate-700">
             <span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-100 text-brand-600 dark:bg-brand-500/15 dark:text-brand-400"><i data-lucide="calendar-check" class="h-5 w-5"></i></span>
             <div>
-                <h2 class="text-lg font-bold text-slate-900 dark:text-white">Time Off Approval Queue</h2>
+                <h2 class="text-lg font-bold text-slate-900 dark:text-white">Time Off Requests</h2>
                 <p class="text-xs text-slate-400 mt-0.5">Approve or reject pending time off requests.</p>
             </div>
         </div>
