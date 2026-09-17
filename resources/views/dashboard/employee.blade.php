@@ -178,7 +178,6 @@
                         </template>
                     </div>
                 </div>
-                <a href="{{ route('events.employee-calendar') }}" class="relative px-5 pb-4 text-sm font-bold text-teal-600 hover:text-teal-700 dark:text-teal-400">View all →</a>
             </div>
 
             <!-- Announcements -->
@@ -214,7 +213,6 @@
                         </template>
                     </div>
                 </div>
-                <a href="{{ route('announcements.all') }}" class="relative px-5 pb-4 text-sm font-bold text-teal-600 hover:text-teal-700 dark:text-teal-400">View all →</a>
             </div>
 
             <!-- Upcoming events -->
