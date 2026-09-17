@@ -162,42 +162,6 @@
         ->latest()
         ->take(4)
         ->get();
-
-    // Live Activity Logs or premium fallbacks
-    // Build "Recent System Activity" from real records (newest first).
-    $activities = collect();
-
-    foreach (\App\Models\User::with('invitedBy')->latest('created_at')->take(6)->get() as $u) {
-        $activities->push((object) [
-            'action' => 'User Created',
-            'description' => (trim($u->first_name . ' ' . $u->last_name) ?: 'An employee') . ' was added to the directory',
-            'user' => (object) ['full_name' => optional($u->invitedBy)->full_name ?? 'System'],
-            'created_at' => $u->created_at,
-        ]);
-    }
-
-    foreach (\App\Models\TimeOffRequest::whereIn('status', ['approved', 'rejected'])->with(['employee', 'policy'])->latest('updated_at')->take(6)->get() as $r) {
-        $approved = $r->status === 'approved';
-        $activities->push((object) [
-            'action' => $approved ? 'Leave Approved' : 'Leave Rejected',
-            'description' => ($r->policy->name ?? 'Leave') . ' for ' . ($r->employee->full_name ?? 'an employee') . ($approved ? ' was approved' : ' was rejected'),
-            'user' => (object) ['full_name' => 'HR'],
-            'created_at' => $r->updated_at ?? $r->created_at,
-        ]);
-    }
-
-    if (class_exists(\App\Models\Event::class)) {
-        foreach (\App\Models\Event::with('creator')->latest('created_at')->take(3)->get() as $e) {
-            $activities->push((object) [
-                'action' => 'Event Added',
-                'description' => 'Event “' . $e->title . '” was created',
-                'user' => (object) ['full_name' => optional($e->creator)->full_name ?? 'System'],
-                'created_at' => $e->created_at,
-            ]);
-        }
-    }
-
-    $activities = $activities->filter(fn ($a) => $a->created_at)->sortByDesc('created_at')->take(6)->values();
 @endphp
 
 <div class="space-y-8">
@@ -551,66 +515,6 @@
     <!-- RIGHT COLUMN -->
     <div class="space-y-6">
         @include('dashboard.partials.calendar-widget')
-
-        <!-- Recent System Activity (below the calendar, opposite Events) -->
-        <div class="rounded-2xl bg-white border border-slate-200/80 shadow-sm dark:bg-slate-800 dark:border-slate-800">
-                <div class="flex items-center justify-between border-b border-slate-100 p-6 dark:border-slate-700">
-                    <div>
-                        <h2 class="text-lg font-bold text-slate-900 dark:text-white">Recent System Activity</h2>
-                        <p class="text-xs text-slate-400 mt-0.5">Real-time system events log.</p>
-                    </div>
-                </div>
-
-                <div class="p-6">
-                    <ul class="-mb-8">
-                        @foreach($activities as $act)
-                            <li class="relative pb-8" x-data>
-                                <!-- Line separator -->
-                                @if(!$loop->last)
-                                    <span class="absolute top-5 left-5 -ml-px h-full w-0.5 bg-slate-200 dark:bg-slate-700" aria-hidden="true"></span>
-                                @endif
-
-                                <div class="relative flex items-start space-x-3">
-                                    <!-- Dynamic activity icon color -->
-                                    @php
-                                        $iconColor = match(strtolower($act->action)) {
-                                            'user created' => 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400',
-                                            'leave approved' => 'bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400',
-                                            'leave rejected' => 'bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400',
-                                            'event added' => 'bg-sky-50 text-sky-600 dark:bg-sky-500/10 dark:text-sky-400',
-                                            'policy updated' => 'bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400',
-                                            default => 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-450'
-                                        };
-                                        $icon = match(strtolower($act->action)) {
-                                            'user created' => 'user-check',
-                                            'leave approved' => 'check-circle-2',
-                                            'leave rejected' => 'x-circle',
-                                            'event added' => 'calendar-heart',
-                                            'policy updated' => 'shield-alert',
-                                            default => 'info'
-                                        };
-                                    @endphp
-                                    <div class="relative flex h-10 w-10 items-center justify-center rounded-xl font-bold shadow-sm {{ $iconColor }}">
-                                        <i data-lucide="{{ $icon }}" class="h-5 w-5"></i>
-                                    </div>
-
-                                    <div class="min-w-0 flex-1 py-1.5">
-                                        <div class="text-xs font-semibold text-slate-800 dark:text-slate-200">
-                                            {{ $act->action }}
-                                        </div>
-                                        <p class="text-xs text-slate-400 mt-0.5">
-                                            {{ $act->description ?? ($act->metadata['notes'] ?? '') }}
-                                        </p>
-                                        <span class="text-[10px] text-slate-400 mt-1 block">
-                                            By {{ $act->user->full_name ?? 'System' }} &bull; {{ $act->created_at instanceof \Carbon\Carbon ? $act->created_at->diffForHumans() : \Carbon\Carbon::parse($act->created_at)->diffForHumans() }}
-                                        </span>
-                                    </div>
-                                </div>
-                            </li>
-                        @endforeach
-                    </ul>
-                </div>
-            </div>
     </div>{{-- /RIGHT COLUMN --}}
 
     </div>{{-- /grid --}}
