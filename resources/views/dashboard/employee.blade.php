@@ -39,8 +39,7 @@
 <div class="mx-auto space-y-6 pb-12">
 
     <!-- Greeting hero -->
-    <div class="relative overflow-hidden rounded-2xl border border-slate-200/60 bg-white px-6 py-7 shadow-sm dark:border-slate-700 dark:bg-slate-800">
-        <div class="pointer-events-none absolute inset-0 dark:opacity-25" style="background: radial-gradient(130% 150% at 100% 0%, rgba(45,212,191,0.40) 0%, rgba(45,212,191,0) 42%), radial-gradient(95% 130% at 86% 35%, rgba(251,191,36,0.32) 0%, rgba(251,191,36,0) 50%), radial-gradient(120% 150% at 60% -15%, rgba(52,211,153,0.30) 0%, rgba(52,211,153,0) 52%), radial-gradient(85% 120% at 100% 105%, rgba(56,189,248,0.22) 0%, rgba(56,189,248,0) 55%);"></div>
+    <div class="relative overflow-hidden rounded-2xl border border-slate-200/70 bg-white px-6 py-7 shadow-sm dark:border-slate-700 dark:bg-slate-800">
         <div class="relative flex flex-wrap items-start justify-between gap-4">
             <div>
                 <h1 class="flex items-center gap-2 text-2xl font-bold text-slate-900 dark:text-white tracking-tight"><span>👋</span> Hello {{ $auth->first_name }}</h1>
