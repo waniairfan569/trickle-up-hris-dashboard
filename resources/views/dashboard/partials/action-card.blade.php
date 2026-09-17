@@ -15,7 +15,8 @@
     @if($__hasEvent) type="button" @click="$dispatch('{{ $card['event'] }}')" @endif
     class="group relative overflow-hidden w-full text-left rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm transition dark:border-slate-700 dark:bg-slate-800 {{ $__clickable ? 'block hover:-translate-y-0.5 hover:shadow-md hover:border-'.$__hue.'-300 dark:hover:border-'.$__hue.'-500/40' : '' }}">
     {{-- soft corner wash --}}
-    <div class="pointer-events-none absolute -bottom-10 -right-8 h-32 w-32 rounded-full bg-{{ $__hue }}-200/40 blur-2xl dark:bg-{{ $__hue }}-500/10"></div>
+    <div class="pointer-events-none absolute -bottom-16 -right-14 h-44 w-64 rounded-[45%] bg-{{ $__hue }}-200/45 blur-2xl dark:bg-{{ $__hue }}-500/10"></div>
+    <div class="pointer-events-none absolute bottom-2 right-10 h-16 w-28 rounded-[50%] bg-{{ $__hue }}-100/50 blur-2xl dark:bg-{{ $__hue }}-500/5"></div>
     <div class="relative flex items-start justify-between gap-3">
         <span class="grid h-12 w-12 shrink-0 place-items-center rounded-xl {{ $card['tone'] }}"><i data-lucide="{{ $card['icon'] }}" class="h-5 w-5"></i></span>
         @if($__clickable)

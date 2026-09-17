@@ -39,9 +39,8 @@
 <div class="mx-auto space-y-6 pb-12">
 
     <!-- Greeting hero -->
-    <div class="relative overflow-hidden rounded-2xl border border-slate-200/60 bg-gradient-to-r from-white via-emerald-50/50 to-teal-50/70 px-6 py-6 dark:border-slate-700 dark:from-slate-800 dark:via-slate-800 dark:to-slate-800">
-        <div class="pointer-events-none absolute -top-10 right-32 h-40 w-40 rounded-full bg-teal-200/30 blur-3xl dark:bg-teal-500/10"></div>
-        <div class="pointer-events-none absolute -bottom-12 right-0 h-44 w-44 rounded-full bg-amber-200/30 blur-3xl dark:bg-amber-500/10"></div>
+    <div class="relative overflow-hidden rounded-2xl border border-slate-200/60 bg-white px-6 py-7 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+        <div class="pointer-events-none absolute inset-0 dark:opacity-25" style="background: radial-gradient(130% 150% at 100% 0%, rgba(45,212,191,0.40) 0%, rgba(45,212,191,0) 42%), radial-gradient(95% 130% at 86% 35%, rgba(251,191,36,0.32) 0%, rgba(251,191,36,0) 50%), radial-gradient(120% 150% at 60% -15%, rgba(52,211,153,0.30) 0%, rgba(52,211,153,0) 52%), radial-gradient(85% 120% at 100% 105%, rgba(56,189,248,0.22) 0%, rgba(56,189,248,0) 55%);"></div>
         <div class="relative flex flex-wrap items-start justify-between gap-4">
             <div>
                 <h1 class="flex items-center gap-2 text-2xl font-bold text-slate-900 dark:text-white tracking-tight"><span>👋</span> Hello {{ $auth->first_name }}</h1>
@@ -49,7 +48,7 @@
                     {{ $isClockedIn ? "You're clocked in" : 'Welcome back' }}@if($attention > 0) and <span class="font-semibold text-slate-700 dark:text-slate-300">{{ $attention }}</span> {{ \Illuminate\Support\Str::plural('thing', $attention) }} need your attention today.@else — here's your day at a glance.@endif
                 </p>
             </div>
-            <div class="flex items-center gap-2 text-amber-500">
+            <div class="flex items-start gap-2 text-amber-500">
                 <i data-lucide="sun" class="h-5 w-5 shrink-0"></i>
                 <p class="max-w-[180px] text-sm font-semibold leading-snug text-slate-600 dark:text-slate-300">{{ $quote }}</p>
             </div>
@@ -137,9 +136,7 @@
                         </div>
                     </div>
                     <div class="flex items-center gap-1.5">
-                        <button @click="shift(-1)" class="h-9 w-9 rounded-full border border-slate-200 dark:border-slate-600 flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-50 dark:hover:text-white dark:hover:bg-slate-700 transition"><i data-lucide="arrow-left" class="h-4 w-4"></i></button>
-                        <button @click="shift(1)" class="h-9 w-9 rounded-full border border-slate-200 dark:border-slate-600 flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-50 dark:hover:text-white dark:hover:bg-slate-700 transition"><i data-lucide="arrow-right" class="h-4 w-4"></i></button>
-                        <a href="{{ route('events.employee-calendar') }}" class="ml-1 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-indigo-600 shadow-sm transition hover:bg-indigo-50 dark:bg-slate-800 dark:border-slate-700 dark:text-indigo-400 dark:hover:bg-slate-700">
+                        <a href="{{ route('events.employee-calendar') }}" class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-indigo-600 shadow-sm transition hover:bg-indigo-50 dark:bg-slate-800 dark:border-slate-700 dark:text-indigo-400 dark:hover:bg-slate-700">
                             <i data-lucide="calendar-days" class="h-4 w-4"></i> View Calendar <i data-lucide="chevron-right" class="h-4 w-4"></i>
                         </a>
                     </div>
@@ -150,8 +147,8 @@
 
             <!-- Celebrations -->
             <div class="relative overflow-hidden flex flex-col h-[300px] rounded-2xl border border-slate-200/70 bg-white shadow-sm dark:bg-slate-800 dark:border-slate-700">
-                <div class="pointer-events-none absolute -bottom-10 -left-8 h-32 w-32 rounded-full bg-pink-200/30 blur-2xl dark:bg-pink-500/10"></div>
-                <div class="pointer-events-none absolute -top-8 -right-6 h-24 w-24 rounded-full bg-rose-200/25 blur-2xl dark:bg-rose-500/10"></div>
+                <div class="pointer-events-none absolute -bottom-14 -left-12 h-40 w-56 rounded-[45%] bg-pink-200/45 blur-2xl dark:bg-pink-500/10"></div>
+                <div class="pointer-events-none absolute -top-10 -right-10 h-28 w-36 rounded-[45%] bg-rose-200/35 blur-2xl dark:bg-rose-500/10"></div>
                 <div class="relative flex items-center gap-2.5 px-5 pt-5">
                     <span class="grid h-10 w-10 place-items-center rounded-xl bg-pink-100 text-pink-500 dark:bg-pink-500/15 dark:text-pink-400"><i data-lucide="party-popper" class="h-5 w-5"></i></span>
                     <h3 class="text-base font-bold text-slate-800 dark:text-white">Celebrations</h3>
@@ -182,7 +179,7 @@
 
             <!-- Announcements -->
             <div class="relative overflow-hidden flex flex-col h-[300px] rounded-2xl border border-slate-200/70 bg-white shadow-sm dark:bg-slate-800 dark:border-slate-700">
-                <div class="pointer-events-none absolute -bottom-10 -right-8 h-32 w-32 rounded-full bg-amber-200/25 blur-2xl dark:bg-amber-500/10"></div>
+                <div class="pointer-events-none absolute -bottom-14 -right-12 h-40 w-56 rounded-[45%] bg-amber-200/40 blur-2xl dark:bg-amber-500/10"></div>
                 <div class="relative flex items-center gap-2.5 px-5 pt-5">
                     <span class="grid h-10 w-10 place-items-center rounded-xl bg-amber-100 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400"><i data-lucide="megaphone" class="h-5 w-5"></i></span>
                     <h3 class="text-base font-bold text-slate-800 dark:text-white">Announcements</h3>
@@ -217,8 +214,8 @@
 
             <!-- Upcoming events -->
             <div class="relative overflow-hidden flex flex-col h-[300px] rounded-2xl border border-slate-200/70 bg-white shadow-sm dark:bg-slate-800 dark:border-slate-700">
-                <div class="pointer-events-none absolute -bottom-10 -right-8 h-32 w-32 rounded-full bg-sky-200/30 blur-2xl dark:bg-sky-500/10"></div>
-                <i data-lucide="calendar-days" class="pointer-events-none absolute -bottom-3 -right-2 h-24 w-24 text-sky-200/50 dark:text-sky-500/10"></i>
+                <div class="pointer-events-none absolute -bottom-14 -right-12 h-40 w-56 rounded-[45%] bg-sky-200/45 blur-2xl dark:bg-sky-500/10"></div>
+                <i data-lucide="calendar-days" class="pointer-events-none absolute -bottom-3 -right-2 h-24 w-24 text-sky-300/40 dark:text-sky-500/10"></i>
                 <div class="relative flex items-center gap-2.5 px-5 pt-5">
                     <span class="grid h-10 w-10 place-items-center rounded-xl bg-sky-100 text-sky-600 dark:bg-sky-500/15 dark:text-sky-400"><i data-lucide="calendar-days" class="h-5 w-5"></i></span>
                     <h3 class="text-base font-bold text-slate-800 dark:text-white">Upcoming events</h3>
