@@ -408,7 +408,7 @@
         @php
             $dashCards = [
                 ['title' => 'Equipment',          'text' => 'Company equipment assigned to you.',        'icon' => 'package',      'tone' => 'bg-brand-50 text-brand-600 dark:bg-brand-500/15 dark:text-brand-400'],
-                ['title' => 'Overtime Approval',   'text' => 'Overtime requests and their status.',        'icon' => 'alarm-clock',  'tone' => 'bg-amber-50 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400'],
+                ['title' => 'Overtime Approval',   'text' => 'Submit overtime for approval.',               'icon' => 'alarm-clock',  'tone' => 'bg-amber-50 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400', 'href' => route('time-off.index', ['overtime' => 1])],
                 ['title' => 'WFH Approval',        'text' => 'Request to work from home — approved per request.', 'icon' => 'house-wifi',   'tone' => 'bg-indigo-50 text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-400', 'href' => route('time-off.create', ['policy' => 'wfh'])],
             ];
         @endphp

@@ -93,7 +93,8 @@
             @php
                 $otInputFields = $overtimeForm->fields->filter(fn ($f) => $f->isInputField() && !in_array($f->type, ['signature','file_upload'], true))->values();
             @endphp
-            <div x-data="{ open:false }">
+            <div x-data="{ open: {{ request('overtime') ? 'true' : 'false' }} }"
+                 x-init="if (open) $nextTick(() => { if (!document.querySelector('#ot-entries .ot-entry')) window.otAddEntry(); })">
                 <button type="button"
                         @click="open=true; $nextTick(() => { if (!document.querySelector('#ot-entries .ot-entry')) window.otAddEntry(); })"
                         class="btn-outline">
