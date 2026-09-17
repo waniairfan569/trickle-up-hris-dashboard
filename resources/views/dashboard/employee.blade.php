@@ -47,17 +47,11 @@
         @include('partials.code-request-hr-banner')
     @endif
 
-    <!-- Main Grid -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-        <!-- Left Column (calendar + balances) — shown AFTER the right column on mobile -->
-        <div class="space-y-4 order-last md:order-none">
-
-            <!-- Date & Events Widget -->
-            <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-6 flex flex-col h-[360px] dark:bg-slate-800 dark:border-slate-700"
-                 x-data="celebrationsWidget()">
+    <!-- Day at a glance (full-width) -->
+    <div class="bg-white rounded-xl shadow-sm border border-slate-100 dark:bg-slate-800 dark:border-slate-700"
+         x-data="celebrationsWidget()">
                 <!-- Date Header -->
-                <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center justify-between px-6 pt-6 pb-4">
                     <div class="flex items-center gap-3 text-slate-700 font-semibold dark:text-slate-200 relative" @click.away="showPicker = false">
                         <div class="h-10 w-10 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-100/60 dark:border-amber-500/20 flex items-center justify-center text-amber-500">
                             <i data-lucide="calendar" class="h-5 w-5"></i>
@@ -131,58 +125,88 @@
                     </div>
                 </div>
 
-                <!-- Tabs -->
-                <div class="flex items-center gap-5 border-b border-slate-100 dark:border-slate-700">
-                    <template x-for="t in tabs" :key="t.key">
-                        <button @click="tab = t.key" type="button"
-                                class="text-sm pb-2 -mb-px border-b-2 flex items-center gap-1.5 transition"
-                                :class="tab === t.key ? 'font-semibold text-slate-800 border-slate-800 dark:text-white dark:border-white' : 'font-medium text-slate-400 border-transparent hover:text-slate-600'">
-                            <span x-text="t.label"></span>
-                            <span class="text-[10px] px-1.5 py-0.5 rounded-md font-bold" :class="tab === t.key ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400' : 'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-300'" x-text="count(t.key)"></span>
-                        </button>
-                    </template>
+        <!-- 3-column grid: Celebrations · Announcements · Upcoming events -->
+        <div class="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-slate-100 dark:divide-slate-700/60 border-t border-slate-100 dark:border-slate-700/60">
+
+            <!-- Celebrations -->
+            <div class="flex flex-col h-[300px] px-5 py-4">
+                <div class="flex items-center gap-2 mb-3">
+                    <span class="grid h-8 w-8 place-items-center rounded-lg bg-pink-50 text-pink-500 dark:bg-pink-500/15 dark:text-pink-400"><i data-lucide="party-popper" class="h-4 w-4"></i></span>
+                    <h3 class="text-sm font-bold text-slate-800 dark:text-white">Celebrations</h3>
+                    <span class="ml-auto text-[10px] px-1.5 py-0.5 rounded-md font-bold bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-300" x-text="count('celebrations')"></span>
                 </div>
-
-                <!-- Content (scrolls; footer stays put) -->
-                <div class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden no-scrollbar pr-1 mt-3">
-                    <!-- Celebrations -->
-                    <div x-show="tab === 'celebrations'">
-                        <template x-if="todaysCelebrations().length === 0"><p class="text-xs font-semibold text-slate-400 text-center mt-10">No celebrations on this day</p></template>
-                        <div class="space-y-2.5">
-                            <template x-for="c in todaysCelebrations()" :key="c.name + c.type + (c.md || c.date || '')">
-                                <div class="relative flex items-center gap-3 rounded-xl bg-slate-50 dark:bg-slate-900/40 pl-4 pr-3 py-2.5 overflow-hidden">
-                                    <div class="absolute left-0 top-2.5 bottom-2.5 w-1 rounded-r-full" :class="dotColor(c.type)"></div>
-                                    <div class="flex-1 min-w-0">
-                                        <p class="text-sm font-bold text-slate-800 dark:text-white truncate" x-text="c.name"></p>
-                                        <p class="text-xs text-slate-500 dark:text-slate-400 truncate" x-text="c.label"></p>
-                                    </div>
-                                    <span class="shrink-0 rounded-full border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-2.5 py-0.5 text-[10px] font-bold text-slate-500 dark:text-slate-300" x-text="dayPill()"></span>
+                <div class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden no-scrollbar pr-1">
+                    <template x-if="todaysCelebrations().length === 0"><p class="text-xs font-semibold text-slate-400 text-center mt-10">No celebrations on this day</p></template>
+                    <div class="space-y-2.5">
+                        <template x-for="c in todaysCelebrations()" :key="c.name + c.type + (c.md || c.date || '')">
+                            <div class="relative flex items-center gap-3 rounded-xl bg-slate-50 dark:bg-slate-900/40 pl-4 pr-3 py-2.5 overflow-hidden">
+                                <div class="absolute left-0 top-2.5 bottom-2.5 w-1 rounded-r-full" :class="dotColor(c.type)"></div>
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm font-bold text-slate-800 dark:text-white truncate" x-text="c.name"></p>
+                                    <p class="text-xs text-slate-500 dark:text-slate-400 truncate" x-text="c.label"></p>
                                 </div>
-                            </template>
-                        </div>
-                    </div>
-
-                    <!-- Announcements -->
-                    <div x-show="tab === 'announcements'" x-cloak>
-                        <template x-if="announcements.length === 0"><p class="text-xs font-semibold text-slate-400 text-center mt-10">No announcements</p></template>
-                        <div class="space-y-2.5">
-                            <template x-for="a in announcements" :key="a.id">
-                                <div class="flex items-center gap-3 rounded-lg p-1.5 -mx-1.5 hover:bg-slate-50 dark:hover:bg-slate-900/40 transition">
-                                    <div class="h-9 w-10 rounded-lg flex items-center justify-center bg-amber-100 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400 shrink-0">
-                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 11l14-5v13L3 14z"/><path stroke-linecap="round" stroke-linejoin="round" d="M11.6 16.8a3 3 0 11-5.8-1.6"/></svg>
-                                    </div>
-                                    <div class="flex-1 min-w-0">
-                                        <p class="text-sm font-bold text-slate-800 dark:text-white truncate">
-                                            <span x-show="a.pinned">📌 </span><span x-text="a.title"></span>
-                                        </p>
-                                        <p class="text-xs text-slate-500 dark:text-slate-400 truncate" x-text="a.expires_label ? ('Expires ' + a.expires_label) : 'No expiry'"></p>
-                                    </div>
-                                    <button type="button" @click="openView(a)" class="shrink-0 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-2.5 py-1 text-[11px] font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition">View</button>
-                                </div>
-                            </template>
-                        </div>
+                                <span class="shrink-0 rounded-full border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-2.5 py-0.5 text-[10px] font-bold text-slate-500 dark:text-slate-300" x-text="dayPill()"></span>
+                            </div>
+                        </template>
                     </div>
                 </div>
+            </div>
+
+            <!-- Announcements -->
+            <div class="flex flex-col h-[300px] px-5 py-4">
+                <div class="flex items-center gap-2 mb-3">
+                    <span class="grid h-8 w-8 place-items-center rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400"><i data-lucide="megaphone" class="h-4 w-4"></i></span>
+                    <h3 class="text-sm font-bold text-slate-800 dark:text-white">Announcements</h3>
+                    <span class="ml-auto text-[10px] px-1.5 py-0.5 rounded-md font-bold bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-300" x-text="count('announcements')"></span>
+                </div>
+                <div class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden no-scrollbar pr-1">
+                    <template x-if="announcements.length === 0"><p class="text-xs font-semibold text-slate-400 text-center mt-10">No announcements</p></template>
+                    <div class="space-y-2.5">
+                        <template x-for="a in announcements" :key="a.id">
+                            <div class="flex items-center gap-3 rounded-lg p-1.5 -mx-1.5 hover:bg-slate-50 dark:hover:bg-slate-900/40 transition">
+                                <div class="h-9 w-10 rounded-lg flex items-center justify-center bg-amber-100 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400 shrink-0">
+                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 11l14-5v13L3 14z"/><path stroke-linecap="round" stroke-linejoin="round" d="M11.6 16.8a3 3 0 11-5.8-1.6"/></svg>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm font-bold text-slate-800 dark:text-white truncate">
+                                        <span x-show="a.pinned">📌 </span><span x-text="a.title"></span>
+                                    </p>
+                                    <p class="text-xs text-slate-500 dark:text-slate-400 truncate" x-text="a.expires_label ? ('Expires ' + a.expires_label) : 'No expiry'"></p>
+                                </div>
+                                <button type="button" @click="openView(a)" class="shrink-0 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-2.5 py-1 text-[11px] font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition">View</button>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Upcoming events -->
+            <div class="flex flex-col h-[300px] px-5 py-4">
+                <div class="flex items-center gap-2 mb-3">
+                    <span class="grid h-8 w-8 place-items-center rounded-lg bg-brand-50 text-brand-600 dark:bg-brand-500/15 dark:text-brand-400"><i data-lucide="calendar-days" class="h-4 w-4"></i></span>
+                    <h3 class="text-sm font-bold text-slate-800 dark:text-white">Upcoming events</h3>
+                    <span class="ml-auto text-[10px] px-1.5 py-0.5 rounded-md font-bold bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-300" x-text="count('events')"></span>
+                </div>
+                <div class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden no-scrollbar pr-1">
+                    <template x-if="upcomingEvents().length === 0"><p class="text-xs font-semibold text-slate-400 text-center mt-10">No upcoming events</p></template>
+                    <div class="space-y-2.5">
+                        <template x-for="e in upcomingEvents()" :key="e.id">
+                            <div class="flex items-start gap-3 rounded-lg p-1.5 -mx-1.5 hover:bg-slate-50 dark:hover:bg-slate-900/40 transition">
+                                <span class="mt-1 h-2.5 w-2.5 rounded-full shrink-0" :class="dotBg(e.color)"></span>
+                                <div class="min-w-0 flex-1">
+                                    <p class="text-sm font-bold text-slate-800 dark:text-white truncate" x-text="e.title"></p>
+                                    <p class="text-xs text-slate-400 truncate">
+                                        <span x-text="eventWhen(e)"></span><template x-if="e.location"><span x-text="' · ' + e.location"></span></template>
+                                    </p>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+                <a href="{{ route('events.employee-calendar') }}" class="mt-2 shrink-0 text-xs font-bold text-brand-600 hover:text-brand-700 dark:text-brand-400">View all →</a>
+            </div>
+
+        </div>
 
                 <!-- Announcement viewer popup -->
                 <template x-teleport="body">
@@ -211,7 +235,9 @@
                 </template>
 
                 <!-- Footer: Out of Office -->
-                @include('dashboard.partials.ooo-footer')
+                <div class="px-6 pb-4">
+                    @include('dashboard.partials.ooo-footer')
+                </div>
 
                 <script>
                 window.__celebrations = @json($celebrations);
@@ -360,39 +386,6 @@
                     };
                 }
                 </script>
-            </div>
-
-
-        </div>
-
-        <!-- Right Column (timesheet + code + announcements) — shown FIRST on mobile -->
-        <div class="space-y-4 order-first md:order-none">
-
-            <!-- Upcoming events -->
-            @if(($upcomingEvents ?? collect())->isNotEmpty())
-                <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 dark:bg-slate-800 dark:border-slate-700/80">
-                    <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-700/60">
-                        <h2 class="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2"><i data-lucide="calendar-days" class="h-4 w-4 text-brand-500"></i> Upcoming events</h2>
-                        <a href="{{ route('events.employee-calendar') }}" class="text-xs font-bold text-brand-600 hover:text-brand-700 dark:text-brand-400">View all →</a>
-                    </div>
-                    <div class="divide-y divide-slate-100 dark:divide-slate-700/60">
-                        @foreach($upcomingEvents as $event)
-                            <div class="flex items-start gap-3 px-6 py-3.5">
-                                <span class="mt-1 h-2.5 w-2.5 rounded-full shrink-0" style="background:{{ $event->color_hex }}"></span>
-                                <div class="min-w-0 flex-1">
-                                    <p class="text-sm font-bold text-slate-800 dark:text-white truncate">@if($event->is_pinned)<i data-lucide="pin" class="h-3 w-3 inline -mt-0.5 text-brand-500"></i> @endif{{ $event->title }}</p>
-                                    <p class="text-xs text-slate-400">
-                                        {{ $event->date->format('D, d M') }}@if($event->is_multi_day) – {{ $event->end_date->format('d M') }}@endif
-                                        @if($event->location) · {{ $event->location }} @endif
-                                    </p>
-                                </div>
-                            </div>
-                        @endforeach
-                    </div>
-                </div>
-            @endif
-
-        </div>
     </div>
 
     {{-- Quick request cards (functionality wired later) --}}
