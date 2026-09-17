@@ -284,11 +284,7 @@
                 <div class="divide-y divide-slate-100 dark:divide-slate-700/60 -my-4">
                     @foreach($pendingRequests as $req)
                         <div class="py-4 space-y-3">
-                            <div class="flex items-center space-x-3 min-w-0">
-                                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-slate-100 to-slate-200 text-sm font-bold text-slate-700 dark:from-slate-700 dark:to-slate-600 dark:text-slate-200">
-                                    {{ $req->employee->initials ?? 'EM' }}
-                                </div>
-                                <div class="min-w-0">
+                            <div class="min-w-0">
                                     <h4 class="text-sm font-bold text-slate-950 dark:text-white truncate">{{ $req->employee->full_name ?? 'Unknown' }}</h4>
                                     @if($req->reason)
                                         {{-- Reason: truncated inline; hover shows the full text (only when it's actually cut off). --}}
@@ -306,10 +302,9 @@
                                             </div>
                                         </div>
                                     @endif
-                                </div>
                             </div>
 
-                            <div class="flex items-center justify-between gap-3 pl-13">
+                            <div class="flex items-center justify-between gap-3">
                                 <div class="text-left whitespace-nowrap">
                                     <span class="text-sm font-extrabold text-slate-900 dark:text-white">{{ $req->duration_label }}</span>
                                     <p class="text-[10px] text-slate-400 font-medium">
@@ -325,14 +320,14 @@
                                     <!-- Approve Form -->
                                     <form action="{{ route('time-off.approve', $req->id) }}" method="POST">
                                         @csrf
-                                        <button type="submit" class="rounded-xl bg-emerald-50 px-3 py-1.5 text-[11px] font-bold text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800 transition dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20">
-                                            Approve
+                                        <button type="submit" title="Approve" class="grid h-9 w-9 place-items-center rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800 transition dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20">
+                                            <i data-lucide="check" class="h-4 w-4"></i>
                                         </button>
                                     </form>
 
                                     <!-- Reject Trigger -->
-                                    <button type="button" @click="openReject = true" class="rounded-xl bg-rose-50 px-3 py-1.5 text-[11px] font-bold text-rose-700 hover:bg-rose-100 hover:text-rose-800 transition dark:bg-rose-500/10 dark:text-rose-400 dark:hover:bg-rose-500/20">
-                                        Reject
+                                    <button type="button" @click="openReject = true" title="Reject" class="grid h-9 w-9 place-items-center rounded-xl bg-rose-50 text-rose-700 hover:bg-rose-100 hover:text-rose-800 transition dark:bg-rose-500/10 dark:text-rose-400 dark:hover:bg-rose-500/20">
+                                        <i data-lucide="x" class="h-4 w-4"></i>
                                     </button>
 
                                     <!-- Rejection Modal -->
@@ -420,24 +415,19 @@
                     <div class="divide-y divide-slate-100 dark:divide-slate-700/60 -my-4">
                         @foreach($pendingWfhRequests as $req)
                             <div class="py-4 flex items-center justify-between gap-3">
-                                <div class="flex items-center space-x-3 min-w-0">
-                                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-slate-100 to-slate-200 text-sm font-bold text-slate-700 dark:from-slate-700 dark:to-slate-600 dark:text-slate-200">
-                                        {{ $req->employee->initials ?? 'EM' }}
-                                    </div>
-                                    <div class="min-w-0">
-                                        <h4 class="text-sm font-bold text-slate-950 dark:text-white truncate">{{ $req->employee->full_name ?? 'Unknown' }}</h4>
-                                        <p class="text-[11px] text-slate-400 truncate">
-                                            {{ $req->start_date->format('M d') }}@if($req->start_date->ne($req->end_date)) – {{ $req->end_date->format('M d') }}@endif · {{ $req->duration_label }}
-                                        </p>
-                                    </div>
+                                <div class="min-w-0">
+                                    <h4 class="text-sm font-bold text-slate-950 dark:text-white truncate">{{ $req->employee->full_name ?? 'Unknown' }}</h4>
+                                    <p class="text-[11px] text-slate-400 truncate">
+                                        {{ $req->start_date->format('M d') }}@if($req->start_date->ne($req->end_date)) – {{ $req->end_date->format('M d') }}@endif · {{ $req->duration_label }}
+                                    </p>
                                 </div>
 
                                 <div class="flex items-center gap-1.5 shrink-0" x-data="{ openReject: false }">
                                     <form action="{{ route('time-off.approve', $req->id) }}" method="POST">
                                         @csrf
-                                        <button type="submit" class="rounded-xl bg-emerald-50 px-3 py-1.5 text-[11px] font-bold text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800 transition dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20">Approve</button>
+                                        <button type="submit" title="Approve" class="grid h-9 w-9 place-items-center rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800 transition dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20"><i data-lucide="check" class="h-4 w-4"></i></button>
                                     </form>
-                                    <button type="button" @click="openReject = true" class="rounded-xl bg-rose-50 px-3 py-1.5 text-[11px] font-bold text-rose-700 hover:bg-rose-100 hover:text-rose-800 transition dark:bg-rose-500/10 dark:text-rose-400 dark:hover:bg-rose-500/20">Reject</button>
+                                    <button type="button" @click="openReject = true" title="Reject" class="grid h-9 w-9 place-items-center rounded-xl bg-rose-50 text-rose-700 hover:bg-rose-100 hover:text-rose-800 transition dark:bg-rose-500/10 dark:text-rose-400 dark:hover:bg-rose-500/20"><i data-lucide="x" class="h-4 w-4"></i></button>
 
                                     <div x-show="openReject" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4" style="display:none;">
                                         <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" @click="openReject = false"></div>
