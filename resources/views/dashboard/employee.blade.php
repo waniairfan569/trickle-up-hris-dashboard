@@ -186,9 +186,7 @@
                     <div class="space-y-2.5">
                         <template x-for="a in announcements" :key="a.id">
                             <div class="flex items-center gap-3 rounded-lg p-1.5 -mx-1.5 hover:bg-slate-50 dark:hover:bg-slate-900/40 transition">
-                                <div class="h-9 w-10 rounded-lg flex items-center justify-center bg-amber-100 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400 shrink-0">
-                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 11l14-5v13L3 14z"/><path stroke-linecap="round" stroke-linejoin="round" d="M11.6 16.8a3 3 0 11-5.8-1.6"/></svg>
-                                </div>
+                                <span class="h-2.5 w-2.5 rounded-full bg-amber-500 dark:bg-amber-400 shrink-0"></span>
                                 <div class="flex-1 min-w-0">
                                     <p class="text-sm font-bold text-slate-800 dark:text-white truncate">
                                         <span x-show="a.pinned">📌 </span><span x-text="a.title"></span>
