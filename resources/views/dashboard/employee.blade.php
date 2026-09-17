@@ -244,6 +244,9 @@
                 <div class="text-sm text-slate-600 dark:text-slate-300">
                     <span class="font-bold text-slate-800 dark:text-white" x-text="oooOnDate().length"></span>
                     <span x-text="oooOnDate().length === 1 ? 'employee' : 'employees'"></span> out of office
+                    <span class="mx-1.5 text-slate-300 dark:text-slate-600">·</span>
+                    <span class="font-bold text-indigo-600 dark:text-indigo-400" x-text="wfhOnDate().length"></span>
+                    working from home
                 </div>
             </div>
             <div class="flex items-center gap-2">
