@@ -407,7 +407,7 @@
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         @php
             $quickCards = [
-                ['title' => 'Request Time Off',      'text' => 'Apply for leave from your policies.',        'icon' => 'calendar-plus', 'tone' => 'bg-brand-50 text-brand-600 dark:bg-brand-500/15 dark:text-brand-400'],
+                ['title' => 'Request Time Off',      'text' => 'Apply for leave from your policies.',        'icon' => 'calendar-plus', 'tone' => 'bg-brand-50 text-brand-600 dark:bg-brand-500/15 dark:text-brand-400', 'href' => route('time-off.create')],
                 ['title' => 'Request Login Code',     'text' => 'Get a one-time code for a company tool.',    'icon' => 'key-round',     'tone' => 'bg-amber-50 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400'],
                 ['title' => 'Feedback & Suggestions', 'text' => 'Share feedback or raise an issue with HR.', 'icon' => 'message-square-heart', 'tone' => 'bg-rose-50 text-rose-600 dark:bg-rose-500/15 dark:text-rose-400'],
             ];
