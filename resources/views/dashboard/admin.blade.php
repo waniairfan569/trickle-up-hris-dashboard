@@ -206,22 +206,19 @@
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         @foreach($statCards as $c)
             <div x-data="{ open: false }" class="rounded-2xl bg-white border border-slate-200/80 p-4 sm:p-5 shadow-sm hover:shadow-md transition dark:bg-slate-800 dark:border-slate-800">
-                {{-- icon on the left · label above the number --}}
-                <div class="flex items-center gap-3">
-                    <span class="h-11 w-11 shrink-0 grid place-items-center rounded-xl {{ $c['bg'] }} {{ $c['text'] }}">
-                        <i data-lucide="{{ $c['icon'] }}" class="h-5 w-5"></i>
-                    </span>
-                    <div class="min-w-0">
-                        <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400 truncate">{{ $c['label'] }}</p>
-                        {{-- number with the sub text inline next to it --}}
-                        <div class="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 min-w-0">
-                            <h3 class="text-2xl font-extrabold text-slate-900 dark:text-white leading-none">{{ $c['value'] }}</h3>
-                            @if(!empty($c['action']))
-                                <span class="self-center inline-flex items-center rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-bold text-rose-700 dark:bg-rose-500/10 dark:text-rose-400 animate-pulse">Action</span>
-                            @endif
-                            <span class="text-[11px] text-slate-400 truncate">{{ $c['sub'] }}</span>
-                        </div>
+                {{-- icon on top · label + number + sub below --}}
+                <span class="h-11 w-11 grid place-items-center rounded-xl {{ $c['bg'] }} {{ $c['text'] }}">
+                    <i data-lucide="{{ $c['icon'] }}" class="h-5 w-5"></i>
+                </span>
+                <div class="mt-3">
+                    <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">{{ $c['label'] }}</p>
+                    <div class="mt-0.5 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                        <h3 class="text-2xl font-extrabold text-slate-900 dark:text-white leading-none">{{ $c['value'] }}</h3>
+                        @if(!empty($c['action']))
+                            <span class="inline-flex items-center rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-bold text-rose-700 dark:bg-rose-500/10 dark:text-rose-400 animate-pulse">Action</span>
+                        @endif
                     </div>
+                    <p class="mt-0.5 text-[11px] text-slate-400">{{ $c['sub'] }}</p>
                 </div>
 
                 @if(!empty($c['people']))
