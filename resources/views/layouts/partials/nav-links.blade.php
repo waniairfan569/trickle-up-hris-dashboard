@@ -2,7 +2,8 @@
     $routeName = request()->route()?->getName() ?? '';
 
     // Sidebar red badges — items needing attention on each tab.
-    $nav = ['invites' => 0, 'timeoff' => 0, 'forms' => 0, 'corrections' => 0, 'sign' => 0, 'hr_to_sign' => 0];
+    $nav = ['invites' => 0, 'timeoff' => 0, 'forms' => 0, 'corrections' => 0, 'sign' => 0, 'hr_to_sign' => 0, 'overtime' => 0, 'wfh' => 0];
+    $navWfhPolicyId = null;
     if ($navUser = auth()->user()) {
         // Documents awaiting THIS user's signature (shown on Document Library).
         $nav['sign'] = \App\Models\DocumentRequest::where('status', 'in_progress')
@@ -30,6 +31,16 @@
             $nav['timeoff'] = \App\Models\TimeOffRequest::where('status', 'pending')->count();
             $nav['invites'] = \App\Models\User::where('account_status', 'invited')->count();
             $nav['corrections'] = \App\Models\AttendanceCorrection::where('status', 'pending')->count();
+
+            // Overtime + Work From Home request queues (admin-only sidebar links).
+            $nav['wfh'] = \App\Models\TimeOffRequest::where('status', 'pending')
+                ->whereHas('policy', fn ($q) => $q->workFromHome())->count();
+            $navWfhPolicyId = optional(\App\Models\TimeOffPolicy::active()->workFromHome()->first())->id;
+            $__navOvertimeForm = plan_allows('forms') ? \App\Models\CompanyForm::overtimeForm() : null;
+            $nav['overtime'] = $__navOvertimeForm
+                ? \App\Models\FormSubmission::where('form_id', $__navOvertimeForm->id)->where('status', 'submitted')
+                    ->where(fn ($w) => $w->whereNull('review_status')->orWhere('review_status', 'pending'))->count()
+                : 0;
         } elseif ($navReportIds->isNotEmpty()) {
             $nav['timeoff'] = \App\Models\TimeOffRequest::where('status', 'pending')->whereIn('user_id', $navReportIds)->count();
             $nav['corrections'] = \App\Models\AttendanceCorrection::where('status', 'pending')->whereIn('user_id', $navReportIds)->count();
@@ -66,6 +77,21 @@
             <i data-lucide="calendar" class="h-5 w-5 shrink-0"></i><span class="flex-1">Time Off Requests</span>
             {!! $navBadge($nav['timeoff']) !!}
         </a>
+        {{-- Admin-only: dedicated Overtime + Work From Home request queues --}}
+        @if(auth()->user()->isAdmin())
+            @if(plan_allows('forms'))
+            <a href="{{ route('company-forms.inbox') }}"
+               class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'company-forms.inbox') ? 'text-brand-400 bg-slate-800' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
+                <i data-lucide="alarm-clock" class="h-5 w-5 shrink-0"></i><span class="flex-1">Overtime Requests</span>
+                {!! $navBadge($nav['overtime']) !!}
+            </a>
+            @endif
+            <a href="{{ $navWfhPolicyId ? route('time-off.index', ['policy_id' => $navWfhPolicyId]) : route('time-off.index') }}"
+               class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition text-slate-400 hover:text-white hover:bg-slate-800">
+                <i data-lucide="house" class="h-5 w-5 shrink-0"></i><span class="flex-1">WFH Requests</span>
+                {!! $navBadge($nav['wfh']) !!}
+            </a>
+        @endif
         <a href="{{ route('events.employee-calendar') }}"
            class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ request()->routeIs('events.employee-calendar') ? 'text-brand-400 bg-slate-800' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
             <i data-lucide="calendar-days" class="h-5 w-5 shrink-0"></i><span class="flex-1">Calendar</span>
