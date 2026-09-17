@@ -273,12 +273,12 @@
 
         <div class="p-6 flex-1">
             @if($pendingRequests->isEmpty())
-                <div class="flex flex-col items-center justify-center py-10 text-center">
+                <div class="flex h-full flex-col items-center justify-center py-6 text-center">
                     <div class="flex h-14 w-14 items-center justify-center rounded-full bg-slate-50 text-slate-400 dark:bg-slate-700/50 dark:text-slate-500">
                         <i data-lucide="check-square" class="h-7 w-7"></i>
                     </div>
                     <h3 class="mt-4 text-sm font-bold text-slate-800 dark:text-slate-200">Inbox is empty</h3>
-                    <p class="mt-1 text-xs text-slate-400 max-w-xs">There are no pending time-off requests waiting for your approval today.</p>
+                    <p class="mt-1 text-xs text-slate-400 max-w-xs">No pending time-off requests right now.</p>
                 </div>
             @else
                 <div class="divide-y divide-slate-100 dark:divide-slate-700/60 -my-4">
@@ -380,17 +380,17 @@
                     <p class="text-xs text-slate-400 mt-0.5">Overtime submitted for approval.</p>
                 </div>
             </div>
-            <div class="p-6 flex-1">
+            <div class="p-6 flex-1 flex flex-col justify-center">
                 @if($pendingOvertime > 0)
                     <a href="{{ route('company-forms.inbox') }}" class="flex items-center justify-between rounded-xl bg-violet-50 px-4 py-3.5 hover:bg-violet-100 transition dark:bg-violet-500/10 dark:hover:bg-violet-500/20">
                         <span class="text-sm font-semibold text-slate-700 dark:text-slate-200"><span class="font-extrabold text-violet-700 dark:text-violet-300">{{ $pendingOvertime }}</span> {{ \Illuminate\Support\Str::plural('request', $pendingOvertime) }} awaiting review</span>
                         <span class="inline-flex items-center gap-1 text-sm font-bold text-violet-700 dark:text-violet-300">Review <i data-lucide="arrow-right" class="h-4 w-4"></i></span>
                     </a>
                 @else
-                    <div class="flex flex-col items-center justify-center py-8 text-center">
+                    <div class="flex flex-col items-center justify-center py-6 text-center">
                         <div class="grid h-14 w-14 place-items-center rounded-full bg-slate-50 text-slate-400 dark:bg-slate-700/50 dark:text-slate-500"><i data-lucide="alarm-clock" class="h-7 w-7"></i></div>
                         <h3 class="mt-4 text-sm font-bold text-slate-800 dark:text-slate-200">No overtime requests</h3>
-                        <p class="mt-1 text-xs text-slate-400 max-w-xs">There are no overtime submissions waiting for review.</p>
+                        <p class="mt-1 text-xs text-slate-400 max-w-xs">No overtime submissions to review.</p>
                     </div>
                 @endif
             </div>
@@ -405,7 +405,7 @@
             <div class="flex items-center gap-3 border-b border-slate-100 p-6 dark:border-slate-700">
                 <span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-sky-100 text-sky-600 dark:bg-sky-500/15 dark:text-sky-400"><i data-lucide="house" class="h-5 w-5"></i></span>
                 <div>
-                    <h2 class="flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-white">Work From Home Requests
+                    <h2 class="flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-white">WFH Requests
                         @if($pendingWfhCount > 0)<span class="grid h-5 min-w-5 place-items-center rounded-full bg-rose-500 px-1.5 text-[11px] font-bold text-white">{{ $pendingWfhCount }}</span>@endif
                     </h2>
                     <p class="text-xs text-slate-400 mt-0.5">Approve or reject remote-work requests.</p>
@@ -414,10 +414,10 @@
 
             <div class="p-6 flex-1">
                 @if($pendingWfhRequests->isEmpty())
-                    <div class="flex flex-col items-center justify-center py-10 text-center">
+                    <div class="flex h-full flex-col items-center justify-center py-6 text-center">
                         <div class="grid h-14 w-14 place-items-center rounded-full bg-slate-50 text-slate-400 dark:bg-slate-700/50 dark:text-slate-500"><i data-lucide="house" class="h-7 w-7"></i></div>
                         <h3 class="mt-4 text-sm font-bold text-slate-800 dark:text-slate-200">No WFH requests</h3>
-                        <p class="mt-1 text-xs text-slate-400 max-w-xs">There are no work-from-home requests waiting for your approval.</p>
+                        <p class="mt-1 text-xs text-slate-400 max-w-xs">No work-from-home requests to review.</p>
                     </div>
                 @else
                     <div class="divide-y divide-slate-100 dark:divide-slate-700/60 -my-4">
