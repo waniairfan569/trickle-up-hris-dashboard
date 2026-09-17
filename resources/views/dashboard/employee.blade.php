@@ -22,16 +22,38 @@
         $rd = \App\Models\LeaveYearSetting::where('is_active', true)->whereNotNull('next_renewal_date')->orderBy('next_renewal_date')->value('next_renewal_date');
         $resetDate = $rd ? \Carbon\Carbon::parse($rd) : null;
     } catch (\Throwable $e) {}
+
+    // A gentle daily nudge in the hero — stable for the whole day.
+    $quotes = [
+        'Small steps every day lead to big results.',
+        'Progress, not perfection.',
+        'Great things are built one day at a time.',
+        'Focus on what matters most today.',
+        'Consistency beats intensity.',
+        'Make today count.',
+        'A little progress each day adds up.',
+    ];
+    $quote = $quotes[now()->dayOfYear % count($quotes)];
 @endphp
 
 <div class="mx-auto space-y-6 pb-12">
 
-    <!-- Greeting -->
-    <div>
-        <h1 class="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Hello {{ $auth->first_name }}</h1>
-        <p class="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-            {{ $isClockedIn ? "You're clocked in" : 'Welcome back' }}@if($attention > 0) and <span class="font-semibold text-slate-700 dark:text-slate-300">{{ $attention }}</span> {{ \Illuminate\Support\Str::plural('thing', $attention) }} need your attention today.@else — here's your day at a glance.@endif
-        </p>
+    <!-- Greeting hero -->
+    <div class="relative overflow-hidden rounded-2xl border border-slate-200/60 bg-gradient-to-r from-white via-emerald-50/50 to-teal-50/70 px-6 py-6 dark:border-slate-700 dark:from-slate-800 dark:via-slate-800 dark:to-slate-800">
+        <div class="pointer-events-none absolute -top-10 right-32 h-40 w-40 rounded-full bg-teal-200/30 blur-3xl dark:bg-teal-500/10"></div>
+        <div class="pointer-events-none absolute -bottom-12 right-0 h-44 w-44 rounded-full bg-amber-200/30 blur-3xl dark:bg-amber-500/10"></div>
+        <div class="relative flex flex-wrap items-start justify-between gap-4">
+            <div>
+                <h1 class="flex items-center gap-2 text-2xl font-bold text-slate-900 dark:text-white tracking-tight"><span>👋</span> Hello {{ $auth->first_name }}</h1>
+                <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                    {{ $isClockedIn ? "You're clocked in" : 'Welcome back' }}@if($attention > 0) and <span class="font-semibold text-slate-700 dark:text-slate-300">{{ $attention }}</span> {{ \Illuminate\Support\Str::plural('thing', $attention) }} need your attention today.@else — here's your day at a glance.@endif
+                </p>
+            </div>
+            <div class="flex items-center gap-2 text-amber-500">
+                <i data-lucide="sun" class="h-5 w-5 shrink-0"></i>
+                <p class="max-w-[180px] text-sm font-semibold leading-snug text-slate-600 dark:text-slate-300">{{ $quote }}</p>
+            </div>
+        </div>
     </div>
 
     <!-- Unread-announcement bar + auto-popup -->
@@ -42,23 +64,24 @@
         @include('partials.code-request-hr-banner')
     @endif
 
-    <!-- Day at a glance (full-width) -->
-    <div class="bg-white rounded-xl shadow-sm border border-slate-100 dark:bg-slate-800 dark:border-slate-700"
-         x-data="celebrationsWidget()">
-                <!-- Date Header -->
-                <div class="flex items-center justify-between px-6 pt-6 pb-4">
+    <!-- Day at a glance -->
+    <div class="space-y-4" x-data="celebrationsWidget()">
+
+        <!-- Date bar -->
+        <div class="relative flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200/70 bg-white px-5 py-4 shadow-sm dark:bg-slate-800 dark:border-slate-700">
                     <div class="flex items-center gap-3 text-slate-700 font-semibold dark:text-slate-200 relative" @click.away="showPicker = false">
-                        <div class="h-10 w-10 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-100/60 dark:border-amber-500/20 flex items-center justify-center text-amber-500">
+                        <div class="h-11 w-11 rounded-xl bg-indigo-100 dark:bg-indigo-500/15 flex items-center justify-center text-indigo-500 dark:text-indigo-400">
                             <i data-lucide="calendar" class="h-5 w-5"></i>
                         </div>
 
                         <div>
                             <div class="flex items-center gap-1.5 cursor-pointer select-none" @click="showPicker = !showPicker; if (showPicker) initPicker()">
-                                <span class="text-sm font-bold text-slate-800 dark:text-white" x-text="displayDate()"></span>
+                                <span class="text-base font-bold text-slate-800 dark:text-white" x-text="displayDate()"></span>
                                 <svg class="h-3.5 w-3.5 text-slate-400" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
                                 </svg>
                             </div>
+                            <p class="text-xs font-medium text-slate-400">Today at a glance</p>
                         </div>
 
                         <!-- Custom Calendar Dropdown -->
@@ -114,23 +137,34 @@
                         </div>
                     </div>
                     <div class="flex items-center gap-1.5">
-                        <button @click="shift(-1)" class="h-8 w-8 rounded-full border border-slate-200 dark:border-slate-600 flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-50 dark:hover:text-white dark:hover:bg-slate-700 transition"><i data-lucide="arrow-left" class="h-4 w-4"></i></button>
-                        <button @click="shift(1)" class="h-8 w-8 rounded-full border border-slate-200 dark:border-slate-600 flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-50 dark:hover:text-white dark:hover:bg-slate-700 transition"><i data-lucide="arrow-right" class="h-4 w-4"></i></button>
+                        <button @click="shift(-1)" class="h-9 w-9 rounded-full border border-slate-200 dark:border-slate-600 flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-50 dark:hover:text-white dark:hover:bg-slate-700 transition"><i data-lucide="arrow-left" class="h-4 w-4"></i></button>
+                        <button @click="shift(1)" class="h-9 w-9 rounded-full border border-slate-200 dark:border-slate-600 flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-50 dark:hover:text-white dark:hover:bg-slate-700 transition"><i data-lucide="arrow-right" class="h-4 w-4"></i></button>
+                        <a href="{{ route('events.employee-calendar') }}" class="ml-1 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-indigo-600 shadow-sm transition hover:bg-indigo-50 dark:bg-slate-800 dark:border-slate-700 dark:text-indigo-400 dark:hover:bg-slate-700">
+                            <i data-lucide="calendar-days" class="h-4 w-4"></i> View Calendar <i data-lucide="chevron-right" class="h-4 w-4"></i>
+                        </a>
                     </div>
-                </div>
+        </div>
 
-        <!-- 3-column grid: Celebrations · Announcements · Upcoming events -->
-        <div class="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-slate-100 dark:divide-slate-700/60 border-t border-slate-100 dark:border-slate-700/60">
+        <!-- Three cards: Celebrations · Announcements · Upcoming events -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
 
             <!-- Celebrations -->
-            <div class="flex flex-col h-[300px] px-5 py-4">
-                <div class="flex items-center gap-2 mb-3">
-                    <span class="grid h-8 w-8 place-items-center rounded-lg bg-pink-50 text-pink-500 dark:bg-pink-500/15 dark:text-pink-400"><i data-lucide="party-popper" class="h-4 w-4"></i></span>
-                    <h3 class="text-sm font-bold text-slate-800 dark:text-white">Celebrations</h3>
-                    <span class="ml-auto text-[10px] px-1.5 py-0.5 rounded-md font-bold bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-300" x-text="count('celebrations')"></span>
+            <div class="relative overflow-hidden flex flex-col h-[300px] rounded-2xl border border-slate-200/70 bg-white shadow-sm dark:bg-slate-800 dark:border-slate-700">
+                <div class="pointer-events-none absolute -bottom-10 -left-8 h-32 w-32 rounded-full bg-pink-200/30 blur-2xl dark:bg-pink-500/10"></div>
+                <div class="pointer-events-none absolute -top-8 -right-6 h-24 w-24 rounded-full bg-rose-200/25 blur-2xl dark:bg-rose-500/10"></div>
+                <div class="relative flex items-center gap-2.5 px-5 pt-5">
+                    <span class="grid h-10 w-10 place-items-center rounded-xl bg-pink-100 text-pink-500 dark:bg-pink-500/15 dark:text-pink-400"><i data-lucide="party-popper" class="h-5 w-5"></i></span>
+                    <h3 class="text-base font-bold text-slate-800 dark:text-white">Celebrations</h3>
+                    <span class="ml-auto grid h-6 min-w-6 place-items-center rounded-full bg-slate-100 px-1.5 text-xs font-bold text-slate-500 dark:bg-slate-700 dark:text-slate-300" x-text="count('celebrations')"></span>
                 </div>
-                <div class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden no-scrollbar pr-1">
-                    <template x-if="todaysCelebrations().length === 0"><p class="text-xs font-semibold text-slate-400 text-center mt-10">No celebrations on this day</p></template>
+                <div class="relative flex-1 min-h-0 overflow-y-auto overflow-x-hidden no-scrollbar px-5 py-4">
+                    <template x-if="todaysCelebrations().length === 0">
+                        <div class="flex h-full flex-col items-center justify-center text-center">
+                            <span class="mb-3 grid h-16 w-16 place-items-center rounded-full bg-pink-100/70 text-pink-400 dark:bg-pink-500/10"><i data-lucide="party-popper" class="h-7 w-7"></i></span>
+                            <p class="text-sm font-bold text-slate-700 dark:text-slate-200">No celebrations on this day</p>
+                            <p class="mt-1 max-w-[210px] text-xs text-slate-400">Check back soon for birthdays, work anniversaries and more!</p>
+                        </div>
+                    </template>
                     <div class="space-y-2.5">
                         <template x-for="c in todaysCelebrations()" :key="c.name + c.type + (c.md || c.date || '')">
                             <div class="relative flex items-center gap-3 rounded-xl bg-slate-50 dark:bg-slate-900/40 pl-4 pr-3 py-2.5 overflow-hidden">
@@ -144,17 +178,25 @@
                         </template>
                     </div>
                 </div>
+                <a href="{{ route('events.employee-calendar') }}" class="relative px-5 pb-4 text-sm font-bold text-teal-600 hover:text-teal-700 dark:text-teal-400">View all →</a>
             </div>
 
             <!-- Announcements -->
-            <div class="flex flex-col h-[300px] px-5 py-4">
-                <div class="flex items-center gap-2 mb-3">
-                    <span class="grid h-8 w-8 place-items-center rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400"><i data-lucide="megaphone" class="h-4 w-4"></i></span>
-                    <h3 class="text-sm font-bold text-slate-800 dark:text-white">Announcements</h3>
-                    <span class="ml-auto text-[10px] px-1.5 py-0.5 rounded-md font-bold bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-300" x-text="count('announcements')"></span>
+            <div class="relative overflow-hidden flex flex-col h-[300px] rounded-2xl border border-slate-200/70 bg-white shadow-sm dark:bg-slate-800 dark:border-slate-700">
+                <div class="pointer-events-none absolute -bottom-10 -right-8 h-32 w-32 rounded-full bg-amber-200/25 blur-2xl dark:bg-amber-500/10"></div>
+                <div class="relative flex items-center gap-2.5 px-5 pt-5">
+                    <span class="grid h-10 w-10 place-items-center rounded-xl bg-amber-100 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400"><i data-lucide="megaphone" class="h-5 w-5"></i></span>
+                    <h3 class="text-base font-bold text-slate-800 dark:text-white">Announcements</h3>
+                    <span class="ml-auto grid h-6 min-w-6 place-items-center rounded-full bg-slate-100 px-1.5 text-xs font-bold text-slate-500 dark:bg-slate-700 dark:text-slate-300" x-text="count('announcements')"></span>
                 </div>
-                <div class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden no-scrollbar pr-1">
-                    <template x-if="announcements.length === 0"><p class="text-xs font-semibold text-slate-400 text-center mt-10">No announcements</p></template>
+                <div class="relative flex-1 min-h-0 overflow-y-auto overflow-x-hidden no-scrollbar px-5 py-4">
+                    <template x-if="announcements.length === 0">
+                        <div class="flex h-full flex-col items-center justify-center text-center">
+                            <span class="mb-3 grid h-16 w-16 place-items-center rounded-full bg-amber-100/70 text-amber-400 dark:bg-amber-500/10"><i data-lucide="megaphone" class="h-7 w-7"></i></span>
+                            <p class="text-sm font-bold text-slate-700 dark:text-slate-200">No announcements</p>
+                            <p class="mt-1 max-w-[210px] text-xs text-slate-400">You're all caught up — nothing new right now.</p>
+                        </div>
+                    </template>
                     <div class="space-y-2.5">
                         <template x-for="a in announcements" :key="a.id">
                             <div class="flex items-center gap-3 rounded-lg p-1.5 -mx-1.5 hover:bg-slate-50 dark:hover:bg-slate-900/40 transition">
@@ -172,17 +214,26 @@
                         </template>
                     </div>
                 </div>
+                <a href="{{ route('announcements.all') }}" class="relative px-5 pb-4 text-sm font-bold text-teal-600 hover:text-teal-700 dark:text-teal-400">View all →</a>
             </div>
 
             <!-- Upcoming events -->
-            <div class="flex flex-col h-[300px] px-5 py-4">
-                <div class="flex items-center gap-2 mb-3">
-                    <span class="grid h-8 w-8 place-items-center rounded-lg bg-brand-50 text-brand-600 dark:bg-brand-500/15 dark:text-brand-400"><i data-lucide="calendar-days" class="h-4 w-4"></i></span>
-                    <h3 class="text-sm font-bold text-slate-800 dark:text-white">Upcoming events</h3>
-                    <span class="ml-auto text-[10px] px-1.5 py-0.5 rounded-md font-bold bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-300" x-text="count('events')"></span>
+            <div class="relative overflow-hidden flex flex-col h-[300px] rounded-2xl border border-slate-200/70 bg-white shadow-sm dark:bg-slate-800 dark:border-slate-700">
+                <div class="pointer-events-none absolute -bottom-10 -right-8 h-32 w-32 rounded-full bg-sky-200/30 blur-2xl dark:bg-sky-500/10"></div>
+                <i data-lucide="calendar-days" class="pointer-events-none absolute -bottom-3 -right-2 h-24 w-24 text-sky-200/50 dark:text-sky-500/10"></i>
+                <div class="relative flex items-center gap-2.5 px-5 pt-5">
+                    <span class="grid h-10 w-10 place-items-center rounded-xl bg-sky-100 text-sky-600 dark:bg-sky-500/15 dark:text-sky-400"><i data-lucide="calendar-days" class="h-5 w-5"></i></span>
+                    <h3 class="text-base font-bold text-slate-800 dark:text-white">Upcoming events</h3>
+                    <span class="ml-auto grid h-6 min-w-6 place-items-center rounded-full bg-slate-100 px-1.5 text-xs font-bold text-slate-500 dark:bg-slate-700 dark:text-slate-300" x-text="count('events')"></span>
                 </div>
-                <div class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden no-scrollbar pr-1">
-                    <template x-if="upcomingEvents().length === 0"><p class="text-xs font-semibold text-slate-400 text-center mt-10">No upcoming events</p></template>
+                <div class="relative flex-1 min-h-0 overflow-y-auto overflow-x-hidden no-scrollbar px-5 py-4">
+                    <template x-if="upcomingEvents().length === 0">
+                        <div class="flex h-full flex-col items-center justify-center text-center">
+                            <span class="mb-3 grid h-16 w-16 place-items-center rounded-full bg-sky-100/70 text-sky-400 dark:bg-sky-500/10"><i data-lucide="calendar-days" class="h-7 w-7"></i></span>
+                            <p class="text-sm font-bold text-slate-700 dark:text-slate-200">No upcoming events</p>
+                            <p class="mt-1 max-w-[210px] text-xs text-slate-400">Nothing scheduled — enjoy the calm!</p>
+                        </div>
+                    </template>
                     <div class="space-y-2.5">
                         <template x-for="e in upcomingEvents()" :key="e.id">
                             <div class="flex items-start gap-3 rounded-lg p-1.5 -mx-1.5 hover:bg-slate-50 dark:hover:bg-slate-900/40 transition">
@@ -197,10 +248,34 @@
                         </template>
                     </div>
                 </div>
-                <a href="{{ route('events.employee-calendar') }}" class="mt-2 shrink-0 text-xs font-bold text-brand-600 hover:text-brand-700 dark:text-brand-400">View all →</a>
+                <a href="{{ route('events.employee-calendar') }}" class="relative px-5 pb-4 text-sm font-bold text-teal-600 hover:text-teal-700 dark:text-teal-400">View all →</a>
             </div>
 
         </div>
+
+        <!-- Out of office bar -->
+        <button type="button" @click="oooOpen = true; $nextTick(() => window.lucide && lucide.createIcons())"
+                class="group relative flex w-full items-center justify-between rounded-2xl border border-slate-200/70 bg-white px-5 py-4 text-left shadow-sm transition hover:border-slate-300 dark:bg-slate-800 dark:border-slate-700">
+            <div class="flex items-center gap-3">
+                <span class="grid h-10 w-10 place-items-center rounded-xl bg-blue-100 text-blue-500 dark:bg-blue-500/15 dark:text-blue-400"><i data-lucide="users" class="h-5 w-5"></i></span>
+                <div class="text-sm text-slate-600 dark:text-slate-300">
+                    <span class="font-bold text-slate-800 dark:text-white" x-text="oooOnDate().length"></span>
+                    <span x-text="oooOnDate().length === 1 ? 'employee' : 'employees'"></span> out of office
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <div class="flex -space-x-2">
+                    <template x-for="(o, i) in oooOnDate().slice(0, 3)" :key="'av' + i">
+                        <span class="inline-flex h-7 w-7 items-center justify-center rounded-full ring-2 ring-white dark:ring-slate-800 overflow-hidden bg-gradient-to-br from-brand-400 to-indigo-500 text-white text-[10px] font-bold">
+                            <template x-if="o.avatar"><img :src="o.avatar" class="h-full w-full object-cover"></template>
+                            <template x-if="!o.avatar"><span x-text="o.initials"></span></template>
+                        </span>
+                    </template>
+                </div>
+                <span class="grid h-8 w-8 place-items-center rounded-full bg-slate-50 text-slate-400 transition group-hover:bg-slate-900 group-hover:text-white dark:bg-slate-700/60 dark:group-hover:bg-white dark:group-hover:text-slate-900"><i data-lucide="chevron-right" class="h-4 w-4"></i></span>
+            </div>
+        </button>
+        @include('dashboard.partials.ooo-modal')
 
                 <!-- Announcement viewer popup -->
                 <template x-teleport="body">
@@ -227,11 +302,6 @@
                         </div>
                     </div>
                 </template>
-
-                <!-- Footer: Out of Office -->
-                <div class="px-6 pb-4">
-                    @include('dashboard.partials.ooo-footer')
-                </div>
 
                 <script>
                 window.__celebrations = @json($celebrations);
@@ -386,9 +456,9 @@
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         @php
             $quickCards = [
-                ['title' => 'Request Time Off',      'text' => 'Apply for leave from your policies.',        'icon' => 'calendar-plus', 'tone' => 'bg-brand-50 text-brand-600 dark:bg-brand-500/15 dark:text-brand-400', 'href' => route('time-off.create')],
-                ['title' => 'Request Login Code',     'text' => 'Get a one-time code for a company tool.',    'icon' => 'key-round',     'tone' => 'bg-amber-50 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400', 'event' => 'open-code-request'],
-                ['title' => 'Feedback & Suggestions', 'text' => 'Share feedback or raise an issue with HR.', 'icon' => 'message-square-heart', 'tone' => 'bg-rose-50 text-rose-600 dark:bg-rose-500/15 dark:text-rose-400', 'event' => 'open-feedback'],
+                ['title' => 'Request Time Off',      'text' => 'Apply for leave from your policies.',        'icon' => 'calendar-plus', 'tone' => 'bg-indigo-100 text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-400', 'hue' => 'indigo', 'href' => route('time-off.create')],
+                ['title' => 'Request Login Code',     'text' => 'Get a one-time code for a company tool.',    'icon' => 'key-round',     'tone' => 'bg-amber-100 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400', 'hue' => 'amber', 'event' => 'open-code-request'],
+                ['title' => 'Feedback & Suggestions', 'text' => 'Share feedback or raise an issue with HR.', 'icon' => 'message-square-heart', 'tone' => 'bg-rose-100 text-rose-600 dark:bg-rose-500/15 dark:text-rose-400', 'hue' => 'rose', 'event' => 'open-feedback'],
             ];
         @endphp
         @foreach($quickCards as $card)
@@ -400,9 +470,9 @@
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         @php
             $dashCards = [
-                ['title' => 'Equipment',          'text' => 'Request approval to take a company item home.', 'icon' => 'package',      'tone' => 'bg-brand-50 text-brand-600 dark:bg-brand-500/15 dark:text-brand-400', 'href' => route('equipment.index')],
-                ['title' => 'Overtime Approval',   'text' => 'Submit overtime for approval.',               'icon' => 'alarm-clock',  'tone' => 'bg-amber-50 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400', 'href' => route('time-off.index', ['overtime' => 1])],
-                ['title' => 'WFH Approval',        'text' => 'Request to work from home — approved per request.', 'icon' => 'house-wifi',   'tone' => 'bg-indigo-50 text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-400', 'href' => route('time-off.create', ['policy' => 'wfh'])],
+                ['title' => 'Equipment',          'text' => 'Request approval to take a company item home.', 'icon' => 'package',      'tone' => 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400', 'hue' => 'emerald', 'href' => route('equipment.index')],
+                ['title' => 'Overtime Approval',   'text' => 'Submit overtime for approval.',               'icon' => 'alarm-clock',  'tone' => 'bg-violet-100 text-violet-600 dark:bg-violet-500/15 dark:text-violet-400', 'hue' => 'violet', 'href' => route('time-off.index', ['overtime' => 1])],
+                ['title' => 'WFH Approval',        'text' => 'Request to work from home — approved per request.', 'icon' => 'house',   'tone' => 'bg-sky-100 text-sky-600 dark:bg-sky-500/15 dark:text-sky-400', 'hue' => 'sky', 'href' => route('time-off.create', ['policy' => 'wfh'])],
             ];
         @endphp
         @foreach($dashCards as $card)
