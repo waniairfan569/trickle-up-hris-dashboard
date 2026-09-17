@@ -187,25 +187,23 @@
     <!-- Today's snapshot: stat cards (compact — icon left, label above number, avatar stack) -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         @foreach($statCards as $c)
-            <div x-data="{ open: false }" class="rounded-2xl bg-white border border-slate-200/80 p-4 sm:p-5 shadow-sm hover:shadow-md transition dark:bg-slate-800 dark:border-slate-800">
-                {{-- icon on top · label + number + sub below --}}
-                <span class="h-11 w-11 grid place-items-center rounded-xl {{ $c['bg'] }} {{ $c['text'] }}">
+            <div x-data="{ open: false }" class="flex flex-col rounded-2xl bg-white border border-slate-200/80 p-5 shadow-sm hover:shadow-md transition dark:bg-slate-800 dark:border-slate-800">
+                {{-- icon on top · label (fixed height so numbers align) · number · sub --}}
+                <span class="h-10 w-10 grid place-items-center rounded-xl {{ $c['bg'] }} {{ $c['text'] }}">
                     <i data-lucide="{{ $c['icon'] }}" class="h-5 w-5"></i>
                 </span>
-                <div class="mt-3">
-                    <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">{{ $c['label'] }}</p>
-                    <div class="mt-0.5 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                        <h3 class="text-2xl font-extrabold text-slate-900 dark:text-white leading-none">{{ $c['value'] }}</h3>
-                        @if(!empty($c['action']))
-                            <span class="inline-flex items-center rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-bold text-rose-700 dark:bg-rose-500/10 dark:text-rose-400 animate-pulse">Action</span>
-                        @endif
-                    </div>
-                    <p class="mt-0.5 text-[11px] text-slate-400">{{ $c['sub'] }}</p>
+                <p class="mt-3 min-h-[2rem] text-[11px] font-bold uppercase tracking-wider leading-tight text-slate-400">{{ $c['label'] }}</p>
+                <div class="mt-1 flex items-center gap-2">
+                    <h3 class="text-3xl font-extrabold text-slate-900 dark:text-white leading-none">{{ $c['value'] }}</h3>
+                    @if(!empty($c['action']))
+                        <span class="inline-flex items-center rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-bold text-rose-700 dark:bg-rose-500/10 dark:text-rose-400 animate-pulse">Action</span>
+                    @endif
                 </div>
+                <p class="mt-1 text-[11px] text-slate-400 leading-snug">{{ $c['sub'] }}</p>
 
                 @if(!empty($c['people']))
-                    {{-- overlapping avatars + chevron → opens the popup --}}
-                    <button type="button" @click="open = true" class="group mt-3 flex w-full items-center justify-between rounded-lg -mx-1 px-1 py-1 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition">
+                    {{-- overlapping avatars + chevron → opens the popup (pinned to the bottom so rows align) --}}
+                    <button type="button" @click="open = true" class="group mt-auto flex w-full items-center justify-between rounded-lg -mx-1 px-1 pt-3 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition">
                         <div class="flex items-center -space-x-2">
                             @foreach(array_slice($c['people'], 0, 4) as $person)
                                 @if(!empty($person['avatar']))
