@@ -898,7 +898,12 @@
                     <input type="month" id="all-req-month" name="month" value="{{ request('month') }}" onchange="this.form.submit()"
                            class="rounded-xl border border-slate-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 text-sm py-1.5 px-3 dark:bg-slate-800 dark:border-slate-600 dark:text-white">
                 </div>
-                @if(request('month') || (request('status') && request('status') !== 'all') || (request('policy_id') && request('policy_id') !== 'all'))
+                <div class="flex items-center gap-1.5">
+                    <label for="all-req-date" class="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Date</label>
+                    <input type="date" id="all-req-date" name="date" value="{{ request('date') }}" onchange="this.form.submit()"
+                           class="rounded-xl border border-slate-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 text-sm py-1.5 px-3 dark:bg-slate-800 dark:border-slate-600 dark:text-white">
+                </div>
+                @if(request('month') || request('date') || (request('status') && request('status') !== 'all') || (request('policy_id') && request('policy_id') !== 'all'))
                     <a href="{{ route('time-off.index', ['tab' => 'all']) }}"
                        class="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400">
                         <i data-lucide="x" class="h-3.5 w-3.5"></i> Clear

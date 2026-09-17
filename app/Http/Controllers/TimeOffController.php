@@ -325,6 +325,12 @@ class TimeOffController extends Controller
                 $query->whereDate('start_date', '<=', $monthEnd->toDateString())
                       ->whereDate('end_date', '>=', $monthStart->toDateString());
             }
+            // Specific-date filter (YYYY-MM-DD): any request whose leave window includes that day.
+            if ($request->filled('date') && preg_match('/^\d{4}-\d{2}-\d{2}$/', $request->input('date'))) {
+                $day = $request->input('date');
+                $query->whereDate('start_date', '<=', $day)
+                      ->whereDate('end_date', '>=', $day);
+            }
 
             $allRequests = $query->paginate(20)->withQueryString();
         }
