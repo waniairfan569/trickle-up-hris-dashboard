@@ -404,10 +404,10 @@
                         $wfhUsed = (float) (clone $wfhReq)->where('status', 'approved')->sum('days_requested');
                         $wfhPending = (float) (clone $wfhReq)->where('status', 'pending')->sum('days_requested');
                     @endphp
-                    <div class="mt-4 flex justify-between text-xs text-slate-500 dark:text-slate-400">
+                    <div class="text-xs font-bold text-brand-600 dark:text-brand-400 text-right mb-4">Approved per request</div>
+                    <div class="flex justify-between text-xs text-slate-500 dark:text-slate-400">
                         <div>Used: <span class="font-bold text-slate-900 dark:text-white">{{ $wfhUsed }}</span></div>
                         <div>Pending: <span class="font-bold text-slate-900 dark:text-white">{{ $wfhPending }}</span></div>
-                        <div><span class="font-bold text-brand-600 dark:text-brand-400">Approved per request</span></div>
                     </div>
                 @else
                     <div class="text-xs text-slate-500 dark:text-slate-400 text-right mb-2">{{ ($unit === 'hours' ? 'Hours' : 'Days') . ' Remaining' }}</div>
