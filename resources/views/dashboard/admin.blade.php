@@ -305,12 +305,12 @@
                             </div>
 
                             <div class="flex items-center justify-between gap-3">
-                                <div class="text-left whitespace-nowrap">
-                                    <span class="text-sm font-extrabold text-slate-900 dark:text-white">{{ $req->duration_label }}</span>
-                                    <p class="text-[10px] text-slate-400 font-medium">
-                                        {{ $req->start_date->format('M d') }}@if($req->start_date->ne($req->end_date)) – {{ $req->end_date->format('M d') }}@endif
-                                    </p>
-                                    <p class="text-[10px] text-slate-400" title="Applied {{ $req->created_at->format('D, d M Y · g:i A') }}">
+                                <div class="text-left">
+                                    <div class="flex items-baseline gap-1.5">
+                                        <span class="text-sm font-extrabold text-slate-900 dark:text-white">{{ $req->duration_label }}</span>
+                                        <span class="text-[11px] font-medium text-slate-400">· {{ $req->start_date->format('M d') }}@if($req->start_date->ne($req->end_date)) – {{ $req->end_date->format('M d') }}@endif</span>
+                                    </div>
+                                    <p class="text-[10px] text-slate-400 mt-0.5" title="Applied {{ $req->created_at->format('D, d M Y · g:i A') }}">
                                         <i data-lucide="clock" class="h-2.5 w-2.5 inline -mt-0.5"></i> Applied {{ $req->created_at->format('d M') }} · {{ $req->created_at->diffForHumans(null, true) }} ago
                                     </p>
                                 </div>
@@ -417,7 +417,22 @@
                             <div class="py-4 flex items-center justify-between gap-3">
                                 <div class="min-w-0">
                                     <h4 class="text-sm font-bold text-slate-950 dark:text-white truncate">{{ $req->employee->full_name ?? 'Unknown' }}</h4>
-                                    <p class="text-[11px] text-slate-400 truncate">
+                                    @if($req->reason)
+                                        <div class="relative mt-0.5 max-w-full" x-data="{ show: false }">
+                                            <p x-ref="wfhreason{{ $req->id }}"
+                                               @mouseenter="show = ($refs.wfhreason{{ $req->id }}.scrollWidth > $refs.wfhreason{{ $req->id }}.clientWidth)"
+                                               @mouseleave="show = false"
+                                               class="text-[11px] text-slate-600 dark:text-slate-300 italic truncate" style="cursor:help;">
+                                                <i data-lucide="message-square-text" class="h-3 w-3 inline -mt-0.5 text-slate-400"></i> {{ $req->reason }}
+                                            </p>
+                                            <div x-show="show" x-cloak x-transition.opacity
+                                                 class="absolute left-0 top-full z-50"
+                                                 style="margin-top:.3rem;width:max-content;max-width:20rem;background:#0f172a;color:#fff;font-size:11px;line-height:1.5;padding:.5rem .7rem;border-radius:.5rem;box-shadow:0 10px 28px -10px rgba(0,0,0,.5);white-space:normal;word-break:break-word;">
+                                                {{ $req->reason }}
+                                            </div>
+                                        </div>
+                                    @endif
+                                    <p class="text-[11px] text-slate-400 truncate mt-0.5">
                                         {{ $req->start_date->format('M d') }}@if($req->start_date->ne($req->end_date)) – {{ $req->end_date->format('M d') }}@endif · {{ $req->duration_label }}
                                     </p>
                                 </div>
