@@ -144,8 +144,20 @@
         ['label' => 'Pending Approvals', 'value' => $pendingApprovals, 'sub' => 'Time off queue', 'icon' => 'clock', 'bg' => 'bg-rose-50 dark:bg-rose-500/10', 'text' => 'text-rose-600 dark:text-rose-400', 'action' => $pendingApprovals > 0, 'people' => $pendingPeople],
     ];
 
-    // Live Pending requests
+    // Live Pending requests (Work From Home is handled in its own queue below).
     $pendingRequests = \App\Models\TimeOffRequest::where('status', 'pending')
+        ->excludingWorkFromHome()
+        ->with(['employee.department', 'policy'])
+        ->latest()
+        ->take(4)
+        ->get();
+
+    // Pending Work From Home requests — WFH is a time-off policy, surfaced in its
+    // own admin queue so it can be approved/rejected separately.
+    $pendingWfhCount = \App\Models\TimeOffRequest::where('status', 'pending')
+        ->whereHas('policy', fn ($q) => $q->workFromHome())->count();
+    $pendingWfhRequests = \App\Models\TimeOffRequest::where('status', 'pending')
+        ->whereHas('policy', fn ($q) => $q->workFromHome())
         ->with(['employee.department', 'policy'])
         ->latest()
         ->take(4)
@@ -415,6 +427,106 @@
             @endif
         </div>
     </div>
+
+        <!-- Overtime Requests -->
+        @if(plan_allows('forms'))
+        <div class="rounded-2xl bg-white border border-slate-200/80 shadow-sm dark:bg-slate-800 dark:border-slate-800">
+            <div class="flex items-center justify-between border-b border-slate-100 p-6 dark:border-slate-700">
+                <div class="flex items-center gap-3">
+                    <span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-violet-100 text-violet-600 dark:bg-violet-500/15 dark:text-violet-400"><i data-lucide="alarm-clock" class="h-5 w-5"></i></span>
+                    <div>
+                        <h2 class="flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-white">Overtime Requests
+                            @if($pendingOvertime > 0)<span class="grid h-5 min-w-5 place-items-center rounded-full bg-rose-500 px-1.5 text-[11px] font-bold text-white">{{ $pendingOvertime }}</span>@endif
+                        </h2>
+                        <p class="text-xs text-slate-400 mt-0.5">Overtime submitted for approval.</p>
+                    </div>
+                </div>
+                <a href="{{ route('company-forms.inbox') }}" class="text-xs font-semibold text-brand-600 hover:text-brand-700 transition dark:text-brand-400">View All</a>
+            </div>
+            <div class="p-6">
+                @if($pendingOvertime > 0)
+                    <a href="{{ route('company-forms.inbox') }}" class="flex items-center justify-between rounded-xl bg-violet-50 px-4 py-3.5 hover:bg-violet-100 transition dark:bg-violet-500/10 dark:hover:bg-violet-500/20">
+                        <span class="text-sm font-semibold text-slate-700 dark:text-slate-200"><span class="font-extrabold text-violet-700 dark:text-violet-300">{{ $pendingOvertime }}</span> {{ \Illuminate\Support\Str::plural('request', $pendingOvertime) }} awaiting review</span>
+                        <span class="inline-flex items-center gap-1 text-sm font-bold text-violet-700 dark:text-violet-300">Review <i data-lucide="arrow-right" class="h-4 w-4"></i></span>
+                    </a>
+                @else
+                    <div class="flex flex-col items-center justify-center py-8 text-center">
+                        <div class="grid h-14 w-14 place-items-center rounded-full bg-slate-50 text-slate-400 dark:bg-slate-700/50 dark:text-slate-500"><i data-lucide="alarm-clock" class="h-7 w-7"></i></div>
+                        <h3 class="mt-4 text-sm font-bold text-slate-800 dark:text-slate-200">No overtime requests</h3>
+                        <p class="mt-1 text-xs text-slate-400 max-w-xs">There are no overtime submissions waiting for review.</p>
+                    </div>
+                @endif
+            </div>
+        </div>
+        @endif
+
+        <!-- Work From Home Requests -->
+        <div class="rounded-2xl bg-white border border-slate-200/80 shadow-sm dark:bg-slate-800 dark:border-slate-800">
+            <div class="flex items-center justify-between border-b border-slate-100 p-6 dark:border-slate-700">
+                <div class="flex items-center gap-3">
+                    <span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-sky-100 text-sky-600 dark:bg-sky-500/15 dark:text-sky-400"><i data-lucide="house" class="h-5 w-5"></i></span>
+                    <div>
+                        <h2 class="flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-white">Work From Home Requests
+                            @if($pendingWfhCount > 0)<span class="grid h-5 min-w-5 place-items-center rounded-full bg-rose-500 px-1.5 text-[11px] font-bold text-white">{{ $pendingWfhCount }}</span>@endif
+                        </h2>
+                        <p class="text-xs text-slate-400 mt-0.5">Approve or reject remote-work requests.</p>
+                    </div>
+                </div>
+                <a href="{{ route('time-off.index') }}" class="text-xs font-semibold text-brand-600 hover:text-brand-700 transition dark:text-brand-400">View All</a>
+            </div>
+
+            <div class="p-6">
+                @if($pendingWfhRequests->isEmpty())
+                    <div class="flex flex-col items-center justify-center py-10 text-center">
+                        <div class="grid h-14 w-14 place-items-center rounded-full bg-slate-50 text-slate-400 dark:bg-slate-700/50 dark:text-slate-500"><i data-lucide="house" class="h-7 w-7"></i></div>
+                        <h3 class="mt-4 text-sm font-bold text-slate-800 dark:text-slate-200">No WFH requests</h3>
+                        <p class="mt-1 text-xs text-slate-400 max-w-xs">There are no work-from-home requests waiting for your approval.</p>
+                    </div>
+                @else
+                    <div class="divide-y divide-slate-100 dark:divide-slate-700/60 -my-4">
+                        @foreach($pendingWfhRequests as $req)
+                            <div class="py-4 flex items-center justify-between gap-3">
+                                <div class="flex items-center space-x-3 min-w-0">
+                                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-slate-100 to-slate-200 text-sm font-bold text-slate-700 dark:from-slate-700 dark:to-slate-600 dark:text-slate-200">
+                                        {{ $req->employee->initials ?? 'EM' }}
+                                    </div>
+                                    <div class="min-w-0">
+                                        <h4 class="text-sm font-bold text-slate-950 dark:text-white truncate">{{ $req->employee->full_name ?? 'Unknown' }}</h4>
+                                        <p class="text-[11px] text-slate-400 truncate">
+                                            {{ $req->start_date->format('M d') }}@if($req->start_date->ne($req->end_date)) – {{ $req->end_date->format('M d') }}@endif · {{ $req->duration_label }}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center gap-1.5 shrink-0" x-data="{ openReject: false }">
+                                    <form action="{{ route('time-off.approve', $req->id) }}" method="POST">
+                                        @csrf
+                                        <button type="submit" class="rounded-xl bg-emerald-50 px-3 py-1.5 text-[11px] font-bold text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800 transition dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20">Approve</button>
+                                    </form>
+                                    <button type="button" @click="openReject = true" class="rounded-xl bg-rose-50 px-3 py-1.5 text-[11px] font-bold text-rose-700 hover:bg-rose-100 hover:text-rose-800 transition dark:bg-rose-500/10 dark:text-rose-400 dark:hover:bg-rose-500/20">Reject</button>
+
+                                    <div x-show="openReject" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4" style="display:none;">
+                                        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" @click="openReject = false"></div>
+                                        <div class="relative bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl border border-slate-200 dark:bg-slate-800 dark:border-slate-700" @click.stop>
+                                            <h3 class="text-sm font-bold text-slate-900 dark:text-white">Reject WFH Request</h3>
+                                            <p class="text-xs text-slate-400 mt-1">Please provide a brief reason for rejecting {{ $req->employee->first_name ?? 'this' }}'s work-from-home request.</p>
+                                            <form action="{{ route('time-off.reject', $req->id) }}" method="POST" class="mt-4">
+                                                @csrf
+                                                <textarea name="rejection_note" required rows="3" placeholder="Rejection notes..." class="w-full text-xs border border-slate-200 bg-slate-50/50 rounded-xl px-3 py-2.5 focus:border-brand-500 focus:outline-none focus:bg-white dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"></textarea>
+                                                <div class="mt-4 flex justify-end gap-2">
+                                                    <button type="button" @click="openReject = false" class="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-bold text-slate-700 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200">Cancel</button>
+                                                    <button type="submit" class="rounded-xl bg-rose-600 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-rose-700">Confirm Reject</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+            </div>
+        </div>
 
         @include('dashboard.partials.timeoff-balances-card')
 
