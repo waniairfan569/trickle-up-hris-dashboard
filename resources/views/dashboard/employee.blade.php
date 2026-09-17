@@ -215,7 +215,7 @@
             <!-- Upcoming events -->
             <div class="relative overflow-hidden flex flex-col h-[300px] rounded-2xl border border-slate-200/70 bg-white shadow-sm dark:bg-slate-800 dark:border-slate-700">
                 <div class="pointer-events-none absolute -bottom-14 -right-12 h-40 w-56 rounded-[45%] bg-sky-200/45 blur-2xl dark:bg-sky-500/10"></div>
-                <i data-lucide="calendar-days" class="pointer-events-none absolute -bottom-3 -right-2 h-24 w-24 text-sky-300/40 dark:text-sky-500/10"></i>
+                <i data-lucide="calendar-days" class="pointer-events-none absolute bottom-4 right-4 h-20 w-20 text-sky-300/40 dark:text-sky-500/10"></i>
                 <div class="relative flex items-center gap-2.5 px-5 pt-5">
                     <span class="grid h-10 w-10 place-items-center rounded-xl bg-sky-100 text-sky-600 dark:bg-sky-500/15 dark:text-sky-400"><i data-lucide="calendar-days" class="h-5 w-5"></i></span>
                     <h3 class="text-base font-bold text-slate-800 dark:text-white">Upcoming events</h3>
