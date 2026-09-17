@@ -188,18 +188,18 @@
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         @foreach($statCards as $c)
             <div x-data="{ open: false }" class="flex flex-col rounded-2xl bg-white border border-slate-200/80 p-5 shadow-sm hover:shadow-md transition dark:bg-slate-800 dark:border-slate-800">
-                {{-- icon on top · label (fixed height so numbers align) · number · sub --}}
-                <span class="h-10 w-10 grid place-items-center rounded-xl {{ $c['bg'] }} {{ $c['text'] }}">
-                    <i data-lucide="{{ $c['icon'] }}" class="h-5 w-5"></i>
-                </span>
-                <p class="mt-3 min-h-[2rem] text-[11px] font-bold uppercase tracking-wider leading-tight text-slate-400">{{ $c['label'] }}</p>
-                <div class="mt-1 flex items-center gap-2">
+                {{-- icon + number on one row · label (fixed height so labels align) · sub --}}
+                <div class="flex items-center gap-3">
+                    <span class="h-11 w-11 shrink-0 grid place-items-center rounded-xl {{ $c['bg'] }} {{ $c['text'] }}">
+                        <i data-lucide="{{ $c['icon'] }}" class="h-5 w-5"></i>
+                    </span>
                     <h3 class="text-3xl font-extrabold text-slate-900 dark:text-white leading-none">{{ $c['value'] }}</h3>
                     @if(!empty($c['action']))
                         <span class="inline-flex items-center rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-bold text-rose-700 dark:bg-rose-500/10 dark:text-rose-400 animate-pulse">Action</span>
                     @endif
                 </div>
-                <p class="mt-1 text-[11px] text-slate-400 leading-snug">{{ $c['sub'] }}</p>
+                <p class="mt-3 min-h-[2rem] text-[11px] font-bold uppercase tracking-wider leading-tight text-slate-400">{{ $c['label'] }}</p>
+                <p class="mt-0.5 text-[11px] text-slate-400 leading-snug">{{ $c['sub'] }}</p>
 
                 @if(!empty($c['people']))
                     {{-- overlapping avatars + chevron → opens the popup (pinned to the bottom so rows align) --}}
@@ -472,8 +472,8 @@
 
     </div>{{-- /approval queues row --}}
 
-    {{-- Day at a glance (matches the employee dashboard) --}}
-    @include('dashboard.partials.day-at-a-glance')
+    {{-- Day at a glance (matches the employee dashboard; OOO omitted — covered by the stat cards) --}}
+    @include('dashboard.partials.day-at-a-glance', ['showOoo' => false])
 
 </div>
 @endsection

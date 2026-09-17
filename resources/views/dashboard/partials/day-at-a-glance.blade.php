@@ -166,6 +166,7 @@
     </div>
 
     <!-- Out of office bar -->
+    @if($showOoo ?? true)
     <button type="button" @click="oooOpen = true; $nextTick(() => window.lucide && lucide.createIcons())"
             class="group relative flex w-full items-center justify-between rounded-2xl border border-slate-200/70 bg-white px-5 py-4 text-left shadow-sm transition hover:border-slate-300 dark:bg-slate-800 dark:border-slate-700">
         <div class="flex items-center gap-3">
@@ -191,6 +192,7 @@
         </div>
     </button>
     @include('dashboard.partials.ooo-modal')
+    @endif
 
     <!-- Announcement viewer popup -->
     <template x-teleport="body">
