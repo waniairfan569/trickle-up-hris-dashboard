@@ -281,20 +281,20 @@
         @endforeach
     </div>
 
-    {{-- Approval queues — one row of three equal columns --}}
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+    {{-- Approval queues — one row of three equal-height columns --}}
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
     <!-- Time Off Approval Queue -->
-    <div class="rounded-2xl bg-white border border-slate-200/80 shadow-sm dark:bg-slate-800 dark:border-slate-800">
-        <div class="flex items-center justify-between border-b border-slate-100 p-6 dark:border-slate-700">
+    <div class="flex flex-col rounded-2xl bg-white border border-slate-200/80 shadow-sm dark:bg-slate-800 dark:border-slate-800">
+        <div class="flex items-center gap-3 border-b border-slate-100 p-6 dark:border-slate-700">
+            <span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-100 text-brand-600 dark:bg-brand-500/15 dark:text-brand-400"><i data-lucide="calendar-check" class="h-5 w-5"></i></span>
             <div>
                 <h2 class="text-lg font-bold text-slate-900 dark:text-white">Time Off Approval Queue</h2>
-                <p class="text-xs text-slate-400 mt-0.5">Approve or reject pending time off requests from scoped reporting structures.</p>
+                <p class="text-xs text-slate-400 mt-0.5">Approve or reject pending time off requests.</p>
             </div>
-            <a href="{{ route('time-off.index') }}" class="text-xs font-semibold text-brand-600 hover:text-brand-700 transition dark:text-brand-400">View All</a>
         </div>
 
-        <div class="p-6">
+        <div class="p-6 flex-1">
             @if($pendingRequests->isEmpty())
                 <div class="flex flex-col items-center justify-center py-10 text-center">
                     <div class="flex h-14 w-14 items-center justify-center rounded-full bg-slate-50 text-slate-400 dark:bg-slate-700/50 dark:text-slate-500">
@@ -386,24 +386,24 @@
                 </div>
             @endif
         </div>
+        <div class="mt-auto border-t border-slate-100 dark:border-slate-700 px-6 py-3">
+            <a href="{{ route('time-off.index') }}" class="text-xs font-semibold text-brand-600 hover:text-brand-700 transition dark:text-brand-400">View All →</a>
+        </div>
     </div>
 
         <!-- Overtime Requests -->
         @if(plan_allows('forms'))
-        <div class="rounded-2xl bg-white border border-slate-200/80 shadow-sm dark:bg-slate-800 dark:border-slate-800">
-            <div class="flex items-center justify-between border-b border-slate-100 p-6 dark:border-slate-700">
-                <div class="flex items-center gap-3">
-                    <span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-violet-100 text-violet-600 dark:bg-violet-500/15 dark:text-violet-400"><i data-lucide="alarm-clock" class="h-5 w-5"></i></span>
-                    <div>
-                        <h2 class="flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-white">Overtime Requests
-                            @if($pendingOvertime > 0)<span class="grid h-5 min-w-5 place-items-center rounded-full bg-rose-500 px-1.5 text-[11px] font-bold text-white">{{ $pendingOvertime }}</span>@endif
-                        </h2>
-                        <p class="text-xs text-slate-400 mt-0.5">Overtime submitted for approval.</p>
-                    </div>
+        <div class="flex flex-col rounded-2xl bg-white border border-slate-200/80 shadow-sm dark:bg-slate-800 dark:border-slate-800">
+            <div class="flex items-center gap-3 border-b border-slate-100 p-6 dark:border-slate-700">
+                <span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-violet-100 text-violet-600 dark:bg-violet-500/15 dark:text-violet-400"><i data-lucide="alarm-clock" class="h-5 w-5"></i></span>
+                <div>
+                    <h2 class="flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-white">Overtime Requests
+                        @if($pendingOvertime > 0)<span class="grid h-5 min-w-5 place-items-center rounded-full bg-rose-500 px-1.5 text-[11px] font-bold text-white">{{ $pendingOvertime }}</span>@endif
+                    </h2>
+                    <p class="text-xs text-slate-400 mt-0.5">Overtime submitted for approval.</p>
                 </div>
-                <a href="{{ route('company-forms.inbox') }}" class="text-xs font-semibold text-brand-600 hover:text-brand-700 transition dark:text-brand-400">View All</a>
             </div>
-            <div class="p-6">
+            <div class="p-6 flex-1">
                 @if($pendingOvertime > 0)
                     <a href="{{ route('company-forms.inbox') }}" class="flex items-center justify-between rounded-xl bg-violet-50 px-4 py-3.5 hover:bg-violet-100 transition dark:bg-violet-500/10 dark:hover:bg-violet-500/20">
                         <span class="text-sm font-semibold text-slate-700 dark:text-slate-200"><span class="font-extrabold text-violet-700 dark:text-violet-300">{{ $pendingOvertime }}</span> {{ \Illuminate\Support\Str::plural('request', $pendingOvertime) }} awaiting review</span>
@@ -417,25 +417,25 @@
                     </div>
                 @endif
             </div>
+            <div class="mt-auto border-t border-slate-100 dark:border-slate-700 px-6 py-3">
+                <a href="{{ route('company-forms.inbox') }}" class="text-xs font-semibold text-brand-600 hover:text-brand-700 transition dark:text-brand-400">View All →</a>
+            </div>
         </div>
         @endif
 
         <!-- Work From Home Requests -->
-        <div class="rounded-2xl bg-white border border-slate-200/80 shadow-sm dark:bg-slate-800 dark:border-slate-800">
-            <div class="flex items-center justify-between border-b border-slate-100 p-6 dark:border-slate-700">
-                <div class="flex items-center gap-3">
-                    <span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-sky-100 text-sky-600 dark:bg-sky-500/15 dark:text-sky-400"><i data-lucide="house" class="h-5 w-5"></i></span>
-                    <div>
-                        <h2 class="flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-white">Work From Home Requests
-                            @if($pendingWfhCount > 0)<span class="grid h-5 min-w-5 place-items-center rounded-full bg-rose-500 px-1.5 text-[11px] font-bold text-white">{{ $pendingWfhCount }}</span>@endif
-                        </h2>
-                        <p class="text-xs text-slate-400 mt-0.5">Approve or reject remote-work requests.</p>
-                    </div>
+        <div class="flex flex-col rounded-2xl bg-white border border-slate-200/80 shadow-sm dark:bg-slate-800 dark:border-slate-800">
+            <div class="flex items-center gap-3 border-b border-slate-100 p-6 dark:border-slate-700">
+                <span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-sky-100 text-sky-600 dark:bg-sky-500/15 dark:text-sky-400"><i data-lucide="house" class="h-5 w-5"></i></span>
+                <div>
+                    <h2 class="flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-white">Work From Home Requests
+                        @if($pendingWfhCount > 0)<span class="grid h-5 min-w-5 place-items-center rounded-full bg-rose-500 px-1.5 text-[11px] font-bold text-white">{{ $pendingWfhCount }}</span>@endif
+                    </h2>
+                    <p class="text-xs text-slate-400 mt-0.5">Approve or reject remote-work requests.</p>
                 </div>
-                <a href="{{ route('time-off.index') }}" class="text-xs font-semibold text-brand-600 hover:text-brand-700 transition dark:text-brand-400">View All</a>
             </div>
 
-            <div class="p-6">
+            <div class="p-6 flex-1">
                 @if($pendingWfhRequests->isEmpty())
                     <div class="flex flex-col items-center justify-center py-10 text-center">
                         <div class="grid h-14 w-14 place-items-center rounded-full bg-slate-50 text-slate-400 dark:bg-slate-700/50 dark:text-slate-500"><i data-lucide="house" class="h-7 w-7"></i></div>
@@ -485,6 +485,9 @@
                         @endforeach
                     </div>
                 @endif
+            </div>
+            <div class="mt-auto border-t border-slate-100 dark:border-slate-700 px-6 py-3">
+                <a href="{{ route('time-off.index') }}" class="text-xs font-semibold text-brand-600 hover:text-brand-700 transition dark:text-brand-400">View All →</a>
             </div>
         </div>
 
