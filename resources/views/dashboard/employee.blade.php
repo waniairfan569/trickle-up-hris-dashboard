@@ -407,7 +407,7 @@
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         @php
             $dashCards = [
-                ['title' => 'Equipment',          'text' => 'Company equipment assigned to you.',        'icon' => 'package',      'tone' => 'bg-brand-50 text-brand-600 dark:bg-brand-500/15 dark:text-brand-400'],
+                ['title' => 'Equipment',          'text' => 'Request approval to take a company item home.', 'icon' => 'package',      'tone' => 'bg-brand-50 text-brand-600 dark:bg-brand-500/15 dark:text-brand-400', 'href' => route('equipment.index')],
                 ['title' => 'Overtime Approval',   'text' => 'Submit overtime for approval.',               'icon' => 'alarm-clock',  'tone' => 'bg-amber-50 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400', 'href' => route('time-off.index', ['overtime' => 1])],
                 ['title' => 'WFH Approval',        'text' => 'Request to work from home — approved per request.', 'icon' => 'house-wifi',   'tone' => 'bg-indigo-50 text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-400', 'href' => route('time-off.create', ['policy' => 'wfh'])],
             ];
