@@ -281,12 +281,8 @@
         @endforeach
     </div>
 
-    {{-- Left column: Approval Queue + Time-off balances + Events + Security notice ·
-         Right column: "Your day at a glance" calendar + Recent System Activity. --}}
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-
-    <!-- LEFT COLUMN -->
-    <div class="space-y-6">
+    {{-- Approval queues — one row of three equal columns --}}
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
 
     <!-- Time Off Approval Queue -->
     <div class="rounded-2xl bg-white border border-slate-200/80 shadow-sm dark:bg-slate-800 dark:border-slate-800">
@@ -492,6 +488,12 @@
             </div>
         </div>
 
+    </div>{{-- /approval queues row --}}
+
+    {{-- Calendar + Events --}}
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+        @include('dashboard.partials.calendar-widget')
+
         {{-- Events summary --}}
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-6 dark:bg-slate-800 dark:border-slate-700/80">
             <div class="flex items-center justify-between mb-4">
@@ -509,14 +511,6 @@
                 </div>
             </div>
         </div>
-
-    </div>{{-- /LEFT COLUMN --}}
-
-    <!-- RIGHT COLUMN -->
-    <div class="space-y-6">
-        @include('dashboard.partials.calendar-widget')
-    </div>{{-- /RIGHT COLUMN --}}
-
     </div>{{-- /grid --}}
 
 </div>
