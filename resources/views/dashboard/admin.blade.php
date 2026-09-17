@@ -290,9 +290,6 @@
                                 </div>
                                 <div class="min-w-0">
                                     <h4 class="text-sm font-bold text-slate-950 dark:text-white truncate">{{ $req->employee->full_name ?? 'Unknown' }}</h4>
-                                    <p class="text-[11px] text-slate-400">
-                                        {{ $req->employee->department->name ?? 'Core' }} &bull; {{ $req->policy->name ?? 'Time Off' }}
-                                    </p>
                                     @if($req->reason)
                                         {{-- Reason: truncated inline; hover shows the full text (only when it's actually cut off). --}}
                                         <div class="relative mt-0.5 max-w-full" x-data="{ show: false }">
