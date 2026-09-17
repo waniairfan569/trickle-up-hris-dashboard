@@ -3,7 +3,6 @@
 @section('title', 'My Dashboard')
 @section('breadcrumb', '')
 
-@section('content')
 @php
     $auth = auth()->user();
     $status = app(\App\Services\AttendanceService::class)->getTodayStatus($auth);
@@ -23,7 +22,7 @@
         $resetDate = $rd ? \Carbon\Carbon::parse($rd) : null;
     } catch (\Throwable $e) {}
 
-    // A gentle daily nudge in the hero — stable for the whole day.
+    // A gentle daily nudge — stable for the whole day.
     $quotes = [
         'Small steps every day lead to big results.',
         'Progress, not perfection.',
@@ -36,19 +35,16 @@
     $quote = $quotes[now()->dayOfYear % count($quotes)];
 @endphp
 
-<div class="mx-auto space-y-6 pb-12">
-
-    <!-- Greeting hero -->
-    <div class="relative overflow-hidden rounded-2xl border border-slate-200/70 bg-white px-6 py-7 shadow-sm dark:border-slate-700 dark:bg-slate-800">
-        <div class="relative flex flex-wrap items-start justify-between gap-4">
-            <div>
-                <h1 class="flex items-center gap-2 text-2xl font-bold text-slate-900 dark:text-white tracking-tight"><span>👋</span> Hello {{ $auth->first_name }}</h1>
-                <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                    {{ $isClockedIn ? "You're clocked in" : 'Welcome back' }}@if($attention > 0) and <span class="font-semibold text-slate-700 dark:text-slate-300">{{ $attention }}</span> {{ \Illuminate\Support\Str::plural('thing', $attention) }} need your attention today.@else — here's your day at a glance.@endif
-                </p>
-            </div>
-        </div>
+{{-- Greeting shown in the top bar (see layouts/hr-app header) --}}
+@section('greeting')
+    <div class="min-w-0 leading-tight">
+        <p class="flex items-center gap-1.5 text-sm font-bold text-slate-900 dark:text-white truncate"><span>👋</span> Hello {{ $auth->first_name }}</p>
+        <p class="text-xs text-slate-500 dark:text-slate-400 truncate">{{ $isClockedIn ? "You're clocked in" : 'Welcome back' }}@if($attention > 0) and <span class="font-semibold text-slate-700 dark:text-slate-300">{{ $attention }}</span> {{ \Illuminate\Support\Str::plural('thing', $attention) }} need your attention today.@else — here's your day at a glance.@endif</p>
     </div>
+@endsection
+
+@section('content')
+<div class="mx-auto space-y-6 pb-12">
 
     <!-- Unread-announcement bar + auto-popup -->
     @include('partials.announcement-alert')

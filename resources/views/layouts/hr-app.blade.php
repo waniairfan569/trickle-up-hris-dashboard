@@ -243,14 +243,20 @@
                     <i data-lucide="menu" class="h-6 w-6"></i>
                 </button>
 
-                <!-- Breadcrumb / Section Name (hidden when a page sets none) -->
-                @php $__bc = trim($__env->yieldContent('breadcrumb')); @endphp
-                <div class="flex flex-1 flex-col justify-center sm:flex-row sm:items-center sm:justify-start gap-x-2 min-w-0 leading-tight">
-                    <span class="text-[11px] sm:text-sm font-medium text-slate-400 dark:text-slate-500 select-none">Workspace</span>
-                    @if($__bc !== '')
-                        <i data-lucide="chevron-right" class="hidden sm:block h-4 w-4 text-slate-300 dark:text-slate-600 shrink-0"></i>
-                        {{-- yieldContent already HTML-escapes the section string; output raw to avoid double-encoding ">" into "&gt;". --}}
-                        <span class="text-sm font-semibold text-slate-700 dark:text-slate-300 truncate">{!! $__bc !!}</span>
+                <!-- Greeting (dashboard) or Breadcrumb / Section Name -->
+                @php $__bc = trim($__env->yieldContent('breadcrumb')); $__greeting = trim($__env->yieldContent('greeting')); @endphp
+                <div class="flex flex-1 items-center min-w-0">
+                    @if($__greeting !== '')
+                        {!! $__greeting !!}
+                    @else
+                        <div class="flex flex-col justify-center sm:flex-row sm:items-center sm:justify-start gap-x-2 min-w-0 leading-tight">
+                            <span class="text-[11px] sm:text-sm font-medium text-slate-400 dark:text-slate-500 select-none">Workspace</span>
+                            @if($__bc !== '')
+                                <i data-lucide="chevron-right" class="hidden sm:block h-4 w-4 text-slate-300 dark:text-slate-600 shrink-0"></i>
+                                {{-- yieldContent already HTML-escapes the section string; output raw to avoid double-encoding ">" into "&gt;". --}}
+                                <span class="text-sm font-semibold text-slate-700 dark:text-slate-300 truncate">{!! $__bc !!}</span>
+                            @endif
+                        </div>
                     @endif
                 </div>
 
