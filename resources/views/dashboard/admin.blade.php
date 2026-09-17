@@ -166,28 +166,10 @@
 
 <div class="space-y-8">
 
-    <!-- Welcome Header & Quick Actions -->
-    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-            <h1 class="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">Workspace Overview</h1>
-            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Real-time workspace overview, access controls, and pending administrative tasks.</p>
-        </div>
-
-        <!-- Quick Actions Bar -->
-        @if(plan_allows('forms'))
-        <div class="flex flex-wrap items-center gap-3">
-            {{-- Overtime requests land in the Form Responses inbox, which opens on the overtime form by default --}}
-            <a href="{{ route('company-forms.inbox') }}" class="inline-flex items-center gap-x-2 rounded-xl bg-brand-600 px-4 py-2 text-xs font-semibold text-slate-900 shadow-md shadow-brand-500/20 hover:bg-brand-700 transition">
-                <i data-lucide="clock-alert" class="h-4 w-4"></i>
-                <span>Overtime Approvals</span>
-                @if($pendingOvertime > 0)
-                    <span class="ml-1.5 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white leading-none">
-                        {{ $pendingOvertime }}
-                    </span>
-                @endif
-            </a>
-        </div>
-        @endif
+    <!-- Welcome Header -->
+    <div>
+        <h1 class="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">Workspace Overview</h1>
+        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Real-time workspace overview, access controls, and pending administrative tasks.</p>
     </div>
 
     <!-- New-workspace setup checklist (admins, until complete/dismissed) -->
