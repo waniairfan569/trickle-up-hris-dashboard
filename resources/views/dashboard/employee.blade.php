@@ -362,8 +362,6 @@
                 </script>
             </div>
 
-            <!-- Time-off Balances Widget (shared partial) -->
-            @include('dashboard.partials.timeoff-balances-card')
 
         </div>
 
