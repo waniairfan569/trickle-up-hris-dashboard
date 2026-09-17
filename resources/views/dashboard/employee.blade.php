@@ -44,7 +44,7 @@
 @endsection
 
 @section('content')
-<div class="mx-auto space-y-6 pb-12">
+<div class="mx-auto pb-12">
 
     <!-- Unread-announcement bar + auto-popup -->
     @include('partials.announcement-alert')
@@ -53,6 +53,8 @@
     @if(auth()->user()->can_send_codes && plan_allows('code_requests'))
         @include('partials.code-request-hr-banner')
     @endif
+
+    <div class="space-y-6">
 
     <!-- Day at a glance -->
     <div class="space-y-4" x-data="celebrationsWidget()">
@@ -460,6 +462,8 @@
             @include('dashboard.partials.action-card')
         @endforeach
     </div>
+
+    </div>{{-- /space-y-6 --}}
     @include('partials.code-request-modal')
     @include('partials.feedback-modal')
 </div>

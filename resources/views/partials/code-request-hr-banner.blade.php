@@ -6,7 +6,7 @@
 <a x-data="codeRequestHrBanner({{ $pendingCodeCount }}, {{ $canPollCodes ? 'true' : 'false' }})" x-init="init()"
    x-show="count > 0" x-cloak x-transition
    :href="pendingUrl"
-   class="flex items-center justify-between gap-3 rounded-xl bg-amber-50 border border-amber-200 px-5 py-3.5 dark:bg-amber-500/10 dark:border-amber-500/20 hover:bg-amber-100 dark:hover:bg-amber-500/20 transition"
+   class="mb-6 flex items-center justify-between gap-3 rounded-xl bg-amber-50 border border-amber-200 px-5 py-3.5 dark:bg-amber-500/10 dark:border-amber-500/20 hover:bg-amber-100 dark:hover:bg-amber-500/20 transition"
    :class="bump ? 'ring-2 ring-amber-400 ring-offset-2 ring-offset-slate-50 dark:ring-offset-slate-900' : ''">
     <div class="flex items-center gap-3">
         <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-100 text-amber-700 dark:bg-amber-500/20"><i data-lucide="zap" class="h-5 w-5"></i></span>
