@@ -47,10 +47,6 @@
                     {{ $isClockedIn ? "You're clocked in" : 'Welcome back' }}@if($attention > 0) and <span class="font-semibold text-slate-700 dark:text-slate-300">{{ $attention }}</span> {{ \Illuminate\Support\Str::plural('thing', $attention) }} need your attention today.@else — here's your day at a glance.@endif
                 </p>
             </div>
-            <div class="flex items-start gap-2 text-amber-500">
-                <i data-lucide="sun" class="h-5 w-5 shrink-0"></i>
-                <p class="max-w-[180px] text-sm font-semibold leading-snug text-slate-600 dark:text-slate-300">{{ $quote }}</p>
-            </div>
         </div>
     </div>
 
@@ -79,7 +75,7 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
                                 </svg>
                             </div>
-                            <p class="text-xs font-medium text-slate-400">Today at a glance</p>
+                            <p class="flex items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-400"><i data-lucide="sun" class="h-3.5 w-3.5 text-amber-500"></i> {{ $quote }}</p>
                         </div>
 
                         <!-- Custom Calendar Dropdown -->
