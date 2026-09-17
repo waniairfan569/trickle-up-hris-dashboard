@@ -129,7 +129,9 @@
                         </div>
                     </div>
                     <div class="flex items-center gap-1.5">
-                        <a href="{{ route('events.employee-calendar') }}" class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-indigo-600 shadow-sm transition hover:bg-indigo-50 dark:bg-slate-800 dark:border-slate-700 dark:text-indigo-400 dark:hover:bg-slate-700">
+                        <button @click="shift(-1)" class="h-9 w-9 rounded-full border border-slate-200 dark:border-slate-600 flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-50 dark:hover:text-white dark:hover:bg-slate-700 transition"><i data-lucide="arrow-left" class="h-4 w-4"></i></button>
+                        <button @click="shift(1)" class="h-9 w-9 rounded-full border border-slate-200 dark:border-slate-600 flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-50 dark:hover:text-white dark:hover:bg-slate-700 transition"><i data-lucide="arrow-right" class="h-4 w-4"></i></button>
+                        <a href="{{ route('events.employee-calendar') }}" class="ml-1 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-indigo-600 shadow-sm transition hover:bg-indigo-50 dark:bg-slate-800 dark:border-slate-700 dark:text-indigo-400 dark:hover:bg-slate-700">
                             <i data-lucide="calendar-days" class="h-4 w-4"></i> View Calendar <i data-lucide="chevron-right" class="h-4 w-4"></i>
                         </a>
                     </div>
