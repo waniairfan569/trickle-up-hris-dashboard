@@ -4,7 +4,7 @@
 @section('breadcrumb', 'Request Time-Off')
 
 @section('content')
-<div class="max-w-3xl mx-auto space-y-6" x-data="timeOffForm()">
+<div class="space-y-6" x-data="timeOffForm()">
     <div class="sm:flex sm:items-center sm:justify-between border-b border-slate-200/80 pb-5 dark:border-slate-700/60">
         <div>
             <h2 class="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">Request Time-Off</h2>
@@ -39,7 +39,7 @@
             <!-- Policy Selection -->
             <div>
                 <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 dark:text-slate-300">Select Policy <span class="text-red-500">*</span></label>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     @foreach($myPolicies as $policy)
                         @php $balance = $balances[$policy->id] ?? null; @endphp
                         <label class="relative flex cursor-pointer rounded-xl border p-4 shadow-sm focus:outline-none transition"
