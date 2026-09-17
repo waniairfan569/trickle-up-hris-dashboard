@@ -146,8 +146,6 @@
 
             <!-- Celebrations -->
             <div class="relative overflow-hidden flex flex-col h-[300px] rounded-2xl border border-slate-200/70 bg-white shadow-sm dark:bg-slate-800 dark:border-slate-700">
-                <div class="pointer-events-none absolute -bottom-14 -left-12 h-40 w-56 rounded-[45%] bg-pink-200/45 blur-2xl dark:bg-pink-500/10"></div>
-                <div class="pointer-events-none absolute -top-10 -right-10 h-28 w-36 rounded-[45%] bg-rose-200/35 blur-2xl dark:bg-rose-500/10"></div>
                 <div class="relative flex items-center gap-2.5 px-5 pt-5">
                     <span class="grid h-10 w-10 place-items-center rounded-xl bg-pink-100 text-pink-500 dark:bg-pink-500/15 dark:text-pink-400"><i data-lucide="party-popper" class="h-5 w-5"></i></span>
                     <h3 class="text-base font-bold text-slate-800 dark:text-white">Celebrations</h3>
@@ -178,7 +176,6 @@
 
             <!-- Announcements -->
             <div class="relative overflow-hidden flex flex-col h-[300px] rounded-2xl border border-slate-200/70 bg-white shadow-sm dark:bg-slate-800 dark:border-slate-700">
-                <div class="pointer-events-none absolute -bottom-14 -right-12 h-40 w-56 rounded-[45%] bg-amber-200/40 blur-2xl dark:bg-amber-500/10"></div>
                 <div class="relative flex items-center gap-2.5 px-5 pt-5">
                     <span class="grid h-10 w-10 place-items-center rounded-xl bg-amber-100 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400"><i data-lucide="megaphone" class="h-5 w-5"></i></span>
                     <h3 class="text-base font-bold text-slate-800 dark:text-white">Announcements</h3>
@@ -213,8 +210,6 @@
 
             <!-- Upcoming events -->
             <div class="relative overflow-hidden flex flex-col h-[300px] rounded-2xl border border-slate-200/70 bg-white shadow-sm dark:bg-slate-800 dark:border-slate-700">
-                <div class="pointer-events-none absolute -bottom-14 -right-12 h-40 w-56 rounded-[45%] bg-sky-200/45 blur-2xl dark:bg-sky-500/10"></div>
-                <i data-lucide="calendar-days" class="pointer-events-none absolute bottom-4 right-4 h-20 w-20 text-sky-300/40 dark:text-sky-500/10"></i>
                 <div class="relative flex items-center gap-2.5 px-5 pt-5">
                     <span class="grid h-10 w-10 place-items-center rounded-xl bg-sky-100 text-sky-600 dark:bg-sky-500/15 dark:text-sky-400"><i data-lucide="calendar-days" class="h-5 w-5"></i></span>
                     <h3 class="text-base font-bold text-slate-800 dark:text-white">Upcoming events</h3>
