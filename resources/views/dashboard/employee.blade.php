@@ -368,9 +368,6 @@
         <!-- Right Column (timesheet + code + announcements) — shown FIRST on mobile -->
         <div class="space-y-4 order-first md:order-none">
 
-            <!-- Quick login-code request (below the timesheet) -->
-            @include('partials.code-request-widget')
-
             <!-- Upcoming events -->
             @if(($upcomingEvents ?? collect())->isNotEmpty())
                 <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 dark:bg-slate-800 dark:border-slate-700/80">
@@ -394,9 +391,6 @@
                     </div>
                 </div>
             @endif
-
-            <!-- Feedback & issues -->
-            @include('partials.feedback-card')
 
         </div>
     </div>
@@ -429,5 +423,6 @@
         @endforeach
     </div>
     @include('partials.code-request-modal')
+    @include('partials.feedback-modal')
 </div>
 @endsection
