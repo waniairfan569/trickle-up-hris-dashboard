@@ -7,6 +7,9 @@
 
     $tsUser = auth()->user();
     $tsStatus = $tsUser ? app(AttendanceService::class)->getTodayStatus($tsUser) : null;
+    // Biometric-only users punch on the ZKTeco device — the web clock button is
+    // disabled for them (server also blocks the endpoint) so it's clear, not an error.
+    $tsCanClock = $tsUser ? $tsUser->usesDashboardClockIn() : false;
 @endphp
 
 @if($tsStatus)
@@ -49,7 +52,13 @@
         @endif
 
         <div class="mt-3.5">
-            @if(!$tsStatus['clock_in'])
+            @if(!$tsCanClock)
+                <button type="button" disabled title="Your attendance is recorded on the biometric device"
+                        class="flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-800/60 px-3 py-2.5 text-sm font-bold text-slate-500">
+                    <i data-lucide="fingerprint" class="h-4 w-4"></i> Biometric only
+                </button>
+                <p class="mt-2 text-center text-[11px] leading-snug text-slate-500">Clock in/out on the biometric device.</p>
+            @elseif(!$tsStatus['clock_in'])
                 <button type="button" onclick="tsAttendance('clock-in')" class="w-full rounded-xl bg-emerald-600 px-3 py-2.5 text-sm font-bold text-white hover:bg-emerald-700 transition">Clock In</button>
             @elseif($tsClockedIn)
                 <button type="button" onclick="tsAttendance('clock-out')" class="flex w-full items-center justify-center gap-2 rounded-xl bg-white px-3 py-2.5 text-sm font-bold text-slate-900 hover:bg-slate-200 transition"><span class="h-2.5 w-2.5 bg-slate-900"></span> Clock Out</button>
