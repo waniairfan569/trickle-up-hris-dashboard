@@ -27,16 +27,11 @@
 <div class="mx-auto space-y-6 pb-12">
 
     <!-- Greeting -->
-    <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-            <h1 class="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Hello {{ $auth->first_name }}</h1>
-            <p class="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-                {{ $isClockedIn ? "You're clocked in" : 'Welcome back' }}@if($attention > 0) and <span class="font-semibold text-slate-700 dark:text-slate-300">{{ $attention }}</span> {{ \Illuminate\Support\Str::plural('thing', $attention) }} need your attention today.@else — here's your day at a glance.@endif
-            </p>
-        </div>
-        <span class="inline-flex items-center gap-2 self-start rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-600 shadow-sm dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300">
-            <i data-lucide="calendar" class="h-3.5 w-3.5 text-slate-400"></i> {{ now()->format('l, j F Y') }}
-        </span>
+    <div>
+        <h1 class="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Hello {{ $auth->first_name }}</h1>
+        <p class="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+            {{ $isClockedIn ? "You're clocked in" : 'Welcome back' }}@if($attention > 0) and <span class="font-semibold text-slate-700 dark:text-slate-300">{{ $attention }}</span> {{ \Illuminate\Support\Str::plural('thing', $attention) }} need your attention today.@else — here's your day at a glance.@endif
+        </p>
     </div>
 
     <!-- Unread-announcement bar + auto-popup -->
@@ -64,7 +59,6 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
                                 </svg>
                             </div>
-                            <p class="text-[11px] font-semibold text-teal-600 dark:text-teal-400">Your day at a glance</p>
                         </div>
 
                         <!-- Custom Calendar Dropdown -->
