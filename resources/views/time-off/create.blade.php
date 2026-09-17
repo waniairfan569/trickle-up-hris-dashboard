@@ -143,10 +143,23 @@
     </form>
 </div>
 
+@php
+    // Allow deep-linking to a specific policy: ?policy=wfh or ?policy=<id> (e.g. from the dashboard WFH card).
+    $__reqPolicy = request('policy');
+    $__preselectId = old('policy_id');
+    if (!$__preselectId && $__reqPolicy) {
+        if ($__reqPolicy === 'wfh') {
+            $__preselectId = optional($myPolicies->first(fn ($p) => $p->isWorkFromHome()))->id;
+        } elseif (is_numeric($__reqPolicy)) {
+            $__preselectId = optional($myPolicies->firstWhere('id', (int) $__reqPolicy))->id;
+        }
+    }
+    $__preselectId = $__preselectId ?: ($myPolicies->first()->id ?? null);
+@endphp
 <script>
     function timeOffForm() {
         return {
-            selectedPolicy: {{ old('policy_id', $myPolicies->first()->id ?? 'null') }},
+            selectedPolicy: {{ $__preselectId ?? 'null' }},
             startDate: '{{ old('start_date', request('start_date')) }}',
             endDate: '{{ old('end_date', request('start_date')) }}',
             durationType: '{{ old('duration_type', 'full_day') }}',
