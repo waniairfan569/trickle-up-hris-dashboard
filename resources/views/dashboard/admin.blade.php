@@ -203,7 +203,7 @@
     @include('partials.code-request-hr-banner')
 
     <!-- Today's snapshot: stat cards (compact — icon left, label above number, avatar stack) -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         @foreach($statCards as $c)
             <div x-data="{ open: false }" class="rounded-2xl bg-white border border-slate-200/80 p-4 sm:p-5 shadow-sm hover:shadow-md transition dark:bg-slate-800 dark:border-slate-800">
                 {{-- icon on the left · label above the number --}}
