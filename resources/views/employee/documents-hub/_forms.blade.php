@@ -1,12 +1,11 @@
 {{-- "Forms" tab — forms assigned to the employee to complete. --}}
 @php
     $badge = ['pending' => 'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400', 'in_progress' => 'bg-sky-50 text-sky-700 dark:bg-sky-500/10 dark:text-sky-400', 'submitted' => 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400'];
-    $pendingCount   = $submissions->filter(fn ($s) => $s->status !== 'submitted')->count();
     $submittedCount = $submissions->filter(fn ($s) => $s->status === 'submitted')->count();
     $allCount       = $submissions->count();
+    // Forms are optional (fill if you need to) — no "Pending" obligation tab/badge.
     $formTabs = [
         'all'       => ['label' => 'All',       'count' => $allCount,       'badge' => 'bg-slate-200 text-slate-600 dark:bg-slate-600 dark:text-slate-200'],
-        'pending'   => ['label' => 'Pending',   'count' => $pendingCount,   'badge' => 'bg-amber-500 text-white'],
         'submitted' => ['label' => 'Submitted', 'count' => $submittedCount, 'badge' => 'bg-emerald-500 text-white'],
     ];
 @endphp
@@ -41,8 +40,8 @@
 
     <div class="space-y-3">
         @forelse($submissions as $s)
-            @php $isSubmitted = $s->status === 'submitted'; $matchPending = !$isSubmitted; @endphp
-            <div x-show="tab === 'all' || (tab === 'submitted' && {{ $isSubmitted ? 'true' : 'false' }}) || (tab === 'pending' && {{ $matchPending ? 'true' : 'false' }})"
+            @php $isSubmitted = $s->status === 'submitted'; @endphp
+            <div x-show="tab === 'all' || (tab === 'submitted' && {{ $isSubmitted ? 'true' : 'false' }})"
                  x-data="{ openView: false }"
                  class="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-5 dark:bg-slate-800 dark:border-slate-700 flex items-center justify-between gap-4">
                 <div class="min-w-0">
@@ -53,8 +52,6 @@
                         @endif
                         @if($s->status === 'submitted')
                             <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold {{ $badge['submitted'] }}">Submitted</span>
-                        @else
-                            <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold {{ $badge['pending'] }}">Pending</span>
                         @endif
                         @if(in_array($s->review_status, ['approved', 'rejected'], true))
                             <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold {{ $s->reviewBadgeClass() }}">{{ $s->reviewLabel() }}</span>
@@ -166,13 +163,6 @@
             </div>
         @endforelse
 
-        @if($submissions->isNotEmpty() && $pendingCount === 0)
-            <div x-show="tab === 'pending'" x-cloak class="bg-white rounded-2xl border border-slate-200/80 shadow-sm py-16 text-center dark:bg-slate-800 dark:border-slate-700">
-                <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-500 dark:bg-emerald-500/10 mb-3 mx-auto"><i data-lucide="check-check" class="h-7 w-7"></i></div>
-                <p class="text-sm font-bold text-slate-600 dark:text-slate-300">You're all caught up</p>
-                <p class="text-xs text-slate-400 mt-1">No pending forms to complete.</p>
-            </div>
-        @endif
         @if($submissions->isNotEmpty() && $submittedCount === 0)
             <div x-show="tab === 'submitted'" x-cloak class="bg-white rounded-2xl border border-slate-200/80 shadow-sm py-16 text-center dark:bg-slate-800 dark:border-slate-700">
                 <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-50 text-slate-400 dark:bg-slate-700 mb-3 mx-auto"><i data-lucide="inbox" class="h-7 w-7"></i></div>
