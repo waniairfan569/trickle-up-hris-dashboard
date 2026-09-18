@@ -34,7 +34,8 @@
             ['key' => 'policies', 'label' => 'Policies', 'icon' => 'book-text',      'count' => $counts['policies']],
         ];
         if ($formsEnabled) {
-            $hubTabs[] = ['key' => 'forms', 'label' => 'Forms', 'icon' => 'clipboard-list', 'count' => $counts['forms']];
+            // Forms are optional — no red "action needed" badge on the tab.
+            $hubTabs[] = ['key' => 'forms', 'label' => 'Forms', 'icon' => 'clipboard-list', 'count' => 0];
         }
     @endphp
     <div class="inline-flex w-full flex-wrap items-center gap-1 rounded-2xl border border-slate-200/80 bg-slate-100/70 p-1 dark:border-slate-700 dark:bg-slate-800/60 sm:w-auto">

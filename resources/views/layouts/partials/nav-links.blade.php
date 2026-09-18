@@ -119,7 +119,8 @@
         <a href="{{ route('documents-hub.index') }}"
            class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ $docsActive ? 'text-brand-400 bg-slate-800' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
             <i data-lucide="folder" class="h-5 w-5 shrink-0"></i><span class="flex-1">Documents</span>
-            {!! $navBadge(($nav['sign'] ?? 0) + ($nav['hr_to_sign'] ?? 0) + ($nav['forms'] ?? 0) + ($nav['policies'] ?? 0)) !!}
+            {{-- Forms are optional (fill if you want), so they don't count toward the attention badge. --}}
+            {!! $navBadge(($nav['sign'] ?? 0) + ($nav['hr_to_sign'] ?? 0) + ($nav['policies'] ?? 0)) !!}
         </a>
         @if(!auth()->user()->isAdmin() && plan_allows('forms') && auth()->user()->reviewableForms()->exists())
         <a href="{{ route('company-forms.my-reviews') }}"
