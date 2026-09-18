@@ -273,7 +273,7 @@ class DocumentTemplateController extends Controller
             'fields.*.field_key' => 'nullable|string|max:255',
             'fields.*.label' => 'nullable|string|max:255',
             'fields.*.section' => 'nullable|string|max:255',
-            'fields.*.field_type' => 'nullable|string|in:text,signature,initials',
+            'fields.*.field_type' => 'nullable|string|in:text,signature,initials,saved_signature',
             'fields.*.assignee' => 'nullable|string|in:employee,sender,hr_admin,me_now',
             'fields.*.profile_field_id' => 'nullable|integer|exists:profile_fields,id',
             'fields.*.page' => 'nullable|integer|min:1',
