@@ -26,22 +26,23 @@
         <div class="rounded-xl bg-emerald-50 p-4 border border-emerald-200 text-sm text-emerald-800 dark:bg-emerald-500/10 dark:border-emerald-500/20 dark:text-emerald-400 flex items-center gap-2"><i data-lucide="check-circle" class="h-5 w-5"></i>{{ session('success') }}</div>
     @endif
 
-    {{-- Hub tab bar --}}
+    {{-- Hub tab bar — segmented pill control (distinct from the sub-tabs inside tabs) --}}
     @php
         $hubTabs = [
-            ['key' => 'all',      'label' => 'All',      'count' => 0],
-            ['key' => 'sign',     'label' => 'To Sign',  'count' => $counts['sign']],
-            ['key' => 'policies', 'label' => 'Policies', 'count' => $counts['policies']],
+            ['key' => 'all',      'label' => 'All',      'icon' => 'folder-open',    'count' => 0],
+            ['key' => 'sign',     'label' => 'To Sign',  'icon' => 'file-signature', 'count' => $counts['sign']],
+            ['key' => 'policies', 'label' => 'Policies', 'icon' => 'book-text',      'count' => $counts['policies']],
         ];
         if ($formsEnabled) {
-            $hubTabs[] = ['key' => 'forms', 'label' => 'Forms', 'count' => $counts['forms']];
+            $hubTabs[] = ['key' => 'forms', 'label' => 'Forms', 'icon' => 'clipboard-list', 'count' => $counts['forms']];
         }
     @endphp
-    <div class="flex items-center gap-1 border-b border-slate-200 dark:border-slate-700 overflow-x-auto">
+    <div class="inline-flex w-full flex-wrap items-center gap-1 rounded-2xl border border-slate-200/80 bg-slate-100/70 p-1 dark:border-slate-700 dark:bg-slate-800/60 sm:w-auto">
         @foreach($hubTabs as $t)
             <button type="button" @click="active = '{{ $t['key'] }}'"
-                    :class="active === '{{ $t['key'] }}' ? 'border-brand-500 text-brand-600 dark:text-brand-400' : 'border-transparent text-slate-400 hover:text-slate-600'"
-                    class="inline-flex items-center gap-1.5 border-b-2 px-4 py-2.5 text-sm font-bold transition whitespace-nowrap">
+                    :class="active === '{{ $t['key'] }}' ? 'bg-white text-slate-900 shadow-sm ring-1 ring-slate-200/70 dark:bg-slate-700 dark:text-white dark:ring-slate-600' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'"
+                    class="inline-flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition whitespace-nowrap sm:flex-none">
+                <i data-lucide="{{ $t['icon'] }}" class="h-4 w-4"></i>
                 {{ $t['label'] }}
                 @if($t['count'] > 0)
                     <span class="inline-flex items-center justify-center rounded-full bg-rose-500 text-white text-[10px] font-bold h-4 min-w-[16px] px-1">{{ $t['count'] }}</span>
