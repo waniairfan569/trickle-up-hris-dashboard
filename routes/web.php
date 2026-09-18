@@ -373,7 +373,7 @@ Route::middleware(['auth', 'verified', 'force.password.change'])->group(function
 
     // Employee-facing signing of HR documents sent to them (any authenticated
     // user; each action is gated in-controller to the assigned signers).
-    Route::get('my-documents', [\App\Http\Controllers\HrDocumentSignController::class, 'index'])->name('hr-documents.to-sign');
+    Route::get('my-documents', fn (\Illuminate\Http\Request $r) => redirect()->route('documents-hub.index', array_filter(['tab' => 'sign', 'month' => $r->query('month')])))->name('hr-documents.to-sign');
     Route::get('my-documents/{document}/pdf', [\App\Http\Controllers\HrDocumentSignController::class, 'pdf'])->name('hr-documents.my-pdf');
     Route::get('hr-documents/{document}/sign', [\App\Http\Controllers\HrDocumentSignController::class, 'show'])->name('hr-documents.sign');
     Route::post('hr-documents/{document}/sign', [\App\Http\Controllers\HrDocumentSignController::class, 'store'])->name('hr-documents.sign.store');
@@ -520,7 +520,7 @@ Route::middleware(['auth', 'verified', 'force.password.change'])->group(function
     Route::post('employees/{employee}/assign-default-policies', [App\Http\Controllers\TimeOffController::class, 'assignDefaultPolicies'])->name('employees.assign-default-policies');
 
     // Company Forms — employee side (fill assigned forms)
-    Route::get('my-forms', [\App\Http\Controllers\FormSubmissionController::class, 'myForms'])->name('my-forms.index');
+    Route::get('my-forms', fn (\Illuminate\Http\Request $r) => redirect()->route('documents-hub.index', array_filter(['tab' => 'forms', 'period' => $r->query('period')])))->name('my-forms.index');
 
     // Company-form review — admins OR employees granted reviewer access (checked in controller).
     Route::get('my-reviews', [\App\Http\Controllers\CompanyFormController::class, 'myReviews'])->name('company-forms.my-reviews');
@@ -537,7 +537,7 @@ Route::middleware(['auth', 'verified', 'force.password.change'])->group(function
     Route::post('overtime/submit', [\App\Http\Controllers\FormSubmissionController::class, 'submitOvertime'])->name('overtime.submit');
 
     // Company Policies — employee side (view, download, acknowledge / e-sign)
-    Route::get('my-policies', [\App\Http\Controllers\PolicyAcknowledgmentController::class, 'myPolicies'])->name('my-policies.index');
+    Route::get('my-policies', fn () => redirect()->route('documents-hub.index', ['tab' => 'policies']))->name('my-policies.index');
     Route::get('policies/{companyPolicy}', [\App\Http\Controllers\PolicyAcknowledgmentController::class, 'view'])->name('policies.view');
     Route::post('policies/{companyPolicy}/acknowledge', [\App\Http\Controllers\PolicyAcknowledgmentController::class, 'acknowledge'])->name('policies.acknowledge');
     Route::get('policies/{companyPolicy}/download', [\App\Http\Controllers\CompanyPolicyController::class, 'download'])->name('policies.download');
@@ -547,7 +547,10 @@ Route::middleware(['auth', 'verified', 'force.password.change'])->group(function
     Route::get('calendar/data', [\App\Http\Controllers\EventController::class, 'employeeCalendarData'])->name('events.employee-calendar-data');
 
     // Company Documents — employee library (access controlled inside controller)
-    Route::get('document-library', [\App\Http\Controllers\CompanyDocumentController::class, 'employeeIndex'])->name('document-library.index');
+    // Unified employee "Documents" hub (All / To Sign / Policies / Forms).
+    Route::get('documents', [\App\Http\Controllers\DocumentsHubController::class, 'index'])->name('documents-hub.index');
+    // Old page URLs now redirect into the hub with the right tab (bookmarks & notification links keep working).
+    Route::get('document-library', fn () => redirect()->route('documents-hub.index', ['tab' => 'all']))->name('document-library.index');
     Route::get('document-library/{document}/download', [\App\Http\Controllers\CompanyDocumentController::class, 'download'])->name('document-library.download');
     Route::get('document-library/{document}/view', [\App\Http\Controllers\CompanyDocumentController::class, 'view'])->name('document-library.view');
     Route::get('document-library/{document}/read', [\App\Http\Controllers\CompanyDocumentController::class, 'readDocument'])->name('document-library.read');

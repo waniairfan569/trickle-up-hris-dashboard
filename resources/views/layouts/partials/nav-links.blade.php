@@ -2,7 +2,7 @@
     $routeName = request()->route()?->getName() ?? '';
 
     // Sidebar red badges — items needing attention on each tab.
-    $nav = ['invites' => 0, 'timeoff' => 0, 'forms' => 0, 'corrections' => 0, 'sign' => 0, 'hr_to_sign' => 0, 'overtime' => 0, 'wfh' => 0];
+    $nav = ['invites' => 0, 'timeoff' => 0, 'forms' => 0, 'corrections' => 0, 'sign' => 0, 'hr_to_sign' => 0, 'overtime' => 0, 'wfh' => 0, 'policies' => 0];
     $navWfhPolicyId = null;
     if ($navUser = auth()->user()) {
         // Documents awaiting THIS user's signature (shown on Document Library).
@@ -15,6 +15,12 @@
 
         // HR documents (lateness review, return to work, …) sent to me to sign.
         $nav['hr_to_sign'] = \App\Models\HrDocumentSigner::where('user_id', $navUser->id)->whereNull('signed_at')->count();
+
+        // Company policies assigned to me still awaiting acknowledgment.
+        $nav['policies'] = $navUser->policyAcknowledgments()
+            ->where('status', '!=', 'acknowledged')
+            ->whereHas('policy', fn ($q) => $q->where('status', 'active'))
+            ->count();
         $navIsAdmin = $navUser->hasRole('super_admin') || $navUser->hasRole('hr_admin');
         $navReportIds = (!$navIsAdmin && $navUser->isManager() && method_exists($navUser, 'teamMemberIds'))
             ? $navUser->teamMemberIds() : collect();
@@ -108,28 +114,17 @@
         </a>
         @endif
         @endunless
-        @if(plan_allows('forms'))
-        <a href="{{ route('my-forms.index') }}"
-           class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ (Str::startsWith($routeName, 'my-forms') || Str::startsWith($routeName, 'forms.')) ? 'text-brand-400 bg-slate-800' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
-            <i data-lucide="clipboard-list" class="h-5 w-5 shrink-0"></i><span class="flex-1">My Forms</span>
-            {!! $navBadge($nav['forms']) !!}
+        {{-- Unified Documents hub (All / To Sign / Policies / Forms) --}}
+        @php $docsActive = collect(['documents-hub', 'document-library', 'documents.', 'my-forms', 'forms.', 'my-policies', 'policies.', 'hr-documents.to-sign', 'hr-documents.sign'])->contains(fn ($r) => Str::startsWith($routeName, $r)); @endphp
+        <a href="{{ route('documents-hub.index') }}"
+           class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ $docsActive ? 'text-brand-400 bg-slate-800' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
+            <i data-lucide="folder" class="h-5 w-5 shrink-0"></i><span class="flex-1">Documents</span>
+            {!! $navBadge(($nav['sign'] ?? 0) + ($nav['hr_to_sign'] ?? 0) + ($nav['forms'] ?? 0) + ($nav['policies'] ?? 0)) !!}
         </a>
-        @endif
         @if(!auth()->user()->isAdmin() && plan_allows('forms') && auth()->user()->reviewableForms()->exists())
         <a href="{{ route('company-forms.my-reviews') }}"
            class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'company-forms.my-reviews') ? 'text-brand-400 bg-slate-800' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
             <i data-lucide="clipboard-check" class="h-5 w-5 shrink-0"></i><span class="flex-1">Form Reviews</span>
-        </a>
-        @endif
-        <a href="{{ route('my-policies.index') }}"
-           class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ (Str::startsWith($routeName, 'my-policies') || Str::startsWith($routeName, 'policies.')) ? 'text-brand-400 bg-slate-800' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
-            <i data-lucide="book-text" class="h-5 w-5 shrink-0"></i><span class="flex-1">My Policies</span>
-        </a>
-        @if(plan_allows('hr_documents'))
-        <a href="{{ route('hr-documents.to-sign') }}"
-           class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ (Str::startsWith($routeName, 'hr-documents.to-sign') || Str::startsWith($routeName, 'hr-documents.sign')) ? 'text-brand-400 bg-slate-800' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
-            <i data-lucide="file-signature" class="h-5 w-5 shrink-0"></i><span class="flex-1">To Sign</span>
-            {!! $navBadge($nav['hr_to_sign'] ?? 0) !!}
         </a>
         @endif
         @if(plan_allows('equipment'))
@@ -138,12 +133,6 @@
             <i data-lucide="package" class="h-5 w-5 shrink-0"></i><span class="flex-1">Equipment</span>
         </a>
         @endif
-        @php $docLibActive = Str::startsWith($routeName, 'document-library') || Str::startsWith($routeName, 'documents.'); @endphp
-        <a href="{{ route('document-library.index') }}"
-           class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ $docLibActive ? 'text-brand-400 bg-slate-800' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
-            <i data-lucide="library" class="h-5 w-5 shrink-0"></i><span class="flex-1">Document Library</span>
-            {!! $navBadge($nav['sign'] ?? 0) !!}
-        </a>
         <a href="{{ route('settings.index') }}"
            class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'settings') ? 'text-brand-400 bg-slate-800' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
             <i data-lucide="settings" class="h-5 w-5 shrink-0"></i><span class="flex-1">Settings</span>
