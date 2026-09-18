@@ -36,7 +36,10 @@
 <div class="space-y-8" id="profile-page-root" x-data="{ tab: 'personal', section: '{{ $initialSection }}', showSensitive: false, fileTab: 'upload', uploadOpen: false, fileSearch: '', payReviewOpen: false }">
     <!-- Back Button -->
     <div>
-        <a href="{{ route('employees.index') }}" class="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-slate-800 transition dark:text-slate-400 dark:hover:text-white">
+        {{-- Go back to wherever the user came from; fall back to the directory on a direct load. --}}
+        <a href="{{ route('employees.index') }}"
+           onclick="if (window.history.length > 1 && document.referrer) { event.preventDefault(); window.history.back(); }"
+           class="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-slate-800 transition dark:text-slate-400 dark:hover:text-white">
             <i data-lucide="arrow-left" class="h-4 w-4"></i>
             Back
         </a>
