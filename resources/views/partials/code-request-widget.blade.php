@@ -53,11 +53,11 @@
     {{-- Form (hidden after success) --}}
     <div x-show="!sent">
         <div class="flex flex-col sm:flex-row gap-2">
-            <select x-model="tool" class="flex-1 rounded-xl border border-slate-300 px-3 py-2 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+            <select x-model="tool" class="flex-1 min-w-0 rounded-xl border border-slate-300 px-3 py-2 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
                 <option value="" disabled>Select a tool…</option>
                 @foreach($codeTools as $t)<option value="{{ $t }}">{{ $t }}</option>@endforeach
             </select>
-            <input x-show="tool === 'Other'" x-cloak type="text" x-model="otherTool" placeholder="Tool name" class="flex-1 rounded-xl border border-slate-300 px-3 py-2 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+            <input x-show="tool === 'Other'" x-cloak type="text" x-model="otherTool" placeholder="Tool name" class="flex-1 min-w-0 rounded-xl border border-slate-300 px-3 py-2 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
         </div>
         <input type="text" x-model="message" maxlength="255" placeholder="Reason for this request (required)" class="w-full mt-2 rounded-xl border border-slate-300 px-3 py-2 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
         <button type="button" @click="submit()" :disabled="sending || !canSubmit"
