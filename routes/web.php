@@ -52,6 +52,7 @@ Route::get('/privacy', [\App\Http\Controllers\LegalController::class, 'privacy']
 Route::get('/dpa', [\App\Http\Controllers\LegalController::class, 'dpa'])->name('legal.dpa');
 Route::get('/cookies', [\App\Http\Controllers\LegalController::class, 'cookies'])->name('legal.cookies');
 Route::get('/refund', [\App\Http\Controllers\LegalController::class, 'refund'])->name('legal.refund');
+Route::get('/.well-known/security.txt', [\App\Http\Controllers\LegalController::class, 'securityTxt'])->name('legal.security-txt');
 
 // Web Session Authentication Routes
 Route::get('/login', [\App\Http\Controllers\PageController::class, 'showLogin'])->name('login');

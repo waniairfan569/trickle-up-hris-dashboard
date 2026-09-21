@@ -1,0 +1,16 @@
+version: 2
+updates:
+  # PHP / Composer dependencies — weekly security + version PRs.
+  - package-ecosystem: "composer"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    labels: ["dependencies"]
+
+  # Keep GitHub Actions pinned versions fresh.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels: ["dependencies", "github-actions"]

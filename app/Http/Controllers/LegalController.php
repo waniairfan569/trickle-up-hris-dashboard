@@ -29,4 +29,23 @@ class LegalController extends Controller
     {
         return view('legal.refund');
     }
+
+    /** RFC 9116 responsible-disclosure contact (/.well-known/security.txt). */
+    public function securityTxt()
+    {
+        $email = config('legal.contact_email');
+        $base = rtrim(config('app.url'), '/');
+
+        $lines = [
+            'Contact: mailto:' . $email,
+            'Expires: ' . now()->addYear()->startOfDay()->toIso8601ZuluString(),
+            'Preferred-Languages: en',
+            'Canonical: ' . $base . '/.well-known/security.txt',
+            'Policy: ' . route('legal.terms'),
+        ];
+
+        return response(implode("\n", $lines) . "\n", 200, [
+            'Content-Type' => 'text/plain; charset=utf-8',
+        ]);
+    }
 }

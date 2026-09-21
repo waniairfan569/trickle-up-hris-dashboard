@@ -34,6 +34,37 @@ class SecurityHeaders
             $headers->set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
         }
 
+        // Content-Security-Policy — report-only by default (monitors, never blocks);
+        // set CSP_ENFORCE=true once violations are clear. Allows the CDNs the app
+        // loads (Tailwind Play, unpkg, cdnjs) and inline scripts/styles it relies on.
+        if ($this->isHtml($response)) {
+            $csp = implode('; ', array_filter([
+                "default-src 'self'",
+                "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://unpkg.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://code.jquery.com https://js.stripe.com",
+                "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+                "font-src 'self' https://fonts.gstatic.com data:",
+                "img-src 'self' data: blob: https:",
+                "connect-src 'self' https: wss:",
+                "frame-src https://js.stripe.com https://hooks.stripe.com https://checkout.stripe.com",
+                "frame-ancestors 'self'",
+                "base-uri 'self'",
+                "form-action 'self' https://checkout.stripe.com https://billing.stripe.com",
+                "object-src 'none'",
+                config('security.csp_report_uri') ? 'report-uri ' . config('security.csp_report_uri') : null,
+            ]));
+
+            $headers->set(
+                config('security.csp_enforce') ? 'Content-Security-Policy' : 'Content-Security-Policy-Report-Only',
+                $csp
+            );
+        }
+
         return $response;
+    }
+
+    /** Only attach the CSP to HTML documents (not JSON/PDF/file downloads). */
+    private function isHtml(Response $response): bool
+    {
+        return str_contains((string) $response->headers->get('Content-Type'), 'text/html');
     }
 }

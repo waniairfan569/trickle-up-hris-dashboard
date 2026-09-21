@@ -83,3 +83,24 @@ jobs:
       - name: Legacy authorization tests (informational)
         continue-on-error: true
         run: php artisan test tests/Feature/RBACTest.php tests/Feature/HrisRbacTest.php tests/Feature/PerformanceTest.php tests/Feature/TimeOffTest.php
+
+  audit:
+    name: Dependency vulnerability audit (informational)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      # Surfaces known CVEs in dependencies. Informational for now (there are
+      # existing advisories in transitive deps); make it required once clean.
+      - name: composer audit
+        continue-on-error: true
+        run: composer audit --no-interaction
