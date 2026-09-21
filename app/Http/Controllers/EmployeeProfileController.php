@@ -139,7 +139,13 @@ class EmployeeProfileController extends Controller
 
         $signatureDocs = $requests->concat($hrDocs)->sortByDesc('sortAt')->values();
 
-        return view('employees.profile.show', compact('employee', 'templates', 'canEdit', 'allUsers', 'signatureDocs', 'payReviews', 'probation'));
+        // Admin-only conduct / behaviour log (shown in the Time tracking tab).
+        $conductNotes = $auth->isAdmin()
+            ? \App\Models\ConductNote::where('user_id', $employee->id)->with('author')
+                ->orderByDesc('occurred_on')->orderByDesc('id')->limit(100)->get()
+            : collect();
+
+        return view('employees.profile.show', compact('employee', 'templates', 'canEdit', 'allUsers', 'signatureDocs', 'payReviews', 'probation', 'conductNotes'));
     }
 
     /**

@@ -611,6 +611,101 @@
     {{-- ATTENDANCE TAB --}}
     <div x-show="section === 'timetracking'" x-cloak class="space-y-6">
 
+        @if($auth->isAdmin())
+        {{-- Time-tracking report generator (admin-only) --}}
+        <div class="bg-white border border-slate-200/80 dark:border-slate-700 rounded-2xl shadow-sm dark:bg-slate-800 overflow-hidden" x-data="{ preset: 'month' }">
+            <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center gap-3">
+                <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-500/10"><i data-lucide="file-bar-chart-2" class="h-5 w-5"></i></span>
+                <div>
+                    <h2 class="text-sm font-bold text-slate-800 dark:text-white">Generate time-tracking report</h2>
+                    <p class="text-xs text-slate-400">Planned / unplanned leaves, work-from-home and lates (with reasons) plus conduct notes, for a period.</p>
+                </div>
+            </div>
+            <form method="GET" action="{{ route('employees.time-report', $employee->id) }}" target="_blank" class="p-6 space-y-4">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Period</label>
+                        <select name="preset" x-model="preset" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                            <option value="today">Today</option>
+                            <option value="week">This week</option>
+                            <option value="month" selected>This month</option>
+                            <option value="quarter">This quarter</option>
+                            <option value="half">Last 6 months</option>
+                            <option value="year">This year</option>
+                            <option value="custom">Custom range…</option>
+                        </select>
+                    </div>
+                    <div x-show="preset === 'custom'" x-cloak>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">From</label>
+                        <input type="date" name="from" :required="preset === 'custom'" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                    </div>
+                    <div x-show="preset === 'custom'" x-cloak>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">To</label>
+                        <input type="date" name="to" :required="preset === 'custom'" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                    </div>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <button type="submit" name="format" value="html" class="btn-brand"><i data-lucide="eye" class="h-4 w-4"></i> View report</button>
+                    <button type="submit" name="format" value="pdf" class="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700/50"><i data-lucide="download" class="h-4 w-4"></i> Download PDF</button>
+                </div>
+            </form>
+        </div>
+
+        {{-- Conduct & behaviour log (admin-only) --}}
+        <div class="bg-white border border-slate-200/80 dark:border-slate-700 rounded-2xl shadow-sm dark:bg-slate-800 overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center gap-3">
+                <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-50 text-rose-600 dark:bg-rose-500/10"><i data-lucide="clipboard-list" class="h-5 w-5"></i></span>
+                <div>
+                    <h2 class="text-sm font-bold text-slate-800 dark:text-white">Conduct &amp; behaviour log</h2>
+                    <p class="text-xs text-slate-400">Admin-only — {{ $employee->first_name }} can't see this. Included in their report.</p>
+                </div>
+            </div>
+            <form method="POST" action="{{ route('employees.conduct.store', $employee->id) }}" class="p-6 grid grid-cols-1 sm:grid-cols-12 gap-3 items-end border-b border-slate-100 dark:border-slate-700/60">
+                @csrf
+                <div class="sm:col-span-3">
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Date</label>
+                    <input type="date" name="occurred_on" value="{{ now()->toDateString() }}" max="{{ now()->toDateString() }}" required class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                </div>
+                <div class="sm:col-span-3">
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Category</label>
+                    <select name="category" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                        <option value="">—</option>
+                        @foreach(\App\Models\ConductNote::CATEGORIES as $cat)
+                            <option value="{{ $cat }}">{{ $cat }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="sm:col-span-6">
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Note</label>
+                    <div class="flex gap-2">
+                        <input type="text" name="note" required maxlength="2000" placeholder="e.g. Repeated late arrivals despite reminders" class="flex-1 rounded-xl border border-slate-300 px-3 py-2 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                        <button type="submit" class="btn-brand shrink-0"><i data-lucide="plus" class="h-4 w-4"></i> Add</button>
+                    </div>
+                </div>
+            </form>
+            <div class="divide-y divide-slate-100 dark:divide-slate-700/60 max-h-80 overflow-y-auto">
+                @forelse($conductNotes as $n)
+                    <div class="px-6 py-3 flex items-start gap-3">
+                        <div class="min-w-0 flex-1">
+                            <div class="flex flex-wrap items-center gap-2 text-xs text-slate-400">
+                                <span class="font-semibold text-slate-600 dark:text-slate-300">{{ $n->occurred_on->format('d M Y') }}</span>
+                                @if($n->category)<span class="rounded-full bg-slate-100 px-2 py-0.5 font-bold text-slate-500 dark:bg-slate-700 dark:text-slate-300">{{ $n->category }}</span>@endif
+                                @if($n->author)<span>· by {{ $n->author->full_name }}</span>@endif
+                            </div>
+                            <p class="text-sm text-slate-700 dark:text-slate-200 mt-1 whitespace-pre-line">{{ $n->note }}</p>
+                        </div>
+                        <form method="POST" action="{{ route('employees.conduct.destroy', $n->id) }}" onsubmit="return confirm('Remove this conduct note?');">
+                            @csrf @method('DELETE')
+                            <button type="submit" class="text-slate-300 hover:text-rose-500 transition mt-0.5" title="Remove"><i data-lucide="trash-2" class="h-4 w-4"></i></button>
+                        </form>
+                    </div>
+                @empty
+                    <div class="px-6 py-5 text-sm text-slate-400">No conduct notes yet — add the first one above.</div>
+                @endforelse
+            </div>
+        </div>
+        @endif
+
         {{-- Fix status is open to records viewers; Add/edit attendance and Hide-from-sheets stay admin-only. --}}
         @if($auth->isAdmin() || $recordsViewer)
             @if($auth->isAdmin())

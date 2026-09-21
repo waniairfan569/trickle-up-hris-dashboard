@@ -522,5 +522,6 @@
     @endauth
 
     @include('partials.cookie-consent')
+    @include('onboarding.survey-modal')
 </body>
 </html>

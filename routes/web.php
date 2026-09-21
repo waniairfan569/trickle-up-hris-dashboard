@@ -428,6 +428,14 @@ Route::middleware(['auth', 'verified', 'force.password.change'])->group(function
         Route::get('workspace/branding', [\App\Http\Controllers\WorkspaceBrandingController::class, 'edit'])->name('workspace.branding');
         Route::put('workspace/branding', [\App\Http\Controllers\WorkspaceBrandingController::class, 'update'])->name('workspace.branding.update');
 
+        // Organization Profile — the company (tenant) identity & locale, part of the General settings section.
+        Route::get('organization', [\App\Http\Controllers\OrganizationProfileController::class, 'edit'])->name('organization.edit');
+        Route::put('organization', [\App\Http\Controllers\OrganizationProfileController::class, 'update'])->name('organization.update');
+
+        // One-time onboarding questionnaire for a new workspace owner (company size, industry, …).
+        Route::post('onboarding/survey', [\App\Http\Controllers\OnboardingSurveyController::class, 'store'])->name('onboarding.survey');
+        Route::post('onboarding/survey/skip', [\App\Http\Controllers\OnboardingSurveyController::class, 'skip'])->name('onboarding.survey.skip');
+
         // New-workspace setup wizard.
         Route::get('getting-started', [\App\Http\Controllers\GettingStartedController::class, 'show'])->name('getting-started');
         Route::post('getting-started/dismiss', [\App\Http\Controllers\GettingStartedController::class, 'dismiss'])->name('getting-started.dismiss');
@@ -521,6 +529,13 @@ Route::middleware(['auth', 'verified', 'force.password.change'])->group(function
     Route::get('employees/{employee}/profile/edit', [EmployeeProfileController::class, 'edit'])->name('employees.profile.edit');
     Route::put('employees/{employee}/profile', [EmployeeProfileController::class, 'update'])->name('employees.profile.update');
     Route::post('employees/{employee}/assign-default-policies', [App\Http\Controllers\TimeOffController::class, 'assignDefaultPolicies'])->name('employees.assign-default-policies');
+
+    // Per-employee time-tracking report + admin-only conduct/behaviour log.
+    Route::middleware('role:hr_admin,super_admin')->group(function () {
+        Route::get('employees/{employee}/time-tracking-report', [\App\Http\Controllers\EmployeeReportController::class, 'show'])->name('employees.time-report');
+        Route::post('employees/{employee}/conduct', [\App\Http\Controllers\ConductNoteController::class, 'store'])->name('employees.conduct.store');
+        Route::delete('conduct-notes/{conductNote}', [\App\Http\Controllers\ConductNoteController::class, 'destroy'])->name('employees.conduct.destroy');
+    });
 
     // Company Forms — employee side (fill assigned forms)
     Route::get('my-forms', fn (\Illuminate\Http\Request $r) => redirect()->route('documents-hub.index', array_filter(['tab' => 'forms', 'period' => $r->query('period')])))->name('my-forms.index');

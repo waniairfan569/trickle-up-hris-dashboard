@@ -9,6 +9,7 @@ class Tenant extends Model
     protected $fillable = [
         'name', 'slug', 'subdomain', 'status', 'plan', 'discount_percent',
         'brand_name', 'logo_url', 'primary_color', 'from_email', 'timezone', 'currency',
+        'company_size', 'industry', 'country', 'heard_from', 'onboarding_survey_at',
         'trial_ends_at', 'canceled_at', 'onboarding_dismissed_at',
         'stripe_customer_id', 'stripe_subscription_id', 'card_brand', 'card_last_four',
     ];
@@ -17,8 +18,15 @@ class Tenant extends Model
         'trial_ends_at' => 'datetime',
         'canceled_at' => 'datetime',
         'onboarding_dismissed_at' => 'datetime',
+        'onboarding_survey_at' => 'datetime',
         'discount_percent' => 'integer',
     ];
+
+    /** A new workspace that hasn't yet answered (or skipped) the onboarding questionnaire. */
+    public function needsOnboardingSurvey(): bool
+    {
+        return is_null($this->onboarding_survey_at);
+    }
 
     public function users()
     {

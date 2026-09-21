@@ -5,6 +5,7 @@
 --}}
 @php
     $__generalTabs = [
+        ['route' => 'organization.edit',       'match' => 'organization',      'icon' => 'building',   'label' => 'Organization'],
         ['route' => 'company-entities.index',  'match' => 'company-entities',  'icon' => 'building-2', 'label' => 'General'],
         ['route' => 'workspace.branding',      'match' => 'workspace.branding', 'icon' => 'palette',    'label' => 'Workspace Branding'],
         ['route' => 'office-locations.index',  'match' => 'office-locations',  'icon' => 'map-pin',    'label' => 'Office Locations'],
