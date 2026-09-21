@@ -49,6 +49,23 @@ class BillingController extends Controller
 
         // Real card payment via Stripe Checkout.
         if ($stripe->isConfigured() && filled($plan->stripe_price_id)) {
+            // Existing subscriber changing plans → swap in place (prorated) rather
+            // than opening a second Checkout (which would duplicate the subscription).
+            if (filled($tenant->stripe_subscription_id) && $tenant->status === 'active') {
+                try {
+                    if ($stripe->swapPlan($tenant, $plan)) {
+                        $tenant->markActive($plan->key, $tenant->stripe_subscription_id, $tenant->stripe_customer_id);
+                        SubscriptionEvent::record($tenant, 'plan_changed', "Switched to the {$plan->name} plan (prorated).");
+
+                        return redirect()->route('billing.index')
+                            ->with('success', "You're now on the {$plan->name} plan. Any difference is prorated on your next invoice.");
+                    }
+                } catch (\Throwable $e) {
+                    Log::error('Stripe plan swap failed: ' . $e->getMessage());
+                    // Fall through to a fresh Checkout below.
+                }
+            }
+
             try {
                 $url = $stripe->checkoutUrl(
                     $tenant,

@@ -520,5 +520,7 @@
     })();
     </script>
     @endauth
+
+    @include('partials.cookie-consent')
 </body>
 </html>

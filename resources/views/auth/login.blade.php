@@ -163,5 +163,6 @@
             hide.classList.toggle('hidden', !reveal);
         }
     </script>
+    @include('partials.cookie-consent')
 </body>
 </html>

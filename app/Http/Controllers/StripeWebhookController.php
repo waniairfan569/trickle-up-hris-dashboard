@@ -97,6 +97,7 @@ class StripeWebhookController extends Controller
                 $tenant = $this->tenantForEvent($object);
                 if ($tenant) {
                     SubscriptionEvent::record($tenant, 'payment_failed', 'A subscription payment failed.');
+                    $this->notifyOwnersOfPaymentFailure($tenant, $object);
                 }
                 break;
 
@@ -111,6 +112,34 @@ class StripeWebhookController extends Controller
             default:
                 // Unhandled event types are acknowledged (200) and ignored.
                 break;
+        }
+    }
+
+    /**
+     * Dunning — email + in-app notify the workspace owner(s) so they can update
+     * their card before suspension. Best-effort: never let it break the webhook.
+     */
+    private function notifyOwnersOfPaymentFailure(Tenant $tenant, array $invoice): void
+    {
+        try {
+            $owners = \App\Models\User::withoutGlobalScopes()
+                ->where('tenant_id', $tenant->id)
+                ->whereHas('roles', fn ($q) => $q->where('slug', 'super_admin'))
+                ->get();
+
+            if ($owners->isEmpty()) {
+                return;
+            }
+
+            $amount = isset($invoice['amount_due']) ? number_format(((int) $invoice['amount_due']) / 100, 2) : null;
+            $currency = strtoupper((string) ($invoice['currency'] ?? ''));
+
+            \Illuminate\Support\Facades\Notification::send(
+                $owners,
+                new \App\Notifications\SubscriptionPaymentFailedNotification($tenant, $amount, $currency)
+            );
+        } catch (\Throwable $e) {
+            Log::warning('Dunning notification failed: ' . $e->getMessage());
         }
     }
 

@@ -117,5 +117,6 @@
     </div>
 
     <script>lucide.createIcons();</script>
+    @include('partials.cookie-consent')
 </body>
 </html>

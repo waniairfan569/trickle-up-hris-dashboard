@@ -60,5 +60,6 @@
 
         <p class="text-center text-xs text-slate-400 mt-6">© {{ date('Y') }} {{ config('legal.legal_entity') }}. All rights reserved.</p>
     </main>
+    @include('partials.cookie-consent')
 </body>
 </html>

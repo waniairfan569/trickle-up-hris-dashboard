@@ -17,6 +17,9 @@ return [
     // Linux hosts); set BACKUP_MYSQLDUMP_PATH on Windows/XAMPP.
     'mysqldump_path' => env('BACKUP_MYSQLDUMP_PATH', 'mysqldump'),
 
+    // Path to the mysql client (used by `backup:restore`).
+    'mysql_path' => env('BACKUP_MYSQL_PATH', 'mysql'),
+
     // Delete backups older than this many days on the primary disk.
     'keep_days' => (int) env('BACKUP_KEEP_DAYS', 14),
 

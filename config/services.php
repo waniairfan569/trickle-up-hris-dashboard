@@ -50,6 +50,9 @@ return [
         'secret' => env('STRIPE_SECRET'),
         'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
         'currency' => env('STRIPE_CURRENCY', strtolower(config('plans.currency', 'usd'))),
+        // Enable Stripe Tax (automatic VAT/sales-tax) at Checkout. Only turn on
+        // once Stripe Tax is set up in the Stripe dashboard, or Checkout will error.
+        'automatic_tax' => (bool) env('STRIPE_AUTOMATIC_TAX', false),
     ],
 
 ];

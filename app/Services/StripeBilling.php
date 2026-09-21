@@ -42,7 +42,7 @@ class StripeBilling
 
         $customerId = $this->ensureCustomer($tenant, $user);
 
-        $session = $this->client()->checkout->sessions->create([
+        $params = [
             'mode' => 'subscription',
             'customer' => $customerId,
             'line_items' => [[
@@ -57,9 +57,43 @@ class StripeBilling
             'allow_promotion_codes' => true,
             'success_url' => $successUrl,
             'cancel_url' => $cancelUrl,
+        ];
+
+        // Stripe Tax (VAT / sales tax) — opt-in; collects a billing address + tax id.
+        if (config('services.stripe.automatic_tax')) {
+            $params['automatic_tax'] = ['enabled' => true];
+            $params['tax_id_collection'] = ['enabled' => true];
+            $params['customer_update'] = ['address' => 'auto', 'name' => 'auto'];
+        }
+
+        return $this->client()->checkout->sessions->create($params)->url;
+    }
+
+    /**
+     * Change an existing subscriber's plan in place, prorating the difference,
+     * instead of opening a second Checkout (which would create a duplicate
+     * subscription). Returns true if the swap was applied.
+     */
+    public function swapPlan(Tenant $tenant, Plan $plan): bool
+    {
+        if (!$this->isConfigured() || blank($plan->stripe_price_id) || blank($tenant->stripe_subscription_id)) {
+            return false;
+        }
+
+        $sub = $this->client()->subscriptions->retrieve($tenant->stripe_subscription_id, ['expand' => ['items']]);
+        $itemId = $sub->items->data[0]->id ?? null;
+        if (!$itemId) {
+            return false;
+        }
+
+        $this->client()->subscriptions->update($tenant->stripe_subscription_id, [
+            'items' => [['id' => $itemId, 'price' => $plan->stripe_price_id]],
+            'proration_behavior' => 'create_prorations',
+            'metadata' => ['tenant_id' => $tenant->id, 'plan_key' => $plan->key],
+            'payment_behavior' => 'allow_incomplete',
         ]);
 
-        return $session->url;
+        return true;
     }
 
     /** A Stripe Billing-Portal URL so an existing customer can manage/cancel. */
