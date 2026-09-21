@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-/** Public legal documents — Terms of Service, Privacy Policy, DPA. */
+/** Public legal documents — Terms of Service, Privacy Policy, DPA, Cookie Policy, Refund Policy. */
 class LegalController extends Controller
 {
     public function terms()
@@ -18,5 +18,15 @@ class LegalController extends Controller
     public function dpa()
     {
         return view('legal.dpa');
+    }
+
+    public function cookies()
+    {
+        return view('legal.cookies');
+    }
+
+    public function refund()
+    {
+        return view('legal.refund');
     }
 }

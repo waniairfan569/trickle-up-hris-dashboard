@@ -50,6 +50,8 @@ Route::get('/help/{slug}', [\App\Http\Controllers\HelpController::class, 'show']
 Route::get('/terms', [\App\Http\Controllers\LegalController::class, 'terms'])->name('legal.terms');
 Route::get('/privacy', [\App\Http\Controllers\LegalController::class, 'privacy'])->name('legal.privacy');
 Route::get('/dpa', [\App\Http\Controllers\LegalController::class, 'dpa'])->name('legal.dpa');
+Route::get('/cookies', [\App\Http\Controllers\LegalController::class, 'cookies'])->name('legal.cookies');
+Route::get('/refund', [\App\Http\Controllers\LegalController::class, 'refund'])->name('legal.refund');
 
 // Web Session Authentication Routes
 Route::get('/login', [\App\Http\Controllers\PageController::class, 'showLogin'])->name('login');

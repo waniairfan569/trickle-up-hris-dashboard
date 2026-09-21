@@ -34,6 +34,8 @@
                 <a href="{{ route('legal.terms') }}" class="hover:text-slate-800">Terms</a>
                 <a href="{{ route('legal.privacy') }}" class="hover:text-slate-800">Privacy</a>
                 <a href="{{ route('legal.dpa') }}" class="hover:text-slate-800">DPA</a>
+                <a href="{{ route('legal.cookies') }}" class="hover:text-slate-800">Cookies</a>
+                <a href="{{ route('legal.refund') }}" class="hover:text-slate-800">Refund</a>
                 <a href="{{ route('status') }}" class="hover:text-slate-800">Status</a>
                 <a href="{{ route('help.index') }}" class="hover:text-slate-800">Help</a>
             </nav>
