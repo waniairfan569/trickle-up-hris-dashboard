@@ -3,6 +3,7 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Sentry\Laravel\Integration;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -53,6 +54,10 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        // Send unhandled exceptions to Sentry when SENTRY_LARAVEL_DSN is set
+        // (no-ops when the DSN is empty, e.g. local/dev).
+        Integration::handles($exceptions);
+
         // Capture real errors (5xx / unexpected) for the operator error viewer.
         // ApplicationError::log filters out normal outcomes (404/403/419/validation)
         // and never throws, so this is safe on every request.
