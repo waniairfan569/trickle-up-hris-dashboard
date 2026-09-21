@@ -35,7 +35,7 @@
         <div>
             <h2 class="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">Create New Employee</h2>
             <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                Only name, work email and personal email are required — the employee can complete the rest of their profile later.
+                Only name and personal email are required — work email and the rest of the profile can be added later.
             </p>
         </div>
         <div class="mt-4 sm:mt-0 flex items-center gap-3">
@@ -124,7 +124,7 @@
                             </div>
                             <div class="md:col-span-2 rounded-xl bg-brand-50/60 border border-brand-100 px-4 py-3 text-xs text-slate-600 dark:bg-brand-500/5 dark:border-brand-500/20 dark:text-slate-300">
                                 <i data-lucide="info" class="inline-block h-3.5 w-3.5 -mt-0.5 text-brand-500"></i>
-                                <strong>Work email</strong> (used to sign in) is set under <em>Work information</em> and <strong>Personal email</strong> under <em>Personal information</em> — both are required.
+                                <strong>Personal email</strong> (under <em>Personal information</em>) is required — it's the sign-in address until a <strong>Work email</strong> (under <em>Work information</em>) is added.
                             </div>
                             <div class="md:col-span-2 pt-2">
                                 <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 dark:text-slate-300">System Role <span class="text-slate-400 normal-case font-medium">(optional)</span></label>

@@ -1,0 +1,1562 @@
+{
+    "template": {
+        "name": "Default Employee Profile",
+        "slug": "default-employee-profile",
+        "type": "default",
+        "description": "The standard profile template assigned to all employees.",
+        "is_active": true,
+        "sort_order": 1
+    },
+    "sections": [
+        {
+            "name": "Personal information",
+            "slug": "personal-info",
+            "tab": "personal",
+            "icon": "ti-user",
+            "sort_order": 1,
+            "fields": [
+                {
+                    "name": "Full name",
+                    "key": "full_name",
+                    "type": "text",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": true,
+                    "is_system": true,
+                    "is_encrypted": false,
+                    "visibility": "public",
+                    "employee_can_edit": false,
+                    "sort_order": 1
+                },
+                {
+                    "name": "Personal email",
+                    "key": "personal_email",
+                    "type": "email",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": true,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "private",
+                    "employee_can_edit": true,
+                    "sort_order": 2
+                },
+                {
+                    "name": "Phone number",
+                    "key": "phone_number",
+                    "type": "phone",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "private",
+                    "employee_can_edit": true,
+                    "sort_order": 3
+                },
+                {
+                    "name": "Date of birth",
+                    "key": "date_of_birth",
+                    "type": "date",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "private",
+                    "employee_can_edit": true,
+                    "sort_order": 4
+                },
+                {
+                    "name": "Gender",
+                    "key": "gender",
+                    "type": "dropdown",
+                    "options": [
+                        "Male",
+                        "Female",
+                        "Non-binary",
+                        "Prefer not to say"
+                    ],
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "internal",
+                    "employee_can_edit": true,
+                    "sort_order": 5
+                },
+                {
+                    "name": "Home address",
+                    "key": "home_address",
+                    "type": "textarea",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "private",
+                    "employee_can_edit": true,
+                    "sort_order": 7
+                },
+                {
+                    "name": "Profile photo",
+                    "key": "profile_photo",
+                    "type": "file",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "public",
+                    "employee_can_edit": true,
+                    "sort_order": 8
+                },
+                {
+                    "name": "Preferred name",
+                    "key": "preferred_name",
+                    "type": "text",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "internal",
+                    "employee_can_edit": true,
+                    "sort_order": 9
+                },
+                {
+                    "name": "Marital status",
+                    "key": "marital_status",
+                    "type": "dropdown",
+                    "options": [
+                        "Single",
+                        "Married",
+                        "Divorced",
+                        "Widowed"
+                    ],
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "private",
+                    "employee_can_edit": true,
+                    "sort_order": 10
+                },
+                {
+                    "name": "Marital certificate",
+                    "key": "marital_certificate",
+                    "type": "text",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "private",
+                    "employee_can_edit": false,
+                    "sort_order": 11
+                },
+                {
+                    "name": "Birthplace",
+                    "key": "birthplace",
+                    "type": "text",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "internal",
+                    "employee_can_edit": true,
+                    "sort_order": 12
+                },
+                {
+                    "name": "Clothing size",
+                    "key": "clothing_size",
+                    "type": "dropdown",
+                    "options": [
+                        "XS",
+                        "S",
+                        "M",
+                        "L",
+                        "XL",
+                        "XXL"
+                    ],
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "internal",
+                    "employee_can_edit": true,
+                    "sort_order": 13
+                },
+                {
+                    "name": "Social Security number",
+                    "key": "social_security_number",
+                    "type": "text",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "private",
+                    "employee_can_edit": false,
+                    "sort_order": 14
+                },
+                {
+                    "name": "Team",
+                    "key": "team",
+                    "type": "text",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "public",
+                    "employee_can_edit": false,
+                    "sort_order": 15
+                }
+            ]
+        },
+        {
+            "name": "Work information",
+            "slug": "work-info",
+            "tab": "job",
+            "icon": "ti-briefcase",
+            "sort_order": 2,
+            "fields": [
+                {
+                    "name": "Work email",
+                    "key": "work_email",
+                    "type": "email",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": true,
+                    "is_encrypted": false,
+                    "visibility": "public",
+                    "employee_can_edit": false,
+                    "sort_order": 1
+                },
+                {
+                    "name": "Job title",
+                    "key": "job_title",
+                    "type": "text",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": true,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "public",
+                    "employee_can_edit": false,
+                    "sort_order": 2
+                },
+                {
+                    "name": "Department",
+                    "key": "department_id",
+                    "type": "department_lookup",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": true,
+                    "is_system": true,
+                    "is_encrypted": false,
+                    "visibility": "public",
+                    "employee_can_edit": false,
+                    "sort_order": 3
+                },
+                {
+                    "name": "Manager",
+                    "key": "manager_id",
+                    "type": "employee_lookup",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": true,
+                    "is_system": true,
+                    "is_encrypted": false,
+                    "visibility": "public",
+                    "employee_can_edit": false,
+                    "sort_order": 4
+                },
+                {
+                    "name": "Start date",
+                    "key": "start_date",
+                    "type": "date",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": true,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "public",
+                    "employee_can_edit": false,
+                    "sort_order": 5
+                },
+                {
+                    "name": "Contract type",
+                    "key": "contract_type",
+                    "type": "dropdown",
+                    "options": [
+                        "Full-time",
+                        "Part-time",
+                        "Contract",
+                        "Internship",
+                        "Freelance"
+                    ],
+                    "placeholder": null,
+                    "is_required": true,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "public",
+                    "employee_can_edit": false,
+                    "sort_order": 6
+                },
+                {
+                    "name": "Employment type",
+                    "key": "employment_type",
+                    "type": "dropdown",
+                    "options": [
+                        "Permanent",
+                        "Fixed-term",
+                        "Zero-hours"
+                    ],
+                    "placeholder": null,
+                    "is_required": true,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "public",
+                    "employee_can_edit": false,
+                    "sort_order": 7
+                },
+                {
+                    "name": "Work location",
+                    "key": "work_location",
+                    "type": "dropdown",
+                    "options": [
+                        "Office",
+                        "Remote",
+                        "Hybrid"
+                    ],
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "public",
+                    "employee_can_edit": false,
+                    "sort_order": 8
+                },
+                {
+                    "name": "Hire date",
+                    "key": "hire_date",
+                    "type": "date",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "public",
+                    "employee_can_edit": true,
+                    "sort_order": 10
+                },
+                {
+                    "name": "Notice period (days)",
+                    "key": "notice_period_days",
+                    "type": "number",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "internal",
+                    "employee_can_edit": false,
+                    "sort_order": 11
+                }
+            ]
+        },
+        {
+            "name": "Compensation",
+            "slug": "compensation",
+            "tab": "compensation",
+            "icon": "ti-coin",
+            "sort_order": 3,
+            "fields": [
+                {
+                    "name": "Salary",
+                    "key": "salary",
+                    "type": "currency",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": true,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "internal",
+                    "employee_can_edit": false,
+                    "sort_order": 1
+                },
+                {
+                    "name": "Pay frequency",
+                    "key": "pay_frequency",
+                    "type": "dropdown",
+                    "options": [
+                        "Weekly",
+                        "Bi-weekly",
+                        "Monthly",
+                        "Annually"
+                    ],
+                    "placeholder": null,
+                    "is_required": true,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "internal",
+                    "employee_can_edit": false,
+                    "sort_order": 2
+                },
+                {
+                    "name": "Currency",
+                    "key": "currency",
+                    "type": "dropdown",
+                    "options": [
+                        "GBP",
+                        "USD",
+                        "EUR",
+                        "PKR"
+                    ],
+                    "placeholder": null,
+                    "is_required": true,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "internal",
+                    "employee_can_edit": false,
+                    "sort_order": 3
+                },
+                {
+                    "name": "Effective date",
+                    "key": "salary_effective_date",
+                    "type": "date",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "internal",
+                    "employee_can_edit": false,
+                    "sort_order": 4
+                }
+            ]
+        },
+        {
+            "name": "Employment status",
+            "slug": "employment-status",
+            "tab": "job",
+            "icon": "ti-id-badge",
+            "sort_order": 4,
+            "fields": [
+                {
+                    "name": "Employment status",
+                    "key": "employee_status",
+                    "type": "dropdown",
+                    "options": [
+                        "Active",
+                        "Draft",
+                        "Inactive",
+                        "Offboarded"
+                    ],
+                    "placeholder": null,
+                    "is_required": true,
+                    "is_system": true,
+                    "is_encrypted": false,
+                    "visibility": "public",
+                    "employee_can_edit": false,
+                    "sort_order": 1
+                },
+                {
+                    "name": "Employee ID",
+                    "key": "employee_id",
+                    "type": "text",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": true,
+                    "is_encrypted": false,
+                    "visibility": "public",
+                    "employee_can_edit": false,
+                    "sort_order": 2
+                },
+                {
+                    "name": "End date",
+                    "key": "end_date",
+                    "type": "date",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "internal",
+                    "employee_can_edit": false,
+                    "sort_order": 3
+                }
+            ]
+        },
+        {
+            "name": "Contact details",
+            "slug": "contact-details",
+            "tab": "personal",
+            "icon": "ti-id-badge",
+            "sort_order": 5,
+            "fields": [
+                {
+                    "name": "Phone type",
+                    "key": "phone_type",
+                    "type": "dropdown",
+                    "options": [
+                        "Mobile",
+                        "Work",
+                        "Home"
+                    ],
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "internal",
+                    "employee_can_edit": true,
+                    "sort_order": 1
+                },
+                {
+                    "name": "Phone extension",
+                    "key": "phone_extension",
+                    "type": "text",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "internal",
+                    "employee_can_edit": true,
+                    "sort_order": 2
+                },
+                {
+                    "name": "Chat / video app",
+                    "key": "chat_type",
+                    "type": "dropdown",
+                    "options": [
+                        "Slack",
+                        "Microsoft Teams",
+                        "Zoom",
+                        "Skype",
+                        "Google Meet"
+                    ],
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "public",
+                    "employee_can_edit": true,
+                    "sort_order": 3
+                },
+                {
+                    "name": "Chat username",
+                    "key": "chat_username",
+                    "type": "text",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "public",
+                    "employee_can_edit": true,
+                    "sort_order": 4
+                },
+                {
+                    "name": "Social media",
+                    "key": "social_media_type",
+                    "type": "dropdown",
+                    "options": [
+                        "LinkedIn",
+                        "Twitter/X",
+                        "GitHub",
+                        "Facebook",
+                        "Instagram"
+                    ],
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "public",
+                    "employee_can_edit": true,
+                    "sort_order": 5
+                },
+                {
+                    "name": "Social media URL",
+                    "key": "social_media_url",
+                    "type": "url",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "public",
+                    "employee_can_edit": true,
+                    "sort_order": 6
+                }
+            ]
+        },
+        {
+            "name": "Medical Records",
+            "slug": "medical-records",
+            "tab": "personal",
+            "icon": "ti-urgent",
+            "sort_order": 6,
+            "fields": [
+                {
+                    "name": "Medical conditions & allergies",
+                    "key": "medical_conditions",
+                    "type": "textarea",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "private",
+                    "employee_can_edit": true,
+                    "sort_order": 1
+                },
+                {
+                    "name": "Blood group",
+                    "key": "blood_group",
+                    "type": "dropdown",
+                    "options": [
+                        "A+",
+                        "A-",
+                        "B+",
+                        "B-",
+                        "AB+",
+                        "AB-",
+                        "O+",
+                        "O-"
+                    ],
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "private",
+                    "employee_can_edit": true,
+                    "sort_order": 2
+                },
+                {
+                    "name": "Dietary restrictions",
+                    "key": "dietary_restrictions",
+                    "type": "text",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "private",
+                    "employee_can_edit": true,
+                    "sort_order": 3
+                }
+            ]
+        },
+        {
+            "name": "Probation",
+            "slug": "probation",
+            "tab": "job",
+            "icon": "ti-id-badge",
+            "sort_order": 7,
+            "fields": [
+                {
+                    "name": "Start date",
+                    "key": "probation_start_date",
+                    "type": "date",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "manager",
+                    "employee_can_edit": false,
+                    "sort_order": 1
+                },
+                {
+                    "name": "Probation end date",
+                    "key": "probation_end_date",
+                    "type": "date",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "manager",
+                    "employee_can_edit": false,
+                    "sort_order": 2
+                },
+                {
+                    "name": "Note",
+                    "key": "probation_note",
+                    "type": "textarea",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "manager",
+                    "employee_can_edit": false,
+                    "sort_order": 3
+                }
+            ]
+        },
+        {
+            "name": "Contract details",
+            "slug": "contract-details",
+            "tab": "job",
+            "icon": "ti-briefcase",
+            "sort_order": 8,
+            "fields": [
+                {
+                    "name": "Effective date",
+                    "key": "contract_effective_date",
+                    "type": "date",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "internal",
+                    "employee_can_edit": false,
+                    "sort_order": 1
+                },
+                {
+                    "name": "Workplace",
+                    "key": "workplace",
+                    "type": "dropdown",
+                    "options": [
+                        "On-site",
+                        "Remote",
+                        "Hybrid"
+                    ],
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "public",
+                    "employee_can_edit": true,
+                    "sort_order": 2
+                },
+                {
+                    "name": "Expiry date",
+                    "key": "contract_expiry_date",
+                    "type": "date",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "internal",
+                    "employee_can_edit": false,
+                    "sort_order": 3
+                },
+                {
+                    "name": "Note",
+                    "key": "contract_note",
+                    "type": "textarea",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "internal",
+                    "employee_can_edit": false,
+                    "sort_order": 4
+                },
+                {
+                    "name": "Work schedule",
+                    "key": "work_schedule",
+                    "type": "text",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "public",
+                    "employee_can_edit": false,
+                    "sort_order": 5
+                },
+                {
+                    "name": "Employment status",
+                    "key": "employment_status",
+                    "type": "dropdown",
+                    "options": [
+                        "Permanent",
+                        "Contract",
+                        "Temporary",
+                        "Internship",
+                        "Probationary"
+                    ],
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "public",
+                    "employee_can_edit": false,
+                    "sort_order": 6
+                }
+            ]
+        },
+        {
+            "name": "Bank details",
+            "slug": "bank-details",
+            "tab": "compensation",
+            "icon": "ti-building-bank",
+            "sort_order": 9,
+            "fields": [
+                {
+                    "name": "IBAN",
+                    "key": "iban",
+                    "type": "text",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "private",
+                    "employee_can_edit": true,
+                    "sort_order": 2
+                },
+                {
+                    "name": "BIC (SWIFT)",
+                    "key": "bic_swift",
+                    "type": "text",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "private",
+                    "employee_can_edit": true,
+                    "sort_order": 4
+                },
+                {
+                    "name": "ABA / Transit number",
+                    "key": "aba_transit_number",
+                    "type": "text",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "private",
+                    "employee_can_edit": true,
+                    "sort_order": 5
+                },
+                {
+                    "name": "Bank State Branch (BSB)",
+                    "key": "bank_state_branch",
+                    "type": "text",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "private",
+                    "employee_can_edit": true,
+                    "sort_order": 6
+                },
+                {
+                    "name": "Routing number",
+                    "key": "routing_number",
+                    "type": "text",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "private",
+                    "employee_can_edit": true,
+                    "sort_order": 7
+                }
+            ]
+        },
+        {
+            "name": "National ID (CNIC)",
+            "slug": "id-cnic",
+            "tab": "legal",
+            "icon": "ti-passport",
+            "sort_order": 10,
+            "fields": [
+                {
+                    "name": "Number",
+                    "key": "cnic_number",
+                    "type": "text",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "private",
+                    "employee_can_edit": true,
+                    "sort_order": 1
+                },
+                {
+                    "name": "Issue date",
+                    "key": "cnic_issue_date",
+                    "type": "date",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "private",
+                    "employee_can_edit": true,
+                    "sort_order": 2
+                },
+                {
+                    "name": "File",
+                    "key": "cnic_file",
+                    "type": "file",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "private",
+                    "employee_can_edit": true,
+                    "sort_order": 3
+                }
+            ]
+        },
+        {
+            "name": "Social insurance number",
+            "slug": "social-insurance",
+            "tab": "legal",
+            "icon": "ti-id-badge",
+            "sort_order": 11,
+            "fields": [
+                {
+                    "name": "Number",
+                    "key": "sin_number",
+                    "type": "text",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "private",
+                    "employee_can_edit": true,
+                    "sort_order": 1
+                },
+                {
+                    "name": "Issue date",
+                    "key": "sin_issue_date",
+                    "type": "date",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "private",
+                    "employee_can_edit": true,
+                    "sort_order": 2
+                },
+                {
+                    "name": "Insurance carrier",
+                    "key": "sin_insurance_carrier",
+                    "type": "text",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "private",
+                    "employee_can_edit": true,
+                    "sort_order": 3
+                },
+                {
+                    "name": "File",
+                    "key": "sin_file",
+                    "type": "file",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "private",
+                    "employee_can_edit": true,
+                    "sort_order": 4
+                }
+            ]
+        },
+        {
+            "name": "Tax identification number",
+            "slug": "tax-id",
+            "tab": "legal",
+            "icon": "ti-id-badge",
+            "sort_order": 12,
+            "fields": [
+                {
+                    "name": "Number",
+                    "key": "tax_number",
+                    "type": "text",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "private",
+                    "employee_can_edit": true,
+                    "sort_order": 1
+                },
+                {
+                    "name": "Issue date",
+                    "key": "tax_issue_date",
+                    "type": "date",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "private",
+                    "employee_can_edit": true,
+                    "sort_order": 2
+                },
+                {
+                    "name": "File",
+                    "key": "tax_file",
+                    "type": "file",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "private",
+                    "employee_can_edit": true,
+                    "sort_order": 3
+                }
+            ]
+        },
+        {
+            "name": "Citizenship",
+            "slug": "citizenship",
+            "tab": "legal",
+            "icon": "ti-passport",
+            "sort_order": 13,
+            "fields": [
+                {
+                    "name": "Nationality",
+                    "key": "nationality",
+                    "type": "dropdown",
+                    "options": [
+                        "British",
+                        "Pakistani",
+                        "American",
+                        "Indian",
+                        "Other"
+                    ],
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "private",
+                    "employee_can_edit": true,
+                    "sort_order": 1
+                },
+                {
+                    "name": "Citizenship",
+                    "key": "citizenship",
+                    "type": "text",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "private",
+                    "employee_can_edit": true,
+                    "sort_order": 2
+                }
+            ]
+        },
+        {
+            "name": "Passport",
+            "slug": "passport",
+            "tab": "legal",
+            "icon": "ti-passport",
+            "sort_order": 14,
+            "fields": [
+                {
+                    "name": "Country",
+                    "key": "passport_country",
+                    "type": "text",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "private",
+                    "employee_can_edit": true,
+                    "sort_order": 1
+                },
+                {
+                    "name": "Passport number",
+                    "key": "passport_number",
+                    "type": "text",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": true,
+                    "is_system": false,
+                    "is_encrypted": true,
+                    "visibility": "private",
+                    "employee_can_edit": true,
+                    "sort_order": 2
+                },
+                {
+                    "name": "Issue date",
+                    "key": "passport_issue_date",
+                    "type": "date",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "private",
+                    "employee_can_edit": true,
+                    "sort_order": 3
+                },
+                {
+                    "name": "Expiry date",
+                    "key": "passport_expiry_date",
+                    "type": "date",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "private",
+                    "employee_can_edit": true,
+                    "sort_order": 4
+                },
+                {
+                    "name": "File",
+                    "key": "passport_file",
+                    "type": "file",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "private",
+                    "employee_can_edit": true,
+                    "sort_order": 5
+                }
+            ]
+        },
+        {
+            "name": "Work visa",
+            "slug": "work-visa",
+            "tab": "legal",
+            "icon": "ti-passport",
+            "sort_order": 15,
+            "fields": [
+                {
+                    "name": "Country",
+                    "key": "visa_country",
+                    "type": "text",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "private",
+                    "employee_can_edit": true,
+                    "sort_order": 1
+                },
+                {
+                    "name": "Visa type",
+                    "key": "visa_type",
+                    "type": "dropdown",
+                    "options": [
+                        "Tier 2 Skilled Worker",
+                        "Student visa",
+                        "ILR",
+                        "British citizen",
+                        "EU Settled Status",
+                        "Other"
+                    ],
+                    "placeholder": null,
+                    "is_required": true,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "private",
+                    "employee_can_edit": true,
+                    "sort_order": 2
+                },
+                {
+                    "name": "Number",
+                    "key": "visa_number",
+                    "type": "text",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "private",
+                    "employee_can_edit": true,
+                    "sort_order": 3
+                },
+                {
+                    "name": "Issue date",
+                    "key": "visa_issue_date",
+                    "type": "date",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "private",
+                    "employee_can_edit": true,
+                    "sort_order": 4
+                },
+                {
+                    "name": "Visa expiry date",
+                    "key": "visa_expiry_date",
+                    "type": "date",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": true,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "private",
+                    "employee_can_edit": true,
+                    "sort_order": 5
+                },
+                {
+                    "name": "File",
+                    "key": "visa_file",
+                    "type": "file",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "private",
+                    "employee_can_edit": true,
+                    "sort_order": 6
+                }
+            ]
+        },
+        {
+            "name": "Education",
+            "slug": "education",
+            "tab": "experience",
+            "icon": "ti-id-badge",
+            "sort_order": 16,
+            "fields": [
+                {
+                    "name": "Start date",
+                    "key": "edu_start_date",
+                    "type": "date",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "public",
+                    "employee_can_edit": true,
+                    "sort_order": 1
+                },
+                {
+                    "name": "End date",
+                    "key": "edu_end_date",
+                    "type": "date",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "public",
+                    "employee_can_edit": true,
+                    "sort_order": 2
+                },
+                {
+                    "name": "Degree",
+                    "key": "edu_degree",
+                    "type": "text",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "public",
+                    "employee_can_edit": true,
+                    "sort_order": 3
+                },
+                {
+                    "name": "Field of study",
+                    "key": "edu_field_of_study",
+                    "type": "text",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "public",
+                    "employee_can_edit": true,
+                    "sort_order": 4
+                },
+                {
+                    "name": "School",
+                    "key": "edu_school",
+                    "type": "text",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "public",
+                    "employee_can_edit": true,
+                    "sort_order": 5
+                }
+            ]
+        },
+        {
+            "name": "Work experience",
+            "slug": "work-experience",
+            "tab": "experience",
+            "icon": "ti-briefcase",
+            "sort_order": 17,
+            "fields": [
+                {
+                    "name": "Start date",
+                    "key": "exp_start_date",
+                    "type": "date",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "public",
+                    "employee_can_edit": true,
+                    "sort_order": 1
+                },
+                {
+                    "name": "End date",
+                    "key": "exp_end_date",
+                    "type": "date",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "public",
+                    "employee_can_edit": true,
+                    "sort_order": 2
+                },
+                {
+                    "name": "Job title",
+                    "key": "exp_job_title",
+                    "type": "text",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "public",
+                    "employee_can_edit": true,
+                    "sort_order": 3
+                },
+                {
+                    "name": "Company",
+                    "key": "exp_company",
+                    "type": "text",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "public",
+                    "employee_can_edit": true,
+                    "sort_order": 4
+                },
+                {
+                    "name": "Summary",
+                    "key": "exp_summary",
+                    "type": "textarea",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "public",
+                    "employee_can_edit": true,
+                    "sort_order": 5
+                },
+                {
+                    "name": "Present (current job)",
+                    "key": "exp_present",
+                    "type": "checkbox",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "public",
+                    "employee_can_edit": true,
+                    "sort_order": 6
+                }
+            ]
+        },
+        {
+            "name": "Skills",
+            "slug": "skills",
+            "tab": "experience",
+            "icon": "ti-code",
+            "sort_order": 18,
+            "fields": [
+                {
+                    "name": "Skill",
+                    "key": "skill",
+                    "type": "text",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "public",
+                    "employee_can_edit": true,
+                    "sort_order": 1
+                }
+            ]
+        },
+        {
+            "name": "Languages",
+            "slug": "languages",
+            "tab": "experience",
+            "icon": "ti-user",
+            "sort_order": 19,
+            "fields": [
+                {
+                    "name": "Language",
+                    "key": "language",
+                    "type": "text",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "public",
+                    "employee_can_edit": true,
+                    "sort_order": 1
+                }
+            ]
+        },
+        {
+            "name": "Resume",
+            "slug": "resume",
+            "tab": "experience",
+            "icon": "ti-passport",
+            "sort_order": 20,
+            "fields": [
+                {
+                    "name": "File",
+                    "key": "resume_file",
+                    "type": "file",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "private",
+                    "employee_can_edit": true,
+                    "sort_order": 1
+                }
+            ]
+        },
+        {
+            "name": "Emergency contact",
+            "slug": "emergency-contact",
+            "tab": "emergency",
+            "icon": "ti-urgent",
+            "sort_order": 21,
+            "fields": [
+                {
+                    "name": "Contact full name",
+                    "key": "emergency_name",
+                    "type": "text",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": true,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "private",
+                    "employee_can_edit": true,
+                    "sort_order": 1
+                },
+                {
+                    "name": "Relationship",
+                    "key": "emergency_relationship",
+                    "type": "dropdown",
+                    "options": [
+                        "Spouse",
+                        "Parent",
+                        "Sibling",
+                        "Friend",
+                        "Other"
+                    ],
+                    "placeholder": null,
+                    "is_required": true,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "private",
+                    "employee_can_edit": true,
+                    "sort_order": 2
+                },
+                {
+                    "name": "Contact phone",
+                    "key": "emergency_phone",
+                    "type": "phone",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": true,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "private",
+                    "employee_can_edit": true,
+                    "sort_order": 3
+                },
+                {
+                    "name": "Contact email",
+                    "key": "emergency_email",
+                    "type": "email",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "private",
+                    "employee_can_edit": true,
+                    "sort_order": 4
+                },
+                {
+                    "name": "Country",
+                    "key": "emergency_country",
+                    "type": "text",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "private",
+                    "employee_can_edit": true,
+                    "sort_order": 5
+                },
+                {
+                    "name": "Address",
+                    "key": "emergency_address",
+                    "type": "textarea",
+                    "options": null,
+                    "placeholder": null,
+                    "is_required": false,
+                    "is_system": false,
+                    "is_encrypted": false,
+                    "visibility": "private",
+                    "employee_can_edit": true,
+                    "sort_order": 6
+                }
+            ]
+        }
+    ]
+}

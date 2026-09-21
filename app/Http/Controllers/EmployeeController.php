@@ -424,13 +424,15 @@ class EmployeeController extends Controller
                 "You've reached your plan's limit of {$tenant->seatLimit()} employees. Upgrade your plan to add more.");
         }
 
-        // Required to create the account: name + work email (login) + personal email.
-        // Everything else on the default profile template is optional and can be
-        // completed later by the employee, so the template stays the single source of truth.
+        // Required to create the account: name + personal email. Work email is
+        // optional — a new hire often doesn't have a company mailbox yet, so they
+        // can be created now and their work email added later. Everything else on
+        // the default profile template is optional too, so it stays the single
+        // source of truth.
         $validated = $request->validate([
             'first_name'            => 'required|string|max:255',
             'last_name'             => 'required|string|max:255',
-            'fields.work_email'     => 'required|email|unique:users,email|unique:employees,email',
+            'fields.work_email'     => 'nullable|email|unique:users,email|unique:employees,email',
             'fields.personal_email' => 'required|email',
             'fields.department_id'  => 'nullable|exists:departments,id',
             'fields.manager_id'     => 'nullable|exists:users,id',
@@ -445,7 +447,20 @@ class EmployeeController extends Controller
             'fields.manager_id'     => 'manager',
         ]);
 
-        $email    = trim($request->input('fields.work_email'));
+        // Work email is the sign-in address when provided; otherwise fall back to
+        // the personal email so the account still has a unique login they can use.
+        $workEmail     = trim((string) $request->input('fields.work_email'));
+        $personalEmail = trim((string) $request->input('fields.personal_email'));
+        $email         = $workEmail !== '' ? $workEmail : $personalEmail;
+
+        // When falling back to the personal email as the login, it must be unused
+        // (work email is already validated unique above; personal email isn't).
+        if ($workEmail === '' && (User::where('email', $email)->exists() || Employee::where('email', $email)->exists())) {
+            return back()->withInput()->withErrors([
+                'fields.personal_email' => 'An account with this email already exists. Add a work email, or use a different personal email.',
+            ]);
+        }
+
         $jobTitle = $request->input('fields.job_title') ?: 'Employee';
 
         $user = User::create([

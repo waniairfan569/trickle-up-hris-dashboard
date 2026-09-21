@@ -136,6 +136,10 @@ class TenantProvisioner
             'is_paid' => true,
             'auto_assign_to_new_employees' => false,
         ]);
+
+        // Give the new workspace the standard "Default Employee Profile" template
+        // (sections + fields) so employee profiles aren't empty from day one.
+        app(\App\Services\DefaultProfileTemplateProvisioner::class)->provisionForCurrentTenant();
     }
 
     private function uniqueSlug(string $name): string
