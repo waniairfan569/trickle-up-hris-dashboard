@@ -74,8 +74,9 @@
             <div class="flex items-center gap-3">
                 <a href="{{ route('pricing') }}" class="hidden sm:inline text-sm font-bold text-slate-300 hover:text-white transition">Pricing</a>
                 <a href="{{ route('help.index') }}" class="hidden sm:inline text-sm font-bold text-slate-300 hover:text-white transition">Help</a>
-                <a href="{{ url('/login') }}" class="inline-flex items-center gap-x-1.5 rounded-xl bg-brand-500 px-4 py-2 text-sm font-extrabold text-slate-950 shadow-lg shadow-brand-500/20 hover:bg-brand-400 transition">
-                    Sign in <i data-lucide="arrow-right" class="h-4 w-4"></i>
+                <a href="{{ url('/login') }}" class="text-sm font-bold text-slate-300 hover:text-white transition">Sign in</a>
+                <a href="{{ route('register') }}" class="inline-flex items-center gap-x-1.5 rounded-xl bg-brand-500 px-4 py-2 text-sm font-extrabold text-slate-950 shadow-lg shadow-brand-500/20 hover:bg-brand-400 transition">
+                    Get started <i data-lucide="arrow-right" class="h-4 w-4"></i>
                 </a>
             </div>
         </div>
@@ -100,9 +101,15 @@
                 Your workspace for attendance, time off, documents, performance and requests — all in one place.
             </p>
 
-            <a href="{{ url('/login') }}" class="mt-9 inline-flex items-center gap-x-2 rounded-2xl bg-brand-500 px-8 py-3.5 text-sm font-extrabold text-slate-950 shadow-xl shadow-brand-500/25 hover:bg-brand-400 hover:-translate-y-0.5 transition">
-                <i data-lucide="log-in" class="h-4 w-4"></i> Sign in to your account
-            </a>
+            <div class="mt-9 flex flex-col sm:flex-row items-center gap-3">
+                <a href="{{ route('register') }}" class="inline-flex items-center gap-x-2 rounded-2xl bg-brand-500 px-8 py-3.5 text-sm font-extrabold text-slate-950 shadow-xl shadow-brand-500/25 hover:bg-brand-400 hover:-translate-y-0.5 transition">
+                    <i data-lucide="sparkles" class="h-4 w-4"></i> Create your workspace
+                </a>
+                <a href="{{ url('/login') }}" class="inline-flex items-center gap-x-2 rounded-2xl border border-white/15 bg-white/5 px-8 py-3.5 text-sm font-extrabold text-white hover:bg-white/10 transition">
+                    <i data-lucide="log-in" class="h-4 w-4"></i> Sign in
+                </a>
+            </div>
+            <p class="mt-4 text-xs text-slate-500">Set up your organization in a couple of minutes — 14-day free trial, no card required.</p>
         </section>
     </main>
 

@@ -146,6 +146,11 @@
                     <i data-lucide="arrow-right" class="h-4 w-4"></i>
                 </button>
             </form>
+
+            <p class="mt-6 text-center text-[11px] font-semibold text-slate-500">
+                New organization?
+                <a href="{{ route('register') }}" class="text-brand-500 hover:text-brand-400 transition">Create your workspace →</a>
+            </p>
         </div>
 
     </div>
