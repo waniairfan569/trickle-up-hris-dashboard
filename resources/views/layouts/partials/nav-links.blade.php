@@ -91,6 +91,12 @@
                 <i data-lucide="alarm-clock" class="h-5 w-5 shrink-0"></i><span class="flex-1">Overtime Requests</span>
                 {!! $navBadge($nav['overtime']) !!}
             </a>
+            @if($__navOvertimeForm)
+            <a href="{{ route('overtime-report.index') }}"
+               class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'overtime-report') ? 'text-brand-400 bg-slate-800' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
+                <i data-lucide="file-bar-chart-2" class="h-5 w-5 shrink-0"></i><span class="flex-1">Overtime Report</span>
+            </a>
+            @endif
             @endif
             <a href="{{ $navWfhPolicyId ? route('time-off.index', ['policy_id' => $navWfhPolicyId]) : route('time-off.index') }}"
                class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition text-slate-400 hover:text-white hover:bg-slate-800">

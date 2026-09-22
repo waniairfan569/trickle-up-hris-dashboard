@@ -69,6 +69,10 @@ Schedule::command('backup:run')->dailyAt('01:30')->withoutOverlapping()->runInBa
 // time each workspace's super-admin set; each sends once a day.
 Schedule::command('reminders:admin-daily')->everyMinute()->withoutOverlapping();
 
+// Recurring approved-overtime report reminder (monthly/weekly) for finance —
+// fires at the configured cadence + time; once per period.
+Schedule::command('reminders:overtime-report')->everyMinute()->withoutOverlapping();
+
 // Scheduler heartbeat — proves the cron is actually running, surfaced by /health.
 Schedule::call(fn () => \Illuminate\Support\Facades\Cache::put(
     \App\Http\Controllers\HealthController::HEARTBEAT_KEY, now()->toIso8601String(), 900

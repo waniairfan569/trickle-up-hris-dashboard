@@ -544,6 +544,13 @@ Route::middleware(['auth', 'verified', 'force.password.change'])->group(function
     Route::get('my-reviews', [\App\Http\Controllers\CompanyFormController::class, 'myReviews'])->name('company-forms.my-reviews');
     // Unified inbox: review responses across every form in one place.
     Route::get('form-responses', [\App\Http\Controllers\CompanyFormController::class, 'inbox'])->name('company-forms.inbox');
+
+    // Finance approved-overtime report (view / export CSV+PDF / recurring reminder) — admin-only.
+    Route::middleware('role:super_admin,hr_admin')->group(function () {
+        Route::get('overtime-report', [\App\Http\Controllers\OvertimeReportController::class, 'index'])->name('overtime-report.index');
+        Route::get('overtime-report/export', [\App\Http\Controllers\OvertimeReportController::class, 'export'])->name('overtime-report.export');
+        Route::post('overtime-report/reminder', [\App\Http\Controllers\OvertimeReportController::class, 'saveReminder'])->name('overtime-report.reminder');
+    });
     Route::get('company-forms/{companyForm}/responses', [\App\Http\Controllers\CompanyFormController::class, 'responses'])->name('company-forms.responses');
     Route::get('form-submissions/{submission}', [\App\Http\Controllers\CompanyFormController::class, 'viewSubmission'])->name('company-forms.submission');
     Route::post('form-submissions/{submission}/review', [\App\Http\Controllers\CompanyFormController::class, 'reviewSubmission'])->name('company-forms.submission.review');
