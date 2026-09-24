@@ -73,6 +73,10 @@ Schedule::command('reminders:admin-daily')->everyMinute()->withoutOverlapping();
 // fires at the configured cadence + time; once per period.
 Schedule::command('reminders:overtime-report')->everyMinute()->withoutOverlapping();
 
+// Nightly: draft Lateness Review (per late day) + Return to Work (per leave)
+// documents, ready for HR to review/edit/send from the employee's profile.
+Schedule::command('documents:auto-generate')->dailyAt('01:15')->withoutOverlapping();
+
 // Scheduler heartbeat — proves the cron is actually running, surfaced by /health.
 Schedule::call(fn () => \Illuminate\Support\Facades\Cache::put(
     \App\Http\Controllers\HealthController::HEARTBEAT_KEY, now()->toIso8601String(), 900

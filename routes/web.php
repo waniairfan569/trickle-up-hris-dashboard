@@ -436,6 +436,16 @@ Route::middleware(['auth', 'verified', 'force.password.change'])->group(function
         Route::post('onboarding/survey', [\App\Http\Controllers\OnboardingSurveyController::class, 'store'])->name('onboarding.survey');
         Route::post('onboarding/survey/skip', [\App\Http\Controllers\OnboardingSurveyController::class, 'skip'])->name('onboarding.survey.skip');
 
+        // Letterheads — branded header/footer templates for HR documents.
+        Route::get('letterheads', [\App\Http\Controllers\LetterheadTemplateController::class, 'index'])->name('letterheads.index');
+        Route::get('letterheads/create', [\App\Http\Controllers\LetterheadTemplateController::class, 'create'])->name('letterheads.create');
+        Route::post('letterheads', [\App\Http\Controllers\LetterheadTemplateController::class, 'store'])->name('letterheads.store');
+        Route::get('letterheads/{letterhead}/edit', [\App\Http\Controllers\LetterheadTemplateController::class, 'edit'])->name('letterheads.edit');
+        Route::put('letterheads/{letterhead}', [\App\Http\Controllers\LetterheadTemplateController::class, 'update'])->name('letterheads.update');
+        Route::delete('letterheads/{letterhead}', [\App\Http\Controllers\LetterheadTemplateController::class, 'destroy'])->name('letterheads.destroy');
+        Route::post('letterheads/{letterhead}/default', [\App\Http\Controllers\LetterheadTemplateController::class, 'setDefault'])->name('letterheads.default');
+        Route::get('letterheads/{letterhead}/preview', [\App\Http\Controllers\LetterheadTemplateController::class, 'preview'])->name('letterheads.preview');
+
         // New-workspace setup wizard.
         Route::get('getting-started', [\App\Http\Controllers\GettingStartedController::class, 'show'])->name('getting-started');
         Route::post('getting-started/dismiss', [\App\Http\Controllers\GettingStartedController::class, 'dismiss'])->name('getting-started.dismiss');
@@ -535,6 +545,10 @@ Route::middleware(['auth', 'verified', 'force.password.change'])->group(function
         Route::get('employees/{employee}/time-tracking-report', [\App\Http\Controllers\EmployeeReportController::class, 'show'])->name('employees.time-report');
         Route::post('employees/{employee}/conduct', [\App\Http\Controllers\ConductNoteController::class, 'store'])->name('employees.conduct.store');
         Route::delete('conduct-notes/{conductNote}', [\App\Http\Controllers\ConductNoteController::class, 'destroy'])->name('employees.conduct.destroy');
+
+        // Auto-generate lateness / return-to-work draft documents from attendance.
+        Route::post('employees/{employee}/lateness-docs/generate', [\App\Http\Controllers\LatenessDocumentController::class, 'generate'])->name('employees.lateness-docs.generate');
+        Route::post('employees/{employee}/lateness-docs/monthly', [\App\Http\Controllers\LatenessDocumentController::class, 'monthly'])->name('employees.lateness-docs.monthly');
     });
 
     // Company Forms — employee side (fill assigned forms)

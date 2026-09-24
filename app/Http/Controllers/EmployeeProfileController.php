@@ -145,7 +145,79 @@ class EmployeeProfileController extends Controller
                 ->orderByDesc('occurred_on')->orderByDesc('id')->limit(100)->get()
             : collect();
 
-        return view('employees.profile.show', compact('employee', 'templates', 'canEdit', 'allUsers', 'signatureDocs', 'payReviews', 'probation', 'conductNotes'));
+        // Admin-only lateness / return-to-work document tracking (Time tracking tab).
+        $latenessDocData = $auth->isAdmin() ? $this->buildLatenessDocData($employee) : null;
+
+        return view('employees.profile.show', compact('employee', 'templates', 'canEdit', 'allUsers', 'signatureDocs', 'payReviews', 'probation', 'conductNotes', 'latenessDocData'));
+    }
+
+    /**
+     * Late days (last 90d) and returned leaves, each paired with its auto-generated
+     * document + status, for the Time-tracking tracking panel.
+     */
+    private function buildLatenessDocData(\App\Models\User $employee): array
+    {
+        $latenessTpl = \App\Models\HrDocumentTemplate::where('prefill', 'lateness')->orderByDesc('is_active')->orderBy('id')->first();
+        $absenceTpl  = \App\Models\HrDocumentTemplate::where('prefill', 'absence')->orderByDesc('is_active')->orderBy('id')->first();
+
+        $from = now()->subDays(90)->toDateString();
+
+        // Status from a document (or null).
+        $status = function ($doc) {
+            if (! $doc) {
+                return 'none';
+            }
+            if ($doc->signers->isNotEmpty() && $doc->signers->every(fn ($s) => $s->signed_at)) {
+                return 'signed';
+            }
+            return in_array($doc->status, ['sent', 'completed'], true) ? $doc->status : 'draft';
+        };
+
+        // Late days + their per-day documents.
+        $lateDays = \App\Models\AttendanceRecord::where('user_id', $employee->id)
+            ->where('status', 'late')->whereDate('date', '>=', $from)
+            ->orderByDesc('date')->get(['date', 'late_minutes']);
+
+        $latenessDocs = $latenessTpl
+            ? \App\Models\HrDocument::where('user_id', $employee->id)
+                ->where('hr_document_template_id', $latenessTpl->id)
+                ->whereColumn('period_start', 'period_end')
+                ->with('signers')->get()->keyBy(fn ($d) => optional($d->period_start)->toDateString())
+            : collect();
+
+        $latenessRows = $lateDays->map(fn ($r) => (object) [
+            'date'         => $r->date,
+            'late_minutes' => $r->late_minutes,
+            'doc'          => $doc = $latenessDocs->get($r->date->toDateString()),
+            'status'       => $status($doc),
+        ])->values();
+
+        // Returned leaves + their Return-to-Work documents.
+        $leaves = \App\Models\TimeOffRequest::where('user_id', $employee->id)
+            ->where('status', 'approved')->excludingWorkFromHome()
+            ->whereDate('end_date', '<', now()->toDateString())
+            ->whereDate('end_date', '>=', $from)
+            ->with('policy')->orderByDesc('start_date')->get();
+
+        $absenceDocs = $absenceTpl
+            ? \App\Models\HrDocument::where('user_id', $employee->id)
+                ->where('hr_document_template_id', $absenceTpl->id)
+                ->with('signers')->get()
+                ->keyBy(fn ($d) => optional($d->period_start)->toDateString() . '|' . optional($d->period_end)->toDateString())
+            : collect();
+
+        $returnRows = $leaves->map(function ($lv) use ($absenceDocs, $status) {
+            $key = \Illuminate\Support\Carbon::parse($lv->start_date)->toDateString() . '|' . \Illuminate\Support\Carbon::parse($lv->end_date)->toDateString();
+            return (object) ['leave' => $lv, 'doc' => $doc = $absenceDocs->get($key), 'status' => $status($doc)];
+        })->values();
+
+        return [
+            'hasLatenessTpl' => (bool) $latenessTpl,
+            'hasAbsenceTpl'  => (bool) $absenceTpl,
+            'latenessRows'   => $latenessRows,
+            'returnRows'     => $returnRows,
+            'latenessMonths' => collect(range(0, 2))->map(fn ($i) => now()->subMonths($i)->format('Y-m')),
+        ];
     }
 
     /**

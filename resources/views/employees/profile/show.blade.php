@@ -704,6 +704,86 @@
                 @endforelse
             </div>
         </div>
+
+        {{-- Lateness & return-to-work documents (auto-drafted from attendance) --}}
+        @if($latenessDocData)
+        @php
+            $ldBadge = [
+                'none'      => ['Not generated', 'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-300'],
+                'draft'     => ['Draft', 'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400'],
+                'sent'      => ['Sent', 'bg-sky-50 text-sky-700 dark:bg-sky-500/10 dark:text-sky-400'],
+                'completed' => ['Completed', 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400'],
+                'signed'    => ['Signed', 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400'],
+            ];
+        @endphp
+        <div class="bg-white border border-slate-200/80 dark:border-slate-700 rounded-2xl shadow-sm dark:bg-slate-800 overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center gap-3">
+                <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-50 text-amber-600 dark:bg-amber-500/10"><i data-lucide="file-clock" class="h-5 w-5"></i></span>
+                <div>
+                    <h2 class="text-sm font-bold text-slate-800 dark:text-white">Lateness &amp; return-to-work documents</h2>
+                    <p class="text-xs text-slate-400">Auto-drafted the day after each late day / leave return — review, edit and send.</p>
+                </div>
+            </div>
+            <div class="p-6 space-y-5">
+                @if(! $latenessDocData['hasLatenessTpl'] && ! $latenessDocData['hasAbsenceTpl'])
+                    <p class="text-sm text-slate-400">No “Lateness Review” / “Return to Work” templates exist yet. Create them under <a href="{{ route('hr-documents.index') }}" class="text-brand-600 font-semibold hover:underline">HR Documents</a> (with the lateness / absence prefill) and drafts will auto-generate.</p>
+                @else
+                <div class="flex flex-wrap items-end gap-3">
+                    <form method="POST" action="{{ route('employees.lateness-docs.generate', $employee->id) }}">
+                        @csrf
+                        <button type="submit" class="btn-brand"><i data-lucide="wand-2" class="h-4 w-4"></i> Generate missing now</button>
+                    </form>
+                    <form method="POST" action="{{ route('employees.lateness-docs.monthly', $employee->id) }}" class="flex items-end gap-2">
+                        @csrf
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Monthly Lateness Review</label>
+                            <select name="month" class="rounded-xl border border-slate-300 px-3 py-2 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                                @foreach($latenessDocData['latenessMonths'] as $m)
+                                    <option value="{{ $m }}">{{ \Illuminate\Support\Carbon::createFromFormat('Y-m', $m)->format('F Y') }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <button type="submit" class="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700/50"><i data-lucide="file-text" class="h-4 w-4"></i> Generate</button>
+                    </form>
+                </div>
+
+                <div>
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Late days · last 90 days</h3>
+                    <div class="rounded-xl border border-slate-100 dark:border-slate-700/60 divide-y divide-slate-100 dark:divide-slate-700/60 max-h-72 overflow-y-auto">
+                        @forelse($latenessDocData['latenessRows'] as $row)
+                            @php [$lbl, $cls] = $ldBadge[$row->status]; @endphp
+                            <div class="flex items-center gap-3 px-4 py-2.5 text-sm">
+                                <span class="font-semibold text-slate-700 dark:text-slate-200">{{ $row->date->format('d M Y (D)') }}</span>
+                                <span class="text-xs text-slate-400">{{ $row->late_minutes }} min late</span>
+                                <span class="ml-auto rounded-full px-2.5 py-0.5 text-[11px] font-bold {{ $cls }}">{{ $lbl }}</span>
+                                @if($row->doc)<a href="{{ route('hr-documents.show', $row->doc) }}" class="text-xs font-semibold text-brand-600 hover:underline">Open</a>@endif
+                            </div>
+                        @empty
+                            <div class="px-4 py-4 text-sm text-slate-400">No late days in the last 90 days.</div>
+                        @endforelse
+                    </div>
+                </div>
+
+                <div>
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Returned from leave · last 90 days</h3>
+                    <div class="rounded-xl border border-slate-100 dark:border-slate-700/60 divide-y divide-slate-100 dark:divide-slate-700/60 max-h-72 overflow-y-auto">
+                        @forelse($latenessDocData['returnRows'] as $row)
+                            @php [$lbl, $cls] = $ldBadge[$row->status]; @endphp
+                            <div class="flex items-center gap-3 px-4 py-2.5 text-sm">
+                                <span class="font-semibold text-slate-700 dark:text-slate-200">{{ optional($row->leave->policy)->name ?? 'Leave' }}</span>
+                                <span class="text-xs text-slate-400">{{ \Illuminate\Support\Carbon::parse($row->leave->start_date)->format('d M') }} → back {{ \Illuminate\Support\Carbon::parse($row->leave->end_date)->addDay()->format('d M Y') }}</span>
+                                <span class="ml-auto rounded-full px-2.5 py-0.5 text-[11px] font-bold {{ $cls }}">{{ $lbl }}</span>
+                                @if($row->doc)<a href="{{ route('hr-documents.show', $row->doc) }}" class="text-xs font-semibold text-brand-600 hover:underline">Open</a>@endif
+                            </div>
+                        @empty
+                            <div class="px-4 py-4 text-sm text-slate-400">No completed leaves in the last 90 days.</div>
+                        @endforelse
+                    </div>
+                </div>
+                @endif
+            </div>
+        </div>
+        @endif
         @endif
 
         {{-- Fix status is open to records viewers; Add/edit attendance and Hide-from-sheets stay admin-only. --}}
