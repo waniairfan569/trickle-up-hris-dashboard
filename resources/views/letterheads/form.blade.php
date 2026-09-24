@@ -58,7 +58,7 @@
             <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Logo</label>
             <div class="flex items-center gap-4">
                 <div class="flex h-14 w-14 items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-700 overflow-hidden">
-                    <img src="{{ $letterhead->logo_path ? \Illuminate\Support\Facades\Storage::url($letterhead->logo_path) : asset('images/logo.png') }}" alt="logo" class="h-10 w-10 object-contain">
+                    <img src="{{ $letterhead->logo_path ? $letterhead->imageUrl($letterhead->logo_path) : asset('images/logo.png') }}" alt="logo" class="h-10 w-10 object-contain">
                 </div>
                 <div class="flex-1">
                     <input type="file" name="logo" accept="image/png,image/jpeg,image/svg+xml,image/webp" class="block w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100">
@@ -74,14 +74,14 @@
         <div class="pt-2 border-t border-slate-100 dark:border-slate-700/60 grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
                 <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Header band image <span class="normal-case font-medium text-slate-400">(optional)</span></label>
-                @if($editing && $letterhead->header_image_path)<img src="{{ \Illuminate\Support\Facades\Storage::url($letterhead->header_image_path) }}" class="h-8 mb-2">@endif
+                @if($editing && $letterhead->header_image_path)<img src="{{ $letterhead->imageUrl($letterhead->header_image_path) }}" class="h-8 mb-2">@endif
                 <input type="file" name="header_image" accept="image/png,image/jpeg,image/svg+xml,image/webp" class="block w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100">
                 @if($editing && $letterhead->header_image_path)<label class="inline-flex items-center gap-1.5 mt-1 text-[11px] font-semibold text-rose-600 cursor-pointer"><input type="checkbox" name="remove_header_image" value="1" class="rounded border-slate-300 text-rose-600"> Remove</label>@endif
                 <p class="text-[11px] text-slate-400 mt-1">A brand wordmark. Replaces the company-name header.</p>
             </div>
             <div>
                 <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Footer band image <span class="normal-case font-medium text-slate-400">(optional)</span></label>
-                @if($editing && $letterhead->footer_image_path)<img src="{{ \Illuminate\Support\Facades\Storage::url($letterhead->footer_image_path) }}" class="w-full rounded mb-2" style="max-height:36px;object-fit:cover;">@endif
+                @if($editing && $letterhead->footer_image_path)<img src="{{ $letterhead->imageUrl($letterhead->footer_image_path) }}" class="w-full rounded mb-2" style="max-height:36px;object-fit:cover;">@endif
                 <input type="file" name="footer_image" accept="image/png,image/jpeg,image/svg+xml,image/webp" class="block w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100">
                 @if($editing && $letterhead->footer_image_path)<label class="inline-flex items-center gap-1.5 mt-1 text-[11px] font-semibold text-rose-600 cursor-pointer"><input type="checkbox" name="remove_footer_image" value="1" class="rounded border-slate-300 text-rose-600"> Remove</label>@endif
                 <p class="text-[11px] text-slate-400 mt-1">A full-width contact strip. Replaces the address/contact footer.</p>
@@ -92,7 +92,7 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
                 <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Watermark image <span class="normal-case font-medium text-slate-400">(optional)</span></label>
-                @if($editing && $letterhead->watermark_image_path)<img src="{{ \Illuminate\Support\Facades\Storage::url($letterhead->watermark_image_path) }}" class="h-10 mb-2 opacity-50">@endif
+                @if($editing && $letterhead->watermark_image_path)<img src="{{ $letterhead->imageUrl($letterhead->watermark_image_path) }}" class="h-10 mb-2 opacity-50">@endif
                 <input type="file" name="watermark_image" accept="image/png,image/svg+xml,image/webp" class="block w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100">
                 @if($editing && $letterhead->watermark_image_path)<label class="inline-flex items-center gap-1.5 mt-1 text-[11px] font-semibold text-rose-600 cursor-pointer"><input type="checkbox" name="remove_watermark_image" value="1" class="rounded border-slate-300 text-rose-600"> Remove</label>@endif
                 <p class="text-[11px] text-slate-400 mt-1">A faint brand mark behind the page body.</p>

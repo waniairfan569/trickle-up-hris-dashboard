@@ -74,6 +74,21 @@ class LetterheadTemplate extends Model
         return $this->fileToDataUri($this->logo_path) ?? $this->fileToDataUri('images/logo.png');
     }
 
+    /** Browser URL for a stored image — an uploaded file (public disk) or a shipped public/ asset. */
+    public function imageUrl(?string $path): ?string
+    {
+        if (! $path) {
+            return null;
+        }
+        if (Storage::disk('public')->exists($path)) {
+            return Storage::url($path);
+        }
+        if (is_file(public_path($path))) {
+            return asset($path);
+        }
+        return Storage::url($path);
+    }
+
     /** Pre-designed header band image (e.g. a brand wordmark), if set. */
     public function headerImageData(): ?string
     {
