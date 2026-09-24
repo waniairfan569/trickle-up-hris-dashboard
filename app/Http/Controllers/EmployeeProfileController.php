@@ -192,12 +192,16 @@ class EmployeeProfileController extends Controller
             'status'       => $status($doc),
         ])->values();
 
-        // Returned leaves + their Return-to-Work documents.
+        // Returned leaves (unplanned / sick / casual / emergency / WFH — not planned)
+        // + their Return-to-Work documents. Deduped by period so the same dates
+        // (e.g. two leaves that day) show once.
         $leaves = \App\Models\TimeOffRequest::where('user_id', $employee->id)
-            ->where('status', 'approved')->excludingWorkFromHome()
+            ->where('status', 'approved')->returnToWorkEligible()
             ->whereDate('end_date', '<', now()->toDateString())
             ->whereDate('end_date', '>=', $from)
-            ->with('policy')->orderByDesc('start_date')->get();
+            ->with('policy')->orderByDesc('start_date')->get()
+            ->unique(fn ($lv) => \Illuminate\Support\Carbon::parse($lv->start_date)->toDateString() . '|' . \Illuminate\Support\Carbon::parse($lv->end_date)->toDateString())
+            ->values();
 
         $absenceDocs = $absenceTpl
             ? \App\Models\HrDocument::where('user_id', $employee->id)

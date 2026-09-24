@@ -190,6 +190,21 @@ class TimeOffRequest extends Model
         return Carbon::parse($this->start_time)->format('g:i A') . ' – ' . Carbon::parse($this->end_time)->format('g:i A');
     }
 
+    /**
+     * Leaves that should trigger a Return-to-Work document: unplanned / casual /
+     * sick / emergency, or work-from-home — NOT planned/annual/Eid leave.
+     */
+    public function scopeReturnToWorkEligible($query)
+    {
+        return $query->whereHas('policy', function ($p) {
+            $p->where(function ($pp) {
+                foreach (['unplanned', 'casual', 'sick', 'emergency', 'wfh', 'work from home'] as $kw) {
+                    $pp->orWhereRaw('LOWER(name) LIKE ?', ['%' . $kw . '%']);
+                }
+            });
+        });
+    }
+
     // --- Relationships ---
 
     public function employee()

@@ -549,6 +549,7 @@ Route::middleware(['auth', 'verified', 'force.password.change'])->group(function
         // Auto-generate lateness / return-to-work draft documents from attendance.
         Route::post('employees/{employee}/lateness-docs/generate', [\App\Http\Controllers\LatenessDocumentController::class, 'generate'])->name('employees.lateness-docs.generate');
         Route::post('employees/{employee}/lateness-docs/monthly', [\App\Http\Controllers\LatenessDocumentController::class, 'monthly'])->name('employees.lateness-docs.monthly');
+        Route::delete('employees/{employee}/lateness-docs/{document}', [\App\Http\Controllers\LatenessDocumentController::class, 'destroyDraft'])->name('employees.lateness-docs.destroy');
     });
 
     // Company Forms — employee side (fill assigned forms)

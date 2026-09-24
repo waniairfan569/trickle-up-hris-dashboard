@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\HrDocument;
 use App\Models\User;
 use App\Services\HrDocumentAutoGenerator;
 use Illuminate\Http\Request;
@@ -23,6 +24,23 @@ class LatenessDocumentController extends Controller
             ->with('success', $count > 0
                 ? "Generated {$count} draft document(s) — review and send them below."
                 : 'No missing documents — everything is already generated.');
+    }
+
+    /** Delete an auto-generated DRAFT document (sent/signed ones are protected). */
+    public function destroyDraft(User $employee, HrDocument $document)
+    {
+        abort_unless($document->user_id === $employee->id, 404);
+
+        $message = 'Only drafts can be deleted — this document has already been sent.';
+        if ($document->status === 'draft') {
+            $document->signers()->delete();
+            $document->delete();
+            $message = 'Draft document deleted.';
+        }
+
+        return redirect()
+            ->route('employees.profile', ['employee' => $employee->id, 'section' => 'timetracking'])
+            ->with('success', $message);
     }
 
     /** Generate the consolidated monthly Lateness Review for the chosen month. */

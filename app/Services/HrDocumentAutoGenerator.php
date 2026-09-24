@@ -80,20 +80,24 @@ class HrDocumentAutoGenerator
 
         $leaves = TimeOffRequest::where('user_id', $employee->id)
             ->where('status', 'approved')
-            ->excludingWorkFromHome()
+            ->returnToWorkEligible() // unplanned / sick / casual / emergency / WFH — not planned
             ->whereDate('end_date', '<', $today->toDateString())
             ->whereDate('end_date', '>=', $today->copy()->subDays($lookbackDays)->toDateString())
             ->orderBy('start_date')
             ->get();
 
         $created = 0;
+        $seen = [];
         foreach ($leaves as $leave) {
             $start = Carbon::parse($leave->start_date)->startOfDay();
             $end = Carbon::parse($leave->end_date)->startOfDay();
-            if ($this->exists($employee, $template, $start, $end)) {
+            // Don't create two docs for the same period (e.g. two leaves on the same dates).
+            $key = $start->toDateString() . '|' . $end->toDateString();
+            if (isset($seen[$key]) || $this->exists($employee, $template, $start, $end)) {
                 continue;
             }
-            $this->createDraft($template, $employee, $start, $end, $template->name . ' — ' . $end->format('M Y'));
+            $seen[$key] = true;
+            $this->createDraft($template, $employee, $start, $end, $template->name . ' — ' . $this->periodLabel($start, $end));
             $created++;
         }
 
@@ -166,6 +170,13 @@ class HrDocumentAutoGenerator
         }
 
         return $created;
+    }
+
+    private function periodLabel(Carbon $start, Carbon $end): string
+    {
+        return $start->isSameDay($end)
+            ? $start->format('d M Y')
+            : $start->format('d M') . ' – ' . $end->format('d M Y');
     }
 
     private function exists(User $employee, HrDocumentTemplate $template, Carbon $start, Carbon $end): bool

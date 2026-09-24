@@ -759,7 +759,12 @@
                                 <span class="font-semibold text-slate-700 dark:text-slate-200">{{ $row->date->format('d M Y (D)') }}</span>
                                 <span class="text-xs text-slate-400">{{ $row->late_minutes }} min late</span>
                                 <span class="ml-auto rounded-full px-2.5 py-0.5 text-[11px] font-bold {{ $cls }}">{{ $lbl }}</span>
-                                @if($row->doc)<a href="{{ route('hr-documents.show', $row->doc) }}" class="text-xs font-semibold text-brand-600 hover:underline">Open</a>@endif
+                                @if($row->doc)
+                                    <a href="{{ route('hr-documents.show', $row->doc) }}" class="text-xs font-semibold text-brand-600 hover:underline">Open</a>
+                                    @if($row->status === 'draft')
+                                        <form method="POST" action="{{ route('employees.lateness-docs.destroy', [$employee->id, $row->doc->id]) }}" onsubmit="return confirm('Delete this draft document?');">@csrf @method('DELETE')<button type="submit" class="text-xs font-semibold text-rose-500 hover:underline">Delete</button></form>
+                                    @endif
+                                @endif
                             </div>
                         @empty
                             <div class="px-4 py-4 text-sm text-slate-400">No late days in the last 90 days.</div>
@@ -774,9 +779,17 @@
                             @php [$lbl, $cls] = $ldBadge[$row->status]; @endphp
                             <div class="flex items-center gap-3 px-4 py-2.5 text-sm">
                                 <span class="font-semibold text-slate-700 dark:text-slate-200">{{ optional($row->leave->policy)->name ?? 'Leave' }}</span>
-                                <span class="text-xs text-slate-400">{{ \Illuminate\Support\Carbon::parse($row->leave->start_date)->format('d M') }} → back {{ \Illuminate\Support\Carbon::parse($row->leave->end_date)->addDay()->format('d M Y') }}</span>
+                                <span class="text-xs text-slate-400">
+                                    {{ \Illuminate\Support\Carbon::parse($row->leave->start_date)->format('d M') }} → back {{ \Illuminate\Support\Carbon::parse($row->leave->end_date)->addDay()->format('d M Y') }}
+                                    @if($row->leave->time_range) · {{ $row->leave->time_range }}@elseif($row->leave->duration_type !== 'full_day') · {{ $row->leave->duration_label }}@endif
+                                </span>
                                 <span class="ml-auto rounded-full px-2.5 py-0.5 text-[11px] font-bold {{ $cls }}">{{ $lbl }}</span>
-                                @if($row->doc)<a href="{{ route('hr-documents.show', $row->doc) }}" class="text-xs font-semibold text-brand-600 hover:underline">Open</a>@endif
+                                @if($row->doc)
+                                    <a href="{{ route('hr-documents.show', $row->doc) }}" class="text-xs font-semibold text-brand-600 hover:underline">Open</a>
+                                    @if($row->status === 'draft')
+                                        <form method="POST" action="{{ route('employees.lateness-docs.destroy', [$employee->id, $row->doc->id]) }}" onsubmit="return confirm('Delete this draft document?');">@csrf @method('DELETE')<button type="submit" class="text-xs font-semibold text-rose-500 hover:underline">Delete</button></form>
+                                    @endif
+                                @endif
                             </div>
                         @empty
                             <div class="px-4 py-4 text-sm text-slate-400">No completed leaves in the last 90 days.</div>
