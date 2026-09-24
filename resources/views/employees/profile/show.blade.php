@@ -690,9 +690,12 @@
                             <div class="flex flex-wrap items-center gap-2 text-xs text-slate-400">
                                 <span class="font-semibold text-slate-600 dark:text-slate-300">{{ $n->occurred_on->format('d M Y') }}</span>
                                 @if($n->category)<span class="rounded-full bg-slate-100 px-2 py-0.5 font-bold text-slate-500 dark:bg-slate-700 dark:text-slate-300">{{ $n->category }}</span>@endif
-                                @if($n->author)<span>· by {{ $n->author->full_name }}</span>@endif
+                                <span>· by {{ $n->author?->full_name ?? 'System (auto)' }}</span>
                             </div>
                             <p class="text-sm text-slate-700 dark:text-slate-200 mt-1 whitespace-pre-line">{{ $n->note }}</p>
+                            @if($n->document)
+                                <a href="{{ route('hr-documents.show', $n->document) }}" class="inline-flex items-center gap-1 mt-1 text-xs font-semibold text-brand-600 hover:underline"><i data-lucide="file-text" class="h-3.5 w-3.5"></i> Open document</a>
+                            @endif
                         </div>
                         <form method="POST" action="{{ route('employees.conduct.destroy', $n->id) }}" onsubmit="return confirm('Remove this conduct note?');">
                             @csrf @method('DELETE')

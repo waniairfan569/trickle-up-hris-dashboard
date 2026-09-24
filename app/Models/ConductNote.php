@@ -16,13 +16,18 @@ class ConductNote extends Model
     /** Suggested categories for the log (free text is still allowed). */
     public const CATEGORIES = ['Behaviour', 'Punctuality', 'Performance', 'Policy', 'Attitude', 'Positive', 'Other'];
 
-    protected $fillable = ['user_id', 'author_id', 'occurred_on', 'category', 'note'];
+    protected $fillable = ['user_id', 'hr_document_id', 'author_id', 'occurred_on', 'category', 'note'];
 
     protected $casts = ['occurred_on' => 'date'];
 
     public function employee()
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function document()
+    {
+        return $this->belongsTo(HrDocument::class, 'hr_document_id');
     }
 
     public function author()

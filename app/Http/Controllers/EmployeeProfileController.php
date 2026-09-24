@@ -141,7 +141,7 @@ class EmployeeProfileController extends Controller
 
         // Admin-only conduct / behaviour log (shown in the Time tracking tab).
         $conductNotes = $auth->isAdmin()
-            ? \App\Models\ConductNote::where('user_id', $employee->id)->with('author')
+            ? \App\Models\ConductNote::where('user_id', $employee->id)->with('author', 'document')
                 ->orderByDesc('occurred_on')->orderByDesc('id')->limit(100)->get()
             : collect();
 

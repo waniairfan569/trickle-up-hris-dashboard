@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\AttendanceRecord;
+use App\Models\ConductNote;
 use App\Models\HrDocument;
 use App\Models\HrDocumentTemplate;
 use App\Models\TimeOffRequest;
@@ -123,6 +124,48 @@ class HrDocumentAutoGenerator
         }
 
         return $this->createDraft($template, $employee, $start, $end, $template->name . ' — ' . $start->format('M Y'), $by);
+    }
+
+    /**
+     * Log a conduct note for any document that has been sent for signature but the
+     * employee still hasn't signed after $days days. Idempotent (one per document).
+     * Returns the number of notes created (tenant-scoped).
+     */
+    public function logUnsignedDocuments(int $days = 2): int
+    {
+        $cutoff = Carbon::today()->subDays($days)->endOfDay();
+
+        $docs = HrDocument::where('status', 'sent')
+            ->whereNotNull('sent_at')
+            ->where('sent_at', '<=', $cutoff)
+            ->with('signers')
+            ->get();
+
+        $created = 0;
+        foreach ($docs as $doc) {
+            // The employee's own signature is the one we care about.
+            $signer = $doc->signers->firstWhere('user_id', $doc->user_id);
+            if (! $signer || $signer->signed_at) {
+                continue;
+            }
+            if (ConductNote::where('hr_document_id', $doc->id)->exists()) {
+                continue;
+            }
+
+            $name = $doc->title ?: $doc->template_name;
+
+            ConductNote::create([
+                'user_id'        => $doc->user_id,
+                'hr_document_id' => $doc->id,
+                'author_id'      => null,
+                'occurred_on'    => Carbon::today()->toDateString(),
+                'category'       => 'Policy',
+                'note'           => "Document not signed after {$days} days: {$name} (sent " . optional($doc->sent_at)->format('d M Y') . ').',
+            ]);
+            $created++;
+        }
+
+        return $created;
     }
 
     private function exists(User $employee, HrDocumentTemplate $template, Carbon $start, Carbon $end): bool

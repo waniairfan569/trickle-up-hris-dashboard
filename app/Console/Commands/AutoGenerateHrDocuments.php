@@ -35,6 +35,8 @@ class AutoGenerateHrDocuments extends Command
             foreach ($this->candidates($lookback) as $employee) {
                 $created += $generator->generateForEmployee($employee, $lookback);
             }
+            // Conduct note for documents left unsigned past 2 days.
+            $created += $generator->logUnsignedDocuments(2);
         };
 
         if ($tenants->count() <= 1) {
