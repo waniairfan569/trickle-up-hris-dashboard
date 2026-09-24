@@ -132,6 +132,8 @@ class HrDocumentController extends Controller
             'month'      => $monthValue,
             'prefill'    => $prefill,
             'document'   => null,
+            'letterheads'       => $this->letterheadOptions(),
+            'letterheadDefault' => $template->letterhead_id ?? optional(\App\Models\LetterheadTemplate::default())->id,
         ]);
     }
 
@@ -145,6 +147,7 @@ class HrDocumentController extends Controller
 
         $document = HrDocument::create([
             'hr_document_template_id' => $template->id,
+            'letterhead_id' => $request->integer('letterhead_id') ?: null,
             'user_id'       => $employee->id,
             'template_name' => $template->name,
             'title'         => $this->buildTitle($template, $start),
@@ -169,6 +172,8 @@ class HrDocumentController extends Controller
             'month'      => optional($document->period_start)->format('Y-m'),
             'prefill'    => $document->data ?? [],
             'document'   => $document,
+            'letterheads'       => $this->letterheadOptions(),
+            'letterheadDefault' => $document->letterhead_id ?? optional($document->template)->letterhead_id ?? optional(\App\Models\LetterheadTemplate::default())->id,
         ]);
     }
 
@@ -178,6 +183,7 @@ class HrDocumentController extends Controller
 
         $document->update([
             'data'   => $values,
+            'letterhead_id' => $request->integer('letterhead_id') ?: null,
             'status' => $request->input('action') === 'complete' ? 'completed' : $document->status,
         ]);
 
@@ -199,7 +205,7 @@ class HrDocumentController extends Controller
         @ini_set('memory_limit', '512M');
         @set_time_limit(120);
 
-        $pdf = Pdf::loadView('hr-documents.pdf', ['document' => $document])
+        $pdf = Pdf::loadView('hr-documents.pdf', ['document' => $document, 'letterhead' => $document->effectiveLetterhead()])
             ->setPaper('a4', 'portrait');
 
         $content = $pdf->output();
@@ -230,6 +236,7 @@ class HrDocumentController extends Controller
 
         $document = new HrDocument([
             'hr_document_template_id' => $template->id,
+            'letterhead_id' => $request->integer('letterhead_id') ?: null,
             'user_id'       => $request->integer('employee_id') ?: null,
             'template_name' => $template->name,
             'schema'        => $template->schema,
@@ -240,7 +247,7 @@ class HrDocumentController extends Controller
             $document->setRelation('employee', User::find($document->user_id));
         }
 
-        $pdf = Pdf::loadView('hr-documents.pdf', ['document' => $document])->setPaper('a4', 'portrait');
+        $pdf = Pdf::loadView('hr-documents.pdf', ['document' => $document, 'letterhead' => $document->effectiveLetterhead()])->setPaper('a4', 'portrait');
         $content = $pdf->output();
         while (ob_get_level() > 0) {
             ob_end_clean();
@@ -467,6 +474,12 @@ class HrDocumentController extends Controller
     private function buildTitle(HrDocumentTemplate $template, Carbon $start): string
     {
         return $template->name . ' — ' . $start->format('M Y');
+    }
+
+    /** Letterheads for the document form's picker (default first). */
+    private function letterheadOptions()
+    {
+        return \App\Models\LetterheadTemplate::orderByDesc('is_default')->orderBy('name')->get(['id', 'name', 'is_default']);
     }
 
     /** Active, real employees for the picker. */

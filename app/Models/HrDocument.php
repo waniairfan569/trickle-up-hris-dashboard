@@ -15,7 +15,7 @@ class HrDocument extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        'hr_document_template_id', 'user_id', 'template_name', 'title',
+        'hr_document_template_id', 'letterhead_id', 'user_id', 'template_name', 'title',
         'schema', 'data', 'period_start', 'period_end', 'status', 'created_by', 'sent_at', 'archived_at',
     ];
 
@@ -31,6 +31,19 @@ class HrDocument extends Model
     public function template()
     {
         return $this->belongsTo(HrDocumentTemplate::class, 'hr_document_template_id');
+    }
+
+    public function letterhead()
+    {
+        return $this->belongsTo(LetterheadTemplate::class, 'letterhead_id');
+    }
+
+    /** Letterhead to render with: the document's own, else its template's, else the workspace default. */
+    public function effectiveLetterhead(): ?LetterheadTemplate
+    {
+        return $this->letterhead
+            ?? optional($this->template)->letterhead
+            ?? LetterheadTemplate::default();
     }
 
     public function signers()

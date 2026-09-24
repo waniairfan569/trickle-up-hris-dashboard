@@ -4,7 +4,8 @@
     <meta charset="utf-8">
     <style>
         * { font-family: DejaVu Sans, sans-serif; }
-        body { margin: 0; color: #1e293b; font-size: 10px; }
+        @page { margin: 0; }
+        body { margin: 104pt 34pt 92pt 34pt; color: #1e293b; font-size: 10px; }
         .head { border-bottom: 2px solid #1B2D5E; padding-bottom: 8px; margin-bottom: 10px; }
         .head h1 { margin: 0; font-size: 16px; color: #1B2D5E; }
         .meta { margin-top: 3px; font-size: 9px; color: #64748b; }
@@ -24,6 +25,7 @@
     </style>
 </head>
 <body>
+    @include('reports._letterhead')
     @php $c = $totals['currency']; $money = fn ($v) => $c . ' ' . number_format((float) $v, 2); @endphp
     <div class="head">
         <h1>Leave Encashment Report</h1>

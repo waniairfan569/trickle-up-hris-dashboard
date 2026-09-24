@@ -80,6 +80,20 @@
                 @endforeach
             </div>
 
+            @isset($letterheads)
+            @if($letterheads->isNotEmpty())
+            <div class="mt-5 bg-white rounded-2xl border border-slate-200/80 shadow-sm p-5 dark:bg-slate-800 dark:border-slate-700">
+                <label class="block text-xs font-bold uppercase tracking-wide text-slate-500 mb-1.5"><i data-lucide="file-signature" class="inline h-3.5 w-3.5 -mt-0.5"></i> Letterhead</label>
+                <select name="letterhead_id" class="w-full sm:w-96 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                    @foreach($letterheads as $lh)
+                        <option value="{{ $lh->id }}" @selected((int) ($letterheadDefault ?? 0) === $lh->id)>{{ $lh->name }}@if($lh->is_default) — default @endif</option>
+                    @endforeach
+                </select>
+                <p class="text-[11px] text-slate-400 mt-1">Branded header/footer on the generated PDF. Pre-set to your default — change it here anytime. Manage them under <a href="{{ route('letterheads.index') }}" class="text-brand-600 font-semibold hover:underline">Letterheads</a>.</p>
+            </div>
+            @endif
+            @endisset
+
             <div class="mt-6 flex items-center justify-end gap-3">
                 <button type="button" @click="preview()" class="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700">
                     <i data-lucide="eye" class="h-4 w-4"></i> Preview
@@ -124,6 +138,8 @@
                 add('template_id', @js($template->id));
                 add('employee_id', @js($employee->id ?? optional($document)->user_id ?? ''));
                 add('data', JSON.stringify(this.values));
+                const lhSel = document.querySelector('select[name="letterhead_id"]');
+                if (lhSel && lhSel.value) add('letterhead_id', lhSel.value);
                 document.body.appendChild(f); f.submit(); f.remove();
             },
 

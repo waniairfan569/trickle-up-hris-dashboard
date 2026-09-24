@@ -22,7 +22,7 @@ class HrDocumentTemplate extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        'name', 'subtitle', 'description', 'icon', 'prefill',
+        'name', 'subtitle', 'description', 'icon', 'prefill', 'letterhead_id',
         'schema', 'is_active', 'is_system', 'sort_order', 'created_by',
     ];
 
@@ -35,6 +35,11 @@ class HrDocumentTemplate extends Model
     public function documents()
     {
         return $this->hasMany(HrDocument::class);
+    }
+
+    public function letterhead()
+    {
+        return $this->belongsTo(LetterheadTemplate::class, 'letterhead_id');
     }
 
     public function scopeActive($query)

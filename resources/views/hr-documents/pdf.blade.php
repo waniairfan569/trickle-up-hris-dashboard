@@ -34,7 +34,7 @@
     </style>
 </head>
 <body>
-    @include('reports._letterhead')
+    @include('reports._letterhead', ['letterhead' => $letterhead ?? null])
 
     @php
         $data = $document->data ?? [];

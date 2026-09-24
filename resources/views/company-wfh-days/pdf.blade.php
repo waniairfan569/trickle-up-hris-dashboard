@@ -4,7 +4,8 @@
     <meta charset="utf-8">
     <style>
         * { font-family: DejaVu Sans, sans-serif; }
-        body { margin: 0; color: #1e293b; font-size: 11px; }
+        @page { margin: 0; }
+        body { margin: 104pt 34pt 92pt 34pt; color: #1e293b; font-size: 11px; }
         .head { border-bottom: 2px solid #1B2D5E; padding-bottom: 8px; margin-bottom: 12px; }
         .head h1 { margin: 0; font-size: 17px; color: #1B2D5E; }
         .head .sub { margin-top: 3px; font-size: 9px; color: #64748b; }
@@ -20,6 +21,7 @@
     </style>
 </head>
 <body>
+    @include('reports._letterhead')
     <div class="head">
         <h1>Company Work-From-Home Days</h1>
         <div class="sub">All employees clock in via the dashboard on these dates · {{ $days->count() }} day(s) on record</div>
