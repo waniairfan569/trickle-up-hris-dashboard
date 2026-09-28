@@ -67,7 +67,7 @@ class HrDocument extends Model
     public function getMeetingDateAttribute(): ?\Illuminate\Support\Carbon
     {
         $field = $this->dateFields()->first(fn ($f) => ($f['id'] ?? null) === 'date_of_meeting'
-            || str_contains(strtolower($f['label'] ?? ''), 'meeting'));
+            || str_contains($this->fieldLabel($f), 'meeting'));
 
         return $field ? $this->dateValue($field['id']) : null;
     }
@@ -81,18 +81,17 @@ class HrDocument extends Model
      */
     public function getLeaveDatesAttribute(): array
     {
-        $label = fn ($f) => strtolower($f['label'] ?? '');
-        $isLeave = fn ($f) => \Illuminate\Support\Str::contains($label($f), ['leave', 'absence', 'absent', 'lateness', 'late', 'unplanned', 'off'])
-            && ! \Illuminate\Support\Str::contains($label($f), ['return', 'meeting', 'notified', 'total']);
+        $isLeave = fn ($f) => \Illuminate\Support\Str::contains($this->fieldLabel($f), ['leave', 'absence', 'absent', 'lateness', 'late', 'unplanned', 'off'])
+            && ! \Illuminate\Support\Str::contains($this->fieldLabel($f), ['return', 'meeting', 'notified', 'total']);
 
         $fromField = $this->dateFields()->first($isLeave);
-        $toField = $this->dateFields()->first(fn ($f) => str_contains($label($f), 'return'));
+        $toField = $this->dateFields()->first(fn ($f) => str_contains($this->fieldLabel($f), 'return'));
 
         $from = $fromField ? $this->dateValue($fromField['id']) : null;
         $to = $toField ? $this->dateValue($toField['id']) : null;
 
         // Free text such as "10 Sep, 12 Sep" that isn't a single parseable date.
-        $raw = $fromField ? trim((string) (($this->data ?? [])[$fromField['id']] ?? '')) : '';
+        $raw = $fromField ? $this->fieldValue($fromField['id']) : '';
         $text = (! $from && $raw !== '') ? \Illuminate\Support\Str::limit($raw, 40) : null;
 
         return ['from' => $from, 'to' => $to, 'text' => $text];
@@ -102,15 +101,41 @@ class HrDocument extends Model
     private function dateFields(): \Illuminate\Support\Collection
     {
         return collect($this->schema)
-            ->flatMap(fn ($s) => $s['fields'] ?? [])
-            ->filter(fn ($f) => ($f['type'] ?? null) === 'date' || str_starts_with(strtolower($f['label'] ?? ''), 'date'))
+            ->flatMap(fn ($s) => is_array($s) ? ($s['fields'] ?? []) : [])
+            ->filter(fn ($f) => is_array($f) && isset($f['id']) && is_string($f['id']))
+            ->filter(fn ($f) => ($f['type'] ?? null) === 'date' || str_starts_with($this->fieldLabel($f), 'date'))
             ->values();
+    }
+
+    /** A schema field's label, lowercased — '' for anything that isn't plain text. */
+    private function fieldLabel($field): string
+    {
+        $label = is_array($field) ? ($field['label'] ?? '') : '';
+
+        return is_string($label) ? strtolower($label) : '';
+    }
+
+    /**
+     * A field's stored value as a trimmed string. Table and checkbox fields hold
+     * ARRAYS (the lateness/absence table prefill writes one), and casting those
+     * to string raises "Array to string conversion" — which Laravel turns into a
+     * thrown ErrorException, so it must never reach a (string) cast.
+     */
+    private function fieldValue(string $fieldId): string
+    {
+        $value = ($this->data ?? [])[$fieldId] ?? '';
+
+        if (! is_scalar($value)) {          // array / object / null → no single date
+            return '';
+        }
+
+        return trim((string) $value);
     }
 
     /** A field's stored value as a Carbon date, or null if empty / not a date. */
     private function dateValue(string $fieldId): ?\Illuminate\Support\Carbon
     {
-        $value = trim((string) (($this->data ?? [])[$fieldId] ?? ''));
+        $value = $this->fieldValue($fieldId);
         if ($value === '') {
             return null;
         }
