@@ -157,10 +157,14 @@ class EmployeeProfileController extends Controller
      */
     private function buildLatenessDocData(\App\Models\User $employee): array
     {
-        $latenessTpl = \App\Models\HrDocumentTemplate::where('prefill', 'lateness')->orderByDesc('is_active')->orderBy('id')->first();
-        $absenceTpl  = \App\Models\HrDocumentTemplate::where('prefill', 'absence')->orderByDesc('is_active')->orderBy('id')->first();
+        // Resolved by the generator itself, so the panel can never look for a
+        // template the nightly job wouldn't have used (or vice versa).
+        $generator   = app(\App\Services\HrDocumentAutoGenerator::class);
+        $latenessTpl = $generator->latenessTemplate();
+        $absenceTpl  = $generator->absenceTemplate();
 
-        $from = now()->subDays(90)->toDateString();
+        $window = \App\Services\HrDocumentAutoGenerator::LOOKBACK_DAYS;
+        $from = now()->subDays($window)->toDateString();
 
         // Status from a document (or null).
         $status = function ($doc) {
@@ -220,6 +224,7 @@ class EmployeeProfileController extends Controller
             'hasAbsenceTpl'  => (bool) $absenceTpl,
             'latenessRows'   => $latenessRows,
             'returnRows'     => $returnRows,
+            'windowDays'     => $window,
             'latenessMonths' => collect(range(0, 2))->map(fn ($i) => now()->subMonths($i)->format('Y-m')),
         ];
     }

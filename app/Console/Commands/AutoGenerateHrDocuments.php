@@ -20,13 +20,13 @@ use Illuminate\Support\Carbon;
  */
 class AutoGenerateHrDocuments extends Command
 {
-    protected $signature = 'documents:auto-generate {--lookback=45 : How many days back to catch up}';
+    protected $signature = 'documents:auto-generate {--lookback= : How many days back to catch up (default: the panel window)}';
 
     protected $description = 'Auto-create draft Lateness Review / Return to Work documents from attendance events.';
 
     public function handle(HrDocumentAutoGenerator $generator): int
     {
-        $lookback = (int) $this->option('lookback');
+        $lookback = (int) ($this->option('lookback') ?: HrDocumentAutoGenerator::LOOKBACK_DAYS);
         $manager = app(TenantManager::class);
         $tenants = Tenant::all();
         $created = 0;

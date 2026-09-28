@@ -22,20 +22,50 @@ use Illuminate\Support\Carbon;
  */
 class HrDocumentAutoGenerator
 {
+    /**
+     * How far back to catch up. The profile panel lists late days / returned
+     * leaves over this same window, so anything it shows is reachable by the
+     * nightly run — they must not drift apart.
+     */
+    public const LOOKBACK_DAYS = 90;
+
     public function __construct(private HrDocumentPrefillService $prefiller) {}
 
     public function latenessTemplate(): ?HrDocumentTemplate
     {
-        return HrDocumentTemplate::where('prefill', 'lateness')->orderByDesc('is_active')->orderBy('id')->first();
+        return $this->templateFor('lateness', ['lateness']);
     }
 
     public function absenceTemplate(): ?HrDocumentTemplate
     {
-        return HrDocumentTemplate::where('prefill', 'absence')->orderByDesc('is_active')->orderBy('id')->first();
+        return $this->templateFor('absence', ['return to work', 'return-to-work', 'absence']);
+    }
+
+    /**
+     * The template carrying this attendance prefill marker. Saving a template
+     * with the "Attendance prefill" dropdown left blank clears the marker,
+     * which silently switches auto-generation off — so fall back to matching
+     * the template by name before giving up.
+     */
+    private function templateFor(string $prefill, array $nameHints): ?HrDocumentTemplate
+    {
+        $marked = HrDocumentTemplate::where('prefill', $prefill)
+            ->orderByDesc('is_active')->orderBy('id')->first();
+        if ($marked) {
+            return $marked;
+        }
+
+        return HrDocumentTemplate::whereNull('prefill')
+            ->where(function ($q) use ($nameHints) {
+                foreach ($nameHints as $hint) {
+                    $q->orWhere('name', 'like', '%' . $hint . '%');
+                }
+            })
+            ->orderByDesc('is_active')->orderBy('id')->first();
     }
 
     /** Per-day lateness + per-leave return-to-work drafts for one employee. Returns count created. */
-    public function generateForEmployee(User $employee, int $lookbackDays = 45): int
+    public function generateForEmployee(User $employee, int $lookbackDays = self::LOOKBACK_DAYS): int
     {
         $today = Carbon::today();
 
@@ -44,7 +74,7 @@ class HrDocumentAutoGenerator
     }
 
     /** One Lateness Review draft per late day (up to yesterday), if not already made. */
-    public function perDayLateness(User $employee, Carbon $today, int $lookbackDays = 45): int
+    public function perDayLateness(User $employee, Carbon $today, int $lookbackDays = self::LOOKBACK_DAYS): int
     {
         $template = $this->latenessTemplate();
         if (! $template) {
@@ -71,7 +101,7 @@ class HrDocumentAutoGenerator
     }
 
     /** A Return to Work Form draft per completed (non-WFH) leave the employee has returned from. */
-    public function returnToWork(User $employee, Carbon $today, int $lookbackDays = 45): int
+    public function returnToWork(User $employee, Carbon $today, int $lookbackDays = self::LOOKBACK_DAYS): int
     {
         $template = $this->absenceTemplate();
         if (! $template) {

@@ -751,7 +751,16 @@
                 </div>
 
                 <div>
-                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Late days · last 90 days</h3>
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Late days · last {{ $latenessDocData['windowDays'] }} days</h3>
+                    @unless($latenessDocData['hasLatenessTpl'])
+                        {{-- Without a lateness template nothing can generate — say so, rather than
+                             showing every row as "Not generated" with no explanation. --}}
+                        <p class="mb-2 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-800 dark:bg-amber-500/10 dark:border-amber-500/20 dark:text-amber-300">
+                            <i data-lucide="alert-triangle" class="h-3.5 w-3.5 inline -mt-0.5"></i>
+                            No Lateness Review template found, so these can't generate. Open it under
+                            <a href="{{ route('hr-documents.index') }}" class="font-bold underline">HR Documents</a> → Edit and set <b>Attendance prefill</b> to <b>Lateness</b>.
+                        </p>
+                    @endunless
                     <div class="rounded-xl border border-slate-100 dark:border-slate-700/60 divide-y divide-slate-100 dark:divide-slate-700/60 max-h-72 overflow-y-auto">
                         @forelse($latenessDocData['latenessRows'] as $row)
                             @php [$lbl, $cls] = $ldBadge[$row->status]; @endphp
@@ -767,13 +776,13 @@
                                 @endif
                             </div>
                         @empty
-                            <div class="px-4 py-4 text-sm text-slate-400">No late days in the last 90 days.</div>
+                            <div class="px-4 py-4 text-sm text-slate-400">No late days in the last {{ $latenessDocData['windowDays'] }} days.</div>
                         @endforelse
                     </div>
                 </div>
 
                 <div>
-                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Returned from leave · last 90 days</h3>
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Returned from leave · last {{ $latenessDocData['windowDays'] }} days</h3>
                     <div class="rounded-xl border border-slate-100 dark:border-slate-700/60 divide-y divide-slate-100 dark:divide-slate-700/60 max-h-72 overflow-y-auto">
                         @forelse($latenessDocData['returnRows'] as $row)
                             @php [$lbl, $cls] = $ldBadge[$row->status]; @endphp
@@ -792,7 +801,7 @@
                                 @endif
                             </div>
                         @empty
-                            <div class="px-4 py-4 text-sm text-slate-400">No completed leaves in the last 90 days.</div>
+                            <div class="px-4 py-4 text-sm text-slate-400">No completed leaves in the last {{ $latenessDocData['windowDays'] }} days.</div>
                         @endforelse
                     </div>
                 </div>

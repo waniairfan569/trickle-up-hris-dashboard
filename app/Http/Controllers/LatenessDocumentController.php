@@ -16,8 +16,14 @@ class LatenessDocumentController extends Controller
     /** Catch up any missing per-day lateness + return-to-work drafts for this employee now. */
     public function generate(Request $request, User $employee)
     {
-        $lookback = (int) $request->input('lookback', 90);
+        $lookback = (int) $request->input('lookback', \App\Services\HrDocumentAutoGenerator::LOOKBACK_DAYS);
         $count = $this->generator->generateForEmployee($employee, $lookback);
+
+        if ($count === 0 && ! $this->generator->latenessTemplate()) {
+            return redirect()
+                ->route('employees.profile', ['employee' => $employee->id, 'section' => 'timetracking'])
+                ->with('error', 'No Lateness Review template found, so no lateness drafts could be created. Open it under HR Documents → Edit and set “Attendance prefill” to “Lateness”.');
+        }
 
         return redirect()
             ->route('employees.profile', ['employee' => $employee->id, 'section' => 'timetracking'])
@@ -48,6 +54,14 @@ class LatenessDocumentController extends Controller
     {
         $data = $request->validate(['month' => 'required|date_format:Y-m']);
         $month = Carbon::createFromFormat('Y-m', $data['month'])->startOfMonth();
+
+        // A missing template and a clean month both produce no document — don't
+        // report a configuration problem as "no late days".
+        if (! $this->generator->latenessTemplate()) {
+            return redirect()
+                ->route('employees.profile', ['employee' => $employee->id, 'section' => 'timetracking'])
+                ->with('error', 'No Lateness Review template found. Open it under HR Documents → Edit and set “Attendance prefill” to “Lateness”.');
+        }
 
         $doc = $this->generator->generateMonthlyLateness($employee, $month, $request->user()->id);
 
