@@ -718,6 +718,9 @@
                 'completed' => ['Completed', 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400'],
                 'signed'    => ['Signed', 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400'],
             ];
+            // Blade recompiles as soon as this file changes, but OPcache can still be
+            // serving the previous controller — never hard-fail on a key it may not set.
+            $ldWindow = $latenessDocData['windowDays'] ?? 90;
         @endphp
         <div class="bg-white border border-slate-200/80 dark:border-slate-700 rounded-2xl shadow-sm dark:bg-slate-800 overflow-hidden">
             <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center gap-3">
@@ -751,7 +754,7 @@
                 </div>
 
                 <div>
-                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Late days · last {{ $latenessDocData['windowDays'] }} days</h3>
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Late days · last {{ $ldWindow }} days</h3>
                     @unless($latenessDocData['hasLatenessTpl'])
                         {{-- Without a lateness template nothing can generate — say so, rather than
                              showing every row as "Not generated" with no explanation. --}}
@@ -776,13 +779,13 @@
                                 @endif
                             </div>
                         @empty
-                            <div class="px-4 py-4 text-sm text-slate-400">No late days in the last {{ $latenessDocData['windowDays'] }} days.</div>
+                            <div class="px-4 py-4 text-sm text-slate-400">No late days in the last {{ $ldWindow }} days.</div>
                         @endforelse
                     </div>
                 </div>
 
                 <div>
-                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Returned from leave · last {{ $latenessDocData['windowDays'] }} days</h3>
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Returned from leave · last {{ $ldWindow }} days</h3>
                     <div class="rounded-xl border border-slate-100 dark:border-slate-700/60 divide-y divide-slate-100 dark:divide-slate-700/60 max-h-72 overflow-y-auto">
                         @forelse($latenessDocData['returnRows'] as $row)
                             @php [$lbl, $cls] = $ldBadge[$row->status]; @endphp
@@ -801,7 +804,7 @@
                                 @endif
                             </div>
                         @empty
-                            <div class="px-4 py-4 text-sm text-slate-400">No completed leaves in the last {{ $latenessDocData['windowDays'] }} days.</div>
+                            <div class="px-4 py-4 text-sm text-slate-400">No completed leaves in the last {{ $ldWindow }} days.</div>
                         @endforelse
                     </div>
                 </div>
