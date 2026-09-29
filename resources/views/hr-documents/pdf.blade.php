@@ -40,7 +40,7 @@
         $data = $document->data ?? [];
         $fmtDate = function ($v) {
             if (! $v) return '';
-            try { return \Illuminate\Support\Carbon::parse($v)->format('d M Y'); } catch (\Throwable $e) { return $v; }
+            try { return \Illuminate\Support\Carbon::parse($v)->format('d M Y'); } catch (\Throwable $e) { return hr_field_text($v); }
         };
         // Group a section's fields into printable rows: half-width inline fields
         // (and signatures) pair two-per-row; textarea/table/note span full width.
@@ -103,7 +103,7 @@
                 @elseif($type === 'textarea')
                     <tr>
                         <td class="lbl">{{ $f['label'] }}</td>
-                        <td class="val" colspan="3" style="min-height:34pt;">{!! nl2br(e($v)) !!}</td>
+                        <td class="val" colspan="3" style="min-height:34pt;">{!! nl2br(e(hr_field_text($v, "\n"))) !!}</td>
                     </tr>
 
                 @elseif($type === 'signature')
@@ -141,7 +141,7 @@
                                 @elseif($itype === 'date')
                                     {{ $fmtDate($iv) }}
                                 @else
-                                    {{ is_array($iv) ? implode(', ', $iv) : $iv }}
+                                    {{ hr_field_text($iv) }}
                                 @endif
                             </td>
                         @endforeach

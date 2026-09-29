@@ -58,3 +58,40 @@ if (!function_exists('userdate')) {
         return app(TimezoneService::class)->formatDateForUser($utcTime, $user, $withTime);
     }
 }
+
+if (!function_exists('hr_field_text')) {
+    /**
+     * A stored HR-document field value rendered as plain text.
+     *
+     * Field values are whatever the builder or the attendance prefill produced:
+     * a string, a list of checkbox options, or a TABLE — a list of row arrays,
+     * which is what the lateness / absence prefill writes. imploding a nested
+     * array raises "Array to string conversion", and Laravel's error handler
+     * turns that into a thrown ErrorException (a 500 on any page rendering the
+     * document), so every renderer formats values through here.
+     */
+    function hr_field_text($value, string $glue = ', '): string
+    {
+        if ($value === null || is_bool($value)) {
+            return '';
+        }
+
+        if (is_scalar($value)) {
+            return trim((string) $value);
+        }
+
+        if (!is_array($value)) {
+            return '';
+        }
+
+        $parts = [];
+        foreach ($value as $item) {
+            $text = is_array($item) ? hr_field_text($item, ' · ') : hr_field_text($item);
+            if ($text !== '') {
+                $parts[] = $text;
+            }
+        }
+
+        return implode($glue, $parts);
+    }
+}

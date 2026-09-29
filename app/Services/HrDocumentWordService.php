@@ -169,7 +169,7 @@ class HrDocumentWordService
                 break;
 
             case 'textarea':
-                foreach (preg_split('/\r\n|\r|\n/', (string) $value) as $ln) {
+                foreach (preg_split('/\r\n|\r|\n/', hr_field_text($value, "\n")) as $ln) {
                     $cell->addText($ln, ['size' => 9]);
                 }
                 break;
@@ -179,7 +179,7 @@ class HrDocumentWordService
                 break;
 
             default:
-                $cell->addText(is_array($value) ? implode(', ', $value) : (string) $value, ['size' => 9]);
+                $cell->addText(hr_field_text($value), ['size' => 9]);
         }
     }
 
@@ -207,7 +207,7 @@ class HrDocumentWordService
         try {
             return Carbon::parse($v)->format('d M Y');
         } catch (\Throwable $e) {
-            return (string) $v;
+            return hr_field_text($v);
         }
     }
 }

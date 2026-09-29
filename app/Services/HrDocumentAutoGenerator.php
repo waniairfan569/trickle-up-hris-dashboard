@@ -33,34 +33,44 @@ class HrDocumentAutoGenerator
 
     public function latenessTemplate(): ?HrDocumentTemplate
     {
-        return $this->templateFor('lateness', ['lateness']);
+        return $this->templateFor('lateness', ['lateness'], ['return to work']);
     }
 
     public function absenceTemplate(): ?HrDocumentTemplate
     {
-        return $this->templateFor('absence', ['return to work', 'return-to-work', 'absence']);
+        return $this->templateFor('absence', ['return to work', 'return-to-work', 'absence'], ['lateness']);
     }
 
     /**
-     * The template carrying this attendance prefill marker. Saving a template
-     * with the "Attendance prefill" dropdown left blank clears the marker,
-     * which silently switches auto-generation off — so fall back to matching
-     * the template by name before giving up.
+     * The template for one kind of auto-document.
+     *
+     * Prefers the explicit "Attendance prefill" marker, but never accepts a
+     * template whose NAME says it is the other kind: a swapped or mis-set
+     * marker would otherwise make lateness days and leave returns both
+     * generate the same document. Saving a template with the prefill dropdown
+     * blank clears the marker entirely, so the name is also used as a fallback.
      */
-    private function templateFor(string $prefill, array $nameHints): ?HrDocumentTemplate
+    private function templateFor(string $prefill, array $nameHints, array $excludeHints = []): ?HrDocumentTemplate
     {
+        $notTheOtherKind = function ($q) use ($excludeHints) {
+            foreach ($excludeHints as $hint) {
+                $q->where('name', 'not like', '%' . $hint . '%');
+            }
+        };
+
         $marked = HrDocumentTemplate::where('prefill', $prefill)
+            ->where($notTheOtherKind)
             ->orderByDesc('is_active')->orderBy('id')->first();
         if ($marked) {
             return $marked;
         }
 
-        return HrDocumentTemplate::whereNull('prefill')
-            ->where(function ($q) use ($nameHints) {
+        return HrDocumentTemplate::where(function ($q) use ($nameHints) {
                 foreach ($nameHints as $hint) {
                     $q->orWhere('name', 'like', '%' . $hint . '%');
                 }
             })
+            ->where($notTheOtherKind)
             ->orderByDesc('is_active')->orderBy('id')->first();
     }
 

@@ -45,7 +45,7 @@
                     @else
                         <div class="{{ $half ? 'col-span-2 sm:col-span-1' : 'col-span-2' }}">
                             <div class="text-xs font-bold uppercase tracking-wide text-slate-500 mb-1">{{ $field['label'] }}</div>
-                            <div class="text-sm text-slate-800 dark:text-slate-100 min-h-[1.25rem] whitespace-pre-line">{{ is_array($v) ? implode(', ', $v) : ($v ?: '—') }}</div>
+                            <div class="text-sm text-slate-800 dark:text-slate-100 min-h-[1.25rem] whitespace-pre-line">{{ hr_field_text($v) ?: '—' }}</div>
                         </div>
                     @endif
                 @endforeach
