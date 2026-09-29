@@ -75,8 +75,11 @@
                     <select x-model="meta.prefill" class="{{ $inp }}">
                         <option value="">None</option>
                         <option value="lateness">Lateness (late days)</option>
-                        <option value="absence">Absence (absent days)</option>
+                        <option value="absence">Return to work (full/half-day leave)</option>
+                        <option value="hourly">Unplanned leave — hourly</option>
+                        <option value="wfh">Work from home</option>
                     </select>
+                    <p class="mt-1 text-[11px] text-slate-400">Which attendance event auto-drafts this document.</p>
                 </div>
                 <div>
                     <label class="block text-xs font-bold uppercase tracking-wide text-slate-500 mb-1.5">Icon (lucide name)</label>

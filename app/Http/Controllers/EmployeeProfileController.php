@@ -207,9 +207,13 @@ class EmployeeProfileController extends Controller
             ->unique(fn ($lv) => \Illuminate\Support\Carbon::parse($lv->start_date)->toDateString() . '|' . \Illuminate\Support\Carbon::parse($lv->end_date)->toDateString())
             ->values();
 
-        $absenceDocs = $absenceTpl
+        // A leave return may use the return-to-work, hourly or WFH form, so look
+        // for its document under any of them.
+        $returnTplIds = $generator->returnTemplateIds();
+
+        $absenceDocs = $returnTplIds
             ? \App\Models\HrDocument::where('user_id', $employee->id)
-                ->where('hr_document_template_id', $absenceTpl->id)
+                ->whereIn('hr_document_template_id', $returnTplIds)
                 ->with('signers')->get()
                 ->keyBy(fn ($d) => optional($d->period_start)->toDateString() . '|' . optional($d->period_end)->toDateString())
             : collect();
@@ -221,7 +225,7 @@ class EmployeeProfileController extends Controller
 
         return [
             'hasLatenessTpl' => (bool) $latenessTpl,
-            'hasAbsenceTpl'  => (bool) $absenceTpl,
+            'hasAbsenceTpl'  => ! empty($returnTplIds),
             'latenessRows'   => $latenessRows,
             'returnRows'     => $returnRows,
             'windowDays'     => $window,

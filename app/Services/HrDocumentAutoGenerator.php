@@ -33,28 +33,41 @@ class HrDocumentAutoGenerator
 
     public function latenessTemplate(): ?HrDocumentTemplate
     {
-        return $this->templateFor('lateness', ['lateness'], ['return to work']);
+        return $this->templateFor('lateness', ['lateness'], ['return to work', 'work from home', 'hourly']);
     }
 
+    /** The general return-to-work form: a full-/half-day unplanned absence. */
     public function absenceTemplate(): ?HrDocumentTemplate
     {
-        return $this->templateFor('absence', ['return to work', 'return-to-work', 'absence'], ['lateness']);
+        return $this->templateFor('absence', ['return to work', 'return-to-work', 'absence'], ['lateness', 'work from home', 'hourly']);
+    }
+
+    /** The form for an leave taken by the hour, if the workspace has one. */
+    public function hourlyLeaveTemplate(): ?HrDocumentTemplate
+    {
+        return $this->templateFor('hourly', ['hourly'], ['lateness']);
+    }
+
+    /** The work-from-home form, if the workspace has one. */
+    public function wfhTemplate(): ?HrDocumentTemplate
+    {
+        return $this->templateFor('wfh', ['work from home', 'wfh'], ['lateness', 'return to work']);
     }
 
     /**
      * The template for one kind of auto-document.
      *
      * Prefers the explicit "Attendance prefill" marker, but never accepts a
-     * template whose NAME says it is the other kind: a swapped or mis-set
-     * marker would otherwise make lateness days and leave returns both
-     * generate the same document. Saving a template with the prefill dropdown
-     * blank clears the marker entirely, so the name is also used as a fallback.
+     * template whose NAME says it is a different kind: a swapped or mis-set
+     * marker would otherwise make two kinds of event generate the same
+     * document. Saving a template with the prefill dropdown blank clears the
+     * marker entirely, so the name is also used as a fallback.
      */
     private function templateFor(string $prefill, array $nameHints, array $excludeHints = []): ?HrDocumentTemplate
     {
         $notTheOtherKind = function ($q) use ($excludeHints) {
             foreach ($excludeHints as $hint) {
-                $q->where('name', 'not like', '%' . $hint . '%');
+                $q->whereRaw('LOWER(name) NOT LIKE ?', ['%' . $hint . '%']);
             }
         };
 
@@ -67,7 +80,7 @@ class HrDocumentAutoGenerator
 
         return HrDocumentTemplate::where(function ($q) use ($nameHints) {
                 foreach ($nameHints as $hint) {
-                    $q->orWhere('name', 'like', '%' . $hint . '%');
+                    $q->orWhereRaw('LOWER(name) LIKE ?', ['%' . $hint . '%']);
                 }
             })
             ->where($notTheOtherKind)
@@ -110,11 +123,14 @@ class HrDocumentAutoGenerator
         return $created;
     }
 
-    /** A Return to Work Form draft per completed (non-WFH) leave the employee has returned from. */
+    /**
+     * A return document per completed leave the employee has returned from,
+     * using the form that fits the leave — see returnTemplateFor().
+     */
     public function returnToWork(User $employee, Carbon $today, int $lookbackDays = self::LOOKBACK_DAYS): int
     {
-        $template = $this->absenceTemplate();
-        if (! $template) {
+        $templateIds = $this->returnTemplateIds();
+        if (empty($templateIds)) {
             return 0;
         }
 
@@ -124,16 +140,24 @@ class HrDocumentAutoGenerator
             ->whereDate('end_date', '<', $today->toDateString())
             ->whereDate('end_date', '>=', $today->copy()->subDays($lookbackDays)->toDateString())
             ->orderBy('start_date')
+            ->with('policy')
             ->get();
 
         $created = 0;
         $seen = [];
         foreach ($leaves as $leave) {
+            $template = $this->returnTemplateFor($leave);
+            if (! $template) {
+                continue;
+            }
+
             $start = Carbon::parse($leave->start_date)->startOfDay();
             $end = Carbon::parse($leave->end_date)->startOfDay();
-            // Don't create two docs for the same period (e.g. two leaves on the same dates).
+            // One return document per period, whichever return form it used — so
+            // two leaves on the same dates, or a re-run after this mapping
+            // changed, never produce a second copy.
             $key = $start->toDateString() . '|' . $end->toDateString();
-            if (isset($seen[$key]) || $this->exists($employee, $template, $start, $end)) {
+            if (isset($seen[$key]) || $this->existsForAny($employee, $templateIds, $start, $end)) {
                 continue;
             }
             $seen[$key] = true;
@@ -142,6 +166,33 @@ class HrDocumentAutoGenerator
         }
 
         return $created;
+    }
+
+    /**
+     * Which form a returned-from leave gets:
+     *   work-from-home    → the Work from Home form
+     *   taken by the hour → the hourly unplanned-leave form
+     *   otherwise         → the Return to Work form
+     * Each falls back to the Return to Work form when that template doesn't exist.
+     */
+    public function returnTemplateFor(TimeOffRequest $leave): ?HrDocumentTemplate
+    {
+        if (optional($leave->policy)->isWorkFromHome() && ($wfh = $this->wfhTemplate())) {
+            return $wfh;
+        }
+
+        if ($leave->duration_type === 'hourly' && ($hourly = $this->hourlyLeaveTemplate())) {
+            return $hourly;
+        }
+
+        return $this->absenceTemplate();
+    }
+
+    /** Every template a return document could have been created under. */
+    public function returnTemplateIds(): array
+    {
+        return collect([$this->absenceTemplate(), $this->hourlyLeaveTemplate(), $this->wfhTemplate()])
+            ->filter()->pluck('id')->unique()->values()->all();
     }
 
     /** The consolidated monthly Lateness Review (all late days of the month). Admin-triggered; idempotent. */
@@ -222,6 +273,16 @@ class HrDocumentAutoGenerator
     private function exists(User $employee, HrDocumentTemplate $template, Carbon $start, Carbon $end): bool
     {
         return $this->baseQuery($employee, $template, $start, $end)->exists();
+    }
+
+    /** Does a document for this period already exist under ANY of these templates? */
+    private function existsForAny(User $employee, array $templateIds, Carbon $start, Carbon $end): bool
+    {
+        return HrDocument::where('user_id', $employee->id)
+            ->whereIn('hr_document_template_id', $templateIds)
+            ->whereDate('period_start', $start->toDateString())
+            ->whereDate('period_end', $end->toDateString())
+            ->exists();
     }
 
     private function find(User $employee, HrDocumentTemplate $template, Carbon $start, Carbon $end): ?HrDocument
