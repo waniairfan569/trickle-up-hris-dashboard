@@ -163,6 +163,34 @@
             </p>
         @endif
 
+        {{-- Tick boxes live in the table but post through this form, so they never
+             nest inside the per-row action forms. --}}
+        <div x-data="{
+                selected: [],
+                allIds: {{ Illuminate\Support\Js::from($documents->pluck('id')->map(fn ($i) => (string) $i)->values()) }},
+                toggleAll(checked) { this.selected = checked ? [...this.allIds] : []; },
+                get allChecked() { return this.allIds.length > 0 && this.selected.length === this.allIds.length; }
+             }">
+            <form id="bulk-docs-form" method="POST" action="{{ route('hr-documents.bulk-destroy') }}"
+                  @submit="if (! confirm('Move ' + selected.length + ' document(s) to Deleted? You can restore them anytime.')) $event.preventDefault()">
+                @csrf @method('DELETE')
+            </form>
+
+            {{-- Selection bar — only while something is ticked --}}
+            <div x-show="selected.length > 0" x-cloak
+                 class="mb-2 flex flex-wrap items-center gap-3 rounded-xl border border-brand-200 bg-brand-50 px-4 py-2.5 dark:border-brand-500/30 dark:bg-brand-500/10">
+                <span class="text-sm font-bold text-slate-800 dark:text-slate-100">
+                    <span x-text="selected.length"></span> selected
+                </span>
+                <button type="submit" form="bulk-docs-form"
+                        class="inline-flex items-center gap-1.5 rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-rose-700 transition">
+                    <i data-lucide="trash-2" class="h-3.5 w-3.5"></i> Delete selected
+                </button>
+                <button type="button" @click="selected = []"
+                        class="text-xs font-semibold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200">Clear</button>
+                <span class="text-[11px] text-slate-500 dark:text-slate-400">Deleted documents can be restored from the Deleted list.</span>
+            </div>
+
         <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden dark:bg-slate-800 dark:border-slate-700">
             @if($documents->isEmpty())
                 <div class="p-8 text-center text-sm text-slate-500">
@@ -176,6 +204,11 @@
                 <table class="w-full text-sm">
                     <thead>
                         <tr class="text-left text-xs font-semibold uppercase tracking-wide text-slate-400 border-b border-slate-100 dark:border-slate-700">
+                            <th class="pl-5 pr-2 py-3 w-10">
+                                <input type="checkbox" title="Select all on this page"
+                                       :checked="allChecked" @change="toggleAll($event.target.checked)"
+                                       class="rounded border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-900">
+                            </th>
                             <th class="px-5 py-3">Employee</th>
                             <th class="px-5 py-3">Document</th>
                             <th class="px-5 py-3">Period</th>
@@ -189,13 +222,18 @@
                         @foreach($documents->groupBy(fn ($d) => $docDate($d)->format('Y-m')) as $ym => $monthDocs)
                             {{-- Month header: the list is grouped by when each document was sent (created, for drafts) --}}
                             <tr class="bg-slate-50/80 dark:bg-slate-900/40">
-                                <td colspan="7" class="px-5 py-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                                <td colspan="8" class="px-5 py-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-400">
                                     {{ \Illuminate\Support\Carbon::createFromFormat('Y-m', $ym)->format('F Y') }}
                                     <span class="ml-1 font-semibold normal-case tracking-normal text-slate-400/80">· {{ $monthDocs->count() }} {{ Str::plural('document', $monthDocs->count()) }}</span>
                                 </td>
                             </tr>
                         @foreach($monthDocs as $doc)
-                            <tr class="hover:bg-slate-50/70 dark:hover:bg-slate-700/40">
+                            <tr class="hover:bg-slate-50/70 dark:hover:bg-slate-700/40" :class="selected.includes('{{ $doc->id }}') && 'bg-brand-50/60 dark:bg-brand-500/5'">
+                                <td class="pl-5 pr-2 py-3">
+                                    <input type="checkbox" name="ids[]" form="bulk-docs-form" value="{{ $doc->id }}" x-model="selected"
+                                           aria-label="Select {{ $doc->template_name }} for {{ optional($doc->employee)->full_name ?? 'employee' }}"
+                                           class="rounded border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-900">
+                                </td>
                                 <td class="px-5 py-3 font-semibold text-slate-800 dark:text-slate-200">{{ optional($doc->employee)->full_name ?? '—' }}</td>
                                 <td class="px-5 py-3 text-slate-600 dark:text-slate-300">{{ $doc->template_name }}</td>
                                 <td class="px-5 py-3 text-slate-500">{{ optional($doc->period_start)->format('M Y') ?? '—' }}</td>
@@ -279,6 +317,7 @@
                     </tbody>
                 </table>
             @endif
+        </div>
         </div>
     </section>
 </div>

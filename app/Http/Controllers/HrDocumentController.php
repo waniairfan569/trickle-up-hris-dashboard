@@ -387,6 +387,32 @@ class HrDocumentController extends Controller
             ->with('success', 'Document moved to Deleted — you can restore it anytime.');
     }
 
+    /** Move several documents to Deleted at once (tick boxes on the list). */
+    public function bulkDestroy(Request $request)
+    {
+        $data = $request->validate([
+            'ids'   => 'required|array|max:500',
+            'ids.*' => 'integer',
+        ], [
+            'ids.required' => 'Select at least one document first.',
+        ]);
+
+        // Tenant-scoped, so only documents this workspace can see are touched.
+        $documents = HrDocument::whereIn('id', $data['ids'])->get();
+        foreach ($documents as $document) {
+            $document->delete();
+        }
+
+        $count = $documents->count();
+
+        return back()->with(
+            $count ? 'success' : 'error',
+            $count
+                ? $count . ' ' . Str::plural('document', $count) . ' moved to Deleted — you can restore them anytime.'
+                : 'Nothing was deleted — those documents are no longer available.'
+        );
+    }
+
     /** Deleted (soft-deleted) documents — restore or remove permanently. */
     public function deleted()
     {

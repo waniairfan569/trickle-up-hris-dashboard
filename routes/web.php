@@ -352,6 +352,8 @@ Route::middleware(['auth', 'verified', 'force.password.change'])->group(function
         // Fill / manage filled documents ('create'/'preview' before the {document} catch-all)
         Route::get('create', [\App\Http\Controllers\HrDocumentController::class, 'create'])->name('create');
         Route::get('deleted', [\App\Http\Controllers\HrDocumentController::class, 'deleted'])->name('deleted');
+        // Tick boxes on the list, then delete them together (literal — before {document}).
+        Route::delete('bulk', [\App\Http\Controllers\HrDocumentController::class, 'bulkDestroy'])->name('bulk-destroy');
         Route::post('preview', [\App\Http\Controllers\HrDocumentController::class, 'preview'])->name('preview');
         Route::post('/', [\App\Http\Controllers\HrDocumentController::class, 'store'])->name('store');
         Route::get('{document}/edit', [\App\Http\Controllers\HrDocumentController::class, 'edit'])->name('edit');
