@@ -11,6 +11,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class HrDocumentController extends Controller
 {
@@ -59,7 +60,13 @@ class HrDocumentController extends Controller
 
         $filters = array_filter(['q' => $search, 'date_from' => $dateFrom, 'date_to' => $dateTo]);
 
-        return view('hr-documents.index', compact('templates', 'documents', 'showArchived', 'archivedCount', 'search', 'dateFrom', 'dateTo', 'filters'));
+        // Which attendance event auto-drafts which template, as the generator
+        // actually resolves it — so the page shows the real mapping, not intent.
+        $generator = app(\App\Services\HrDocumentAutoGenerator::class);
+        $triggers = \App\Services\HrDocumentAutoGenerator::TRIGGERS;
+        $triggerTemplates = $generator->resolvedTriggers();
+
+        return view('hr-documents.index', compact('templates', 'documents', 'showArchived', 'archivedCount', 'search', 'dateFrom', 'dateTo', 'filters', 'triggers', 'triggerTemplates'));
     }
 
     // ── Template builder ───────────────────────────────────────────
@@ -105,6 +112,43 @@ class HrDocumentController extends Controller
 
         return redirect()->route('hr-documents.index')
             ->with('success', 'Template deleted.');
+    }
+
+    /**
+     * Set (or clear) the attendance event that auto-drafts this template —
+     * the picker on each template card, so admins control which document goes
+     * with which event without opening the builder.
+     */
+    public function setTemplateTrigger(Request $request, HrDocumentTemplate $template)
+    {
+        $triggers = \App\Services\HrDocumentAutoGenerator::TRIGGERS;
+
+        $data = $request->validate([
+            'prefill' => ['nullable', Rule::in(array_keys($triggers))],
+        ]);
+        $trigger = $data['prefill'] ?? null;
+
+        // One template per event: hand the event over rather than leaving two
+        // templates claiming it, where only one would ever be used.
+        $previous = null;
+        if ($trigger) {
+            $previous = HrDocumentTemplate::where('prefill', $trigger)
+                ->where('id', '!=', $template->id)->get();
+            foreach ($previous as $other) {
+                $other->forceFill(['prefill' => null])->save();
+            }
+        }
+
+        $template->forceFill(['prefill' => $trigger])->save();
+
+        $message = $trigger
+            ? "“{$template->name}” is now used for {$triggers[$trigger]}."
+            : "“{$template->name}” no longer auto-drafts — create it manually.";
+        if ($previous && $previous->isNotEmpty()) {
+            $message .= ' Taken over from “' . $previous->pluck('name')->join('”, “') . '”.';
+        }
+
+        return redirect()->route('hr-documents.index')->with('success', $message);
     }
 
     // ── Fill / edit a document ─────────────────────────────────────

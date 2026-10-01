@@ -71,13 +71,12 @@
                     <input type="text" x-model="meta.description" placeholder="Shown on the template card" class="{{ $inp }}">
                 </div>
                 <div>
-                    <label class="block text-xs font-bold uppercase tracking-wide text-slate-500 mb-1.5">Attendance prefill</label>
+                    <label class="block text-xs font-bold uppercase tracking-wide text-slate-500 mb-1.5">Auto-drafts for</label>
                     <select x-model="meta.prefill" class="{{ $inp }}">
-                        <option value="">None</option>
-                        <option value="lateness">Lateness (late days)</option>
-                        <option value="absence">Return to work (full/half-day leave)</option>
-                        <option value="hourly">Unplanned leave — hourly</option>
-                        <option value="wfh">Work from home</option>
+                        <option value="">Nothing — create manually</option>
+                        @foreach(\App\Services\HrDocumentAutoGenerator::TRIGGERS as $key => $label)
+                            <option value="{{ $key }}">{{ $label }}</option>
+                        @endforeach
                     </select>
                     <p class="mt-1 text-[11px] text-slate-400">Which attendance event auto-drafts this document.</p>
                 </div>

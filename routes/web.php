@@ -346,6 +346,8 @@ Route::middleware(['auth', 'verified', 'force.password.change'])->group(function
         Route::get('templates/{template}/edit', [\App\Http\Controllers\HrDocumentController::class, 'editTemplate'])->name('templates.edit');
         Route::put('templates/{template}', [\App\Http\Controllers\HrDocumentController::class, 'updateTemplate'])->name('templates.update');
         Route::delete('templates/{template}', [\App\Http\Controllers\HrDocumentController::class, 'destroyTemplate'])->name('templates.destroy');
+        // Which attendance event auto-drafts this template (picker on the template card).
+        Route::post('templates/{template}/trigger', [\App\Http\Controllers\HrDocumentController::class, 'setTemplateTrigger'])->name('templates.trigger');
 
         // Fill / manage filled documents ('create'/'preview' before the {document} catch-all)
         Route::get('create', [\App\Http\Controllers\HrDocumentController::class, 'create'])->name('create');

@@ -29,61 +29,71 @@ class HrDocumentAutoGenerator
      */
     public const LOOKBACK_DAYS = 90;
 
+    /**
+     * The attendance events that auto-draft a document, and the label an admin
+     * sees. A template's `prefill` marker names the event it answers — this is
+     * the list behind the picker on the Documents page and in the builder.
+     */
+    public const TRIGGERS = [
+        'lateness' => 'Late days',
+        'absence'  => 'Leave returns — full / half day',
+        'hourly'   => 'Leave returns — hourly',
+        'wfh'      => 'Work-from-home returns',
+    ];
+
     public function __construct(private HrDocumentPrefillService $prefiller) {}
 
     public function latenessTemplate(): ?HrDocumentTemplate
     {
-        return $this->templateFor('lateness', ['lateness'], ['return to work', 'work from home', 'hourly']);
+        return $this->templateFor('lateness');
     }
 
     /** The general return-to-work form: a full-/half-day unplanned absence. */
     public function absenceTemplate(): ?HrDocumentTemplate
     {
-        return $this->templateFor('absence', ['return to work', 'return-to-work', 'absence'], ['lateness', 'work from home', 'hourly']);
+        return $this->templateFor('absence');
     }
 
-    /** The form for an leave taken by the hour, if the workspace has one. */
+    /** The form for a leave taken by the hour, if the workspace assigned one. */
     public function hourlyLeaveTemplate(): ?HrDocumentTemplate
     {
-        return $this->templateFor('hourly', ['hourly'], ['lateness']);
+        return $this->templateFor('hourly');
     }
 
-    /** The work-from-home form, if the workspace has one. */
+    /** The work-from-home form, if the workspace assigned one. */
     public function wfhTemplate(): ?HrDocumentTemplate
     {
-        return $this->templateFor('wfh', ['work from home', 'wfh'], ['lateness', 'return to work']);
+        return $this->templateFor('wfh');
     }
 
     /**
-     * The template for one kind of auto-document.
+     * Which template each attendance event actually resolves to right now —
+     * what the Documents page shows the admin, so the mapping is never a guess.
      *
-     * Prefers the explicit "Attendance prefill" marker, but never accepts a
-     * template whose NAME says it is a different kind: a swapped or mis-set
-     * marker would otherwise make two kinds of event generate the same
-     * document. Saving a template with the prefill dropdown blank clears the
-     * marker entirely, so the name is also used as a fallback.
+     * @return array<string, ?HrDocumentTemplate> keyed by TRIGGERS key
      */
-    private function templateFor(string $prefill, array $nameHints, array $excludeHints = []): ?HrDocumentTemplate
+    public function resolvedTriggers(): array
     {
-        $notTheOtherKind = function ($q) use ($excludeHints) {
-            foreach ($excludeHints as $hint) {
-                $q->whereRaw('LOWER(name) NOT LIKE ?', ['%' . $hint . '%']);
-            }
-        };
+        return [
+            'lateness' => $this->latenessTemplate(),
+            'absence'  => $this->absenceTemplate(),
+            'hourly'   => $this->hourlyLeaveTemplate(),
+            'wfh'      => $this->wfhTemplate(),
+        ];
+    }
 
-        $marked = HrDocumentTemplate::where('prefill', $prefill)
-            ->where($notTheOtherKind)
-            ->orderByDesc('is_active')->orderBy('id')->first();
-        if ($marked) {
-            return $marked;
-        }
-
-        return HrDocumentTemplate::where(function ($q) use ($nameHints) {
-                foreach ($nameHints as $hint) {
-                    $q->orWhereRaw('LOWER(name) LIKE ?', ['%' . $hint . '%']);
-                }
-            })
-            ->where($notTheOtherKind)
+    /**
+     * The template assigned to this event on the Documents page.
+     *
+     * The assignment is the only thing consulted: guessing from the template
+     * name as well would quietly override what an admin picked, and the page
+     * would then be showing a mapping the generator doesn't follow. Installs
+     * that predate the picker had their assignments backfilled by name (see
+     * the assign_hr_document_triggers migration).
+     */
+    private function templateFor(string $trigger): ?HrDocumentTemplate
+    {
+        return HrDocumentTemplate::where('prefill', $trigger)
             ->orderByDesc('is_active')->orderBy('id')->first();
     }
 
