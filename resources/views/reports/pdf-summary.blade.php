@@ -33,11 +33,16 @@
     @php
         $n = fn ($v) => rtrim(rtrim(number_format((float) $v, 1), '0'), '.');
         $t = $data['totals'];
+
+        // Narrowed report: only the ticked columns are shown.
+        $cats  = $data['categories'] ?? [];
+        $shows = fn (string $c) => empty($cats) || in_array($c, $cats, true);
+        $cols  = 2 + (int) $shows('late') + (int) $shows('absent') + (int) $shows('planned') + (int) $shows('unplanned') + (int) $shows('wfh');
     @endphp
 
     <table class="doc-title">
         <tr>
-            <td class="t">All-Employees Summary <span class="per">· {{ $data['period_label'] }}</span></td>
+            <td class="t">All-Employees Summary <span class="per">· {{ $data['period_label'] }}@if(!empty($data['filter_label'])) · {{ $data['filter_label'] }} only @endif</span></td>
             <td class="conf"><span>CONFIDENTIAL</span></td>
         </tr>
     </table>
@@ -50,10 +55,11 @@
                 <tr>
                     <th class="l">Employee</th>
                     <th>Present</th>
-                    <th>Late</th>
-                    <th>Absent</th>
-                    <th>Planned leave</th>
-                    <th>Unplanned leave</th>
+                    @if($shows('late'))<th>Late</th>@endif
+                    @if($shows('absent'))<th>Absent</th>@endif
+                    @if($shows('planned'))<th>Planned leave</th>@endif
+                    @if($shows('unplanned'))<th>Unplanned leave</th>@endif
+                    @if($shows('wfh'))<th>Work from home</th>@endif
                     <th>Missing clock-out</th>
                 </tr>
             </thead>
@@ -65,23 +71,25 @@
                         <div class="dept">{{ $row['department'] }}</div>
                     </td>
                     <td class="g">{{ $row['present'] }}</td>
-                    <td class="a">{{ $row['late'] ?: '—' }}</td>
-                    <td class="r">{{ $row['absent'] ?: '—' }}</td>
-                    <td>{{ $row['planned'] ? $n($row['planned']) : '—' }}</td>
-                    <td>{{ $row['unplanned'] ? $n($row['unplanned']) : '—' }}</td>
+                    @if($shows('late'))<td class="a">{{ $row['late'] ?: '—' }}</td>@endif
+                    @if($shows('absent'))<td class="r">{{ $row['absent'] ?: '—' }}</td>@endif
+                    @if($shows('planned'))<td>{{ $row['planned'] ? $n($row['planned']) : '—' }}</td>@endif
+                    @if($shows('unplanned'))<td>{{ $row['unplanned'] ? $n($row['unplanned']) : '—' }}</td>@endif
+                    @if($shows('wfh'))<td>{{ ($row['wfh'] ?? 0) ? $n($row['wfh']) : '—' }}</td>@endif
                     <td class="o">{{ $row['missing_clock_out'] ?: '—' }}</td>
                 </tr>
             @empty
-                <tr><td colspan="7" style="padding:20pt; text-align:center; color:#94A3B8;">No employees to report.</td></tr>
+                <tr><td colspan="{{ $cols }}" style="padding:20pt; text-align:center; color:#94A3B8;">No employees to report.</td></tr>
             @endforelse
             @if(count($data['rows']))
                 <tr class="tot">
                     <td class="l">Total ({{ $data['count'] }})</td>
                     <td>{{ $t['present'] }}</td>
-                    <td>{{ $t['late'] }}</td>
-                    <td>{{ $t['absent'] }}</td>
-                    <td>{{ $n($t['planned']) }}</td>
-                    <td>{{ $n($t['unplanned']) }}</td>
+                    @if($shows('late'))<td>{{ $t['late'] }}</td>@endif
+                    @if($shows('absent'))<td>{{ $t['absent'] }}</td>@endif
+                    @if($shows('planned'))<td>{{ $n($t['planned']) }}</td>@endif
+                    @if($shows('unplanned'))<td>{{ $n($t['unplanned']) }}</td>@endif
+                    @if($shows('wfh'))<td>{{ $n($t['wfh'] ?? 0) }}</td>@endif
                     <td>{{ $t['missing_clock_out'] }}</td>
                 </tr>
             @endif

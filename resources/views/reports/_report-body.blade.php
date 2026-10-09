@@ -9,6 +9,12 @@
     $daily = $att['daily_breakdown'];
     $showDaily = count($daily) > 0 && count($daily) <= 45;   // whole-year daily tables would be huge
 
+    // When the report is narrowed to particular categories, leave-related
+    // sections only make sense if a leave category was among them.
+    $filtered = ! empty($meta['categories']);
+    $shows = fn (string $c) => ! $filtered || in_array($c, $meta['categories'], true);
+    $showsAnyLeave = $shows('planned') || $shows('unplanned') || $shows('wfh');
+
     $statusLabel = [
         'present' => 'Present', 'late' => 'Late ⚠', 'absent' => 'Absent ✗',
         'overtime' => 'Overtime', 'early_departure' => 'Early out', 'on_leave' => 'On leave',
@@ -21,7 +27,7 @@
 <!-- Title bar -->
 <table class="doc-title">
     <tr>
-        <td class="t">{{ $emp['name'] }} <span class="per">· {{ $meta['period_label'] }}</span></td>
+        <td class="t">{{ $emp['name'] }} <span class="per">· {{ $meta['period_label'] }}@if($filtered) · {{ $meta['filter_label'] }} only @endif</span></td>
         <td class="conf"><span>CONFIDENTIAL</span></td>
     </tr>
 </table>
@@ -63,7 +69,7 @@
     <!-- Daily attendance -->
     @if($showDaily)
         <div class="sec">
-            <div class="sec-title">Daily Attendance</div>
+            <div class="sec-title">Daily Attendance {!! $filtered ? '— ' . e($meta['filter_label']) . ' only' : '' !!}</div>
             <table class="data">
                 <thead><tr><th>Date</th><th>Day</th><th>In</th><th>Out</th><th>Hours</th><th class="num">Late</th><th>Status</th></tr></thead>
                 @foreach($daily as $d)
@@ -82,6 +88,7 @@
     @endif
 
     <!-- Leave balances -->
+    @if($showsAnyLeave)
     <div class="sec">
         <div class="sec-title">Leave Summary &amp; Balances ({{ $period['end'] ? \Illuminate\Support\Str::afterLast($period['end'],' ') : '' }})</div>
         @if(count($lv['balances']))
@@ -108,6 +115,7 @@
             <div class="muted" style="font-size:8pt;">No leave balances on record for this year.</div>
         @endif
     </div>
+    @endif
 
     <!-- Leave requests in this period -->
     @if(count($lv['by_type']))

@@ -28,8 +28,65 @@ class ReportDataService
     /** Policy-name keywords that mark a leave as "unplanned". */
     private const UNPLANNED = ['unplanned', 'casual', 'sick', 'emergency'];
 
-    public function getEmployeeReportData(User $employee, Carbon $startDate, Carbon $endDate, string $reportType): array
+    /**
+     * What a report can be narrowed to. Ticking a subset on the generator
+     * limits the day-by-day rows, the leave breakdown and the summary columns
+     * to those categories; ticking none means the whole report.
+     */
+    public const CATEGORIES = [
+        'late'      => 'Late arrivals',
+        'absent'    => 'Absences',
+        'planned'   => 'Planned leave',
+        'unplanned' => 'Unplanned leave',
+        'wfh'       => 'Work from home',
+    ];
+
+    /** Keep only known category keys; an empty result means "everything". */
+    public static function sanitizeCategories(?array $categories): array
     {
+        $clean = array_values(array_intersect($categories ?? [], array_keys(self::CATEGORIES)));
+
+        // All of them selected is the same as no filter at all.
+        return count($clean) === count(self::CATEGORIES) ? [] : $clean;
+    }
+
+    /** Which category a leave policy falls under: wfh, unplanned or planned. */
+    private function leaveCategory(?string $policyName): string
+    {
+        $name = Str::lower((string) $policyName);
+
+        if (Str::contains($name, ['work from home', 'wfh'])) {
+            return 'wfh';
+        }
+
+        return Str::contains($name, self::UNPLANNED) ? 'unplanned' : 'planned';
+    }
+
+    /**
+     * date (Y-m-d) => category, for every day covered by an approved leave, so
+     * an "on leave" attendance row can say which kind of leave it was.
+     *
+     * @param  \Illuminate\Support\Collection<int, TimeOffRequest>  $leaveRequests
+     */
+    private function leaveDayCategories(Collection $leaveRequests): array
+    {
+        $map = [];
+        foreach ($leaveRequests as $leave) {
+            $category = $this->leaveCategory(optional($leave->policy)->name);
+            $cursor = Carbon::parse($leave->start_date)->startOfDay();
+            $end = Carbon::parse($leave->end_date)->startOfDay();
+            while ($cursor->lte($end)) {
+                $map[$cursor->toDateString()] = $category;
+                $cursor->addDay();
+            }
+        }
+
+        return $map;
+    }
+
+    public function getEmployeeReportData(User $employee, Carbon $startDate, Carbon $endDate, string $reportType, array $categories = []): array
+    {
+        $categories = self::sanitizeCategories($categories);
         // ── Attendance ──────────────────────────────────────────────
         $records = AttendanceRecord::where('user_id', $employee->id)
             ->whereBetween('date', [$startDate->toDateString(), $endDate->toDateString()])
@@ -52,8 +109,6 @@ class ReportDataService
         $totalOvertimeMin = (int) $records->sum('overtime_minutes');
         $attendanceRate   = $workingDays > 0 ? round(($presentDays / $workingDays) * 100, 1) : 0;
 
-        $dailyBreakdown = $this->buildDailyBreakdown($records, $employee);
-
         // ── Leaves ──────────────────────────────────────────────────
         $leaveRequests = TimeOffRequest::where('user_id', $employee->id)
             ->where('status', 'approved')
@@ -63,6 +118,19 @@ class ReportDataService
             })
             ->with('policy')
             ->get();
+
+        $dailyBreakdown = $this->buildDailyBreakdown($records, $employee, $this->leaveDayCategories($leaveRequests));
+
+        // Narrowed report: keep only the days and leave types that were ticked.
+        if ($categories) {
+            $dailyBreakdown = array_values(array_filter(
+                $dailyBreakdown,
+                fn ($row) => $row['category'] && in_array($row['category'], $categories, true)
+            ));
+            $leaveRequests = $leaveRequests
+                ->filter(fn ($r) => in_array($this->leaveCategory(optional($r->policy)->name), $categories, true))
+                ->values();
+        }
 
         $leaveByType = $leaveRequests
             ->groupBy(fn ($r) => optional($r->policy)->name ?? 'Leave')
@@ -139,6 +207,10 @@ class ReportDataService
                 'generated_at' => now()->format('d M Y h:i A'),
                 'period_label' => $startDate->format('d M Y') . ' – ' . $endDate->format('d M Y'),
                 'generated_by' => auth()->user() ? auth()->user()->full_name : 'System',
+                'categories'   => $categories,
+                'filter_label' => $categories
+                    ? implode(', ', array_map(fn ($c) => self::CATEGORIES[$c], $categories))
+                    : null,
             ],
             'employee' => [
                 'name'       => $employee->full_name,
@@ -187,21 +259,22 @@ class ReportDataService
      * Consolidated one-row-per-employee summary for the "All Employees" report:
      * present / late / absent, planned vs unplanned leave, WFH and hours.
      */
-    public function getSummaryData(Collection $employees, Carbon $startDate, Carbon $endDate, bool $withDaily = false): array
+    public function getSummaryData(Collection $employees, Carbon $startDate, Carbon $endDate, bool $withDaily = false, array $categories = []): array
     {
-        $rows = $employees->map(fn ($emp) => $this->summaryRow($emp, $startDate, $endDate, $withDaily))->values()->all();
+        $categories = self::sanitizeCategories($categories);
+        $rows = $employees->map(fn ($emp) => $this->summaryRow($emp, $startDate, $endDate, $withDaily, $categories))->values()->all();
 
-        $totals = ['present' => 0, 'late' => 0, 'absent' => 0, 'planned' => 0, 'unplanned' => 0, 'missing_clock_out' => 0];
+        $totals = ['present' => 0, 'late' => 0, 'absent' => 0, 'planned' => 0, 'unplanned' => 0, 'wfh' => 0, 'missing_clock_out' => 0];
         foreach ($rows as $r) {
             foreach ($totals as $k => $_) {
                 $totals[$k] += $r[$k];
             }
         }
 
-        return ['rows' => $rows, 'totals' => $totals];
+        return ['rows' => $rows, 'totals' => $totals, 'categories' => $categories];
     }
 
-    private function summaryRow(User $employee, Carbon $startDate, Carbon $endDate, bool $withDaily = false): array
+    private function summaryRow(User $employee, Carbon $startDate, Carbon $endDate, bool $withDaily = false, array $categories = []): array
     {
         $records = AttendanceRecord::where('user_id', $employee->id)
             ->whereBetween('date', [$startDate->toDateString(), $endDate->toDateString()])
@@ -215,11 +288,10 @@ class ReportDataService
         $minutes = (int) $records->sum('total_minutes_worked');
         $workingDays = $this->scheduledWorkingDays($employee, $startDate, $endDate);
 
-        // Planned / unplanned leave days. Work From Home is not leave, so it
-        // never lands in either column.
+        // Leave days split by category. Work From Home is not leave, so it gets
+        // its own column rather than landing in planned or unplanned.
         $leaveRequests = TimeOffRequest::where('user_id', $employee->id)
             ->where('status', 'approved')
-            ->excludingWorkFromHome()
             ->where(function ($q) use ($startDate, $endDate) {
                 $q->whereBetween('start_date', [$startDate->toDateString(), $endDate->toDateString()])
                   ->orWhereBetween('end_date', [$startDate->toDateString(), $endDate->toDateString()]);
@@ -227,14 +299,17 @@ class ReportDataService
             ->with('policy')
             ->get();
 
-        $planned = 0.0;
-        $unplanned = 0.0;
+        $days = ['planned' => 0.0, 'unplanned' => 0.0, 'wfh' => 0.0];
         foreach ($leaveRequests as $lv) {
-            if (Str::contains(Str::lower(optional($lv->policy)->name ?? ''), self::UNPLANNED)) {
-                $unplanned += (float) $lv->days_requested;
-            } else {
-                $planned += (float) $lv->days_requested;
-            }
+            $days[$this->leaveCategory(optional($lv->policy)->name)] += (float) $lv->days_requested;
+        }
+
+        $daily = $withDaily ? $this->buildDailyBreakdown($records, $employee, $this->leaveDayCategories($leaveRequests)) : [];
+        if ($categories && $daily) {
+            $daily = array_values(array_filter(
+                $daily,
+                fn ($row) => $row['category'] && in_array($row['category'], $categories, true)
+            ));
         }
 
         return [
@@ -243,21 +318,25 @@ class ReportDataService
             'present'           => $present,
             'late'              => $late,
             'absent'            => $absent,
-            'planned'           => round($planned, 2),
-            'unplanned'         => round($unplanned, 2),
+            'planned'           => round($days['planned'], 2),
+            'unplanned'         => round($days['unplanned'], 2),
+            'wfh'               => round($days['wfh'], 2),
             'missing_clock_out' => $missing,
             'minutes'           => $minutes,
             'working_days'      => $workingDays,
-            'daily'             => $withDaily ? $this->buildDailyBreakdown($records, $employee) : [],
+            'daily'             => $daily,
         ];
     }
 
     /** Per-day rows for an employee: date, day, local clock in/out, hours, status, late/OT. */
-    private function buildDailyBreakdown($records, User $employee): array
+    private function buildDailyBreakdown($records, User $employee, array $leaveDayCategories = []): array
     {
         return $records->sortBy('date')->map(fn ($r) => [
             'date'         => $r->date->format('d M Y'),
             'day'          => $r->date->format('D'),
+            // Which filter category this day belongs to, or null if it is an
+            // ordinary worked day that no category covers.
+            'category'     => $this->dayCategory($r, $leaveDayCategories),
             // Convert stored clock times into the employee's local timezone.
             'clock_in'     => $r->clock_in ? $this->tz->toUserTime($r->clock_in->copy(), $employee)->format('h:i A') : '—',
             'clock_out'    => $r->clock_out ? $this->tz->toUserTime($r->clock_out->copy(), $employee)->format('h:i A') : '—',
@@ -268,6 +347,26 @@ class ReportDataService
             'late_minutes' => (int) ($r->late_minutes ?? 0),
             'overtime_min' => (int) ($r->overtime_minutes ?? 0),
         ])->values()->all();
+    }
+
+    /**
+     * The filter category one attendance day falls under. A day covered by an
+     * approved leave takes that leave's category (so a work-from-home day is
+     * WFH even though the record says "on leave"); otherwise late and absent
+     * days map to themselves, and a plain worked day belongs to none.
+     */
+    private function dayCategory(AttendanceRecord $record, array $leaveDayCategories): ?string
+    {
+        $onDate = $leaveDayCategories[$record->date->toDateString()] ?? null;
+        if ($onDate) {
+            return $onDate;
+        }
+
+        return match ($record->status) {
+            'late'   => 'late',
+            'absent' => 'absent',
+            default  => null,
+        };
     }
 
     /**

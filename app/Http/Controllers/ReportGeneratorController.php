@@ -44,6 +44,9 @@ class ReportGeneratorController extends Controller
             'date_from'    => 'required_if:report_type,custom|nullable|date',
             'date_to'      => 'required_if:report_type,custom|nullable|date|after_or_equal:date_from',
             'output'       => 'required|in:pdf,preview',
+            // Narrow the report to these categories; none ticked means everything.
+            'categories'   => 'nullable|array',
+            'categories.*' => 'in:' . implode(',', array_keys(\App\Services\ReportDataService::CATEGORIES)),
         ]);
 
         // A full-company, day-wise PDF builds a large DomPDF frame tree in memory
@@ -185,11 +188,12 @@ class ReportGeneratorController extends Controller
     private function renderReport(array $p): array
     {
         [$startDate, $endDate, $periodLabel] = $this->getDateRange($p);
+        $categories = \App\Services\ReportDataService::sanitizeCategories($p['categories'] ?? []);
 
         // ── Single employee ────────────────────────────────────────
         if (($p['report_scope'] ?? null) === 'single') {
             $employee = User::with(['department', 'manager', 'workSchedule'])->findOrFail($p['employee_id']);
-            $data = $this->reports->getEmployeeReportData($employee, $startDate, $endDate, $p['report_type']);
+            $data = $this->reports->getEmployeeReportData($employee, $startDate, $endDate, $p['report_type'], $categories);
 
             $meta = ['period_label' => $periodLabel, 'employee_name' => $employee->full_name];
 
@@ -205,12 +209,16 @@ class ReportGeneratorController extends Controller
         // ── All employees → one consolidated summary table ─────────
         $employees = $this->activeEmployees(['department', 'workSchedule']);
         $withDaily = $startDate->diffInDays($endDate) <= 45;
-        $summary = $this->reports->getSummaryData($employees, $startDate, $endDate, $withDaily);
+        $summary = $this->reports->getSummaryData($employees, $startDate, $endDate, $withDaily, $categories);
 
         $data = [
             'period_label' => $periodLabel,
             'rows'         => $summary['rows'],
             'totals'       => $summary['totals'],
+            'categories'   => $categories,
+            'filter_label' => $categories
+                ? implode(', ', array_map(fn ($c) => \App\Services\ReportDataService::CATEGORIES[$c], $categories))
+                : null,
             'count'        => count($summary['rows']),
             'generated_at' => now()->format('d M Y h:i A'),
             'generated_by' => auth()->user() ? auth()->user()->full_name : 'System',
