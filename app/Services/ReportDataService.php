@@ -262,7 +262,23 @@ class ReportDataService
     public function getSummaryData(Collection $employees, Carbon $startDate, Carbon $endDate, bool $withDaily = false, array $categories = []): array
     {
         $categories = self::sanitizeCategories($categories);
-        $rows = $employees->map(fn ($emp) => $this->summaryRow($emp, $startDate, $endDate, $withDaily, $categories))->values()->all();
+        $rows = $employees->map(fn ($emp) => $this->summaryRow($emp, $startDate, $endDate, $withDaily, $categories));
+
+        // Narrowed report: list only the people who actually have something in
+        // the chosen categories, instead of 60 rows of dashes.
+        if ($categories) {
+            $rows = $rows->filter(function ($row) use ($categories) {
+                foreach ($categories as $category) {
+                    if (($row[$category] ?? 0) > 0) {
+                        return true;
+                    }
+                }
+
+                return false;
+            });
+        }
+
+        $rows = $rows->values()->all();
 
         $totals = ['present' => 0, 'late' => 0, 'absent' => 0, 'planned' => 0, 'unplanned' => 0, 'wfh' => 0, 'missing_clock_out' => 0];
         foreach ($rows as $r) {

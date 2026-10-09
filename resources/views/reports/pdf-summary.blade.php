@@ -47,7 +47,13 @@
         </tr>
     </table>
 
-    <div class="sum-caption">{{ $data['count'] }} employee{{ $data['count'] == 1 ? '' : 's' }} · attendance &amp; leave totals for the period</div>
+    <div class="sum-caption">
+        @if(!empty($data['filter_label']))
+            {{ $data['count'] }} employee{{ $data['count'] == 1 ? '' : 's' }} with {{ strtolower($data['filter_label']) }} in this period
+        @else
+            {{ $data['count'] }} employee{{ $data['count'] == 1 ? '' : 's' }} · attendance &amp; leave totals for the period
+        @endif
+    </div>
 
     <div style="padding: 0 26pt;">
         <table class="sum">
@@ -79,7 +85,7 @@
                     <td class="o">{{ $row['missing_clock_out'] ?: '—' }}</td>
                 </tr>
             @empty
-                <tr><td colspan="{{ $cols }}" style="padding:20pt; text-align:center; color:#94A3B8;">No employees to report.</td></tr>
+                <tr><td colspan="{{ $cols }}" style="padding:20pt; text-align:center; color:#94A3B8;">@if(!empty($data['filter_label'])){{ 'No employee had ' . strtolower($data['filter_label']) . ' in this period.' }}@else{{ 'No employees to report.' }}@endif</td></tr>
             @endforelse
             @if(count($data['rows']))
                 <tr class="tot">
