@@ -265,17 +265,13 @@ class ReportDataService
         $rows = $employees->map(fn ($emp) => $this->summaryRow($emp, $startDate, $endDate, $withDaily, $categories));
 
         // Narrowed report: list only the people who actually have something in
-        // the chosen categories, instead of 60 rows of dashes.
+        // the chosen categories, worst first — the point of asking for "late
+        // arrivals" is to see who is late most. Ties keep their name order,
+        // since sortByDesc is stable and the rows arrive sorted by name.
         if ($categories) {
-            $rows = $rows->filter(function ($row) use ($categories) {
-                foreach ($categories as $category) {
-                    if (($row[$category] ?? 0) > 0) {
-                        return true;
-                    }
-                }
+            $total = fn ($row) => array_sum(array_map(fn ($c) => (float) ($row[$c] ?? 0), $categories));
 
-                return false;
-            });
+            $rows = $rows->filter(fn ($row) => $total($row) > 0)->sortByDesc($total);
         }
 
         $rows = $rows->values()->all();
