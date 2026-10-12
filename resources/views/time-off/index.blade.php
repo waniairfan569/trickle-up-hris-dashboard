@@ -1090,8 +1090,12 @@
                     <p class="text-xs text-slate-500 dark:text-slate-400" x-text="ret.label"></p>
                     {{-- One-day leave: the only possible return date is the day itself, so
                          fill it in rather than asking the employee to choose it. --}}
+                    {{-- Both branches stay in the DOM — x-show only hides them — and a
+                         hidden input is still submitted. Both carry a `return_date`, and
+                         the later one wins, so without `disabled` the empty range picker
+                         wiped out the single-day value and the save was refused. --}}
                     <div x-show="ret.single" x-cloak>
-                        <input type="hidden" name="return_date" :value="ret.single ? ret.min : ''">
+                        <input type="hidden" name="return_date" :value="ret.min" :disabled="! ret.single">
                         <p class="text-[12px] text-slate-500 dark:text-slate-400">
                             You'll be working as normal that day and the full day goes back to your
                             balance once HR approves.
@@ -1101,12 +1105,12 @@
                         <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1.5">Days you're giving back</label>
                         <div class="grid grid-cols-2 gap-3">
                             <div>
-                                <input type="date" name="return_date" x-model="ret.from" :min="ret.min" :max="ret.max" :required="! ret.single"
+                                <input type="date" name="return_date" x-model="ret.from" :min="ret.min" :max="ret.max" :required="! ret.single" :disabled="ret.single"
                                        class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
                                 <p class="text-[11px] text-slate-400 mt-1">From</p>
                             </div>
                             <div>
-                                <input type="date" name="return_to" x-model="ret.to" :min="ret.from || ret.min" :max="ret.max" :required="! ret.single"
+                                <input type="date" name="return_to" x-model="ret.to" :min="ret.from || ret.min" :max="ret.max" :required="! ret.single" :disabled="ret.single"
                                        class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
                                 <p class="text-[11px] text-slate-400 mt-1">To</p>
                             </div>
