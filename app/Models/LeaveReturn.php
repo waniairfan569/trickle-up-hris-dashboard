@@ -19,6 +19,7 @@ class LeaveReturn extends Model
         'time_off_request_id',
         'user_id',
         'return_date',
+        'return_to',
         'days_returned',
         'status',
         'reason',
@@ -29,6 +30,7 @@ class LeaveReturn extends Model
 
     protected $casts = [
         'return_date' => 'date',
+        'return_to' => 'date',
         'days_returned' => 'decimal:2',
         'reviewed_at' => 'datetime',
     ];
