@@ -397,8 +397,31 @@
             </table>
         </div>
         
-        <div class="px-6 py-4 border-t border-slate-100 dark:border-slate-700/60">
-            {{ $employees->links() }}
+        <div class="flex flex-wrap items-center justify-between gap-4 px-6 py-4 border-t border-slate-100 dark:border-slate-700/60">
+            {{-- Rows per page. Changing it keeps every filter and search term and
+                 goes back to page 1, since page 3 of 10 may not exist at 50. --}}
+            <label class="flex items-center gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
+                Show
+                <select onchange="
+                            const u = new URL(window.location);
+                            u.searchParams.set('per_page', this.value);
+                            u.searchParams.delete('page');
+                            window.location = u;
+                        "
+                        class="rounded-lg border border-slate-300 py-1.5 pl-2.5 pr-7 text-xs font-semibold text-slate-700 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200">
+                    @foreach(\App\Http\Controllers\EmployeeController::PER_PAGE_OPTIONS as $size)
+                        <option value="{{ $size }}" @selected($employees->perPage() === $size)>{{ $size }}</option>
+                    @endforeach
+                </select>
+                per page
+                {{-- Laravel drops its whole pager, count line included, once
+                     everything fits on one page. State the count ourselves so it
+                     does not disappear the moment someone picks a larger size. --}}
+                <span class="font-normal text-slate-400">
+                    · {{ $employees->total() === 0 ? 'no results' : $employees->firstItem() . '–' . $employees->lastItem() . ' of ' . $employees->total() }}
+                </span>
+            </label>
+            <div>{{ $employees->links() }}</div>
         </div>
     </div>
 

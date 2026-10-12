@@ -24,6 +24,9 @@ class EmployeeController extends Controller
         $this->hrPermissionService = $hrPermissionService;
     }
 
+    /** Rows-per-page sizes offered on the employee list. */
+    public const PER_PAGE_OPTIONS = [10, 20, 50, 100];
+
     /**
      * Display a listing of the resource.
      */
@@ -105,7 +108,13 @@ class EmployeeController extends Controller
                 break;
         }
 
-        $employees = $query->paginate(10)->withQueryString();
+        // How many rows per page, chosen by the viewer. Anything not offered in
+        // the dropdown falls back to 10 rather than being honoured.
+        $perPage = in_array((int) $request->input('per_page'), self::PER_PAGE_OPTIONS, true)
+            ? (int) $request->input('per_page')
+            : 10;
+
+        $employees = $query->paginate($perPage)->withQueryString();
 
         // Pass all departments and roles for the filter dropdowns (ignoring scope for dropdown options for simplicity)
         $departments = \App\Models\Department::pluck('name');
