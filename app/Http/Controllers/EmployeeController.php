@@ -108,11 +108,17 @@ class EmployeeController extends Controller
                 break;
         }
 
-        // How many rows per page, chosen by the viewer. Anything not offered in
-        // the dropdown falls back to 10 rather than being honoured.
-        $perPage = in_array((int) $request->input('per_page'), self::PER_PAGE_OPTIONS, true)
-            ? (int) $request->input('per_page')
-            : 10;
+        // How many rows per page, chosen by the viewer. "All" means everything
+        // this search matched, counted after the filters. Anything else not
+        // offered in the dropdown falls back to 10 rather than being honoured.
+        $perPageChoice = (string) $request->input('per_page', '10');
+        $perPage = $perPageChoice === 'all'
+            ? max(1, (clone $query)->count())
+            : (in_array((int) $perPageChoice, self::PER_PAGE_OPTIONS, true) ? (int) $perPageChoice : 10);
+
+        if ($perPageChoice !== 'all' && ! in_array((int) $perPageChoice, self::PER_PAGE_OPTIONS, true)) {
+            $perPageChoice = '10';
+        }
 
         $employees = $query->paginate($perPage)->withQueryString();
 
@@ -129,7 +135,7 @@ class EmployeeController extends Controller
             ->whereDate('end_date', '>=', today())
             ->pluck('user_id')->flip();
 
-        return view('employees.index', compact('employees', 'departments', 'rolesMap', 'entities', 'jobLocations', 'wfhTodayIds'));
+        return view('employees.index', compact('employees', 'departments', 'rolesMap', 'entities', 'jobLocations', 'wfhTodayIds', 'perPageChoice'));
     }
 
     /**

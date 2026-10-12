@@ -410,8 +410,9 @@
                         "
                         class="rounded-lg border border-slate-300 py-1.5 pl-2.5 pr-7 text-xs font-semibold text-slate-700 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200">
                     @foreach(\App\Http\Controllers\EmployeeController::PER_PAGE_OPTIONS as $size)
-                        <option value="{{ $size }}" @selected($employees->perPage() === $size)>{{ $size }}</option>
+                        <option value="{{ $size }}" @selected($perPageChoice === (string) $size)>{{ $size }}</option>
                     @endforeach
+                    <option value="all" @selected($perPageChoice === 'all')>All</option>
                 </select>
                 per page
                 {{-- Laravel drops its whole pager, count line included, once
