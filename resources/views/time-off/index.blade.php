@@ -886,10 +886,13 @@
         <div class="p-4 border-b border-slate-200 bg-slate-50 dark:bg-slate-900/50 dark:border-slate-700 flex gap-4 items-center">
             <form action="{{ route('time-off.index') }}" method="GET" class="flex gap-4 items-center">
                 <select name="status" onchange="this.form.submit()" class="rounded-xl border-slate-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 text-sm py-1.5 dark:bg-slate-800 dark:border-slate-600 dark:text-white">
-                    <option value="all" {{ request('status') == 'all' ? 'selected' : '' }}>All Statuses</option>
-                    <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Pending</option>
-                    <option value="approved" {{ request('status') == 'approved' ? 'selected' : '' }}>Approved</option>
-                    <option value="rejected" {{ request('status') == 'rejected' ? 'selected' : '' }}>Rejected</option>
+                    <option value="all" @selected(! request('status') || request('status') === 'all')>All Statuses</option>
+                    <option value="pending" @selected(request('status') === 'pending')>Pending</option>
+                    <option value="approved" @selected(request('status') === 'approved')>Approved</option>
+                    <option value="rejected" @selected(request('status') === 'rejected')>Rejected</option>
+                    {{-- Cancelled requests are a real status in the table, so without
+                         this option they could only be reached by clearing the filter. --}}
+                    <option value="cancelled" @selected(request('status') === 'cancelled')>Cancelled</option>
                 </select>
                 <select name="policy_id" onchange="this.form.submit()" class="rounded-xl border border-slate-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 text-sm py-1.5 dark:bg-slate-800 dark:border-slate-600 dark:text-white">
                     <option value="all">All Policies</option>
