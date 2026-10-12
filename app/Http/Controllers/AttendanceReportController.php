@@ -37,6 +37,7 @@ class AttendanceReportController extends Controller
             'working_days.*' => 'string|in:Mon,Tue,Wed,Thu,Fri,Sat,Sun',
             'late_threshold_minutes' => 'required|integer|min:0|max:60',
             'lateness_review_min_days' => 'required|integer|min:0|max:31',
+            'lateness_prompt_from' => 'nullable|date',
             'report_subject_template' => 'nullable|string|max:255',
             'additional_emails_raw' => 'nullable|string',
         ]);
@@ -64,6 +65,7 @@ class AttendanceReportController extends Controller
             'attach_excel' => $request->boolean('attach_excel'),
             'late_threshold_minutes' => $validated['late_threshold_minutes'],
             'lateness_review_min_days' => $validated['lateness_review_min_days'],
+            'lateness_prompt_from' => $validated['lateness_prompt_from'] ?? null,
             'report_subject_template' => ($validated['report_subject_template'] ?? null) ?: 'Daily Attendance Report — {{date}}',
         ]);
 

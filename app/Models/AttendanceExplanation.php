@@ -6,6 +6,9 @@ use App\Tenancy\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 
+use App\Models\AttendanceReportSettings;
+use App\Models\HrDocument;
+
 /**
  * What the employee said about one attendance exception, given on the day it
  * happened. The month-end Lateness Review fills its date/reason table from
@@ -49,13 +52,40 @@ class AttendanceExplanation extends Model
      */
     public static function outstandingFor(User $employee, int $withinDays = 45)
     {
-        return AttendanceRecord::where('user_id', $employee->id)
+        // Never reach back before the workspace started collecting reasons,
+        // otherwise turning this on asks everyone for weeks of history at once.
+        $from = Carbon::today()->subDays($withinDays);
+        $since = AttendanceReportSettings::getSettings()->lateness_prompt_from ?? null;
+        if ($since && Carbon::parse($since)->gt($from)) {
+            $from = Carbon::parse($since);
+        }
+
+        $days = AttendanceRecord::where('user_id', $employee->id)
             ->where('status', 'late')
             ->where('late_minutes', '>', 0)
-            ->whereBetween('date', [Carbon::today()->subDays($withinDays)->toDateString(), Carbon::today()->toDateString()])
+            ->whereBetween('date', [$from->toDateString(), Carbon::today()->toDateString()])
             ->whereNotIn('id', self::where('user_id', $employee->id)->select('attendance_record_id'))
             ->orderByDesc('date')
             ->get();
+
+        if ($days->isEmpty()) {
+            return $days;
+        }
+
+        // A day already written up in a lateness document has been dealt with —
+        // asking for a reason now would be asking twice.
+        $documented = HrDocument::where('user_id', $employee->id)
+            ->whereHas('template', fn ($q) => $q->where('prefill', 'lateness'))
+            ->get(['period_start', 'period_end']);
+
+        if ($documented->isEmpty()) {
+            return $days;
+        }
+
+        return $days->reject(fn ($day) => $documented->contains(
+            fn ($doc) => $doc->period_start && $doc->period_end
+                && $day->date->betweenIncluded($doc->period_start, $doc->period_end)
+        ))->values();
     }
 
     /** date (Y-m-d) => reason, for the days covered by a month-end document. */
