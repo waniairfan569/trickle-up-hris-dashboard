@@ -56,6 +56,15 @@ class HrDocumentPrefillService
                         ->map(fn ($r) => $r->date->format($late->count() > 1 ? 'd M' : 'd M Y'))
                         ->join(', ') . ($late->count() > 1 ? ' ' . $end->format('Y') : ''),
                     'absent_count'  => (string) $absent->count(),
+                    // Total minutes lost, for a "Total time of lateness" box.
+                    'late_minutes_total' => $this->minutesLabel((int) $late->sum('late_minutes')),
+                    // The same date/reason pairs as lateness_table, but as text —
+                    // for templates whose "Reason for lateness" is a plain field
+                    // rather than a table.
+                    'lateness_summary' => $late->map(fn ($r) =>
+                        $r->date->format('d M Y') . ' — '
+                        . ($lateReasons[$r->date->toDateString()] ?? 'No reason provided')
+                    )->join("\n"),
                     // Reasons the employee already gave on the day — never ask twice.
                     'lateness_table' => $late->map(fn ($r) => [
                         'Date'   => $r->date->format('d M Y'),
@@ -113,6 +122,22 @@ class HrDocumentPrefillService
                 default   => false,
             };
         })->values();
+    }
+
+    /** 67 -> "1h 7m", 7 -> "7 min", 0 -> "". */
+    private function minutesLabel(int $minutes): string
+    {
+        if ($minutes <= 0) {
+            return '';
+        }
+        $h = intdiv($minutes, 60);
+        $m = $minutes % 60;
+
+        if ($h && $m) {
+            return $h . 'h ' . $m . 'm';
+        }
+
+        return $h ? $h . ' hour' . ($h === 1 ? '' : 's') : $m . ' min';
     }
 
     /** "12 Oct 2026", or "12 – 15 Oct 2026", with the hours when it was hourly. */

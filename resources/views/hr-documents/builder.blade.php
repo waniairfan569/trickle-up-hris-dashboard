@@ -150,6 +150,8 @@
                                                 <option value="line_manager">Line manager</option>
                                                 <option value="late_count">Late days count</option>
                                                 <option value="lateness_dates">Lateness dates (list)</option>
+                                                <option value="lateness_summary">Lateness dates + reasons (text)</option>
+                                                <option value="late_minutes_total">Total time late</option>
                                                 <option value="absent_count">Absent days count</option>
                                                 <option value="lateness_table">Lateness table (dates)</option>
                                                 <option value="absence_table">Absence table (dates)</option>
