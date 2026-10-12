@@ -97,6 +97,34 @@ class HrDocumentSignController extends Controller
         }
 
         $data = $document->data ?? [];
+
+        // Answers to the questions the document puts to this person. Only
+        // fields that are still empty are accepted, so signing can never
+        // overwrite what HR or an earlier signer already recorded.
+        $answerable = collect($document->schema)
+            ->flatMap(fn ($s) => $s['fields'] ?? [])
+            ->filter(fn ($f) => is_array($f) && ! empty($f['id'])
+                && ($f['type'] ?? 'text') !== 'signature'
+                && ! in_array($f['type'] ?? 'text', ['note', 'table'], true)
+                && empty($f['prefill'])
+                && (is_array($data[$f['id']] ?? null)
+                    ? empty($data[$f['id']])
+                    : trim((string) ($data[$f['id']] ?? '')) === ''))
+            ->keyBy('id');
+
+        foreach ((array) $request->input('answers', []) as $fid => $answer) {
+            if (! $answerable->has($fid)) {
+                continue;
+            }
+            $answer = is_array($answer)
+                ? array_values(array_filter($answer, fn ($v) => is_scalar($v) && trim((string) $v) !== ''))
+                : trim((string) $answer);
+
+            if ($answer !== '' && $answer !== []) {
+                $data[$fid] = $answer;
+            }
+        }
+
         foreach ($signer->field_ids as $fid) {
             $data[$fid] = [
                 'image' => $sigs[$fid]['image'],

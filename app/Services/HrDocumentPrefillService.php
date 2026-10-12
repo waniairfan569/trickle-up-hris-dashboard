@@ -51,6 +51,10 @@ class HrDocumentPrefillService
                     'department'    => optional($employee->department)->name ?? '',
                     'line_manager'  => optional($employee->manager)->full_name ?? '',
                     'late_count'    => (string) $late->count(),
+                    // A month's review has no single date of lateness — list them.
+                    'lateness_dates' => $late->isEmpty() ? '' : $late
+                        ->map(fn ($r) => $r->date->format($late->count() > 1 ? 'd M' : 'd M Y'))
+                        ->join(', ') . ($late->count() > 1 ? ' ' . $end->format('Y') : ''),
                     'absent_count'  => (string) $absent->count(),
                     // Reasons the employee already gave on the day — never ask twice.
                     'lateness_table' => $late->map(fn ($r) => [

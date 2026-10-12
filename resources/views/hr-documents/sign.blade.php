@@ -35,9 +35,72 @@
     @include('hr-documents._readonly', ['document' => $document, 'data' => $data])
 
     @unless($alreadySigned)
+        @php
+            // Questions the document asks but nobody has answered. The employee
+            // is the one being asked, so let them answer here rather than
+            // signing a form with blank questions on it.
+            $askable = ['text', 'textarea', 'number', 'date', 'radio', 'select', 'checkbox'];
+            $toAnswer = collect($document->schema)
+                ->flatMap(fn ($s) => $s['fields'] ?? [])
+                ->filter(fn ($f) => is_array($f) && ! empty($f['id'])
+                    && in_array($f['type'] ?? 'text', $askable, true)
+                    && empty($f['prefill'])
+                    && (is_array($data[$f['id']] ?? null)
+                        ? empty($data[$f['id']])
+                        : trim((string) ($data[$f['id']] ?? '')) === ''))
+                ->values();
+        @endphp
+
         <form method="POST" action="{{ route('hr-documents.sign.store', $document) }}">
             @csrf
             <input type="hidden" name="signatures" :value="JSON.stringify(values)">
+
+            @if($toAnswer->isNotEmpty())
+                <div class="mb-6 bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden dark:bg-slate-800 dark:border-slate-700">
+                    <div class="px-5 py-3 border-b border-slate-100 dark:border-slate-700/60">
+                        <h3 class="text-sm font-bold text-slate-800 dark:text-white">Your answers</h3>
+                        <p class="text-xs text-slate-400 mt-0.5">These questions are for you. They go onto the document you're signing.</p>
+                    </div>
+                    <div class="p-5 space-y-5">
+                        @foreach($toAnswer as $f)
+                            @php $fid = $f['id']; $ftype = $f['type'] ?? 'text'; @endphp
+                            <div>
+                                <label for="ans-{{ $fid }}" class="block text-xs font-bold uppercase tracking-wide text-slate-500 mb-1.5">{{ $f['label'] ?? $fid }}</label>
+
+                                @if($ftype === 'textarea')
+                                    <textarea id="ans-{{ $fid }}" name="answers[{{ $fid }}]" rows="3" maxlength="2000"
+                                              class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm dark:border-slate-600 dark:bg-slate-900 dark:text-white">{{ old('answers.' . $fid) }}</textarea>
+                                @elseif($ftype === 'radio' || $ftype === 'select')
+                                    <div class="flex flex-wrap gap-x-5 gap-y-2">
+                                        @foreach($f['options'] ?? [] as $opt)
+                                            <label class="inline-flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
+                                                <input type="radio" name="answers[{{ $fid }}]" value="{{ $opt }}" @checked(old('answers.' . $fid) === $opt)
+                                                       class="border-slate-300 text-brand-500 focus:ring-brand-500">
+                                                {{ $opt }}
+                                            </label>
+                                        @endforeach
+                                    </div>
+                                @elseif($ftype === 'checkbox')
+                                    <div class="flex flex-wrap gap-x-5 gap-y-2">
+                                        @foreach($f['options'] ?? [] as $opt)
+                                            <label class="inline-flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
+                                                <input type="checkbox" name="answers[{{ $fid }}][]" value="{{ $opt }}"
+                                                       class="rounded border-slate-300 text-brand-500 focus:ring-brand-500">
+                                                {{ $opt }}
+                                            </label>
+                                        @endforeach
+                                    </div>
+                                @else
+                                    <input type="{{ $ftype === 'date' ? 'date' : ($ftype === 'number' ? 'number' : 'text') }}"
+                                           id="ans-{{ $fid }}" name="answers[{{ $fid }}]" value="{{ old('answers.' . $fid) }}" maxlength="500"
+                                           class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm dark:border-slate-600 dark:bg-slate-900 dark:text-white">
+                                @endif
+                            </div>
+                        @endforeach
+                        <p class="text-[11px] text-slate-400">Anything you leave blank stays blank on the document.</p>
+                    </div>
+                </div>
+            @endif
 
             <div class="bg-white rounded-2xl border-2 border-brand-200 shadow-sm overflow-hidden dark:bg-slate-800 dark:border-brand-500/30">
                 <div class="bg-brand-50 px-5 py-3 dark:bg-brand-500/10"><h3 class="text-sm font-bold text-brand-700 dark:text-brand-300 tracking-wide">Your signature</h3></div>

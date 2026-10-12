@@ -347,6 +347,10 @@ class HrDocumentController extends Controller
             return back()->withInput()->with('error', 'Pick the line manager who should sign, or sign the manager section yourself.');
         }
 
+        // "Date of meeting" is the day the document goes out — it cannot be
+        // known when the draft is built, so stamp it now if it is still blank.
+        $this->stampMeetingDate($document);
+
         // Rebuild the signer set (supports re-sending).
         $document->signers()->delete();
         $sentTo = [];
@@ -396,6 +400,32 @@ class HrDocumentController extends Controller
 
         return back()->with('success',
             ($signedNow ? 'Signed and sent' : 'Sent') . ' for signature to ' . collect($sentTo)->join(' and ') . '.');
+    }
+
+    /** Fill an empty "date of meeting" field with today, on the way out. */
+    private function stampMeetingDate(HrDocument $document): void
+    {
+        $data = $document->data ?? [];
+        $touched = false;
+
+        foreach (collect($document->schema)->flatMap(fn ($s) => $s['fields'] ?? []) as $field) {
+            if (! is_array($field) || empty($field['id'])) {
+                continue;
+            }
+            $label = strtolower((string) ($field['label'] ?? ''));
+            $isMeeting = $field['id'] === 'date_of_meeting'
+                || (str_contains($label, 'date') && str_contains($label, 'meeting'));
+
+            if ($isMeeting && trim((string) ($data[$field['id']] ?? '')) === '') {
+                $data[$field['id']] = now()->toDateString();
+                $touched = true;
+            }
+        }
+
+        if ($touched) {
+            $document->data = $data;
+            $document->save();
+        }
     }
 
     /** Editable Word (.docx) export of a filled document. */
