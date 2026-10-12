@@ -398,30 +398,41 @@
         </div>
         
         <div class="flex flex-wrap items-center justify-between gap-4 px-6 py-4 border-t border-slate-100 dark:border-slate-700/60">
-            {{-- Rows per page. Changing it keeps every filter and search term and
-                 goes back to page 1, since page 3 of 10 may not exist at 50. --}}
-            <label class="flex items-center gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
-                Show
-                <select onchange="
-                            const u = new URL(window.location);
-                            u.searchParams.set('per_page', this.value);
-                            u.searchParams.delete('page');
-                            window.location = u;
-                        "
+            {{-- Rows per page. A plain GET form rather than scripted navigation,
+                 so the choice always lands in the URL. Every current filter rides
+                 along as a hidden field, and `page` is dropped so the new size
+                 starts at page 1 — page 3 of 10 need not exist at 50. --}}
+            <form method="GET" action="{{ route('employees.index') }}"
+                  class="flex items-center gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
+                @foreach(request()->except(['per_page', 'page']) as $key => $value)
+                    @if(is_array($value))
+                        @foreach($value as $item)
+                            <input type="hidden" name="{{ $key }}[]" value="{{ $item }}">
+                        @endforeach
+                    @else
+                        <input type="hidden" name="{{ $key }}" value="{{ $value }}">
+                    @endif
+                @endforeach
+                <label for="per-page">Show</label>
+                {{-- autocomplete="off" stops the browser restoring a previously
+                     picked size on reload, which made the box read "All" while
+                     the page below it was still showing ten. --}}
+                <select id="per-page" name="per_page" autocomplete="off" onchange="this.form.submit()"
                         class="rounded-lg border border-slate-300 py-1.5 pl-2.5 pr-7 text-xs font-semibold text-slate-700 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200">
                     @foreach(\App\Http\Controllers\EmployeeController::PER_PAGE_OPTIONS as $size)
                         <option value="{{ $size }}" @selected($perPageChoice === (string) $size)>{{ $size }}</option>
                     @endforeach
                     <option value="all" @selected($perPageChoice === 'all')>All</option>
                 </select>
-                per page
+                <span>per page</span>
                 {{-- Laravel drops its whole pager, count line included, once
                      everything fits on one page. State the count ourselves so it
                      does not disappear the moment someone picks a larger size. --}}
                 <span class="font-normal text-slate-400">
                     · {{ $employees->total() === 0 ? 'no results' : $employees->firstItem() . '–' . $employees->lastItem() . ' of ' . $employees->total() }}
                 </span>
-            </label>
+                <noscript><button type="submit" class="rounded-lg border border-slate-300 px-2 py-1 dark:border-slate-600">Go</button></noscript>
+            </form>
             <div>{{ $employees->links() }}</div>
         </div>
     </div>
