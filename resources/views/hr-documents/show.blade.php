@@ -11,7 +11,7 @@
 @endphp
 
 @section('content')
-<div class="max-w-4xl mx-auto space-y-6" x-data="{ sendOpen: false, includeManager: {{ $hasManagerField && $defaultManagerId ? 'true' : 'false' }} }">
+<div class="max-w-4xl mx-auto space-y-6" x-data="{ sendOpen: false }">
 
     <div class="flex items-start justify-between gap-4 flex-wrap">
         <div class="flex items-center gap-3">
@@ -95,25 +95,58 @@
                     </div>
 
                     @if($hasManagerField)
-                        {{-- Manager (optional) --}}
-                        <label class="flex items-center gap-3 cursor-pointer select-none">
-                            <input type="checkbox" name="include_manager" value="1" x-model="includeManager" class="rounded text-brand-500 border-slate-300 focus:ring-brand-500">
-                            <span class="text-sm font-semibold text-slate-700 dark:text-slate-200">Also require the line manager to sign</span>
-                        </label>
+                        {{-- The manager section: signed here before sending, sent to the
+                             line manager, or left blank. --}}
+                        <div x-data="adminSignPad()" class="space-y-3 rounded-xl border border-slate-200 p-3 dark:border-slate-700">
+                            <p class="text-xs font-bold uppercase tracking-wide text-slate-500">Manager section</p>
 
-                        <div x-show="includeManager" x-cloak class="pl-7">
-                            <label class="block text-xs font-bold uppercase tracking-wide text-slate-500 mb-1.5">Line manager (signs the Manager section)</label>
-                            <select name="manager_id" :disabled="!includeManager" class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:bg-slate-900 dark:border-slate-600">
-                                <option value="">— Select manager —</option>
-                                @foreach($employees as $emp)
-                                    @if(!$document->employee || $emp['id'] != $document->employee->id)
-                                        <option value="{{ $emp['id'] }}" @selected($defaultManagerId == $emp['id'])>{{ $emp['name'] }} · {{ $emp['department'] }}</option>
-                                    @endif
-                                @endforeach
-                            </select>
-                            @unless($defaultManagerId)
-                                <p class="text-xs text-amber-600 mt-1.5">This employee has no line manager set — pick one above.</p>
-                            @endunless
+                            <label class="flex cursor-pointer select-none items-start gap-3">
+                                <input type="radio" name="manager_mode" value="self" x-model="mode" class="mt-0.5 border-slate-300 text-brand-500 focus:ring-brand-500">
+                                <span class="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                                    I'll sign it now
+                                    <span class="block text-xs font-normal text-slate-500">The employee receives it already countersigned.</span>
+                                </span>
+                            </label>
+
+                            <div x-show="mode === 'self'" x-cloak class="pl-7 space-y-2">
+                                <canvas x-ref="pad" width="640" height="140"
+                                        class="h-[140px] w-full rounded-lg border border-slate-300 bg-white dark:border-slate-600"
+                                        style="touch-action:none;"></canvas>
+                                <input type="hidden" name="admin_signature" :value="image">
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <input type="text" x-model="typed" @input="renderTyped()" placeholder="…or type your name"
+                                           class="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-1.5 text-sm dark:border-slate-600 dark:bg-slate-900 dark:text-white">
+                                    <button type="button" @click="clearPad()" class="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700">Clear</button>
+                                </div>
+                                <p class="text-[11px]" :class="image ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'"
+                                   x-text="image ? 'Signature captured' : 'Draw above or type your name.'"></p>
+                            </div>
+
+                            <label class="flex cursor-pointer select-none items-start gap-3">
+                                <input type="radio" name="manager_mode" value="manager" x-model="mode" class="mt-0.5 border-slate-300 text-brand-500 focus:ring-brand-500">
+                                <span class="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                                    Send it to the line manager to sign
+                                </span>
+                            </label>
+
+                            <div x-show="mode === 'manager'" x-cloak class="pl-7">
+                                <select name="manager_id" class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:bg-slate-900 dark:border-slate-600">
+                                    <option value="">— Select manager —</option>
+                                    @foreach($employees as $emp)
+                                        @if(!$document->employee || $emp['id'] != $document->employee->id)
+                                            <option value="{{ $emp['id'] }}" @selected($defaultManagerId == $emp['id'])>{{ $emp['name'] }} · {{ $emp['department'] }}</option>
+                                        @endif
+                                    @endforeach
+                                </select>
+                                @unless($defaultManagerId)
+                                    <p class="mt-1.5 text-xs text-amber-600">This employee has no line manager set — pick one above.</p>
+                                @endunless
+                            </div>
+
+                            <label class="flex cursor-pointer select-none items-start gap-3">
+                                <input type="radio" name="manager_mode" value="none" x-model="mode" class="mt-0.5 border-slate-300 text-brand-500 focus:ring-brand-500">
+                                <span class="text-sm font-semibold text-slate-700 dark:text-slate-200">Leave it unsigned for now</span>
+                            </label>
                         </div>
                     @endif
                 </div>
@@ -126,4 +159,58 @@
         </div>
     </div>
 </div>
+
+<script>
+    // Signature pad for the sender countersigning before the document goes out.
+    // Same approach as the employee signing page: draw or type, kept as a PNG
+    // data URI in a hidden field.
+    function adminSignPad() {
+        return {
+            mode: '{{ $hasManagerField && $defaultManagerId ? 'manager' : 'none' }}',
+            image: '',
+            typed: '',
+            init() {
+                this.$watch('mode', (m) => { if (m === 'self') this.$nextTick(() => this.attach()); });
+            },
+            attach() {
+                const canvas = this.$refs.pad;
+                if (!canvas || canvas.dataset.ready) return;
+                canvas.dataset.ready = '1';
+                const ctx = canvas.getContext('2d');
+                ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.strokeStyle = '#0f172a';
+                let drawing = false;
+                const pos = (e) => {
+                    const r = canvas.getBoundingClientRect(), t = e.touches ? e.touches[0] : e;
+                    return { x: (t.clientX - r.left) * (canvas.width / r.width), y: (t.clientY - r.top) * (canvas.height / r.height) };
+                };
+                const start = (e) => { e.preventDefault(); drawing = true; const p = pos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); };
+                const move  = (e) => { if (!drawing) return; e.preventDefault(); const p = pos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); };
+                const end   = () => { if (drawing) { drawing = false; this.typed = ''; this.image = canvas.toDataURL('image/png'); } };
+                canvas.addEventListener('mousedown', start);
+                canvas.addEventListener('mousemove', move);
+                window.addEventListener('mouseup', end);
+                canvas.addEventListener('touchstart', start, { passive: false });
+                canvas.addEventListener('touchmove', move, { passive: false });
+                canvas.addEventListener('touchend', end);
+            },
+            renderTyped() {
+                const canvas = this.$refs.pad;
+                if (!canvas) return;
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                const name = this.typed.trim();
+                if (!name) { this.image = ''; return; }
+                ctx.fillStyle = '#0f172a';
+                ctx.font = 'italic 46px Georgia, serif';
+                ctx.fillText(name, 18, canvas.height / 2 + 14);
+                this.image = canvas.toDataURL('image/png');
+            },
+            clearPad() {
+                const canvas = this.$refs.pad;
+                if (canvas) canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+                this.image = ''; this.typed = '';
+            },
+        };
+    }
+</script>
 @endsection

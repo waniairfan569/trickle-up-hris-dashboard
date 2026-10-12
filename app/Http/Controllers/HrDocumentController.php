@@ -317,14 +317,55 @@ class HrDocumentController extends Controller
         $mgrFields = $sigFields->filter($isMgr);
         $empFields = $sigFields->reject($isMgr);
 
-        // Admin's choices: whether the manager must sign, and who that manager is.
-        $includeManager = $request->boolean('include_manager') && $mgrFields->isNotEmpty();
-        $managerId      = $request->integer('manager_id') ?: optional($employee)->manager_id;
-        $manager        = $includeManager && $managerId ? User::find($managerId) : null;
+        // What happens to the manager section: the sender signs it now before it
+        // goes out, the line manager is asked to sign it, or it stays blank.
+        $validated = $request->validate([
+            'manager_mode'     => 'nullable|in:self,manager,none',
+            'manager_id'       => 'nullable|exists:users,id',
+            'admin_signature'  => 'nullable|string',
+        ]);
+        $mode = $mgrFields->isEmpty() ? 'none' : ($validated['manager_mode'] ?? ($request->boolean('include_manager') ? 'manager' : 'none'));
+
+        $signature = trim((string) ($validated['admin_signature'] ?? ''));
+        if ($mode === 'self' && ! Str::startsWith($signature, 'data:image/')) {
+            return back()->with('error', 'Add your signature before sending, or choose another option for the manager section.');
+        }
+
+        $managerId = $validated['manager_id'] ?? optional($employee)->manager_id;
+        $manager   = $mode === 'manager' && $managerId ? User::find($managerId) : null;
+
+        if ($mode === 'manager' && ! $manager) {
+            return back()->with('error', 'Pick the line manager who should sign, or sign the manager section yourself.');
+        }
 
         // Rebuild the signer set (supports re-sending).
         $document->signers()->delete();
         $sentTo = [];
+        $signedNow = false;
+
+        // The sender signs the manager section first, so the document reaches
+        // the employee already countersigned.
+        if ($mode === 'self') {
+            $data = $document->data ?? [];
+            foreach ($mgrFields->pluck('id') as $fieldId) {
+                $data[$fieldId] = [
+                    'image' => $signature,
+                    'name'  => $request->user()->full_name,
+                    'date'  => now()->toDateString(),
+                ];
+            }
+            $document->data = $data;
+            $document->save();
+
+            $document->signers()->create([
+                'user_id'   => $request->user()->id,
+                'role'      => 'manager',
+                'field_ids' => $mgrFields->pluck('id')->all(),
+                'signed_at' => now(),
+                'signed_ip' => $request->ip(),
+            ]);
+            $signedNow = true;
+        }
 
         if ($employee && $empFields->isNotEmpty()) {
             $document->signers()->create(['user_id' => $employee->id, 'role' => 'employee', 'field_ids' => $empFields->pluck('id')->all()]);
@@ -339,14 +380,13 @@ class HrDocumentController extends Controller
         }
 
         if (empty($sentTo)) {
-            return back()->with('error', 'Could not send: no signer was selected. Pick at least the employee or a manager.');
+            return back()->with('error', 'Could not send: no one was left to sign it.');
         }
 
         $document->update(['status' => 'sent', 'sent_at' => now()]);
 
-        $note = ($includeManager && ! $manager) ? ' (manager signature was requested but no manager was chosen — sign that field yourself via Edit or resend)' : '';
-
-        return back()->with('success', 'Sent for signature to ' . collect($sentTo)->join(' and ') . '.' . $note);
+        return back()->with('success',
+            ($signedNow ? 'Signed and sent' : 'Sent') . ' for signature to ' . collect($sentTo)->join(' and ') . '.');
     }
 
     /** Editable Word (.docx) export of a filled document. */
