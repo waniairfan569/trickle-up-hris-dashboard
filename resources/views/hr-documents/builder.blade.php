@@ -152,6 +152,9 @@
                                                 <option value="absent_count">Absent days count</option>
                                                 <option value="lateness_table">Lateness table (dates)</option>
                                                 <option value="absence_table">Absence table (dates)</option>
+                                                <option value="leave_table">Leave table (dates, days, reasons)</option>
+                                                <option value="leave_count">Leave count</option>
+                                                <option value="leave_days">Leave days total</option>
                                             </select>
                                         </div>
                                     </template>

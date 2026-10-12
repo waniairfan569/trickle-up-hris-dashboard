@@ -79,7 +79,7 @@ Schedule::command('documents:auto-generate')->dailyAt('01:15')->withoutOverlappi
 
 // Month-end Lateness Review, on the 3rd so corrections have settled and people
 // have had a chance to answer the same-day prompt.
-Schedule::command('lateness:monthly-reviews')->monthlyOn(3, '02:15')->withoutOverlapping();
+Schedule::command('documents:monthly-reviews')->monthlyOn(3, '02:15')->withoutOverlapping();
 
 // Scheduler heartbeat — proves the cron is actually running, surfaced by /health.
 Schedule::call(fn () => \Illuminate\Support\Facades\Cache::put(

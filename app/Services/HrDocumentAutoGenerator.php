@@ -169,7 +169,8 @@ class HrDocumentAutoGenerator
         $seen = [];
         foreach ($leaves as $leave) {
             $template = $this->returnTemplateFor($leave);
-            if (! $template) {
+            // A template set to one-a-month is drafted by the month-end run.
+            if (! $template || $template->isMonthly()) {
                 continue;
             }
 
@@ -241,6 +242,65 @@ class HrDocumentAutoGenerator
         }
 
         return $this->createDraft($template, $employee, $start, $end, $template->name . ' — ' . $start->format('M Y'), $by);
+    }
+
+    /**
+     * One document for the month covering every event of this template's kind —
+     * each date and the reason behind it, on one sheet to sign once.
+     *
+     * Returns null when the employee had nothing that month. Idempotent: an
+     * existing document for the period is handed back rather than duplicated.
+     */
+    public function generateMonthlyFor(HrDocumentTemplate $template, User $employee, Carbon $month, ?int $by = null): ?HrDocument
+    {
+        $start = $month->copy()->startOfMonth();
+        $end = $month->copy()->endOfMonth();
+
+        if ($existing = $this->find($employee, $template, $start, $end)) {
+            return $existing;
+        }
+
+        if ($this->monthlyEventCount($template, $employee, $start, $end) === 0) {
+            return null;
+        }
+
+        return $this->createDraft($template, $employee, $start, $end, $template->name . ' — ' . $start->format('M Y'), $by);
+    }
+
+    /** How many events of this template's kind the employee had in the period. */
+    public function monthlyEventCount(HrDocumentTemplate $template, User $employee, Carbon $start, Carbon $end): int
+    {
+        if ($template->prefill === 'lateness') {
+            return AttendanceRecord::where('user_id', $employee->id)
+                ->where('status', 'late')
+                ->whereBetween('date', [$start->toDateString(), $end->toDateString()])
+                ->count();
+        }
+
+        $leaves = TimeOffRequest::where('user_id', $employee->id)
+            ->where('status', 'approved')
+            ->where(function ($q) use ($start, $end) {
+                $q->whereBetween('start_date', [$start->toDateString(), $end->toDateString()])
+                  ->orWhereBetween('end_date', [$start->toDateString(), $end->toDateString()]);
+            })
+            ->with('policy')->get();
+
+        return $leaves->filter(function ($lv) use ($template) {
+            $isWfh = optional($lv->policy)->isWorkFromHome() ?? false;
+
+            return match ($template->prefill) {
+                'wfh'     => $isWfh,
+                'hourly'  => ! $isWfh && $lv->duration_type === 'hourly',
+                'absence' => ! $isWfh && $lv->duration_type !== 'hourly',
+                default   => false,
+            };
+        })->count();
+    }
+
+    /** Templates that draft one document a month instead of one per event. */
+    public function monthlyTemplates(): \Illuminate\Support\Collection
+    {
+        return collect($this->resolvedTriggers())->filter(fn ($t) => $t && $t->isMonthly())->values();
     }
 
     /**

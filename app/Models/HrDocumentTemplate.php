@@ -22,9 +22,15 @@ class HrDocumentTemplate extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        'name', 'subtitle', 'description', 'icon', 'prefill', 'letterhead_id',
+        'name', 'subtitle', 'description', 'icon', 'prefill', 'rollup', 'letterhead_id',
         'schema', 'is_active', 'is_system', 'sort_order', 'created_by',
     ];
+
+    /** One document a month listing every event, rather than one per event. */
+    public function isMonthly(): bool
+    {
+        return $this->rollup === 'monthly';
+    }
 
     protected $casts = [
         'schema'    => 'array',

@@ -125,8 +125,15 @@ class HrDocumentController extends Controller
 
         $data = $request->validate([
             'prefill' => ['nullable', Rule::in(array_keys($triggers))],
+            'rollup'  => ['nullable', Rule::in(['event', 'monthly'])],
         ]);
-        $trigger = $data['prefill'] ?? null;
+        $trigger = $data['prefill'] ?? $template->prefill;
+
+        // The "how often" picker posts on its own; don't read a missing
+        // trigger as "unassign this template".
+        if (! $request->has('prefill')) {
+            $trigger = $template->prefill;
+        }
 
         // One template per event: hand the event over rather than leaving two
         // templates claiming it, where only one would ever be used.
@@ -139,10 +146,12 @@ class HrDocumentController extends Controller
             }
         }
 
-        $template->forceFill(['prefill' => $trigger])->save();
+        $rollup = $request->has('rollup') ? ($data['rollup'] ?? 'event') : $template->rollup;
+        $template->forceFill(['prefill' => $trigger, 'rollup' => $trigger ? $rollup : 'event'])->save();
 
+        $how = $template->isMonthly() ? ' — one document a month' : ' — one document per event';
         $message = $trigger
-            ? "“{$template->name}” is now used for {$triggers[$trigger]}."
+            ? "“{$template->name}” is now used for {$triggers[$trigger]}{$how}."
             : "“{$template->name}” no longer auto-drafts — create it manually.";
         if ($previous && $previous->isNotEmpty()) {
             $message .= ' Taken over from “' . $previous->pluck('name')->join('”, “') . '”.';

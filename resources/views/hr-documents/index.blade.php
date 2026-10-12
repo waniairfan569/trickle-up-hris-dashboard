@@ -86,6 +86,17 @@
                                 <option value="{{ $key }}" @selected($tpl->prefill === $key)>{{ $label }}</option>
                             @endforeach
                         </select>
+
+                        @if($tpl->prefill)
+                            <label class="mt-2 block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">How often</label>
+                            <select name="rollup" onchange="this.form.submit()" class="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs font-semibold text-slate-700 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:bg-slate-900 dark:border-slate-600 dark:text-slate-200">
+                                <option value="event" @selected(! $tpl->isMonthly())>One per event</option>
+                                <option value="monthly" @selected($tpl->isMonthly())>One a month, all dates on it</option>
+                            </select>
+                            @if($tpl->isMonthly())
+                                <p class="mt-1 text-[11px] text-slate-400">Drafted on the 3rd for the month just gone. Add a table field with the <b>Leave table</b> or <b>Lateness table</b> prefill so every date and reason is listed.</p>
+                            @endif
+                        @endif
                         @if($usedFor->isNotEmpty())
                             <p class="mt-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400"><i data-lucide="check" class="h-3 w-3 inline -mt-0.5"></i> In use for {{ collect($triggers)->only($usedFor)->values()->join(' & ') }}</p>
                         @elseif($claimed)
