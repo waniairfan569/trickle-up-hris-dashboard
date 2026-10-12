@@ -888,11 +888,15 @@ class TimeOffController extends Controller
     /** An approved multi-day full-day leave that still has remaining days can be returned early. */
     private function canReturnEarly(TimeOffRequest $r): bool
     {
+        // Single-day leaves count too: returning on the one day means it was
+        // never taken, which approveReturn() already handles by cancelling the
+        // leave and crediting the day back. Without this an approved one-day
+        // leave had no way back at all — Cancel only covers pending requests.
         return $r->status === 'approved'
             && $r->duration_type !== 'hourly'
             && ! $r->is_half_day
             && $r->start_date && $r->end_date
-            && $r->end_date->gt($r->start_date)
+            && $r->end_date->gte($r->start_date)
             && $r->end_date->gte(today());
     }
 

@@ -5,7 +5,7 @@
 
 @section('content')
 @php $isTimeOffAdmin = auth()->user()->hasRole('hr_admin') || auth()->user()->hasRole('super_admin'); @endphp
-<div class="space-y-8" x-data="{ activeTab: '{{ (($isTimeOffAdmin || auth()->user()->hasRole('hr_admin') || auth()->user()->hasRole('super_admin')) && (request('tab') === 'all' || request()->hasAny(['status','policy_id','month']))) ? 'all_requests' : (($isTimeOffAdmin || $teamRequests->isNotEmpty()) ? 'team_requests' : 'my_requests') }}', ret: { open: false, action: '', min: '', max: '', label: '' } }">
+<div class="space-y-8" x-data="{ activeTab: '{{ (($isTimeOffAdmin || auth()->user()->hasRole('hr_admin') || auth()->user()->hasRole('super_admin')) && (request('tab') === 'all' || request()->hasAny(['status','policy_id','month']))) ? 'all_requests' : (($isTimeOffAdmin || $teamRequests->isNotEmpty()) ? 'team_requests' : 'my_requests') }}', ret: { open: false, action: '', min: '', max: '', label: '', single: false } }">
     <div class="sm:flex sm:items-center sm:justify-between border-b border-slate-200/80 pb-5 dark:border-slate-700/60">
         <div>
             <h2 class="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">Time-Off</h2>
@@ -643,9 +643,13 @@
                                 $eligibleReturn = $request->status === 'approved'
                                     && $request->duration_type !== 'hourly' && ! $request->is_half_day
                                     && $request->start_date && $request->end_date
-                                    && $request->end_date->gt($request->start_date)
+                                    && $request->end_date->gte($request->start_date)
                                     && $request->end_date->gte(today());
                                 $retMin = $request->start_date ? $request->start_date->toDateString() : today()->toDateString();
+                                // A one-day leave can only be given back whole, so it is a
+                                // cancellation rather than a shortening — say that instead.
+                                $singleDay = $request->start_date && $request->end_date
+                                    && $request->end_date->eq($request->start_date);
                             @endphp
                             @if($request->status === 'pending')
                                 <form action="{{ route('time-off.destroy', $request) }}" method="POST" class="inline"
@@ -660,8 +664,8 @@
                                 <span class="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400"><i data-lucide="calendar-check" class="h-3.5 w-3.5"></i> Returned early</span>
                             @elseif($eligibleReturn)
                                 <button type="button"
-                                        @click="ret.action='{{ url('time-off/'.$request->id.'/return') }}'; ret.min='{{ $retMin }}'; ret.max='{{ $request->end_date->toDateString() }}'; ret.label='{{ optional($request->policy)->name ?? 'Leave' }} · {{ $request->start_date->format('M d') }} – {{ $request->end_date->format('M d, Y') }}'; ret.open=true"
-                                        class="text-brand-600 hover:text-brand-700 dark:text-brand-400">Return early</button>
+                                        @click="ret.action='{{ url('time-off/'.$request->id.'/return') }}'; ret.min='{{ $retMin }}'; ret.max='{{ $request->end_date->toDateString() }}'; ret.single={{ $singleDay ? 'true' : 'false' }}; ret.label='{{ optional($request->policy)->name ?? 'Leave' }} · {{ $request->start_date->format('M d') }}@if(! $singleDay) – {{ $request->end_date->format('M d, Y') }}@else, {{ $request->start_date->format('Y') }}@endif'; ret.open=true"
+                                        class="text-brand-600 hover:text-brand-700 dark:text-brand-400">{{ $singleDay ? 'Give day back' : 'Return early' }}</button>
                             @endif
                         </td>
                     </tr>
@@ -1070,21 +1074,31 @@
                 @csrf
                 <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-700/60">
                     <h3 class="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2">
-                        <i data-lucide="calendar-check" class="h-4 w-4 text-brand-500"></i> Return early
+                        <i data-lucide="calendar-check" class="h-4 w-4 text-brand-500"></i>
+                        <span x-text="ret.single ? 'Give this day back' : 'Return early'"></span>
                     </h3>
                     <button type="button" @click="ret.open = false" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i data-lucide="x" class="h-5 w-5"></i></button>
                 </div>
                 <div class="px-6 py-5 space-y-4">
                     <p class="text-xs text-slate-500 dark:text-slate-400" x-text="ret.label"></p>
-                    <div>
+                    {{-- One-day leave: the only possible return date is the day itself, so
+                         fill it in rather than asking the employee to choose it. --}}
+                    <div x-show="ret.single" x-cloak>
+                        <input type="hidden" name="return_date" :value="ret.single ? ret.min : ''">
+                        <p class="text-[12px] text-slate-500 dark:text-slate-400">
+                            You'll be working as normal that day and the full day goes back to your
+                            balance once HR approves.
+                        </p>
+                    </div>
+                    <div x-show="! ret.single">
                         <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1.5">First day back at work</label>
-                        <input type="date" name="return_date" :min="ret.min" :max="ret.max" required
+                        <input type="date" name="return_date" :min="ret.min" :max="ret.max" :required="! ret.single"
                                class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
                         <p class="text-[11px] text-slate-400 mt-1">Pick the first day you're back at work — any day of your leave. Every leave day from then to the end is credited back once HR approves.</p>
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1.5">Reason <span class="font-normal text-slate-400">(optional)</span></label>
-                        <textarea name="reason" rows="2" maxlength="500" placeholder="Why are you coming back early?"
+                        <textarea name="reason" rows="2" maxlength="500" :placeholder="ret.single ? 'Why are you giving this day back?' : 'Why are you coming back early?'"
                                   class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white"></textarea>
                     </div>
                 </div>
