@@ -161,6 +161,10 @@
                                                 <option value="leave_table">Leave table (dates, days, reasons)</option>
                                                 <option value="leave_return_table">Leave table + return notes</option>
                                                 <option value="leave_return_summary">Return notes (text)</option>
+                                                <option value="leave_start_date">This leave — first day</option>
+                                                <option value="leave_return_date">This leave — day back at work</option>
+                                                <option value="leave_reason">This leave — reason given on applying</option>
+                                                <option value="leave_return_note">This leave — note given on returning</option>
                                                 <option value="leave_count">Leave count</option>
                                                 <option value="leave_days">Leave days total</option>
                                             </select>

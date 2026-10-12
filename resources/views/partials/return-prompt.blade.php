@@ -7,16 +7,22 @@
         : collect();
     $rpSnoozed = (int) session('return_prompt_snoozed_until', 0) > now()->timestamp;
     $rpJustBack = $rpLeaves->first(fn ($lv) => \Illuminate\Support\Carbon::parse($lv->end_date)->addDay()->isToday());
-    // Two modals opening on top of each other would be unusable. The lateness
-    // prompt sits above this one, so if it is about to open, this one waits as
-    // a banner and opens when the employee clicks it.
+    // Two modals opening on top of each other would be unusable. This is the
+    // least urgent of the three, so if the lateness prompt or the announcements
+    // popup is about to open, this one waits as a banner and opens on a click.
     $rpLatenessOpen = auth()->check()
         && (int) session('lateness_prompt_snoozed_until', 0) <= now()->timestamp
         && \App\Models\AttendanceExplanation::outstandingFor(auth()->user())->isNotEmpty();
+    $rpAnnouncementsOpen = auth()->check()
+        && request()->routeIs('dashboard')
+        && \App\Models\Announcement::unreadFor(auth()->user())->exists();
+    // A refused save flashes its message behind the overlay, where it cannot be
+    // read, so the prompt reopens and carries the message inside it.
+    $rpError = session('error');
 @endphp
 
 @if($rpLeaves->isNotEmpty())
-<div x-data="{ open: {{ $rpSnoozed || $rpLatenessOpen ? 'false' : 'true' }} }" class="mb-4">
+<div x-data="{ open: {{ $rpError ? 'true' : (($rpSnoozed || $rpLatenessOpen || $rpAnnouncementsOpen) ? 'false' : 'true') }} }" class="mb-4">
 
     {{-- Always-present banner, so a dismissed prompt is never lost --}}
     <button type="button" @click="open = true"
@@ -42,17 +48,20 @@
                 <div>
                     <h3 class="flex items-center gap-2 text-sm font-bold text-slate-800 dark:text-white">
                         <i data-lucide="undo-2" class="h-4 w-4 text-sky-500"></i>
-                        {{ $rpJustBack ? 'Welcome back' : 'A few returns need a note' }}
+                        {{ $rpJustBack ? 'Welcome back' : ($rpLeaves->count() === 1 ? 'Your return needs a note' : 'A few returns need a note') }}
                     </h3>
                     <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                        A line here replaces the return-to-work chat. It goes on your month-end
-                        document, so you won't be asked again.
+                        A line here replaces the return-to-work chat. It goes onto the HR document
+                        for this leave, so you won't be asked again.
                     </p>
                 </div>
                 <button type="button" @click="open = false" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i data-lucide="x" class="h-5 w-5"></i></button>
             </div>
 
             <div class="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-5">
+                @if($rpError)
+                    <p class="rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-xs font-semibold text-rose-700 dark:border-rose-500/25 dark:bg-rose-500/10 dark:text-rose-300">{{ $rpError }}</p>
+                @endif
                 @foreach($rpLeaves as $lv)
                     <div>
                         <label for="rp-{{ $lv->id }}" class="mb-1.5 flex flex-wrap items-baseline gap-x-2">
@@ -65,7 +74,7 @@
                             <p class="mb-1.5 text-xs text-slate-400">You applied saying: <span class="italic">“{{ $lv->reason }}”</span></p>
                         @endif
                         <textarea id="rp-{{ $lv->id }}" name="notes[{{ $lv->id }}]" rows="2" maxlength="1000"
-                                  placeholder="How are you now, and is there anything we should know?"
+                                  placeholder="{{ optional($lv->policy)->isWorkFromHome() ? 'How did working from home go, and is there anything we should know?' : 'How are you now, and is there anything we should know?' }}"
                                   class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm dark:border-slate-600 dark:bg-slate-900 dark:text-white"></textarea>
                     </div>
                 @endforeach

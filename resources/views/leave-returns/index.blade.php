@@ -12,7 +12,7 @@
         </h1>
         <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
             A short note each time you come back from leave, written here instead of in a
-            meeting. These go onto your month-end document, so you are never asked twice.
+            meeting. These go onto the HR document for that leave, so you are never asked twice.
         </p>
     </div>
 
@@ -26,7 +26,13 @@
         </div>
 
         @if($outstanding->isEmpty())
-            <div class="px-6 py-8 text-center text-sm text-slate-400">Nothing outstanding — every return is written up.</div>
+            {{-- "Every return is written up" reads as a contradiction to someone
+                 who has never written one, so say which of the two it is. --}}
+            <div class="px-6 py-8 text-center text-sm text-slate-400">
+                {{ $answered->isEmpty()
+                    ? 'Nothing to answer — you have no leave waiting on a note.'
+                    : 'Nothing outstanding — every return is written up.' }}
+            </div>
         @else
             <form method="POST" action="{{ route('leave-returns.store') }}" class="px-6 py-5 space-y-4">
                 @csrf
@@ -42,7 +48,7 @@
                             <p class="mb-1.5 text-xs text-slate-400">You applied saying: <span class="italic">“{{ $lv->reason }}”</span></p>
                         @endif
                         <textarea id="rn-{{ $lv->id }}" name="notes[{{ $lv->id }}]" rows="2" maxlength="1000"
-                                  placeholder="How are you now, and is there anything we should know?"
+                                  placeholder="{{ optional($lv->policy)->isWorkFromHome() ? 'How did working from home go, and is there anything we should know?' : 'How are you now, and is there anything we should know?' }}"
                                   class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm dark:border-slate-600 dark:bg-slate-900 dark:text-white"></textarea>
                     </div>
                 @endforeach

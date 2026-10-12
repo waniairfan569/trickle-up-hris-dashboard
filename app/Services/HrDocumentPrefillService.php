@@ -96,6 +96,17 @@ class HrDocumentPrefillService
                         $this->leaveDateLabel($lv) . ' — '
                         . (trim((string) $lv->return_note) !== '' ? $lv->return_note : 'No note given')
                     )->join("\n"),
+                    // Singular forms, for a form drafted per leave rather than
+                    // once a month — there the whole document is about one
+                    // absence, so each fact belongs in its own box.
+                    'leave_start_date' => $leaves->isEmpty() ? ''
+                        : Carbon::parse($leaves->first()->start_date)->toDateString(),
+                    'leave_return_date' => $leaves->isEmpty() ? ''
+                        : Carbon::parse($leaves->first()->end_date)->addDay()->toDateString(),
+                    'leave_reason' => $leaves->isEmpty() ? ''
+                        : (trim((string) $leaves->first()->reason) !== '' ? $leaves->first()->reason : 'No reason given'),
+                    'leave_return_note' => $leaves->isEmpty() ? ''
+                        : (trim((string) $leaves->first()->return_note) !== '' ? $leaves->first()->return_note : 'No note given'),
                     default => null,
                 };
 

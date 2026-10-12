@@ -860,8 +860,10 @@
                                     @php [$lbl, $cls] = $ldBadge[$row->status]; @endphp
                                     <tr>
                                         <td class="px-4 py-2.5 font-semibold text-slate-700 dark:text-slate-200">{{ optional($row->leave->policy)->name ?? 'Leave' }}</td>
+                                        {{-- Same shape the employee sees on My Returns: the leave's
+                                             own span, then the day they were back. --}}
                                         <td class="px-4 py-2.5 text-xs text-slate-400">
-                                            {{ \Illuminate\Support\Carbon::parse($row->leave->start_date)->format('d M') }} → back {{ \Illuminate\Support\Carbon::parse($row->leave->end_date)->addDay()->format('d M Y') }}
+                                            {{ $row->leave->date_label }} · back {{ \Illuminate\Support\Carbon::parse($row->leave->end_date)->addDay()->format('d M Y') }}
                                             @if($row->leave->time_range) · {{ $row->leave->time_range }}@elseif($row->leave->duration_type !== 'full_day') · {{ $row->leave->duration_label }}@endif
                                         </td>
                                         <td class="px-4 py-2.5 text-xs {{ trim((string) $row->leave->return_note) !== '' ? 'italic text-slate-600 dark:text-slate-300' : 'text-slate-400' }}">
