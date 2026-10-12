@@ -231,15 +231,28 @@ class EmployeeProfileController extends Controller
             : collect();
 
         $returnRows = $leaves->map(function ($lv) use ($absenceDocs, $status, $generator) {
-            $key = \Illuminate\Support\Carbon::parse($lv->start_date)->toDateString() . '|' . \Illuminate\Support\Carbon::parse($lv->end_date)->toDateString();
+            $start = \Illuminate\Support\Carbon::parse($lv->start_date);
+            $key = $start->toDateString() . '|' . \Illuminate\Support\Carbon::parse($lv->end_date)->toDateString();
+            $template = $generator->returnTemplateFor($lv);
+
+            // A form drafted per leave has exactly this leave's dates. A template
+            // set to one a month covers the whole month instead, so fall back to
+            // the document whose period spans the leave — otherwise every day in
+            // a rolled-up month reads "Not generated" while its document exists.
+            $doc = $absenceDocs->get($key);
+            if (! $doc && $template) {
+                $doc = $absenceDocs->first(fn ($d) => $d->hr_document_template_id === $template->id
+                    && $d->period_start && $d->period_end
+                    && $start->betweenIncluded($d->period_start, $d->period_end));
+            }
 
             return (object) [
                 'leave'  => $lv,
-                'doc'    => $doc = $absenceDocs->get($key),
+                'doc'    => $doc,
                 'status' => $status($doc),
                 // "Not generated" is unhelpful when the real reason is that this
                 // kind of leave has no document assigned to it at all.
-                'noTemplate' => ! $generator->returnTemplateFor($lv),
+                'noTemplate' => ! $template,
             ];
         })->values();
 
