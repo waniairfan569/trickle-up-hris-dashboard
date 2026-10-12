@@ -27,6 +27,9 @@ class TimeOffRequest extends Model
         'is_half_day',
         'half_day_period',
         'reason',
+        'return_note',
+        'return_note_at',
+        'return_note_ip',
         'status',
         'approval_stage',
         'approved_by',
@@ -46,6 +49,7 @@ class TimeOffRequest extends Model
         'approved_at' => 'datetime',
         'rejected_at' => 'datetime',
         'cancelled_at' => 'datetime',
+        'return_note_at' => 'datetime',
     ];
 
     /**
@@ -203,6 +207,62 @@ class TimeOffRequest extends Model
                 }
             });
         });
+    }
+
+    /**
+     * Leaves this employee is back from and has not yet written a return note
+     * for. The portal asks for these the same way it asks why someone was late,
+     * so a return to work is recorded without anyone having to sit down.
+     *
+     * The window is the admin's "Ask for reasons from" date, shared with the
+     * lateness prompt — one setting decides how far back the portal asks.
+     */
+    public static function outstandingReturnsFor(User $employee, int $withinDays = 45)
+    {
+        $since = AttendanceReportSettings::getSettings()->lateness_prompt_from ?? null;
+        $from = $since ? Carbon::parse($since)->startOfDay() : Carbon::today()->subDays($withinDays);
+
+        $leaves = static::where('user_id', $employee->id)
+            ->where('status', 'approved')
+            ->returnToWorkEligible()
+            ->whereNull('return_note')
+            ->whereDate('end_date', '<', Carbon::today()->toDateString())
+            ->whereDate('end_date', '>=', $from->toDateString())
+            ->with('policy')
+            ->orderByDesc('end_date')
+            ->get();
+
+        if ($leaves->isEmpty()) {
+            return $leaves;
+        }
+
+        // A leave already written up in a document that has gone out has been
+        // dealt with. A draft has not gone anywhere and is rebuilt when it is
+        // regenerated, so it must not stop the employee answering.
+        $documented = HrDocument::where('user_id', $employee->id)
+            ->where('status', '!=', 'draft')
+            ->whereHas('template', fn ($q) => $q->whereIn('prefill', ['absence', 'hourly', 'wfh']))
+            ->get(['period_start', 'period_end']);
+
+        if ($documented->isEmpty()) {
+            return $leaves;
+        }
+
+        return $leaves->reject(fn ($lv) => $documented->contains(
+            fn ($doc) => $doc->period_start && $doc->period_end
+                && Carbon::parse($lv->start_date)->betweenIncluded($doc->period_start, $doc->period_end)
+        ))->values();
+    }
+
+    /** "12 Oct 2026", or "12 – 15 Oct 2026" — how a leave reads in a list. */
+    public function getDateLabelAttribute(): string
+    {
+        $from = Carbon::parse($this->start_date);
+        $to = Carbon::parse($this->end_date);
+
+        return $from->isSameDay($to)
+            ? $from->format('d M Y')
+            : $from->format('d M') . ' – ' . $to->format('d M Y');
     }
 
     // --- Relationships ---

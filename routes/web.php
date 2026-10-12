@@ -156,6 +156,12 @@ Route::middleware(['auth', 'verified', 'force.password.change'])->group(function
     Route::post('my-lateness', [\App\Http\Controllers\AttendanceExplanationController::class, 'store'])->name('attendance-explanations.store');
     Route::post('my-lateness/snooze', [\App\Http\Controllers\AttendanceExplanationController::class, 'snooze'])->name('attendance-explanations.snooze');
 
+    // "You're back — how did it go?" — the return-to-work note, written by the
+    // employee instead of sat through with a manager.
+    Route::get('my-returns', [\App\Http\Controllers\LeaveReturnNoteController::class, 'index'])->name('leave-returns.index');
+    Route::post('my-returns', [\App\Http\Controllers\LeaveReturnNoteController::class, 'store'])->name('leave-returns.store');
+    Route::post('my-returns/snooze', [\App\Http\Controllers\LeaveReturnNoteController::class, 'snooze'])->name('leave-returns.snooze');
+
     Route::get('my-codes', [\App\Http\Controllers\CodeRequestController::class, 'myCodeRequests'])->name('code-requests.my');
     Route::get('my-codes/json', [\App\Http\Controllers\CodeRequestController::class, 'myCodeRequestsJson'])->name('code-requests.my-json');
     Route::post('code-requests/{codeRequest}/cancel', [\App\Http\Controllers\CodeRequestController::class, 'cancel'])->name('code-requests.cancel');

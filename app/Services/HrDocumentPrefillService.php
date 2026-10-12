@@ -81,6 +81,21 @@ class HrDocumentPrefillService
                         'Days'   => rtrim(rtrim(number_format((float) $lv->days_requested, 1, '.', ''), '0'), '.'),
                         'Reason' => trim((string) $lv->reason) !== '' ? $lv->reason : 'No reason given',
                     ])->values()->all(),
+                    // The same leaves, plus what the employee wrote from their
+                    // portal on coming back — the return-to-work conversation,
+                    // in their own words, without anyone sitting down.
+                    'leave_return_table' => $leaves->map(fn ($lv) => [
+                        'Date'          => $this->leaveDateLabel($lv),
+                        'Days'          => rtrim(rtrim(number_format((float) $lv->days_requested, 1, '.', ''), '0'), '.'),
+                        'Reason'        => trim((string) $lv->reason) !== '' ? $lv->reason : 'No reason given',
+                        'On returning'  => trim((string) $lv->return_note) !== '' ? $lv->return_note : 'No note given',
+                    ])->values()->all(),
+                    // The same pairs as text, for a template whose return field
+                    // is a textarea rather than a table.
+                    'leave_return_summary' => $leaves->map(fn ($lv) =>
+                        $this->leaveDateLabel($lv) . ' — '
+                        . (trim((string) $lv->return_note) !== '' ? $lv->return_note : 'No note given')
+                    )->join("\n"),
                     default => null,
                 };
 

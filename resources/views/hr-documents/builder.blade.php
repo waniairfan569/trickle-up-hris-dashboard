@@ -159,6 +159,8 @@
                                                 <option value="lateness_table">Lateness table (dates)</option>
                                                 <option value="absence_table">Absence table (dates)</option>
                                                 <option value="leave_table">Leave table (dates, days, reasons)</option>
+                                                <option value="leave_return_table">Leave table + return notes</option>
+                                                <option value="leave_return_summary">Return notes (text)</option>
                                                 <option value="leave_count">Leave count</option>
                                                 <option value="leave_days">Leave days total</option>
                                             </select>

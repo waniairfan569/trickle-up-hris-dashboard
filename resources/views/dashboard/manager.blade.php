@@ -50,6 +50,7 @@
 
     {{-- Same-day lateness prompt --}}
     @include('partials.lateness-prompt')
+    @include('partials.return-prompt')
 
     <!-- Employees waiting for a login code -->
     @include('partials.code-request-hr-banner')

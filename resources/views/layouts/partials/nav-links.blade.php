@@ -96,6 +96,24 @@
             @endif
         </a>
         @endif
+        {{-- Same rule as My Lateness: only for people who have actually been off. --}}
+        @php
+            $myReturns = \App\Models\TimeOffRequest::where('user_id', auth()->id())
+                ->where('status', 'approved')->returnToWorkEligible()
+                ->whereDate('end_date', '<', now()->toDateString())
+                ->whereDate('end_date', '>=', now()->subDays(120)->toDateString())
+                ->count();
+            $myReturnsOwed = $myReturns > 0 ? \App\Models\TimeOffRequest::outstandingReturnsFor(auth()->user())->count() : 0;
+        @endphp
+        @if($myReturns > 0)
+        <a href="{{ route('leave-returns.index') }}"
+           class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'leave-returns') ? 'text-brand-400 bg-slate-800' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
+            <i data-lucide="undo-2" class="h-5 w-5 shrink-0"></i><span class="flex-1">My Returns</span>
+            @if($myReturnsOwed > 0)
+                <span class="inline-flex items-center justify-center rounded-full bg-sky-500 text-white text-[10px] font-bold h-5 min-w-5 px-1">{{ $myReturnsOwed }}</span>
+            @endif
+        </a>
+        @endif
         <a href="{{ route('time-off.index') }}"
            class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ (Str::startsWith($routeName, 'time-off') && !Str::contains($routeName, 'policies')) ? 'text-brand-400 bg-slate-800' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
             <i data-lucide="calendar" class="h-5 w-5 shrink-0"></i><span class="flex-1">Time Off Requests</span>

@@ -850,6 +850,7 @@
                                 <tr>
                                     <th class="px-4 py-2 whitespace-nowrap">Leave</th>
                                     <th class="px-4 py-2 whitespace-nowrap">Dates</th>
+                                    <th class="px-4 py-2">Note on returning</th>
                                     <th class="px-4 py-2 whitespace-nowrap">Status</th>
                                     <th class="px-4 py-2 whitespace-nowrap text-right">Document</th>
                                 </tr>
@@ -862,6 +863,9 @@
                                         <td class="px-4 py-2.5 text-xs text-slate-400">
                                             {{ \Illuminate\Support\Carbon::parse($row->leave->start_date)->format('d M') }} → back {{ \Illuminate\Support\Carbon::parse($row->leave->end_date)->addDay()->format('d M Y') }}
                                             @if($row->leave->time_range) · {{ $row->leave->time_range }}@elseif($row->leave->duration_type !== 'full_day') · {{ $row->leave->duration_label }}@endif
+                                        </td>
+                                        <td class="px-4 py-2.5 text-xs {{ trim((string) $row->leave->return_note) !== '' ? 'italic text-slate-600 dark:text-slate-300' : 'text-slate-400' }}">
+                                            {{ trim((string) $row->leave->return_note) !== '' ? '“' . $row->leave->return_note . '”' : 'Awaiting note' }}
                                         </td>
                                         <td class="px-4 py-2.5 whitespace-nowrap">
                                             @if(! $row->doc && ($row->noTemplate ?? false))
@@ -889,7 +893,7 @@
                                         </td>
                                     </tr>
                                 @empty
-                                    <tr><td colspan="4" class="px-4 py-4 text-sm text-slate-400">No completed leaves in the last {{ $ldWindow }} days.</td></tr>
+                                    <tr><td colspan="5" class="px-4 py-4 text-sm text-slate-400">No completed leaves in the last {{ $ldWindow }} days.</td></tr>
                                 @endforelse
                             </tbody>
                         </table>

@@ -180,6 +180,7 @@
 
     {{-- Same-day lateness prompt --}}
     @include('partials.lateness-prompt')
+    @include('partials.return-prompt')
 
     @unless(auth()->user()->hasRole('super_admin'))
     @endunless
