@@ -766,97 +766,133 @@
                     @endunless
                     {{-- Grouped by month: one review covers the whole month, so it is
                          shown once at the top rather than repeated on every day. --}}
-                    <div class="rounded-xl border border-slate-100 dark:border-slate-700/60 divide-y divide-slate-100 dark:divide-slate-700/60 max-h-80 overflow-y-auto">
-                        @forelse($latenessDocData['latenessRows']->groupBy(fn ($r) => $r->date->format('Y-m')) as $ym => $rows)
-                            @php
-                                $withDoc = $rows->first(fn ($r) => $r->doc !== null);
-                                $monthDoc = $withDoc?->doc;
-                                $monthStatus = $withDoc?->status ?? 'none';
-                                [$lbl, $cls] = $ldBadge[$monthStatus];
-                                $unanswered = $rows->filter(fn ($r) => ! $r->explanation)->count();
-                            @endphp
+                    <div class="rounded-xl border border-slate-100 dark:border-slate-700/60 max-h-80 overflow-auto">
+                        <table class="w-full text-left text-sm">
+                            <thead class="sticky top-0 z-10 bg-slate-100 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:bg-slate-900 dark:text-slate-400">
+                                <tr>
+                                    <th class="px-4 py-2 whitespace-nowrap">Date</th>
+                                    <th class="px-4 py-2 whitespace-nowrap">Late by</th>
+                                    <th class="px-4 py-2 whitespace-nowrap">Status</th>
+                                    <th class="px-4 py-2 w-1/2">Reason</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100 dark:divide-slate-700/60">
+                                @forelse($latenessDocData['latenessRows']->groupBy(fn ($r) => $r->date->format('Y-m')) as $ym => $rows)
+                                    @php
+                                        $withDoc = $rows->first(fn ($r) => $r->doc !== null);
+                                        $monthDoc = $withDoc?->doc;
+                                        $monthStatus = $withDoc?->status ?? 'none';
+                                        [$lbl, $cls] = $ldBadge[$monthStatus];
+                                        $unanswered = $rows->filter(fn ($r) => ! $r->explanation)->count();
+                                    @endphp
 
-                            <div class="bg-slate-50/80 px-4 py-2 dark:bg-slate-900/40">
-                                <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
-                                    <span class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-300">
-                                        {{ \Illuminate\Support\Carbon::createFromFormat('Y-m', $ym)->format('F Y') }}
-                                    </span>
-                                    <span class="text-[11px] text-slate-400">
-                                        {{ $rows->count() }} late {{ Str::plural('day', $rows->count()) }}@if($unanswered) · {{ $unanswered }} awaiting a reason @endif
-                                    </span>
-                                    <span class="ml-auto flex items-center gap-2">
-                                        @if($monthDoc)
-                                            <span class="rounded-full px-2.5 py-0.5 text-[11px] font-bold {{ $cls }}">{{ $lbl }}</span>
-                                            <a href="{{ route('hr-documents.show', $monthDoc) }}" class="text-xs font-semibold text-brand-600 hover:underline">Open review</a>
-                                            {{-- The sheet itself, opened inline rather than downloaded,
-                                                 so it can be checked without leaving the profile. --}}
-                                            <a href="{{ route('hr-documents.pdf', [$monthDoc, 'preview' => 1]) }}" target="_blank" rel="noopener"
-                                               class="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-brand-600 hover:underline dark:text-slate-400">
-                                                <i data-lucide="file-text" class="h-3.5 w-3.5"></i> Preview PDF
-                                            </a>
-                                            @if($monthStatus === 'draft')
-                                                <form method="POST" action="{{ route('employees.lateness-docs.destroy', [$employee->id, $monthDoc->id]) }}" onsubmit="return confirm('Delete this draft review? The late days stay on record.');">@csrf @method('DELETE')<button type="submit" class="text-xs font-semibold text-rose-500 hover:underline">Delete</button></form>
-                                            @endif
-                                        @else
-                                            <span class="text-[11px] text-slate-400">No review yet</span>
-                                        @endif
-                                    </span>
-                                </div>
-                            </div>
+                                    {{-- One review covers the whole month, so it heads the month's
+                                         rows rather than being repeated on every day. --}}
+                                    <tr class="bg-slate-50/80 dark:bg-slate-900/40">
+                                        <td colspan="4" class="px-4 py-2">
+                                            <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+                                                <span class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-300">
+                                                    {{ \Illuminate\Support\Carbon::createFromFormat('Y-m', $ym)->format('F Y') }}
+                                                </span>
+                                                <span class="text-[11px] text-slate-400">
+                                                    {{ $rows->count() }} late {{ Str::plural('day', $rows->count()) }}{{ $unanswered ? ' · ' . $unanswered . ' awaiting a reason' : '' }}
+                                                </span>
+                                                <span class="ml-auto flex items-center gap-2">
+                                                    @if($monthDoc)
+                                                        <span class="rounded-full px-2.5 py-0.5 text-[11px] font-bold {{ $cls }}">{{ $lbl }}</span>
+                                                        <a href="{{ route('hr-documents.show', $monthDoc) }}" class="text-xs font-semibold text-brand-600 hover:underline">Open review</a>
+                                                        {{-- The sheet itself, opened inline rather than downloaded,
+                                                             so it can be checked without leaving the profile. --}}
+                                                        <a href="{{ route('hr-documents.pdf', [$monthDoc, 'preview' => 1]) }}" target="_blank" rel="noopener"
+                                                           class="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-brand-600 hover:underline dark:text-slate-400">
+                                                            <i data-lucide="file-text" class="h-3.5 w-3.5"></i> Preview PDF
+                                                        </a>
+                                                        @if($monthStatus === 'draft')
+                                                            <form method="POST" action="{{ route('employees.lateness-docs.destroy', [$employee->id, $monthDoc->id]) }}" onsubmit="return confirm('Delete this draft review? The late days stay on record.');">@csrf @method('DELETE')<button type="submit" class="text-xs font-semibold text-rose-500 hover:underline">Delete</button></form>
+                                                        @endif
+                                                    @else
+                                                        <span class="text-[11px] text-slate-400">No review yet</span>
+                                                    @endif
+                                                </span>
+                                            </div>
+                                        </td>
+                                    </tr>
 
-                            @foreach($rows as $row)
-                                <div class="px-4 py-2.5 text-sm">
-                                    <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
-                                        <span class="font-semibold text-slate-700 dark:text-slate-200">{{ $row->date->format('d M Y (D)') }}</span>
-                                        <span class="text-xs text-slate-400">{{ $row->late_minutes }} min late</span>
-                                        @if($row->explanation)
-                                            <span class="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400">Explained</span>
-                                        @elseif(! $row->doc)
-                                            <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-500 dark:bg-slate-700 dark:text-slate-300">Awaiting reason</span>
-                                        @endif
-                                    </div>
-                                    @if($row->explanation)
-                                        <p class="mt-1 text-xs text-slate-600 dark:text-slate-300 italic">“{{ $row->explanation->reason }}”</p>
-                                    @endif
-                                </div>
-                            @endforeach
-                        @empty
-                            <div class="px-4 py-4 text-sm text-slate-400">No late days in the last {{ $ldWindow }} days.</div>
-                        @endforelse
+                                    @foreach($rows as $row)
+                                        <tr class="align-top">
+                                            <td class="px-4 py-2.5 whitespace-nowrap font-semibold text-slate-700 dark:text-slate-200">{{ $row->date->format('d M Y (D)') }}</td>
+                                            <td class="px-4 py-2.5 whitespace-nowrap text-xs text-slate-400">{{ $row->late_minutes }} min</td>
+                                            <td class="px-4 py-2.5 whitespace-nowrap">
+                                                @if($row->explanation)
+                                                    <span class="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400">Explained</span>
+                                                @else
+                                                    <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-500 dark:bg-slate-700 dark:text-slate-300">Awaiting reason</span>
+                                                @endif
+                                            </td>
+                                            <td class="px-4 py-2.5 text-xs {{ $row->explanation ? 'italic text-slate-600 dark:text-slate-300' : 'text-slate-400' }}">
+                                                {{ $row->explanation ? '“' . $row->explanation->reason . '”' : '—' }}
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                @empty
+                                    <tr><td colspan="4" class="px-4 py-4 text-sm text-slate-400">No late days in the last {{ $ldWindow }} days.</td></tr>
+                                @endforelse
+                            </tbody>
+                        </table>
                     </div>
                 </div>
 
                 <div>
                     <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Returned from leave · last {{ $ldWindow }} days</h3>
-                    <div class="rounded-xl border border-slate-100 dark:border-slate-700/60 divide-y divide-slate-100 dark:divide-slate-700/60 max-h-72 overflow-y-auto">
-                        @forelse($latenessDocData['returnRows'] as $row)
-                            @php [$lbl, $cls] = $ldBadge[$row->status]; @endphp
-                            <div class="flex items-center gap-3 px-4 py-2.5 text-sm">
-                                <span class="font-semibold text-slate-700 dark:text-slate-200">{{ optional($row->leave->policy)->name ?? 'Leave' }}</span>
-                                <span class="text-xs text-slate-400">
-                                    {{ \Illuminate\Support\Carbon::parse($row->leave->start_date)->format('d M') }} → back {{ \Illuminate\Support\Carbon::parse($row->leave->end_date)->addDay()->format('d M Y') }}
-                                    @if($row->leave->time_range) · {{ $row->leave->time_range }}@elseif($row->leave->duration_type !== 'full_day') · {{ $row->leave->duration_label }}@endif
-                                </span>
-                                @if(! $row->doc && ($row->noTemplate ?? false))
-                                    <span class="ml-auto rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-bold text-slate-500 dark:bg-slate-700 dark:text-slate-300"
-                                          title="Assign a template to this event on the Documents page">No document for this leave type</span>
-                                @else
-                                    <span class="ml-auto rounded-full px-2.5 py-0.5 text-[11px] font-bold {{ $cls }}">{{ $lbl }}</span>
-                                @endif
-                                @if($row->doc)
-                                    <a href="{{ route('hr-documents.show', $row->doc) }}" class="text-xs font-semibold text-brand-600 hover:underline">Open</a>
-                                    <a href="{{ route('hr-documents.pdf', [$row->doc, 'preview' => 1]) }}" target="_blank" rel="noopener"
-                                       class="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-brand-600 hover:underline dark:text-slate-400">
-                                        <i data-lucide="file-text" class="h-3.5 w-3.5"></i> Preview PDF
-                                    </a>
-                                    @if($row->status === 'draft')
-                                        <form method="POST" action="{{ route('employees.lateness-docs.destroy', [$employee->id, $row->doc->id]) }}" onsubmit="return confirm('Delete this draft document?');">@csrf @method('DELETE')<button type="submit" class="text-xs font-semibold text-rose-500 hover:underline">Delete</button></form>
-                                    @endif
-                                @endif
-                            </div>
-                        @empty
-                            <div class="px-4 py-4 text-sm text-slate-400">No completed leaves in the last {{ $ldWindow }} days.</div>
-                        @endforelse
+                    <div class="rounded-xl border border-slate-100 dark:border-slate-700/60 max-h-72 overflow-auto">
+                        <table class="w-full text-left text-sm">
+                            <thead class="sticky top-0 z-10 bg-slate-100 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:bg-slate-900 dark:text-slate-400">
+                                <tr>
+                                    <th class="px-4 py-2 whitespace-nowrap">Leave</th>
+                                    <th class="px-4 py-2 whitespace-nowrap">Dates</th>
+                                    <th class="px-4 py-2 whitespace-nowrap">Status</th>
+                                    <th class="px-4 py-2 whitespace-nowrap text-right">Document</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100 dark:divide-slate-700/60">
+                                @forelse($latenessDocData['returnRows'] as $row)
+                                    @php [$lbl, $cls] = $ldBadge[$row->status]; @endphp
+                                    <tr>
+                                        <td class="px-4 py-2.5 font-semibold text-slate-700 dark:text-slate-200">{{ optional($row->leave->policy)->name ?? 'Leave' }}</td>
+                                        <td class="px-4 py-2.5 text-xs text-slate-400">
+                                            {{ \Illuminate\Support\Carbon::parse($row->leave->start_date)->format('d M') }} → back {{ \Illuminate\Support\Carbon::parse($row->leave->end_date)->addDay()->format('d M Y') }}
+                                            @if($row->leave->time_range) · {{ $row->leave->time_range }}@elseif($row->leave->duration_type !== 'full_day') · {{ $row->leave->duration_label }}@endif
+                                        </td>
+                                        <td class="px-4 py-2.5 whitespace-nowrap">
+                                            @if(! $row->doc && ($row->noTemplate ?? false))
+                                                <span class="rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-bold text-slate-500 dark:bg-slate-700 dark:text-slate-300"
+                                                      title="Assign a template to this event on the Documents page">No document for this leave type</span>
+                                            @else
+                                                <span class="rounded-full px-2.5 py-0.5 text-[11px] font-bold {{ $cls }}">{{ $lbl }}</span>
+                                            @endif
+                                        </td>
+                                        <td class="px-4 py-2.5 whitespace-nowrap text-right">
+                                            @if($row->doc)
+                                                <span class="inline-flex items-center justify-end gap-2">
+                                                    <a href="{{ route('hr-documents.show', $row->doc) }}" class="text-xs font-semibold text-brand-600 hover:underline">Open</a>
+                                                    <a href="{{ route('hr-documents.pdf', [$row->doc, 'preview' => 1]) }}" target="_blank" rel="noopener"
+                                                       class="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-brand-600 hover:underline dark:text-slate-400">
+                                                        <i data-lucide="file-text" class="h-3.5 w-3.5"></i> Preview PDF
+                                                    </a>
+                                                    @if($row->status === 'draft')
+                                                        <form method="POST" action="{{ route('employees.lateness-docs.destroy', [$employee->id, $row->doc->id]) }}" onsubmit="return confirm('Delete this draft document?');">@csrf @method('DELETE')<button type="submit" class="text-xs font-semibold text-rose-500 hover:underline">Delete</button></form>
+                                                    @endif
+                                                </span>
+                                            @else
+                                                <span class="text-xs text-slate-300 dark:text-slate-600">—</span>
+                                            @endif
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr><td colspan="4" class="px-4 py-4 text-sm text-slate-400">No completed leaves in the last {{ $ldWindow }} days.</td></tr>
+                                @endforelse
+                            </tbody>
+                        </table>
                     </div>
                 </div>
                 @endif
