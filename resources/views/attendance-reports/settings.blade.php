@@ -121,6 +121,11 @@
                 <span class="text-[11px] text-slate-400 ml-2">Minutes after shift start before a clock-in is late. 0 = late at shift start (e.g. 09:30); 5 = late after 09:35.</span>
             </div>
             <div class="pt-2">
+                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Lateness review after</label>
+                <input type="number" name="lateness_review_min_days" value="{{ $settings->lateness_review_min_days }}" min="0" max="31" class="w-32 rounded-xl border-slate-300 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                <span class="text-[11px] text-slate-400 ml-2">Late days in a month before a Lateness Review is drafted on the 3rd of the next month. 0 = draft one for anyone who was late at all.</span>
+            </div>
+            <div class="pt-2">
                 <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Subject line</label>
                 <input type="text" name="report_subject_template" value="{{ $settings->report_subject_template }}" class="w-full rounded-xl border-slate-300 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
                 <span class="text-[11px] text-slate-400">Use <code>@{{date}}</code> for the report date.</span>

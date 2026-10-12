@@ -77,6 +77,10 @@ Schedule::command('reminders:overtime-report')->everyMinute()->withoutOverlappin
 // documents, ready for HR to review/edit/send from the employee's profile.
 Schedule::command('documents:auto-generate')->dailyAt('01:15')->withoutOverlapping();
 
+// Month-end Lateness Review, on the 3rd so corrections have settled and people
+// have had a chance to answer the same-day prompt.
+Schedule::command('lateness:monthly-reviews')->monthlyOn(3, '02:15')->withoutOverlapping();
+
 // Scheduler heartbeat — proves the cron is actually running, surfaced by /health.
 Schedule::call(fn () => \Illuminate\Support\Facades\Cache::put(
     \App\Http\Controllers\HealthController::HEARTBEAT_KEY, now()->toIso8601String(), 900

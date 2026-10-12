@@ -12,7 +12,7 @@ class AttendanceReportSettings extends Model
         'send_to_super_admin', 'send_to_hr_admin', 'send_to_managers', 'additional_emails',
         'include_late', 'include_absent', 'include_early_departure', 'include_overtime',
         'include_on_leave', 'include_full_table', 'attach_excel', 'late_threshold_minutes',
-        'report_subject_template',
+        'lateness_review_min_days', 'report_subject_template',
     ];
 
     protected $casts = [
