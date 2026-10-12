@@ -764,36 +764,56 @@
                             <a href="{{ route('hr-documents.index') }}" class="font-bold underline">HR Documents</a> → Edit and set <b>Attendance prefill</b> to <b>Lateness</b>.
                         </p>
                     @endunless
-                    <div class="rounded-xl border border-slate-100 dark:border-slate-700/60 divide-y divide-slate-100 dark:divide-slate-700/60 max-h-72 overflow-y-auto">
-                        @forelse($latenessDocData['latenessRows'] as $row)
-                            @php [$lbl, $cls] = $ldBadge[$row->status]; @endphp
-                            <div class="px-4 py-2.5 text-sm">
+                    {{-- Grouped by month: one review covers the whole month, so it is
+                         shown once at the top rather than repeated on every day. --}}
+                    <div class="rounded-xl border border-slate-100 dark:border-slate-700/60 divide-y divide-slate-100 dark:divide-slate-700/60 max-h-80 overflow-y-auto">
+                        @forelse($latenessDocData['latenessRows']->groupBy(fn ($r) => $r->date->format('Y-m')) as $ym => $rows)
+                            @php
+                                $withDoc = $rows->first(fn ($r) => $r->doc !== null);
+                                $monthDoc = $withDoc?->doc;
+                                $monthStatus = $withDoc?->status ?? 'none';
+                                [$lbl, $cls] = $ldBadge[$monthStatus];
+                                $unanswered = $rows->filter(fn ($r) => ! $r->explanation)->count();
+                            @endphp
+
+                            <div class="bg-slate-50/80 px-4 py-2 dark:bg-slate-900/40">
                                 <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
-                                    <span class="font-semibold text-slate-700 dark:text-slate-200">{{ $row->date->format('d M Y (D)') }}</span>
-                                    <span class="text-xs text-slate-400">{{ $row->late_minutes }} min late</span>
-                                    @if($row->explanation)
-                                        <span class="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400">Explained</span>
-                                    @elseif(! $row->doc)
-                                        {{-- Only days with no document are still owed a reason; one
-                                             already written up has been dealt with the old way. --}}
-                                        <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-500 dark:bg-slate-700 dark:text-slate-300">Awaiting reason</span>
-                                    @endif
+                                    <span class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-300">
+                                        {{ \Illuminate\Support\Carbon::createFromFormat('Y-m', $ym)->format('F Y') }}
+                                    </span>
+                                    <span class="text-[11px] text-slate-400">
+                                        {{ $rows->count() }} late {{ Str::plural('day', $rows->count()) }}@if($unanswered) · {{ $unanswered }} awaiting a reason @endif
+                                    </span>
                                     <span class="ml-auto flex items-center gap-2">
-                                        @if($row->doc)
+                                        @if($monthDoc)
                                             <span class="rounded-full px-2.5 py-0.5 text-[11px] font-bold {{ $cls }}">{{ $lbl }}</span>
-                                            <a href="{{ route('hr-documents.show', $row->doc) }}" class="text-xs font-semibold text-brand-600 hover:underline">Open review</a>
-                                            @if($row->status === 'draft')
-                                                <form method="POST" action="{{ route('employees.lateness-docs.destroy', [$employee->id, $row->doc->id]) }}" onsubmit="return confirm('Delete this draft document?');">@csrf @method('DELETE')<button type="submit" class="text-xs font-semibold text-rose-500 hover:underline">Delete</button></form>
+                                            <a href="{{ route('hr-documents.show', $monthDoc) }}" class="text-xs font-semibold text-brand-600 hover:underline">Open review</a>
+                                            @if($monthStatus === 'draft')
+                                                <form method="POST" action="{{ route('employees.lateness-docs.destroy', [$employee->id, $monthDoc->id]) }}" onsubmit="return confirm('Delete this draft review? The late days stay on record.');">@csrf @method('DELETE')<button type="submit" class="text-xs font-semibold text-rose-500 hover:underline">Delete</button></form>
                                             @endif
                                         @else
-                                            <span class="text-[11px] text-slate-400">Counts toward the month-end review</span>
+                                            <span class="text-[11px] text-slate-400">No review yet</span>
                                         @endif
                                     </span>
                                 </div>
-                                @if($row->explanation)
-                                    <p class="mt-1 text-xs text-slate-600 dark:text-slate-300 italic">“{{ $row->explanation->reason }}”</p>
-                                @endif
                             </div>
+
+                            @foreach($rows as $row)
+                                <div class="px-4 py-2.5 text-sm">
+                                    <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+                                        <span class="font-semibold text-slate-700 dark:text-slate-200">{{ $row->date->format('d M Y (D)') }}</span>
+                                        <span class="text-xs text-slate-400">{{ $row->late_minutes }} min late</span>
+                                        @if($row->explanation)
+                                            <span class="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400">Explained</span>
+                                        @elseif(! $row->doc)
+                                            <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-500 dark:bg-slate-700 dark:text-slate-300">Awaiting reason</span>
+                                        @endif
+                                    </div>
+                                    @if($row->explanation)
+                                        <p class="mt-1 text-xs text-slate-600 dark:text-slate-300 italic">“{{ $row->explanation->reason }}”</p>
+                                    @endif
+                                </div>
+                            @endforeach
                         @empty
                             <div class="px-4 py-4 text-sm text-slate-400">No late days in the last {{ $ldWindow }} days.</div>
                         @endforelse
