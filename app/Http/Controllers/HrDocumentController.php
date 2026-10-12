@@ -328,14 +328,14 @@ class HrDocumentController extends Controller
 
         $signature = trim((string) ($validated['admin_signature'] ?? ''));
         if ($mode === 'self' && ! Str::startsWith($signature, 'data:image/')) {
-            return back()->with('error', 'Add your signature before sending, or choose another option for the manager section.');
+            return back()->withInput()->with('error', 'Add your signature before sending, or choose another option for the manager section.');
         }
 
         $managerId = $validated['manager_id'] ?? optional($employee)->manager_id;
         $manager   = $mode === 'manager' && $managerId ? User::find($managerId) : null;
 
         if ($mode === 'manager' && ! $manager) {
-            return back()->with('error', 'Pick the line manager who should sign, or sign the manager section yourself.');
+            return back()->withInput()->with('error', 'Pick the line manager who should sign, or sign the manager section yourself.');
         }
 
         // Rebuild the signer set (supports re-sending).

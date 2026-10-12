@@ -16,12 +16,7 @@
         </p>
     </div>
 
-    @if(session('success'))
-        <div class="rounded-xl bg-emerald-50 p-4 border border-emerald-200 text-sm text-emerald-700 dark:bg-emerald-500/10 dark:border-emerald-500/20">{{ session('success') }}</div>
-    @endif
-    @if(session('error'))
-        <div class="rounded-xl bg-rose-50 p-4 border border-rose-200 text-sm text-rose-700 dark:bg-rose-500/10 dark:border-rose-500/20">{{ session('error') }}</div>
-    @endif
+    {{-- Flash messages come from the layout; repeating them here shows each twice. --}}
 
     {{-- Still to answer --}}
     <section class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden dark:bg-slate-800 dark:border-slate-700">

@@ -230,9 +230,17 @@ class EmployeeProfileController extends Controller
                 ->keyBy(fn ($d) => optional($d->period_start)->toDateString() . '|' . optional($d->period_end)->toDateString())
             : collect();
 
-        $returnRows = $leaves->map(function ($lv) use ($absenceDocs, $status) {
+        $returnRows = $leaves->map(function ($lv) use ($absenceDocs, $status, $generator) {
             $key = \Illuminate\Support\Carbon::parse($lv->start_date)->toDateString() . '|' . \Illuminate\Support\Carbon::parse($lv->end_date)->toDateString();
-            return (object) ['leave' => $lv, 'doc' => $doc = $absenceDocs->get($key), 'status' => $status($doc)];
+
+            return (object) [
+                'leave'  => $lv,
+                'doc'    => $doc = $absenceDocs->get($key),
+                'status' => $status($doc),
+                // "Not generated" is unhelpful when the real reason is that this
+                // kind of leave has no document assigned to it at all.
+                'noTemplate' => ! $generator->returnTemplateFor($lv),
+            ];
         })->values();
 
         return [

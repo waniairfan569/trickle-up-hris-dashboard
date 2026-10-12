@@ -828,7 +828,10 @@ class TimeOffController extends Controller
         $returned = round($this->workingDaysBetween($employee, $from, $to), 2);
 
         \Illuminate\Support\Facades\DB::transaction(function () use ($timeOff, $leaveReturn, $employee, $user, $from, $to, $start, $originalEnd, $returned) {
-            if ($returned > 0) {
+            // Work From Home never consumed balance on approval (see
+            // TimeOffBalanceService::deductBalance), so there is nothing to
+            // credit back — decrementing anyway drove `used` negative.
+            if ($returned > 0 && $timeOff->policy && ! $timeOff->policy->isWorkFromHome()) {
                 $year = Carbon::parse($timeOff->start_date)->year;
                 $balance = $this->balanceService->getOrCreateBalance($employee, $timeOff->policy, $year);
                 // Never drive a balance below zero if the two ever drift apart.
@@ -893,7 +896,7 @@ class TimeOffController extends Controller
             return;
         }
 
-        TimeOffRequest::create([
+        $remainder = TimeOffRequest::create([
             'user_id'        => $original->user_id,
             'policy_id'      => $original->policy_id,
             'requested_by'   => $original->requested_by,
@@ -907,6 +910,10 @@ class TimeOffController extends Controller
             'approved_by'    => $original->approved_by,
             'approved_at'    => $original->approved_at,
         ]);
+
+        // It is the same application, split — so it was applied for when the
+        // original was. Left as "now" it reads as approved before it existed.
+        $remainder->forceFill(['created_at' => $original->created_at])->save();
     }
 
     /** HR/manager declines the early-return request; the original leave stands. */

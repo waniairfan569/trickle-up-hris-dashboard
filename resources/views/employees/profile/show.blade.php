@@ -809,7 +809,12 @@
                                     {{ \Illuminate\Support\Carbon::parse($row->leave->start_date)->format('d M') }} → back {{ \Illuminate\Support\Carbon::parse($row->leave->end_date)->addDay()->format('d M Y') }}
                                     @if($row->leave->time_range) · {{ $row->leave->time_range }}@elseif($row->leave->duration_type !== 'full_day') · {{ $row->leave->duration_label }}@endif
                                 </span>
-                                <span class="ml-auto rounded-full px-2.5 py-0.5 text-[11px] font-bold {{ $cls }}">{{ $lbl }}</span>
+                                @if(! $row->doc && ($row->noTemplate ?? false))
+                                    <span class="ml-auto rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-bold text-slate-500 dark:bg-slate-700 dark:text-slate-300"
+                                          title="Assign a template to this event on the Documents page">No document for this leave type</span>
+                                @else
+                                    <span class="ml-auto rounded-full px-2.5 py-0.5 text-[11px] font-bold {{ $cls }}">{{ $lbl }}</span>
+                                @endif
                                 @if($row->doc)
                                     <a href="{{ route('hr-documents.show', $row->doc) }}" class="text-xs font-semibold text-brand-600 hover:underline">Open</a>
                                     @if($row->status === 'draft')

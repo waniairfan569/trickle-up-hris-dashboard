@@ -11,7 +11,9 @@
 @endphp
 
 @section('content')
-<div class="max-w-4xl mx-auto space-y-6" x-data="{ sendOpen: false }">
+{{-- A refused send redirects back; reopen the dialog so the error is read in
+     context rather than behind it. --}}
+<div class="max-w-4xl mx-auto space-y-6" x-data="{ sendOpen: {{ old('manager_mode') ? 'true' : 'false' }} }">
 
     <div class="flex items-start justify-between gap-4 flex-wrap">
         <div class="flex items-center gap-3">
@@ -76,15 +78,17 @@
     {{-- Send-for-signature dialog --}}
     <div x-show="sendOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4" style="display:none;">
         <div class="absolute inset-0 bg-slate-900/50" @click="sendOpen = false"></div>
-        <div class="relative w-full max-w-md bg-white rounded-2xl shadow-xl dark:bg-slate-800" @click.stop>
-            <form method="POST" action="{{ route('hr-documents.send', $document) }}">
+        {{-- Capped to the window and scrolled inside, so the signature pad can't
+             push the buttons off a short screen. --}}
+        <div class="relative flex max-h-[90vh] w-full max-w-md flex-col overflow-hidden rounded-2xl bg-white shadow-xl dark:bg-slate-800" @click.stop>
+            <form method="POST" action="{{ route('hr-documents.send', $document) }}" class="flex min-h-0 flex-col">
                 @csrf
-                <div class="p-5 border-b border-slate-100 dark:border-slate-700">
+                <div class="shrink-0 p-5 border-b border-slate-100 dark:border-slate-700">
                     <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2"><i data-lucide="send" class="h-5 w-5 text-brand-500"></i> Send for signature</h3>
                     <p class="text-xs text-slate-500 mt-1">Choose who needs to sign this document.</p>
                 </div>
 
-                <div class="p-5 space-y-4">
+                <div class="min-h-0 flex-1 overflow-y-auto p-5 space-y-4">
                     {{-- Employee (always) --}}
                     <div class="flex items-center gap-3 rounded-xl border border-slate-200 p-3 dark:border-slate-700">
                         <div class="h-9 w-9 shrink-0 rounded-lg bg-brand-50 text-brand-600 grid place-items-center dark:bg-brand-500/10"><i data-lucide="user" class="h-4 w-4"></i></div>
@@ -151,7 +155,7 @@
                     @endif
                 </div>
 
-                <div class="p-5 border-t border-slate-100 dark:border-slate-700 flex items-center justify-end gap-3">
+                <div class="shrink-0 p-5 border-t border-slate-100 dark:border-slate-700 flex items-center justify-end gap-3">
                     <button type="button" @click="sendOpen = false" class="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700">Cancel</button>
                     <button type="submit" class="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-600 transition"><i data-lucide="send" class="h-4 w-4"></i> Send</button>
                 </div>
@@ -166,7 +170,8 @@
     // data URI in a hidden field.
     function adminSignPad() {
         return {
-            mode: '{{ $hasManagerField && $defaultManagerId ? 'manager' : 'none' }}',
+            // A refused send comes back here — keep the choice they made.
+            mode: '{{ old('manager_mode', $hasManagerField && $defaultManagerId ? 'manager' : 'none') }}',
             image: '',
             typed: '',
             init() {

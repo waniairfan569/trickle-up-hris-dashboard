@@ -161,7 +161,9 @@ class TimeOffBalanceService
         $year = Carbon::now()->year;
         $balance = $this->getOrCreateBalance($user, $policy, $year);
 
-        $balance->decrement('pending', $days);
+        // A request whose pending was never added — seeded data, or one created
+        // straight as approved — would otherwise push this below zero.
+        $balance->decrement('pending', min($days, max(0, (float) $balance->pending)));
     }
 
     /**

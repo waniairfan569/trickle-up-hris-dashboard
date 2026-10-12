@@ -176,9 +176,11 @@
                 @csrf @method('DELETE')
             </form>
 
-            {{-- Selection bar — only while something is ticked --}}
+            {{-- Selection bar. Its space is always reserved: appearing on first tick
+                 used to shove the table down, so the next click landed a row off. --}}
+            <div class="mb-2 min-h-[44px]">
             <div x-show="selected.length > 0" x-cloak
-                 class="mb-2 flex flex-wrap items-center gap-3 rounded-xl border border-brand-200 bg-brand-50 px-4 py-2.5 dark:border-brand-500/30 dark:bg-brand-500/10">
+                 class="flex flex-wrap items-center gap-3 rounded-xl border border-brand-200 bg-brand-50 px-4 py-2.5 dark:border-brand-500/30 dark:bg-brand-500/10">
                 <span class="text-sm font-bold text-slate-800 dark:text-slate-100">
                     <span x-text="selected.length"></span> selected
                 </span>
@@ -189,6 +191,7 @@
                 <button type="button" @click="selected = []"
                         class="text-xs font-semibold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200">Clear</button>
                 <span class="text-[11px] text-slate-500 dark:text-slate-400">Deleted documents can be restored from the Deleted list.</span>
+            </div>
             </div>
 
         <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden dark:bg-slate-800 dark:border-slate-700">
