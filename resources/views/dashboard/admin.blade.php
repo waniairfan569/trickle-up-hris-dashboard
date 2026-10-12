@@ -178,6 +178,9 @@
     <!-- Unread-announcement bar + auto-popup -->
     @include('partials.announcement-alert')
 
+    {{-- Same-day lateness prompt --}}
+    @include('partials.lateness-prompt')
+
     @unless(auth()->user()->hasRole('super_admin'))
     @endunless
 

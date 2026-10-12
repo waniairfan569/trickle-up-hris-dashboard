@@ -29,6 +29,8 @@ class HrDocumentPrefillService
             ->whereBetween('date', [$start->toDateString(), $end->toDateString()])
             ->orderBy('date')->get();
 
+        $lateReasons = \App\Models\AttendanceExplanation::reasonsFor($employee, $start, $end);
+
         $data = [];
 
         foreach ($template->schema as $section) {
@@ -45,9 +47,10 @@ class HrDocumentPrefillService
                     'line_manager'  => optional($employee->manager)->full_name ?? '',
                     'late_count'    => (string) $late->count(),
                     'absent_count'  => (string) $absent->count(),
+                    // Reasons the employee already gave on the day — never ask twice.
                     'lateness_table' => $late->map(fn ($r) => [
                         'Date'   => $r->date->format('d M Y'),
-                        'Reason' => '',
+                        'Reason' => $lateReasons[$r->date->toDateString()] ?? 'No reason provided',
                     ])->values()->all(),
                     'absence_table' => $absent->map(fn ($r) => [
                         'Date'   => $r->date->format('d M Y'),

@@ -49,6 +49,9 @@
     <!-- Unread-announcement bar + auto-popup -->
     @include('partials.announcement-alert')
 
+    {{-- Same-day lateness prompt --}}
+    @include('partials.lateness-prompt')
+
     <!-- Employees waiting for a login code — only for people a super admin delegated code-sending to -->
     @if(auth()->user()->can_send_codes && plan_allows('code_requests'))
         @include('partials.code-request-hr-banner')

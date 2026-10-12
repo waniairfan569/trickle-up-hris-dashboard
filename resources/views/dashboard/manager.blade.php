@@ -48,6 +48,9 @@
     <!-- Unread-announcement bar + auto-popup -->
     @include('partials.announcement-alert')
 
+    {{-- Same-day lateness prompt --}}
+    @include('partials.lateness-prompt')
+
     <!-- Employees waiting for a login code -->
     @include('partials.code-request-hr-banner')
 

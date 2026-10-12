@@ -151,6 +151,11 @@ Route::middleware(['auth', 'verified', 'force.password.change'])->group(function
 
     // Quick Code Requests — employee asks HR to share a tool login/OTP code.
     Route::post('code-requests', [\App\Http\Controllers\CodeRequestController::class, 'quickRequest'])->name('code-requests.store');
+    // Same-day "why were you late?" — the employee's own account of the day.
+    Route::get('my-lateness', [\App\Http\Controllers\AttendanceExplanationController::class, 'index'])->name('attendance-explanations.index');
+    Route::post('my-lateness', [\App\Http\Controllers\AttendanceExplanationController::class, 'store'])->name('attendance-explanations.store');
+    Route::post('my-lateness/snooze', [\App\Http\Controllers\AttendanceExplanationController::class, 'snooze'])->name('attendance-explanations.snooze');
+
     Route::get('my-codes', [\App\Http\Controllers\CodeRequestController::class, 'myCodeRequests'])->name('code-requests.my');
     Route::get('my-codes/json', [\App\Http\Controllers\CodeRequestController::class, 'myCodeRequestsJson'])->name('code-requests.my-json');
     Route::post('code-requests/{codeRequest}/cancel', [\App\Http\Controllers\CodeRequestController::class, 'cancel'])->name('code-requests.cancel');
