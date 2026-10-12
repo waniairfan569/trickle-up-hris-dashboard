@@ -177,22 +177,34 @@ class EmployeeProfileController extends Controller
             return in_array($doc->status, ['sent', 'completed'], true) ? $doc->status : 'draft';
         };
 
-        // Late days + their per-day documents.
+        // Late days, what the employee said about each, and the month-end
+        // review that covers it. Per-day documents are no longer drafted, but
+        // older ones are still shown where they exist.
         $lateDays = \App\Models\AttendanceRecord::where('user_id', $employee->id)
             ->where('status', 'late')->whereDate('date', '>=', $from)
-            ->orderByDesc('date')->get(['date', 'late_minutes']);
+            ->orderByDesc('date')->get(['id', 'date', 'late_minutes']);
+
+        $explanations = \App\Models\AttendanceExplanation::where('user_id', $employee->id)
+            ->whereDate('date', '>=', $from)->get()
+            ->keyBy(fn ($e) => $e->date->toDateString());
 
         $latenessDocs = $latenessTpl
             ? \App\Models\HrDocument::where('user_id', $employee->id)
                 ->where('hr_document_template_id', $latenessTpl->id)
-                ->whereColumn('period_start', 'period_end')
-                ->with('signers')->get()->keyBy(fn ($d) => optional($d->period_start)->toDateString())
+                ->with('signers')->get()
             : collect();
+
+        // A day is covered by whichever review spans it — per-day or monthly.
+        $docForDay = function ($date) use ($latenessDocs) {
+            return $latenessDocs->first(fn ($d) => $d->period_start && $d->period_end
+                && $date->betweenIncluded($d->period_start, $d->period_end));
+        };
 
         $latenessRows = $lateDays->map(fn ($r) => (object) [
             'date'         => $r->date,
             'late_minutes' => $r->late_minutes,
-            'doc'          => $doc = $latenessDocs->get($r->date->toDateString()),
+            'explanation'  => $explanations->get($r->date->toDateString()),
+            'doc'          => $doc = $docForDay($r->date),
             'status'       => $status($doc),
         ])->values();
 

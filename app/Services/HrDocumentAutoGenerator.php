@@ -97,16 +97,28 @@ class HrDocumentAutoGenerator
             ->orderByDesc('is_active')->orderBy('id')->first();
     }
 
-    /** Per-day lateness + per-leave return-to-work drafts for one employee. Returns count created. */
-    public function generateForEmployee(User $employee, int $lookbackDays = self::LOOKBACK_DAYS): int
+    /**
+     * Return-to-work drafts for one employee. Returns count created.
+     *
+     * Lateness is deliberately not here any more. A document per late day
+     * produced about a hundred a month, most for a few minutes; the employee
+     * now explains each late day on the day it happens and
+     * `lateness:monthly-reviews` drafts ONE review on the 3rd for anyone over
+     * the threshold. Pass $withPerDayLateness to get the old behaviour back.
+     */
+    public function generateForEmployee(User $employee, int $lookbackDays = self::LOOKBACK_DAYS, bool $withPerDayLateness = false): int
     {
         $today = Carbon::today();
 
-        return $this->perDayLateness($employee, $today, $lookbackDays)
+        return ($withPerDayLateness ? $this->perDayLateness($employee, $today, $lookbackDays) : 0)
             + $this->returnToWork($employee, $today, $lookbackDays);
     }
 
-    /** One Lateness Review draft per late day (up to yesterday), if not already made. */
+    /**
+     * One Lateness Review draft per late day. No longer called by the nightly
+     * job — kept for the "Generate missing now" button's opt-in and for
+     * workspaces that still want per-day documents.
+     */
     public function perDayLateness(User $employee, Carbon $today, int $lookbackDays = self::LOOKBACK_DAYS): int
     {
         $template = $this->latenessTemplate();
