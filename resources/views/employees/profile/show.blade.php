@@ -788,6 +788,12 @@
                                         @if($monthDoc)
                                             <span class="rounded-full px-2.5 py-0.5 text-[11px] font-bold {{ $cls }}">{{ $lbl }}</span>
                                             <a href="{{ route('hr-documents.show', $monthDoc) }}" class="text-xs font-semibold text-brand-600 hover:underline">Open review</a>
+                                            {{-- The sheet itself, opened inline rather than downloaded,
+                                                 so it can be checked without leaving the profile. --}}
+                                            <a href="{{ route('hr-documents.pdf', [$monthDoc, 'preview' => 1]) }}" target="_blank" rel="noopener"
+                                               class="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-brand-600 hover:underline dark:text-slate-400">
+                                                <i data-lucide="file-text" class="h-3.5 w-3.5"></i> Preview PDF
+                                            </a>
                                             @if($monthStatus === 'draft')
                                                 <form method="POST" action="{{ route('employees.lateness-docs.destroy', [$employee->id, $monthDoc->id]) }}" onsubmit="return confirm('Delete this draft review? The late days stay on record.');">@csrf @method('DELETE')<button type="submit" class="text-xs font-semibold text-rose-500 hover:underline">Delete</button></form>
                                             @endif
@@ -839,6 +845,10 @@
                                 @endif
                                 @if($row->doc)
                                     <a href="{{ route('hr-documents.show', $row->doc) }}" class="text-xs font-semibold text-brand-600 hover:underline">Open</a>
+                                    <a href="{{ route('hr-documents.pdf', [$row->doc, 'preview' => 1]) }}" target="_blank" rel="noopener"
+                                       class="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-brand-600 hover:underline dark:text-slate-400">
+                                        <i data-lucide="file-text" class="h-3.5 w-3.5"></i> Preview PDF
+                                    </a>
                                     @if($row->status === 'draft')
                                         <form method="POST" action="{{ route('employees.lateness-docs.destroy', [$employee->id, $row->doc->id]) }}" onsubmit="return confirm('Delete this draft document?');">@csrf @method('DELETE')<button type="submit" class="text-xs font-semibold text-rose-500 hover:underline">Delete</button></form>
                                     @endif
