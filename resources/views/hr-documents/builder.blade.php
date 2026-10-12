@@ -139,7 +139,10 @@
                                             <textarea rows="2" x-model="field.text" class="{{ $inp }}"></textarea>
                                         </div>
                                     </template>
-                                    <template x-if="['text','number','date','table'].includes(field.type)">
+                                    {{-- Anything that holds a value can be auto-filled. Only a
+                                         signature and a fixed note cannot, so exclude just those
+                                         rather than listing types and forgetting one. --}}
+                                    <template x-if="!['signature','note'].includes(field.type)">
                                         <div class="sm:col-span-12">
                                             <label class="block text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-1">Auto-fill from attendance (optional)</label>
                                             <select x-model="field.prefill" class="{{ $inp }}">
