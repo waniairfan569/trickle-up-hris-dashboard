@@ -773,7 +773,9 @@
                                     <span class="text-xs text-slate-400">{{ $row->late_minutes }} min late</span>
                                     @if($row->explanation)
                                         <span class="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400">Explained</span>
-                                    @else
+                                    @elseif(! $row->doc)
+                                        {{-- Only days with no document are still owed a reason; one
+                                             already written up has been dealt with the old way. --}}
                                         <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-500 dark:bg-slate-700 dark:text-slate-300">Awaiting reason</span>
                                     @endif
                                     <span class="ml-auto flex items-center gap-2">
