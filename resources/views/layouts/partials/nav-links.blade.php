@@ -78,6 +78,24 @@
            class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'attendance.my-history') ? 'text-brand-400 bg-slate-800' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
             <i data-lucide="clock" class="h-5 w-5 shrink-0"></i><span class="flex-1">My Attendance</span>
         </a>
+        {{-- Only for people who have actually been late — a permanent "My Lateness"
+             link would be noise for everyone else. --}}
+        @php
+            $myLate = \App\Models\AttendanceRecord::where('user_id', auth()->id())
+                ->where('status', 'late')
+                ->whereDate('date', '>=', now()->subDays(120)->toDateString())
+                ->count();
+            $myLateOwed = $myLate > 0 ? \App\Models\AttendanceExplanation::outstandingFor(auth()->user())->count() : 0;
+        @endphp
+        @if($myLate > 0)
+        <a href="{{ route('attendance-explanations.index') }}"
+           class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'attendance-explanations') ? 'text-brand-400 bg-slate-800' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
+            <i data-lucide="alarm-clock" class="h-5 w-5 shrink-0"></i><span class="flex-1">My Lateness</span>
+            @if($myLateOwed > 0)
+                <span class="inline-flex items-center justify-center rounded-full bg-amber-500 text-white text-[10px] font-bold h-5 min-w-5 px-1">{{ $myLateOwed }}</span>
+            @endif
+        </a>
+        @endif
         <a href="{{ route('time-off.index') }}"
            class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ (Str::startsWith($routeName, 'time-off') && !Str::contains($routeName, 'policies')) ? 'text-brand-400 bg-slate-800' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
             <i data-lucide="calendar" class="h-5 w-5 shrink-0"></i><span class="flex-1">Time Off Requests</span>

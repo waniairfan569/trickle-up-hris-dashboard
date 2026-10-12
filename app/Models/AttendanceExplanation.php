@@ -52,13 +52,14 @@ class AttendanceExplanation extends Model
      */
     public static function outstandingFor(User $employee, int $withinDays = 45)
     {
-        // Never reach back before the workspace started collecting reasons,
-        // otherwise turning this on asks everyone for weeks of history at once.
-        $from = Carbon::today()->subDays($withinDays);
+        // "Ask for reasons from" is the admin's deliberate starting point, so it
+        // decides the window outright — set it back a few months to collect
+        // reasons for past lateness, or forward to stop asking about history.
+        // With nothing set, fall back to the recent past.
         $since = AttendanceReportSettings::getSettings()->lateness_prompt_from ?? null;
-        if ($since && Carbon::parse($since)->gt($from)) {
-            $from = Carbon::parse($since);
-        }
+        $from = $since
+            ? Carbon::parse($since)->startOfDay()
+            : Carbon::today()->subDays($withinDays);
 
         $days = AttendanceRecord::where('user_id', $employee->id)
             ->where('status', 'late')

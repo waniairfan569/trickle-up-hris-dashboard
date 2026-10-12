@@ -128,7 +128,7 @@
             <div class="pt-2">
                 <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Ask for reasons from</label>
                 <input type="date" name="lateness_prompt_from" value="{{ optional($settings->lateness_prompt_from)->format('Y-m-d') ?? $settings->lateness_prompt_from }}" class="rounded-xl border-slate-300 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
-                <span class="text-[11px] text-slate-400 ml-2">The earliest late day employees are prompted about. Leave empty to ask about anything in the last 45 days. Days already written up in a Lateness Review are never asked about.</span>
+                <span class="text-[11px] text-slate-400 ml-2">The earliest late day employees are prompted about — set it back a month or two to collect reasons for past lateness, or forward to stop asking about history. Empty means the last 45 days. Days already written up in a Lateness Review are never asked about.</span>
             </div>
             <div class="pt-2">
                 <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Subject line</label>
