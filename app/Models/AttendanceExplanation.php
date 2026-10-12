@@ -73,9 +73,12 @@ class AttendanceExplanation extends Model
             return $days;
         }
 
-        // A day already written up in a lateness document has been dealt with —
-        // asking for a reason now would be asking twice.
+        // A day already written up in a lateness document that has gone out has
+        // been dealt with — asking for a reason now would be asking twice.
+        // A draft has not gone anywhere and is rebuilt when it is regenerated,
+        // so it must not stop the employee answering for those days.
         $documented = HrDocument::where('user_id', $employee->id)
+            ->where('status', '!=', 'draft')
             ->whereHas('template', fn ($q) => $q->where('prefill', 'lateness'))
             ->get(['period_start', 'period_end']);
 
