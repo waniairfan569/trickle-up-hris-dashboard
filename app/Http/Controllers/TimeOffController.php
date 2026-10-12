@@ -318,6 +318,9 @@ class TimeOffController extends Controller
             if ($request->has('policy_id') && $request->policy_id !== 'all') {
                 $query->where('policy_id', $request->policy_id);
             }
+            if ($request->has('employee_id') && $request->employee_id !== 'all') {
+                $query->where('user_id', $request->employee_id);
+            }
             // Month filter (YYYY-MM): any request whose leave window touches that month.
             if ($request->filled('month') && preg_match('/^\d{4}-\d{2}$/', $request->input('month'))) {
                 $monthStart = \Carbon\Carbon::createFromFormat('Y-m-d', $request->input('month') . '-01')->startOfMonth();
@@ -336,6 +339,14 @@ class TimeOffController extends Controller
         }
         
         $allPolicies = TimeOffPolicy::active()->get();
+
+        // Everyone who has ever filed a request, for the All Requests filter —
+        // the list is long, so picking a name beats scrolling 381 rows.
+        $filterEmployees = ($user->hasRole('hr_admin') || $user->hasRole('super_admin'))
+            ? User::whereIn('id', TimeOffRequest::select('user_id')->distinct())
+                ->orderBy('first_name')->orderBy('last_name')
+                ->get(['id', 'first_name', 'last_name'])
+            : collect();
 
         // Every policy (active or not) an admin can reclassify a request into —
         // e.g. a "Planned Leaves" policy that's inactive for new applications
@@ -418,7 +429,7 @@ class TimeOffController extends Controller
 
         return view('time-off.index', compact(
             'myPolicies', 'myBalances', 'timeOffBalances', 'myRequests',
-            'teamRequests', 'allRequests', 'allPolicies', 'movePolicies',
+            'teamRequests', 'allRequests', 'allPolicies', 'movePolicies', 'filterEmployees',
             'myReturns', 'pendingReturns', 'overtimeForm', 'myOvertime',
             'compPolicy', 'compEmployees', 'myCompClaims', 'pendingCompClaims', 'myOvertimeDays'
         ));
