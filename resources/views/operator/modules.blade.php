@@ -4,7 +4,7 @@
 @section('breadcrumb', 'Modules')
 
 @section('content')
-<div class="max-w-3xl mx-auto space-y-6" x-data="modulesManager()">
+<div class="max-w-6xl mx-auto space-y-6" x-data="modulesManager()">
 
     <div class="flex flex-wrap items-start justify-between gap-3">
         <div>

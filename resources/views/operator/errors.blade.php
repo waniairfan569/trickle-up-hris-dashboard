@@ -4,7 +4,7 @@
 @section('breadcrumb', 'Errors')
 
 @section('content')
-<div class="max-w-5xl">
+<div class="max-w-6xl mx-auto">
     <div class="flex items-start justify-between gap-4 mb-6">
         <div>
             <h1 class="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
