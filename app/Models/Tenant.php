@@ -12,6 +12,7 @@ class Tenant extends Model
         'company_size', 'industry', 'country', 'heard_from', 'onboarding_survey_at',
         'trial_ends_at', 'canceled_at', 'onboarding_dismissed_at',
         'stripe_customer_id', 'stripe_subscription_id', 'card_brand', 'card_last_four',
+        'feature_overrides',
     ];
 
     protected $casts = [
@@ -20,6 +21,7 @@ class Tenant extends Model
         'onboarding_dismissed_at' => 'datetime',
         'onboarding_survey_at' => 'datetime',
         'discount_percent' => 'integer',
+        'feature_overrides' => 'array',
     ];
 
     /** A new workspace that hasn't yet answered (or skipped) the onboarding questionnaire. */
@@ -166,7 +168,38 @@ class Tenant extends Model
         return $limit === 0 || $this->seatCount() < $limit;
     }
 
+    /**
+     * Does this workspace have a module? The plan decides, unless an operator
+     * has made an exception for this company on its own page.
+     */
     public function hasFeature(string $feature): bool
+    {
+        $overrides = $this->feature_overrides ?? [];
+
+        // An exception beats the plan in both directions, so a company can keep
+        // a module its plan dropped, or lose one its plan includes.
+        if (in_array($feature, $overrides['off'] ?? [], true)) {
+            return false;
+        }
+        if (in_array($feature, $overrides['on'] ?? [], true)) {
+            return true;
+        }
+
+        $features = $this->planConfig()['features'] ?? [];
+
+        return in_array('*', $features, true) || in_array($feature, $features, true);
+    }
+
+    /** True when this company differs from its plan at all. */
+    public function hasFeatureOverrides(): bool
+    {
+        $o = $this->feature_overrides ?? [];
+
+        return ! empty($o['on']) || ! empty($o['off']);
+    }
+
+    /** What the plan alone would grant, ignoring this company's exceptions. */
+    public function planGrants(string $feature): bool
     {
         $features = $this->planConfig()['features'] ?? [];
 

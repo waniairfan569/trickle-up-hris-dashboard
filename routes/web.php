@@ -514,6 +514,9 @@ Route::middleware(['auth', 'verified', 'force.password.change'])->group(function
             // GDPR right-to-erasure — owner-only, permanent.
             Route::delete('companies/{tenant}', [\App\Http\Controllers\OperatorController::class, 'destroyWorkspace'])->name('companies.destroy');
             Route::post('companies/{tenant}/discount', [\App\Http\Controllers\SubscriptionController::class, 'applyDiscount'])->name('companies.discount');
+            // Per-company module exceptions on top of the plan.
+            Route::post('companies/{tenant}/modules', [\App\Http\Controllers\OperatorController::class, 'updateModules'])->name('companies.modules');
+            Route::post('companies/{tenant}/modules/reset', [\App\Http\Controllers\OperatorController::class, 'resetModules'])->name('companies.modules.reset');
 
             // Dynamic plans.
             Route::get('plans', [\App\Http\Controllers\PlanController::class, 'index'])->name('plans');

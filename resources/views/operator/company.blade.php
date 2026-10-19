@@ -46,27 +46,74 @@
     @if($tenant->admin)<p class="text-xs text-slate-400">Admin: <b class="text-slate-600 dark:text-slate-300">{{ $tenant->admin->full_name }}</b> · {{ $tenant->admin->email }}</p>@endif
 
     {{-- Modules & access (determined by the plan) --}}
-    @php $planFeatures = $tenant->planConfig()['features'] ?? []; $allAccess = in_array('*', $planFeatures, true); @endphp
+    @php
+        $planFeatures = $tenant->planConfig()['features'] ?? [];
+        $allAccess = in_array('*', $planFeatures, true);
+        // Only an owner may change what a company is sold; support can look.
+        $isOperatorOwner = auth()->user()->isOperatorOwner();
+    @endphp
     <div class="rounded-2xl border border-slate-200/80 bg-white shadow-sm p-5 dark:bg-slate-800 dark:border-slate-700">
         <div class="flex flex-wrap items-center justify-between gap-2">
             <h2 class="text-sm font-bold text-slate-700 dark:text-slate-200 flex items-center gap-2"><i data-lucide="layout-grid" class="h-4 w-4 text-indigo-500"></i> Modules &amp; access</h2>
             <span class="text-[11px] text-slate-400">via the <b class="text-slate-600 dark:text-slate-300">{{ $tenant->planConfig()['name'] ?? '—' }}</b> plan</span>
         </div>
 
-        @if($allAccess)
+        @if($tenant->hasFeatureOverrides())
+            <p class="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-amber-600 dark:text-amber-400"><i data-lucide="git-branch" class="h-4 w-4"></i> This company differs from its plan</p>
+        @elseif($allAccess)
             <p class="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-600 dark:text-emerald-400"><i data-lucide="check-circle" class="h-4 w-4"></i> All modules included — full access</p>
         @endif
 
-        <div class="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-2">
-            @foreach($featureLabels as $key => $label)
-                @php $has = $allAccess || $tenant->hasFeature($key); @endphp
-                <div class="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm {{ $has ? 'border-emerald-200 bg-emerald-50/50 dark:border-emerald-500/20 dark:bg-emerald-500/5' : 'border-slate-200 bg-slate-50/50 dark:border-slate-700 dark:bg-slate-900/30' }}">
-                    <i data-lucide="{{ $has ? 'check' : 'minus' }}" class="h-3.5 w-3.5 shrink-0 {{ $has ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400' }}"></i>
-                    <span class="{{ $has ? 'text-slate-800 dark:text-white font-medium' : 'text-slate-400 line-through' }}">{{ $label }}</span>
-                </div>
-            @endforeach
-        </div>
-        <p class="mt-3 text-[11px] text-slate-400">Access follows the plan. Change it by moving this company to a different plan above, or by editing the plan's features on the <a href="{{ route('operator.plans') }}" class="text-indigo-600 hover:underline dark:text-indigo-400">Plans</a> page.</p>
+        @if($isOperatorOwner)
+        <form action="{{ route('operator.companies.modules', $tenant) }}" method="POST">@csrf
+            <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                @foreach($featureLabels as $key => $label)
+                    @php
+                        $has = $tenant->hasFeature($key);
+                        $plan = $tenant->planGrants($key);
+                        // Say so when this company has been set apart from its plan,
+                        // so an exception is never mistaken for what the plan sells.
+                        $note = $has && ! $plan ? 'added' : (! $has && $plan ? 'removed' : null);
+                    @endphp
+                    <label class="flex items-center gap-2.5 rounded-lg border px-3 py-2 text-sm cursor-pointer transition
+                        {{ $has ? 'border-emerald-200 bg-emerald-50/50 dark:border-emerald-500/20 dark:bg-emerald-500/5' : 'border-slate-200 bg-slate-50/50 dark:border-slate-700 dark:bg-slate-900/30' }}
+                        hover:border-indigo-300 dark:hover:border-indigo-500/40">
+                        <input type="checkbox" name="features[]" value="{{ $key }}" @checked($has)
+                               class="h-4 w-4 shrink-0 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 dark:border-slate-600 dark:bg-slate-900">
+                        <span class="min-w-0 flex-1 {{ $has ? 'text-slate-800 dark:text-white font-medium' : 'text-slate-400' }}">{{ $label }}</span>
+                        @if($note)
+                            <span class="shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-bold {{ $note === 'added' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300' }}">{{ $note }}</span>
+                        @endif
+                    </label>
+                @endforeach
+            </div>
+
+            <div class="mt-4 flex flex-wrap items-center gap-3">
+                <button type="submit" class="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-bold text-white hover:bg-indigo-700">
+                    <i data-lucide="save" class="h-4 w-4"></i> Save modules
+                </button>
+                @if($tenant->hasFeatureOverrides())
+                    <button type="submit" formaction="{{ route('operator.companies.modules.reset', $tenant) }}"
+                            class="text-xs font-semibold text-slate-500 hover:text-indigo-600 dark:text-slate-400">Reset to the plan</button>
+                @endif
+                <p class="text-[11px] text-slate-400 basis-full sm:basis-auto">
+                    Ticking a module this plan doesn't sell gives it to this company only. Unticking one takes it away from them alone.
+                    Changing the plan later keeps these exceptions — edit the plan itself on the <a href="{{ route('operator.plans') }}" class="text-indigo-600 hover:underline dark:text-indigo-400">Plans</a> page to change it for everyone.
+                </p>
+            </div>
+        </form>
+        @else
+            <div class="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-2">
+                @foreach($featureLabels as $key => $label)
+                    @php $has = $tenant->hasFeature($key); @endphp
+                    <div class="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm {{ $has ? 'border-emerald-200 bg-emerald-50/50 dark:border-emerald-500/20 dark:bg-emerald-500/5' : 'border-slate-200 bg-slate-50/50 dark:border-slate-700 dark:bg-slate-900/30' }}">
+                        <i data-lucide="{{ $has ? 'check' : 'minus' }}" class="h-3.5 w-3.5 shrink-0 {{ $has ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400' }}"></i>
+                        <span class="{{ $has ? 'text-slate-800 dark:text-white font-medium' : 'text-slate-400 line-through' }}">{{ $label }}</span>
+                    </div>
+                @endforeach
+            </div>
+            <p class="mt-3 text-[11px] text-slate-400">Only a platform owner can change which modules a company has.</p>
+        @endif
     </div>
 
     {{-- Subscription controls --}}

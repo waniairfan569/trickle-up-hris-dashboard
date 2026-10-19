@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Plan;
+use App\Models\PlanFeature;
 use App\Models\SubscriptionEvent;
 use App\Models\Tenant;
 use App\Models\User;
@@ -106,6 +107,53 @@ class OperatorController extends Controller
         SubscriptionEvent::record($tenant, 'plan_changed', "Plan changed to {$plan->name}.");
 
         return back()->with('success', "{$tenant->name} moved to the {$plan->name} plan.");
+    }
+
+    /**
+     * Per-company module exceptions. The form posts the modules that should be
+     * ON, and what gets stored is only how that differs from the plan — so a
+     * later plan change still reaches this company, carrying the exceptions.
+     */
+    public function updateModules(Request $request, Tenant $tenant)
+    {
+        $known = PlanFeature::pluck('key')->all();
+        $wanted = array_values(array_intersect($request->input('features', []), $known));
+
+        $on = $off = [];
+        foreach ($known as $key) {
+            $shouldHave = in_array($key, $wanted, true);
+            $planGrants = $tenant->planGrants($key);
+
+            if ($shouldHave && ! $planGrants) {
+                $on[] = $key;
+            } elseif (! $shouldHave && $planGrants) {
+                $off[] = $key;
+            }
+        }
+
+        $tenant->update([
+            'feature_overrides' => ($on || $off) ? ['on' => $on, 'off' => $off] : null,
+        ]);
+
+        $summary = match (true) {
+            ! $on && ! $off => 'now follows its plan exactly',
+            ! $off          => count($on) . ' module(s) added on top of the plan',
+            ! $on           => count($off) . ' module(s) removed from the plan',
+            default         => count($on) . ' added, ' . count($off) . ' removed',
+        };
+
+        SubscriptionEvent::record($tenant, 'modules_changed', "Modules changed — {$summary}.");
+
+        return back()->with('success', "{$tenant->name} {$summary}.");
+    }
+
+    /** Drop every exception and go back to exactly what the plan grants. */
+    public function resetModules(Tenant $tenant)
+    {
+        $tenant->update(['feature_overrides' => null]);
+        SubscriptionEvent::record($tenant, 'modules_changed', 'Modules reset to the plan.');
+
+        return back()->with('success', "{$tenant->name} now follows its plan exactly.");
     }
 
     /** GDPR data portability — download a workspace's full data as JSON. */
