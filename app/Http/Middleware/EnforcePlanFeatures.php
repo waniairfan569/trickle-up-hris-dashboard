@@ -47,6 +47,58 @@ class EnforcePlanFeatures
         'feedback.'          => 'feedback',
         'performance.'       => 'performance',
         'onboarding.'        => 'onboarding',
+
+        // --- People ---
+        // Only the directory listing: employees.profile is the employee's own
+        // profile, and gating that would lock someone out of their own record.
+        'employees.index'           => 'employee_directory',
+        'employees.attendance-mode' => 'attendance_mode',
+        'employees.pay-reviews'     => 'pay_reviews',
+        'org-chart'                 => 'org_chart',
+        'team.'                     => 'team_management',
+
+        // --- Company setup ---
+        'departments.'       => 'departments',
+        'office-locations.'  => 'office_locations',
+        'job-locations.'     => 'office_locations',
+        'company-entities.'  => 'company_entities',
+        'workspace.branding' => 'branding',
+        'roles.'             => 'roles_permissions',
+        'admin.sessions'     => 'active_sessions',
+        'admin.audit-logs'   => 'audit_logs',
+        'zkteco'             => 'zkteco',
+
+        // --- Communication & documents ---
+        'events.'              => 'calendar_events',
+        'announcements.'       => 'announcements',
+        'company-policies.'    => 'policies',
+        'my-policies.'         => 'policies',
+        'documents-hub.'       => 'documents',
+        'document-categories.' => 'documents',
+        'document-library.'    => 'documents',
+        'documents.'           => 'documents',
+
+        // --- Templates ---
+        'profile-templates.'   => 'profile_templates',
+        'profile-fields.'      => 'profile_templates',
+        'profile-sections.'    => 'profile_templates',
+        'signature-templates.' => 'signature_templates',
+        'letterheads.'         => 'signature_templates',
+
+        // --- Time & attendance ---
+        'company-wfh-days.'       => 'company_wfh',
+        'time-tracking-policies.' => 'time_tracking',
+        'overtime-report.'        => 'time_tracking',
+        'overtime.'               => 'time_tracking',
+        'time-off-policies.'      => 'leave',
+        'time-off.'               => 'leave',
+        'leave-returns.'          => 'leave',
+        'leave-year-settings.'    => 'leave',
+        // attendance-reports. is mapped to `reports` above and is matched first,
+        // so it is not swallowed by the attendance prefixes here.
+        'attendance-explanations.' => 'attendance',
+        'lateness'                 => 'attendance',
+        'attendance.'              => 'attendance',
     ];
 
     public function __construct(private TenantManager $tenants)
