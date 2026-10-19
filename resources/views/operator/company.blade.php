@@ -65,28 +65,43 @@
         @endif
 
         @if($isOperatorOwner)
-        <form action="{{ route('operator.companies.modules', $tenant) }}" method="POST">@csrf
-            <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                @foreach($featureLabels as $key => $label)
-                    @php
-                        $has = $tenant->hasFeature($key);
-                        $plan = $tenant->planGrants($key);
-                        // Say so when this company has been set apart from its plan,
-                        // so an exception is never mistaken for what the plan sells.
-                        $note = $has && ! $plan ? 'added' : (! $has && $plan ? 'removed' : null);
-                    @endphp
-                    <label class="flex items-center gap-2.5 rounded-lg border px-3 py-2 text-sm cursor-pointer transition
-                        {{ $has ? 'border-emerald-200 bg-emerald-50/50 dark:border-emerald-500/20 dark:bg-emerald-500/5' : 'border-slate-200 bg-slate-50/50 dark:border-slate-700 dark:bg-slate-900/30' }}
-                        hover:border-indigo-300 dark:hover:border-indigo-500/40">
-                        <input type="checkbox" name="features[]" value="{{ $key }}" @checked($has)
-                               class="h-4 w-4 shrink-0 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 dark:border-slate-600 dark:bg-slate-900">
-                        <span class="min-w-0 flex-1 {{ $has ? 'text-slate-800 dark:text-white font-medium' : 'text-slate-400' }}">{{ $label }}</span>
-                        @if($note)
-                            <span class="shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-bold {{ $note === 'added' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300' }}">{{ $note }}</span>
-                        @endif
-                    </label>
-                @endforeach
-            </div>
+        <form action="{{ route('operator.companies.modules', $tenant) }}" method="POST" x-data="{}">@csrf
+            {{-- Grouped the same way as the Modules catalogue, so 38 tick boxes
+                 read as sections of the product rather than one long wall. --}}
+            @foreach(\App\Models\PlanFeature::grouped(\App\Models\PlanFeature::active()->ordered()->get()) as $groupName => $groupFeatures)
+                <div class="mt-4" x-data="{ grp: $el }">
+                    <div class="flex items-baseline gap-2.5 mb-2">
+                        <h3 class="text-[11px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-300">{{ $groupName }}</h3>
+                        <span class="h-px flex-1 bg-slate-200 dark:bg-slate-700"></span>
+                        <button type="button" @click="grp.querySelectorAll('input[type=checkbox]').forEach(c => c.checked = true)"
+                                class="text-[11px] font-bold text-slate-400 hover:text-emerald-600">All</button>
+                        <button type="button" @click="grp.querySelectorAll('input[type=checkbox]').forEach(c => c.checked = false)"
+                                class="text-[11px] font-bold text-slate-400 hover:text-rose-500">None</button>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                        @foreach($groupFeatures as $f)
+                            @php
+                                $key = $f->key;
+                                $has = $tenant->hasFeature($key);
+                                $plan = $tenant->planGrants($key);
+                                // Say so when this company has been set apart from its plan,
+                                // so an exception is never mistaken for what the plan sells.
+                                $note = $has && ! $plan ? 'added' : (! $has && $plan ? 'removed' : null);
+                            @endphp
+                            <label class="flex items-center gap-2.5 rounded-lg border px-3 py-2 text-sm cursor-pointer transition
+                                {{ $has ? 'border-emerald-200 bg-emerald-50/50 dark:border-emerald-500/20 dark:bg-emerald-500/5' : 'border-slate-200 bg-slate-50/50 dark:border-slate-700 dark:bg-slate-900/30' }}
+                                hover:border-indigo-300 dark:hover:border-indigo-500/40">
+                                <input type="checkbox" name="features[]" value="{{ $key }}" @checked($has)
+                                       class="h-4 w-4 shrink-0 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 dark:border-slate-600 dark:bg-slate-900">
+                                <span class="min-w-0 flex-1 {{ $has ? 'text-slate-800 dark:text-white font-medium' : 'text-slate-400' }}">{{ $f->label }}</span>
+                                @if($note)
+                                    <span class="shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-bold {{ $note === 'added' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300' }}">{{ $note }}</span>
+                                @endif
+                            </label>
+                        @endforeach
+                    </div>
+                </div>
+            @endforeach
 
             <div class="mt-4 flex flex-wrap items-center gap-3">
                 <button type="submit" class="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-bold text-white hover:bg-indigo-700">

@@ -20,7 +20,12 @@ class ModulesController extends Controller
             return $f;
         });
 
-        return view('operator.modules', compact('features'));
+        // Grouped for the sections, and flattened back so the card index the
+        // filter script uses matches the order the cards are rendered in.
+        $grouped = PlanFeature::grouped($features);
+        $features = $grouped->flatten();
+
+        return view('operator.modules', compact('features', 'grouped'));
     }
 
     public function store(Request $request)
@@ -30,6 +35,7 @@ class ModulesController extends Controller
         PlanFeature::create([
             'key'         => PlanFeature::makeKey($data['label']),
             'label'       => $data['label'],
+            'group'       => $data['group'] ?: 'Other',
             'description' => $data['description'] ?? null,
             'functions'   => $this->cleanFunctions($data['functions'] ?? []),
             'is_active'   => true,
@@ -46,6 +52,7 @@ class ModulesController extends Controller
         // Key stays stable (plans reference it); label/description/functions change.
         $feature->update([
             'label'       => $data['label'],
+            'group'       => $data['group'] ?: $feature->group,
             'description' => $data['description'] ?? null,
             'functions'   => $this->cleanFunctions($data['functions'] ?? []),
         ]);
@@ -83,6 +90,7 @@ class ModulesController extends Controller
     {
         return $request->validate([
             'label'         => 'required|string|max:100',
+            'group'         => 'nullable|string|max:60',
             'description'   => 'nullable|string|max:255',
             'functions'     => 'nullable|array|max:30',
             'functions.*'   => 'nullable|string|max:120',

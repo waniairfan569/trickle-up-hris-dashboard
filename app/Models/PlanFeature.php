@@ -11,7 +11,21 @@ use Illuminate\Support\Str;
  */
 class PlanFeature extends Model
 {
-    protected $fillable = ['key', 'label', 'description', 'functions', 'sort_order', 'is_active'];
+    /** The parent groups a module can sit under, in the order they are shown. */
+    public const GROUPS = [
+        'Time & attendance',
+        'Leave',
+        'People',
+        'Documents & forms',
+        'Communication',
+        'Reports',
+        'Company setup',
+        'Security & audit',
+        'Assets & tools',
+        'Other',
+    ];
+
+    protected $fillable = ['key', 'label', 'group', 'description', 'functions', 'sort_order', 'is_active'];
 
     protected $casts = [
         'is_active'  => 'boolean',
@@ -54,6 +68,20 @@ class PlanFeature extends Model
         }
 
         return $key;
+    }
+
+    /**
+     * The catalog as group => modules, in the order of self::GROUPS so the
+     * sections read the same everywhere they are shown.
+     */
+    public static function grouped($features = null)
+    {
+        $features = $features ?: static::ordered()->get();
+        $order = array_flip(self::GROUPS);
+
+        return $features
+            ->groupBy(fn ($f) => $f->group ?: 'Other')
+            ->sortBy(fn ($rows, $group) => $order[$group] ?? count($order));
     }
 
     /** How many plans currently include this module. */

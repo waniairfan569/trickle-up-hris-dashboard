@@ -29,6 +29,12 @@
             <input type="search" id="module-search" x-model="q" placeholder="Search modules, keys or functions"
                    class="w-full rounded-xl border border-slate-300 py-2.5 pl-9 pr-3 text-sm dark:border-slate-600 dark:bg-slate-900 dark:text-white">
         </div>
+        <select id="module-group" x-model="group" class="rounded-xl border border-slate-300 py-2.5 px-3 text-sm font-semibold dark:border-slate-600 dark:bg-slate-900 dark:text-white">
+            <option value="all">All groups</option>
+            @foreach($grouped->keys() as $g)
+                <option value="{{ $g }}">{{ $g }}</option>
+            @endforeach
+        </select>
         <select id="module-status" x-model="status" class="rounded-xl border border-slate-300 py-2.5 px-3 text-sm font-semibold dark:border-slate-600 dark:bg-slate-900 dark:text-white">
             <option value="all">All statuses</option>
             <option value="active">Active</option>
@@ -40,7 +46,7 @@
             <option value="unused">On no plan</option>
         </select>
         <span class="text-xs font-semibold text-slate-400" x-text="visible + ' of ' + items.length"></span>
-        <button type="button" x-show="q || status !== 'all' || usage !== 'all'" x-cloak @click="q=''; status='all'; usage='all'"
+        <button type="button" x-show="q || group !== 'all' || status !== 'all' || usage !== 'all'" x-cloak @click="q=''; group='all'; status='all'; usage='all'"
                 class="text-xs font-semibold text-slate-500 hover:text-indigo-600 dark:text-slate-400">Clear</button>
     </div>
 
@@ -48,9 +54,19 @@
     @if($features->isEmpty())
         <p class="rounded-2xl border border-slate-200/80 bg-white px-5 py-10 text-center text-sm text-slate-400 dark:bg-slate-800 dark:border-slate-700">No modules yet. Add one to start building plans.</p>
     @else
+        @php $i = -1; @endphp
+        @foreach($grouped as $groupName => $groupFeatures)
+            @php $groupIndexes = range($i + 1, $i + $groupFeatures->count()); @endphp
+            <section x-show="anyVisible({{ Illuminate\Support\Js::from($groupIndexes) }})" class="space-y-3">
+                <div class="flex items-baseline gap-2.5 pt-1">
+                    <h2 class="text-sm font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-300">{{ $groupName }}</h2>
+                    <span class="text-[11px] text-slate-400" x-text="countVisible({{ Illuminate\Support\Js::from($groupIndexes) }}) + ' of {{ $groupFeatures->count() }}'"></span>
+                    <span class="h-px flex-1 bg-slate-200 dark:bg-slate-700"></span>
+                </div>
+
         <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            @foreach($features as $i => $f)
-                @php $fns = $f->functions ?? []; @endphp
+            @foreach($groupFeatures as $f)
+                @php $fns = $f->functions ?? []; $i++; @endphp
                 <div x-show="show({{ $i }})" x-data="{ fnOpen: false }"
                      class="flex flex-col rounded-2xl border bg-white p-4 shadow-sm dark:bg-slate-800 {{ $f->is_active ? 'border-slate-200/80 dark:border-slate-700' : 'border-amber-200 bg-amber-50/30 dark:border-amber-500/25 dark:bg-amber-500/5' }}">
                     <div class="flex items-start gap-3">
@@ -86,7 +102,7 @@
                             {{ $f->plans_count ? $f->plans_count . ' plan' . ($f->plans_count === 1 ? '' : 's') : 'On no plan' }}
                         </span>
                         <div class="flex items-center gap-0.5">
-                            <button type="button" title="Edit" @click="openEdit({{ Illuminate\Support\Js::from(['id'=>$f->id,'label'=>$f->label,'description'=>$f->description,'functions'=>$f->functions ?? []]) }})" class="inline-grid place-items-center h-8 w-8 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-indigo-600 dark:hover:bg-slate-700"><i data-lucide="pencil" class="h-4 w-4"></i></button>
+                            <button type="button" title="Edit" @click="openEdit({{ Illuminate\Support\Js::from(['id'=>$f->id,'label'=>$f->label,'group'=>$f->group,'description'=>$f->description,'functions'=>$f->functions ?? []]) }})" class="inline-grid place-items-center h-8 w-8 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-indigo-600 dark:hover:bg-slate-700"><i data-lucide="pencil" class="h-4 w-4"></i></button>
                             <form action="{{ route('operator.modules.toggle', $f) }}" method="POST">@csrf
                                 <button title="{{ $f->is_active ? 'Archive' : 'Activate' }}" class="inline-grid place-items-center h-8 w-8 rounded-lg text-slate-400 hover:bg-amber-50 hover:text-amber-600 dark:hover:bg-amber-500/10"><i data-lucide="{{ $f->is_active ? 'archive' : 'archive-restore' }}" class="h-4 w-4"></i></button>
                             </form>
@@ -98,9 +114,11 @@
                 </div>
             @endforeach
         </div>
+            </section>
+        @endforeach
 
         <p x-show="visible === 0" x-cloak class="rounded-2xl border border-slate-200/80 bg-white px-5 py-10 text-center text-sm text-slate-400 dark:bg-slate-800 dark:border-slate-700">
-            No modules match that. <button type="button" @click="q=''; status='all'; usage='all'" class="font-bold text-indigo-600 hover:underline dark:text-indigo-400">Clear the filters</button>
+            No modules match that. <button type="button" @click="q=''; group='all'; status='all'; usage='all'" class="font-bold text-indigo-600 hover:underline dark:text-indigo-400">Clear the filters</button>
         </p>
     @endif
 
@@ -113,6 +131,15 @@
                 <div>
                     <label class="block text-[11px] font-bold text-slate-500 mb-1">Name</label>
                     <input type="text" name="label" x-model="form.label" maxlength="100" required placeholder="e.g. Payroll" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-500 mb-1">Group</label>
+                    <select name="group" x-model="form.group" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                        @foreach(\App\Models\PlanFeature::GROUPS as $g)
+                            <option value="{{ $g }}">{{ $g }}</option>
+                        @endforeach
+                    </select>
+                    <p class="mt-1 text-[11px] text-slate-400">Which part of the product this belongs to. Modules are listed under their group here and on every company's page.</p>
                 </div>
                 <div>
                     <label class="block text-[11px] font-bold text-slate-500 mb-1">Description <span class="font-normal text-slate-400">(optional)</span></label>
@@ -145,15 +172,20 @@
         return {
             // Search and filter state. `items` carries one searchable record per
             // card, in the same order the cards are rendered.
-            q:'', status:'all', usage:'all',
+            q:'', group:'all', status:'all', usage:'all',
             items: {!! Illuminate\Support\Js::from($features->map(fn ($f) => [
                 'text'   => mb_strtolower(trim($f->label . ' ' . $f->key . ' ' . $f->description . ' ' . implode(' ', $f->functions ?? []))),
+                'group'  => $f->group ?: 'Other',
                 'active' => (bool) $f->is_active,
                 'plans'  => (int) $f->plans_count,
             ])->values()) !!},
+            // A section hides itself when none of its own cards are showing.
+            anyVisible(indexes) { return indexes.some(i => this.show(i)); },
+            countVisible(indexes) { return indexes.filter(i => this.show(i)).length; },
             show(i) {
                 const it = this.items[i];
                 if (!it) return false;
+                if (this.group !== 'all' && it.group !== this.group) return false;
                 if (this.status === 'active' && !it.active) return false;
                 if (this.status === 'archived' && it.active) return false;
                 if (this.usage === 'used' && it.plans === 0) return false;
@@ -167,10 +199,10 @@
 
             open:false, isEdit:false,
             storeUrl:'{{ route('operator.modules.store') }}',
-            form:{ label:'', description:'', functions:[] },
+            form:{ label:'', group:'Other', description:'', functions:[] },
             formAction:'{{ route('operator.modules.store') }}',
-            openCreate(){ this.isEdit=false; this.form={ label:'', description:'', functions:[] }; this.formAction=this.storeUrl; this.open=true; },
-            openEdit(f){ this.isEdit=true; this.form={ label:f.label||'', description:f.description||'', functions: Array.isArray(f.functions) ? [...f.functions] : [] }; this.formAction='{{ url('operator/modules') }}/'+f.id; this.open=true; this.$nextTick(()=>window.lucide&&lucide.createIcons()); },
+            openCreate(){ this.isEdit=false; this.form={ label:'', group:'Other', description:'', functions:[] }; this.formAction=this.storeUrl; this.open=true; },
+            openEdit(f){ this.isEdit=true; this.form={ label:f.label||'', group:f.group||'Other', description:f.description||'', functions: Array.isArray(f.functions) ? [...f.functions] : [] }; this.formAction='{{ url('operator/modules') }}/'+f.id; this.open=true; this.$nextTick(()=>window.lucide&&lucide.createIcons()); },
         };
     }
 </script>
