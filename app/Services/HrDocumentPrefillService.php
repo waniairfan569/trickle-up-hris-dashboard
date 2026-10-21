@@ -85,6 +85,48 @@ class HrDocumentPrefillService
         };
     }
 
+    /**
+     * A value from the pay review taking effect in this document's period —
+     * falling back to the most recent one before it, so a letter written later
+     * still describes the right change.
+     */
+    private function payField(User $employee, Carbon $start, Carbon $end, string $column): string
+    {
+        $review = \App\Models\PayReview::where('user_id', $employee->id)
+            ->whereBetween('effective_date', [$start->toDateString(), $end->toDateString()])
+            ->orderByDesc('effective_date')->orderByDesc('id')
+            ->first()
+            ?: \App\Models\PayReview::where('user_id', $employee->id)
+                ->where('effective_date', '<=', $end->toDateString())
+                ->orderByDesc('effective_date')->orderByDesc('id')
+                ->first();
+
+        if (! $review || $review->{$column} === null) {
+            return '';
+        }
+
+        $value = $review->{$column};
+
+        return match ($column) {
+            'effective_date'   => $this->dateLabel($value),
+            'increment_percent' => rtrim(rtrim(number_format((float) $value, 2, '.', ''), '0'), '.') . '%',
+            'previous_salary', 'new_salary', 'increment_amount' =>
+                trim(($review->currency ?: '') . ' ' . number_format((float) $value, 0)),
+            default => (string) $value,
+        };
+    }
+
+    /** A date from the probation record covering this document's period. */
+    private function probationField(User $employee, Carbon $start, Carbon $end, string $column): string
+    {
+        $probation = \App\Models\Probation::where('user_id', $employee->id)
+            ->orderByDesc('id')->first();
+
+        return $probation && $probation->{$column}
+            ? $this->dateLabel($probation->{$column})
+            : '';
+    }
+
     /** A stored date, shown the way the rest of a document shows dates. */
     private function dateLabel($value): string
     {
@@ -203,6 +245,18 @@ class HrDocumentPrefillService
                         : (trim((string) $leaves->first()->reason) !== '' ? $leaves->first()->reason : 'No reason given'),
                     'leave_return_note' => $leaves->isEmpty() ? ''
                         : (trim((string) $leaves->first()->return_note) !== '' ? $leaves->first()->return_note : 'No note given'),
+
+                    // Employment events. These read the change that takes effect
+                    // in the document's own period, so regenerating a draft gives
+                    // the same answer rather than the latest one.
+                    'previous_salary'   => $this->payField($employee, $start, $end, 'previous_salary'),
+                    'new_salary'        => $this->payField($employee, $start, $end, 'new_salary'),
+                    'salary_increase'   => $this->payField($employee, $start, $end, 'increment_amount'),
+                    'salary_increase_percent' => $this->payField($employee, $start, $end, 'increment_percent'),
+                    'pay_change_date'   => $this->payField($employee, $start, $end, 'effective_date'),
+                    'pay_change_reason' => $this->payField($employee, $start, $end, 'reason'),
+                    'probation_start'   => $this->probationField($employee, $start, $end, 'start_date'),
+                    'probation_end'     => $this->probationField($employee, $start, $end, 'end_date'),
                     default => null,
                 };
 

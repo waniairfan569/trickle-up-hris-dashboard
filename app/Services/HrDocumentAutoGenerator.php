@@ -34,12 +34,26 @@ class HrDocumentAutoGenerator
      * sees. A template's `prefill` marker names the event it answers — this is
      * the list behind the picker on the Documents page and in the builder.
      */
+    /**
+     * What can draw a document. Every entry here is emitted somewhere in the
+     * code — a trigger nobody fires would be a promise the product cannot keep,
+     * so this list stays in code rather than becoming a table someone can add
+     * rows to.
+     */
     public const TRIGGERS = [
         'lateness' => 'Late days',
         'absence'  => 'Leave returns — full / half day',
         'hourly'   => 'Leave returns — hourly',
         'wfh'      => 'Work-from-home returns',
+
+        // Employment events — raised the moment the change is recorded.
+        'pay_change'          => 'Pay or job title changes',
+        'probation_passed'    => 'Probation passed',
+        'probation_extended'  => 'Probation extended',
     ];
+
+    /** Triggers that fire on a single event rather than gathering a period. */
+    public const EVENT_TRIGGERS = ['pay_change', 'probation_passed', 'probation_extended'];
 
     public function __construct(private HrDocumentPrefillService $prefiller) {}
 
@@ -378,6 +392,45 @@ class HrDocumentAutoGenerator
             ->where('hr_document_template_id', $template->id)
             ->whereDate('period_start', $start->toDateString())
             ->whereDate('period_end', $end->toDateString());
+    }
+
+    /**
+     * Draft the document an employment event calls for — a pay rise, a
+     * promotion, a probation decision. Returns null when the workspace has not
+     * assigned a template to that event, which is the normal case until they do.
+     *
+     * The draft is never sent. It appears alongside the others for someone to
+     * read, correct and release, because a letter about somebody's contract is
+     * not something to post automatically.
+     */
+    public function generateForEvent(string $trigger, User $employee, \Carbon\CarbonInterface|string $on, ?int $by = null): ?HrDocument
+    {
+        if (! in_array($trigger, self::EVENT_TRIGGERS, true)) {
+            return null;
+        }
+
+        // Callers hand this a date in whatever form they already hold it —
+        // Laravel's Carbon, plain Carbon, or a string off a model.
+        $on = Carbon::parse($on);
+
+        $template = $this->templateFor($trigger);
+        if (! $template) {
+            return null;
+        }
+
+        // One event, one day: the period is the day it takes effect, which is
+        // also what the prefill tokens look the details up by.
+        $day = $on->copy()->startOfDay();
+
+        if ($existing = $this->find($employee, $template, $day, $day)) {
+            return $existing;
+        }
+
+        return $this->createDraft(
+            $template, $employee, $day, $day,
+            $template->name . ' — ' . $day->format('d M Y'),
+            $by
+        );
     }
 
     private function createDraft(HrDocumentTemplate $template, User $employee, Carbon $start, Carbon $end, string $title, ?int $by = null): HrDocument

@@ -184,6 +184,16 @@
                                                 <option value="leave_return_date">This leave — day back at work</option>
                                                 <option value="leave_reason">This leave — reason given on applying</option>
                                                 <option value="leave_return_note">This leave — note given on returning</option>
+                                                <optgroup label="Pay &amp; probation">
+                                                    <option value="previous_salary">Pay — previous salary</option>
+                                                    <option value="new_salary">Pay — new salary</option>
+                                                    <option value="salary_increase">Pay — increase amount</option>
+                                                    <option value="salary_increase_percent">Pay — increase %</option>
+                                                    <option value="pay_change_date">Pay — effective date</option>
+                                                    <option value="pay_change_reason">Pay — reason given</option>
+                                                    <option value="probation_start">Probation — start date</option>
+                                                    <option value="probation_end">Probation — end date</option>
+                                                </optgroup>
                                                 {{-- Everything this workspace tracks on an employee profile.
                                                      Add a field to your profile template and it appears here. --}}
                                                 @foreach(($profileTokens ?? []) as $group => $tokens)

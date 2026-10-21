@@ -78,7 +78,13 @@ class ProbationController extends Controller
         $probation->save();
         $probation->logEvent('extended', $validated['reason'], $probation->end_date);
 
-        return back()->with('success', 'Probation extended.');
+        // Draft the letter confirming the new end date, if the workspace has
+        // assigned a template to this event. A draft only — nothing is sent.
+        $drafted = $this->draftFor('probation_extended', $employee, $probation->end_date);
+
+        return back()->with('success', $drafted
+            ? 'Probation extended. A letter has been drafted for you to review and send.'
+            : 'Probation extended.');
     }
 
     /** Confirm the employee (probation passed). */
@@ -89,6 +95,9 @@ class ProbationController extends Controller
 
         $probation->update(['status' => 'passed']);
         $probation->logEvent('passed', $request->input('note'));
+
+        // Draft the confirmation letter, if a template is assigned to it.
+        $this->draftFor('probation_passed', $employee, $probation->end_date);
 
         // Celebrate + notify the employee and admins right away (idempotent — the
         // daily job won't send again for the same probation).
@@ -141,6 +150,23 @@ class ProbationController extends Controller
     private function ensureOwned(User $employee, Probation $probation): void
     {
         abort_unless($probation->user_id === $employee->id, 404);
+    }
+
+    /**
+     * Draft the document this probation outcome calls for. Returns false when
+     * the workspace has assigned no template to it, which is the normal case
+     * until they do. A failure here never blocks the decision being recorded.
+     */
+    private function draftFor(string $trigger, User $employee, $on): bool
+    {
+        try {
+            return (bool) app(\App\Services\HrDocumentAutoGenerator::class)
+                ->generateForEvent($trigger, $employee, Carbon::parse($on), auth()->id());
+        } catch (\Throwable $e) {
+            report($e);
+
+            return false;
+        }
     }
 
     private function authorizeManage(): void

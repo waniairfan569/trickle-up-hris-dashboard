@@ -70,8 +70,21 @@ class PayReviewController extends Controller
             report($e);
         }
 
+        // Draft the letter this change calls for, if the workspace has assigned
+        // a template to it. It is only a draft — nothing reaches the employee
+        // until someone reads it and sends it.
+        $drafted = null;
+        try {
+            $drafted = app(\App\Services\HrDocumentAutoGenerator::class)
+                ->generateForEvent('pay_change', $employee, $effective, auth()->id());
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
         return redirect()->route('employees.profile', $employee->id)
-            ->with('success', 'Pay review recorded. The employee has been notified.');
+            ->with('success', $drafted
+                ? 'Pay review recorded and the employee notified. A letter has been drafted for you to review and send.'
+                : 'Pay review recorded. The employee has been notified.');
     }
 
     /** Delete a review — only future-dated (Upcoming) records may be removed. */
