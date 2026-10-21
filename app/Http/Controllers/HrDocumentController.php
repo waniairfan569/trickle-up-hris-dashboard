@@ -322,7 +322,14 @@ class HrDocumentController extends Controller
 
         $employee = $document->employee;
 
-        $isMgr     = fn ($f) => Str::contains(Str::lower($f['label'] ?? ''), 'manager');
+        // Who signs which section is set on the field itself. Older templates and
+        // documents issued before that setting existed fall back to the rule that
+        // used to decide it — looking for "manager" in the label — so nothing
+        // already in flight changes behaviour.
+        $isMgr = fn ($f) => isset($f['signer_role'])
+            ? $f['signer_role'] === 'manager'
+            : Str::contains(Str::lower($f['label'] ?? ''), 'manager');
+
         $mgrFields = $sigFields->filter($isMgr);
         $empFields = $sigFields->reject($isMgr);
 
@@ -576,6 +583,12 @@ class HrDocumentController extends Controller
                 }
                 if ($type === 'note') {
                     $clean['text'] = (string) ($field['text'] ?? '');
+                }
+                if ($type === 'signature') {
+                    // Who is actually asked to sign here. Kept explicit so a slot
+                    // named "Line Supervisor" or "Director" routes correctly —
+                    // it used to be guessed from the label.
+                    $clean['signer_role'] = ($field['signer_role'] ?? '') === 'manager' ? 'manager' : 'employee';
                 }
                 if (! empty($field['prefill'])) {
                     $clean['prefill'] = (string) $field['prefill'];

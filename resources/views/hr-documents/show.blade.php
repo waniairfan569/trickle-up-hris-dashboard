@@ -6,7 +6,11 @@
 @php
     $data = $document->data ?? [];
     $sigFields = collect($document->signatureFields());
-    $hasManagerField = $sigFields->contains(fn ($f) => \Illuminate\Support\Str::contains(\Illuminate\Support\Str::lower($f['label'] ?? ''), 'manager'));
+    // Same rule the send flow uses: the field's own signer_role, falling back
+    // to the old label guess for anything issued before that setting existed.
+    $hasManagerField = $sigFields->contains(fn ($f) => isset($f['signer_role'])
+        ? $f['signer_role'] === 'manager'
+        : \Illuminate\Support\Str::contains(\Illuminate\Support\Str::lower($f['label'] ?? ''), 'manager'));
     $defaultManagerId = optional($document->employee)->manager_id;
 @endphp
 

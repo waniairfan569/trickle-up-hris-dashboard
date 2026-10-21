@@ -26,6 +26,10 @@
                 'text'        => $f['text'] ?? '',
                 'prefill'     => $f['prefill'] ?? '',
                 'placeholder' => $f['placeholder'] ?? '',
+                // Falls back to the rule that used to decide this, so a template
+                // saved before the setting existed opens showing what it does today.
+                'signer_role' => $f['signer_role']
+                    ?? (\Illuminate\Support\Str::contains(\Illuminate\Support\Str::lower($f['label'] ?? ''), 'manager') ? 'manager' : 'employee'),
             ])->all(),
         ])->all(),
     ];
@@ -133,6 +137,21 @@
                                             <input type="text" x-model="field.columnsText" placeholder="Date, Reason" class="{{ $inp }}">
                                         </div>
                                     </template>
+                                    {{-- Who signs here. Until this existed the answer was
+                                         guessed from the label, so a slot called "Line
+                                         Supervisor" was treated as the employee's. --}}
+                                    <template x-if="field.type === 'signature'">
+                                        <div class="sm:col-span-12">
+                                            <label class="block text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-1">Who signs here</label>
+                                            <select x-model="field.signer_role" class="{{ $inp }}">
+                                                <option value="employee">The employee this document is about</option>
+                                                <option value="manager">The company — line manager, or whoever sends it</option>
+                                            </select>
+                                            <p class="mt-1 text-[11px] text-slate-400">
+                                                Call the field whatever your company calls it. This decides who is actually asked to sign.
+                                            </p>
+                                        </div>
+                                    </template>
                                     <template x-if="field.type === 'note'">
                                         <div class="sm:col-span-12">
                                             <label class="block text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-1">Note text</label>
@@ -203,7 +222,7 @@
 
             addSection() { this.sections.push({ title: 'New section', fields: [] }); },
             removeSection(i) { this.sections.splice(i, 1); },
-            addField(si) { this.sections[si].fields.push({ id: '', label: '', type: 'text', width: 'full', optionsText: '', columnsText: '', text: '', prefill: '', placeholder: '' }); },
+            addField(si) { this.sections[si].fields.push({ id: '', label: '', type: 'text', width: 'full', optionsText: '', columnsText: '', text: '', prefill: '', placeholder: '', signer_role: 'employee' }); },
             removeField(si, fi) { this.sections[si].fields.splice(fi, 1); },
 
             buildSchema() {
@@ -214,6 +233,7 @@
                         if (['checkbox', 'radio', 'select'].includes(f.type)) o.options = (f.optionsText || '').split('\n').map(x => x.trim()).filter(Boolean);
                         if (f.type === 'table') o.columns = (f.columnsText || '').split(',').map(x => x.trim()).filter(Boolean);
                         if (f.type === 'note') o.text = f.text || '';
+                        if (f.type === 'signature') o.signer_role = f.signer_role || 'employee';
                         if (f.prefill) o.prefill = f.prefill;
                         if (f.placeholder) o.placeholder = f.placeholder;
                         return o;
