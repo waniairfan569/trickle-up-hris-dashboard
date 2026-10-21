@@ -47,16 +47,21 @@ class DocumentsAdminController extends Controller
             ];
         }
 
-        if (plan_allows('esign')) {
+        // One page, two jobs: the same uploaded files are both the staff library
+        // and what gets sent for signature. The module catalogue splits them in
+        // two ("documents" and "esign") but there is only one screen behind both.
+        if (plan_allows('esign') || plan_allows('documents')) {
             $signing[] = [
                 'route' => 'company-documents.admin',
                 'icon'  => 'pen-tool',
                 'tone'  => 'indigo',
-                'title' => 'E-signature documents',
-                'text'  => 'Upload a file you already have, place signature boxes on it and send it to be signed.',
+                'title' => 'Company documents',
+                'text'  => plan_allows('esign')
+                    ? 'Files you upload — share them with staff, or place signature boxes on one and send it to be signed.'
+                    : 'Files you upload and share with staff, organised by category, with views recorded.',
                 'stat'  => CompanyDocument::count(),
                 'stat_label' => 'documents',
-                'meta'  => 'upload and sign',
+                'meta'  => plan_allows('esign') ? 'share or sign' : 'share and track',
             ];
         }
 
@@ -77,19 +82,6 @@ class DocumentsAdminController extends Controller
                 'stat'  => CompanyPolicy::count(),
                 'stat_label' => 'policies',
                 'meta'  => 'read and acknowledge',
-            ];
-        }
-
-        if (plan_allows('documents')) {
-            $published[] = [
-                'route' => 'document-library.index',
-                'icon'  => 'folder-open',
-                'tone'  => 'slate',
-                'title' => 'Document library',
-                'text'  => 'Files shared with staff, organised by category, with views recorded.',
-                'stat'  => DocumentCategory::count(),
-                'stat_label' => 'categories',
-                'meta'  => 'share and track',
             ];
         }
 
@@ -137,7 +129,8 @@ class DocumentsAdminController extends Controller
 
         if (plan_allows('documents')) {
             $parts[] = [
-                'route' => 'document-categories.index',
+                // .index returns JSON for the pickers; .manage is the page.
+                'route' => 'document-categories.manage',
                 'icon'  => 'tags',
                 'tone'  => 'slate',
                 'title' => 'Categories',
