@@ -66,6 +66,17 @@ class DocumentRequest extends Model
         return $this->status === 'in_progress' && $this->isAwaitingSignature($user);
     }
 
+    /** What this document is called, for anything chasing a signature. */
+    public function signingTitle(): string
+    {
+        return $this->template->name ?? 'a document';
+    }
+
+    /** Where the signer goes to sign it. */
+    public function signingUrl(): string
+    {
+        return route('documents.sign', $this->id);
+    }
     /** Record an audit event. */
     public function logEvent(string $action, ?User $user = null, ?string $detail = null, ?string $ip = null): void
     {

@@ -16,13 +16,14 @@ class HrDocumentSigner extends Model
     use IsDocumentSigner;
 
     protected $fillable = [
-        'hr_document_id', 'user_id', 'role', 'sign_order', 'field_ids', 'signed_at', 'signed_ip',
+        'hr_document_id', 'user_id', 'role', 'sign_order', 'field_ids', 'signed_at', 'signed_ip', 'reminder_sent_at',
     ];
 
     protected $casts = [
         'field_ids'  => 'array',
         'signed_at'  => 'datetime',
         'sign_order' => 'integer',
+        'reminder_sent_at' => 'datetime',
     ];
 
     // "Whose turn is it" lives in IsDocumentSigner, shared with the e-signature

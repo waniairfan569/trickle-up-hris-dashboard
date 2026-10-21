@@ -2,7 +2,7 @@
 
 namespace App\Notifications;
 
-use App\Models\DocumentRequest;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -15,9 +15,9 @@ class DocumentSignatureReminder extends Notification
 {
     use Queueable;
 
-    public DocumentRequest $documentRequest;
+    public Model $documentRequest;
 
-    public function __construct(DocumentRequest $documentRequest)
+    public function __construct(Model $documentRequest)
     {
         $this->documentRequest = $documentRequest;
     }
@@ -29,7 +29,7 @@ class DocumentSignatureReminder extends Notification
 
     public function toMail($notifiable): MailMessage
     {
-        $name = $this->documentRequest->template->name ?? 'a document';
+        $name = $this->documentRequest->signingTitle();
         $sender = optional($this->documentRequest->creator)->full_name;
 
         return (new MailMessage)
@@ -37,20 +37,20 @@ class DocumentSignatureReminder extends Notification
             ->greeting('Hello ' . ($notifiable->first_name ?? '') . ' 👋')
             ->line("Just a reminder that **{$name}**" . ($sender ? " from {$sender}" : '') . ' is still waiting for your signature.')
             ->line('It was sent to you more than 24 hours ago and hasn’t been signed yet.')
-            ->action('Review & sign now', route('documents.sign', $this->documentRequest->id))
+            ->action('Review & sign now', $this->documentRequest->signingUrl())
             ->line('Please take a moment to review the document and add your signature.');
     }
 
     public function toDatabase($notifiable)
     {
-        $name = $this->documentRequest->template->name ?? 'a document';
+        $name = $this->documentRequest->signingTitle();
 
         return [
             'type' => 'document_signature_reminder',
             'title' => 'Reminder: signature needed',
             'message' => "“{$name}” is still awaiting your signature.",
             'request_id' => $this->documentRequest->id,
-            'url' => route('documents.sign', $this->documentRequest->id),
+            'url' => $this->documentRequest->signingUrl(),
             'icon' => 'clock',
         ];
     }

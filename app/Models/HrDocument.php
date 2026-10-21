@@ -155,6 +155,17 @@ class HrDocument extends Model
         return $this->signers->isNotEmpty() && $this->signers->whereNull('signed_at')->isEmpty();
     }
 
+    /** What this document is called, for anything chasing a signature. */
+    public function signingTitle(): string
+    {
+        return $this->title ?: ($this->template_name ?: 'a document');
+    }
+
+    /** Where the signer goes to sign it. */
+    public function signingUrl(): string
+    {
+        return route('hr-documents.sign', $this->id);
+    }
     /** The employee this document is about. */
     public function employee()
     {
