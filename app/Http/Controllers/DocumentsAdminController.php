@@ -210,6 +210,27 @@ class DocumentsAdminController extends Controller
         return view('documents-admin.all', compact('rows', 'search', 'needs'));
     }
 
+    /**
+     * One form for publishing something to staff, whichever table it ends up in.
+     *
+     * It posts straight to the existing policy or document endpoint — whichever
+     * matches what you chose — so the real validation and file handling stay in
+     * one place rather than being reimplemented here and drifting.
+     *
+     * Where it lands follows from the content: typed text can only be stored by
+     * a policy, an uploaded file is better handled by a document. The admin
+     * never has to make that distinction themselves.
+     */
+    public function newDocument()
+    {
+        return view('documents-admin.new', [
+            'policyCategories' => ['hr', 'it', 'finance', 'legal', 'health_safety', 'general'],
+            'documentCategories' => DocumentCategory::orderBy('sort_order')->orderBy('name')->get(),
+            'canWrite' => plan_allows('policies'),
+            'canUpload' => plan_allows('esign') || plan_allows('documents'),
+        ]);
+    }
+
     /** One shape both kinds of record map into. */
     private function row($model, string $kind, string $holds, bool $active, string $viewRoute, string $editRoute): array
     {
@@ -272,27 +293,16 @@ class DocumentsAdminController extends Controller
             ];
         }
 
-        if (plan_allows('esign') || plan_allows('documents')) {
+        // Publishing to staff is one form now — write it or upload it, then tick
+        // whether you need an acknowledgement or a signature.
+        if (plan_allows('policies') || plan_allows('esign') || plan_allows('documents')) {
             $choices[] = [
-                'route' => 'company-documents.create',
-                'icon'  => 'upload',
-                'tone'  => 'indigo',
-                'title' => 'A file you already have',
-                'text'  => plan_allows('esign')
-                    ? 'Upload a Word or PDF file. Share it with staff, or place signature boxes on it and send it to be signed.'
-                    : 'Upload a Word or PDF file and share it with staff, filed by category.',
-                'eg'    => 'Employee handbook · A contract drafted by your lawyer',
-            ];
-        }
-
-        if (plan_allows('policies')) {
-            $choices[] = [
-                'route' => 'company-policies.create',
-                'icon'  => 'scroll-text',
+                'route' => 'documents-admin.new',
+                'icon'  => 'megaphone',
                 'tone'  => 'amber',
-                'title' => 'Something people must read and agree to',
-                'text'  => 'Write the text here. Assign it to people and track who has acknowledged it.',
-                'eg'    => 'Sickness policy · Code of conduct · Expenses rules',
+                'title' => 'Something to publish to staff',
+                'text'  => 'Write it here or upload a file, choose who it goes to, and tick whether people must acknowledge it or sign it.',
+                'eg'    => 'Sickness policy · Employee handbook · Code of conduct · A contract from your lawyer',
             ];
         }
 
