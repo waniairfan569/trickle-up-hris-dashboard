@@ -184,6 +184,15 @@
                                                 <option value="leave_return_date">This leave — day back at work</option>
                                                 <option value="leave_reason">This leave — reason given on applying</option>
                                                 <option value="leave_return_note">This leave — note given on returning</option>
+                                                {{-- Everything this workspace tracks on an employee profile.
+                                                     Add a field to your profile template and it appears here. --}}
+                                                @foreach(($profileTokens ?? []) as $group => $tokens)
+                                                    <optgroup label="{{ $group }}">
+                                                        @foreach($tokens as $token => $label)
+                                                            <option value="{{ $token }}">{{ $label }}</option>
+                                                        @endforeach
+                                                    </optgroup>
+                                                @endforeach
                                                 <option value="leave_count">Leave count</option>
                                                 <option value="leave_days">Leave days total</option>
                                             </select>

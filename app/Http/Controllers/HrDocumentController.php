@@ -76,6 +76,7 @@ class HrDocumentController extends Controller
         return view('hr-documents.builder', [
             'template' => new HrDocumentTemplate(['schema' => []]),
             'types'    => self::TYPES,
+            'profileTokens' => \App\Services\HrDocumentPrefillService::profileTokens(),
         ]);
     }
 
@@ -84,6 +85,7 @@ class HrDocumentController extends Controller
         return view('hr-documents.builder', [
             'template' => $template,
             'types'    => self::TYPES,
+            'profileTokens' => \App\Services\HrDocumentPrefillService::profileTokens(),
         ]);
     }
 

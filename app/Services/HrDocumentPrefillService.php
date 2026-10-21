@@ -13,6 +13,91 @@ use Illuminate\Support\Carbon;
  */
 class HrDocumentPrefillService
 {
+    /** Marks a token as "a field from this workspace's employee profile". */
+    public const PROFILE_PREFIX = 'profile:';
+
+    /**
+     * The profile fields a template may draw on, as token => label, grouped by
+     * the section they live in. Built from the workspace's own profile
+     * template, so it grows as the workspace adds fields.
+     *
+     * Encrypted fields — bank details, passport numbers — are left out on
+     * purpose: a generated document gets emailed and downloaded, which is not
+     * somewhere those belong by accident.
+     */
+    public static function profileTokens(): array
+    {
+        try {
+            $rows = \App\Models\ProfileField::query()
+                ->where('is_encrypted', false)
+                ->whereNotIn('type', ['file'])
+                ->with('section')
+                ->orderBy('sort_order')
+                ->get();
+        } catch (\Throwable $e) {
+            return [];
+        }
+
+        $out = [];
+        $seen = [];
+        foreach ($rows as $f) {
+            if (! $f->key || isset($seen[$f->key])) {
+                continue;   // the same field can appear in more than one template
+            }
+            $seen[$f->key] = true;
+            $group = optional($f->section)->name ?: 'Profile';
+            $out[$group][self::PROFILE_PREFIX . $f->key] = $f->name;
+        }
+
+        return $out;
+    }
+
+    /**
+     * One employee's value for a profile field, formatted for a document.
+     * Returns null when they have no value, so the box is simply left blank.
+     */
+    private function profileValue(User $employee, string $key)
+    {
+        $row = \App\Models\EmployeeFieldValue::query()
+            ->where('user_id', $employee->id)
+            ->whereHas('field', fn ($q) => $q->where('key', $key))
+            ->with('field')
+            ->first();
+
+        if (! $row || $row->value === null) {
+            return null;
+        }
+
+        $value = $row->getDisplayValue();   // handles decryption and JSON types
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        return match ($row->field->type ?? 'text') {
+            'date'       => $this->dateLabel($value),
+            'date_range' => is_array($value)
+                ? trim($this->dateLabel($value[0] ?? '') . ' – ' . $this->dateLabel($value[1] ?? ''), ' –')
+                : (string) $value,
+            'multi_select' => is_array($value) ? implode(', ', $value) : (string) $value,
+            'employee_lookup'   => optional(User::find($value))->full_name ?? (string) $value,
+            'department_lookup' => optional(\App\Models\Department::find($value))->name ?? (string) $value,
+            default => is_array($value) ? implode(', ', $value) : (string) $value,
+        };
+    }
+
+    /** A stored date, shown the way the rest of a document shows dates. */
+    private function dateLabel($value): string
+    {
+        if (! $value) {
+            return '';
+        }
+        try {
+            return Carbon::parse($value)->format('d M Y');
+        } catch (\Throwable $e) {
+            return (string) $value;
+        }
+    }
+
     /**
      * @return array<string, mixed> field-id => value
      */
@@ -42,6 +127,17 @@ class HrDocumentPrefillService
             foreach ($section['fields'] ?? [] as $field) {
                 $token = $field['prefill'] ?? null;
                 if (! $token) {
+                    continue;
+                }
+
+                // Anything the workspace tracks on an employee profile can fill a
+                // document. Add a field to your profile template and it becomes
+                // available here — no code change.
+                if (str_starts_with($token, self::PROFILE_PREFIX)) {
+                    $value = $this->profileValue($employee, substr($token, strlen(self::PROFILE_PREFIX)));
+                    if ($value !== null) {
+                        $data[$field['id']] = $value;
+                    }
                     continue;
                 }
 
