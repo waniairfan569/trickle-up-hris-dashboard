@@ -302,18 +302,22 @@ class DocumentRequestController extends Controller
         }
 
         $signer = $documentRequest->currentSigner();
+
+        // What this signature means for the document is worked out in one place,
+        // shared with HR documents. Only the things unique to this system —
+        // the drawn image, the filled fields, the audit trail — stay here.
         $signer->update([
-            'status' => 'signed',
             'signature_image' => $request->input('signature'),
             'field_values' => $fieldValues ?: null,
-            'signed_at' => now(),
-            'signed_ip' => $request->ip(),
         ]);
+
+        $outcome = app(\App\Services\DocumentSigningFlow::class)
+            ->recordSignature($documentRequest, $signer, $request->ip());
+
         $documentRequest->logEvent('signed', $user, $signer->role_label, $request->ip());
 
-        $next = $documentRequest->signers()->where('status', 'pending')->orderBy('position')->first();
-        if ($next) {
-            $documentRequest->update(['current_position' => $next->position]);
+        if ($next = $outcome['next']) {
+            $documentRequest->update(['current_position' => $next->signPosition()]);
             $next->user?->notify(new DocumentSignatureRequested($documentRequest));
 
             return redirect()->route('documents.show', $documentRequest)->with('success', 'Signed. The next signer has been notified.');
@@ -379,7 +383,8 @@ class DocumentRequestController extends Controller
         abort_unless($documentRequest->isAwaiting($user), 403, 'This document is not awaiting your signature.');
 
         $signer = $documentRequest->currentSigner();
-        $signer->update(['status' => 'declined', 'signed_at' => now(), 'signed_ip' => $request->ip()]);
+        app(\App\Services\DocumentSigningFlow::class)
+            ->recordDecline($documentRequest, $signer, $request->ip());
         $documentRequest->update(['status' => 'declined']);
         $documentRequest->logEvent('declined', $user, $request->input('reason'), $request->ip());
 

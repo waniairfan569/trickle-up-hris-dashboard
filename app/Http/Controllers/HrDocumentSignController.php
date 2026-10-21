@@ -147,10 +147,14 @@ class HrDocumentSignController extends Controller
         $document->data = $data;
         $document->save();
 
-        $signer->update(['signed_at' => now(), 'signed_ip' => $request->ip()]);
+        // Stamping the signer, working out who is left and whether the document
+        // is finished is the same on both sides, so it lives in one place.
+        $outcome = app(\App\Services\DocumentSigningFlow::class)
+            ->recordSignature($document, $signer, $request->ip());
 
-        $document->load('signers', 'creator');
-        if ($document->fully_signed && $document->status !== 'completed') {
+        $document->load('creator');
+
+        if ($outcome['complete'] && $document->status !== 'completed') {
             $document->update(['status' => 'completed']);
         }
 
@@ -158,7 +162,20 @@ class HrDocumentSignController extends Controller
             $document->creator->notify(new \App\Notifications\HrDocumentSigned($document, auth()->user()->full_name));
         }
 
+        // Tell whoever is next that it is their turn. The e-signature side has
+        // always done this; these documents did not, so a signing order left
+        // the next person waiting on a message that never arrived.
+        if ($outcome['next'] && $outcome['next']->user_id !== auth()->id()) {
+            try {
+                $outcome['next']->user?->notify(new \App\Notifications\HrDocumentSignatureRequested($document));
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
+
         return redirect()->route('hr-documents.to-sign')
-            ->with('success', 'Thank you — your signature has been recorded.');
+            ->with('success', $outcome['next']
+                ? 'Thank you — your signature has been recorded. It has gone to the next signer.'
+                : 'Thank you — your signature has been recorded.');
     }
 }
