@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasDocumentSigners;
 use App\Tenancy\BelongsToTenant;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -10,6 +11,7 @@ use Illuminate\Database\Eloquent\Model;
 class DocumentRequest extends Model
 {
     use BelongsToTenant;
+    use HasDocumentSigners;
     use HasFactory;
 
     protected $fillable = [
@@ -52,17 +54,16 @@ class DocumentRequest extends Model
     }
 
     /** The signer whose turn it currently is (next pending in order). */
-    public function currentSigner()
-    {
-        return $this->signers->firstWhere('status', 'pending');
-    }
-
-    /** Is this user the one who must sign right now? */
+    /**
+     * Is this user the one who must sign right now?
+     *
+     * Whose turn it is comes from HasDocumentSigners, shared with HR documents,
+     * so the rule is written once. The extra condition here is this system's
+     * own: a request that is not in progress is waiting on nobody.
+     */
     public function isAwaiting(User $user): bool
     {
-        $current = $this->currentSigner();
-
-        return $this->status === 'in_progress' && $current && (int) $current->user_id === (int) $user->id;
+        return $this->status === 'in_progress' && $this->isAwaitingSignature($user);
     }
 
     /** Record an audit event. */
