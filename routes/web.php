@@ -678,6 +678,7 @@ Route::middleware(['auth', 'verified', 'force.password.change'])->group(function
         // split across the Company, Templates and Time & Attendance hubs.
         Route::get('documents-admin', [\App\Http\Controllers\DocumentsAdminController::class, 'index'])->name('documents-admin.index');
         Route::get('documents-admin/create', [\App\Http\Controllers\DocumentsAdminController::class, 'create'])->name('documents-admin.create');
+        Route::get('documents-admin/all', [\App\Http\Controllers\DocumentsAdminController::class, 'all'])->name('documents-admin.all');
 
         // Reusable saved signatures (email signatures) — stamped onto documents.
         Route::get('signature-templates', [\App\Http\Controllers\SignatureTemplateController::class, 'index'])->name('signature-templates.index');

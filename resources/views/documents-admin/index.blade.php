@@ -13,9 +13,15 @@
                 Everything you send to people and get back — signed, acknowledged or answered.
             </p>
         </div>
-        <a href="{{ route('documents-admin.create') }}" class="btn-brand">
-            <i data-lucide="plus" class="h-4 w-4"></i> Create a document
-        </a>
+        <div class="flex flex-wrap items-center gap-2">
+            <a href="{{ route('documents-admin.all') }}"
+               class="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700/50">
+                <i data-lucide="list" class="h-4 w-4"></i> See everything
+            </a>
+            <a href="{{ route('documents-admin.create') }}" class="btn-brand">
+                <i data-lucide="plus" class="h-4 w-4"></i> Create a document
+            </a>
+        </div>
     </div>
 
     @foreach($groups as $group)

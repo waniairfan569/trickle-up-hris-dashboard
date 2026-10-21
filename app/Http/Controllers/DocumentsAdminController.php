@@ -10,6 +10,7 @@ use App\Models\HrDocument;
 use App\Models\HrDocumentTemplate;
 use App\Models\LetterheadTemplate;
 use App\Models\SignatureTemplate;
+use Illuminate\Http\Request;
 
 /**
  * Documents hub — one landing page for everything an admin sends to people and
@@ -144,6 +145,97 @@ class DocumentsAdminController extends Controller
         $groups[] = ['label' => 'Building blocks', 'tiles' => $parts];
 
         return view('documents-admin.index', compact('groups'));
+    }
+
+    /**
+     * One list of everything published to staff, whatever table it lives in.
+     *
+     * Policies and company documents are stored separately for historical
+     * reasons — and the policies carry hundreds of acknowledgement records that
+     * are not worth moving — but an admin should not have to know that. Both
+     * answer the same questions: what is it called, who is it for, what does it
+     * need back, and how far along is it.
+     */
+    public function all(Request $request)
+    {
+        $search = trim((string) $request->input('q'));
+        $needs = $request->input('needs', 'all');
+
+        $rows = collect();
+
+        if (plan_allows('policies')) {
+            $rows = $rows->merge(
+                CompanyPolicy::withCount([
+                    'acknowledgments',
+                    'acknowledgments as done_count' => fn ($q) => $q->where('status', 'acknowledged'),
+                ])->get()->map(fn ($p) => $this->row(
+                    model: $p,
+                    kind: 'Policy',
+                    holds: trim((string) $p->content) !== '' ? 'Written here' : 'Uploaded file',
+                    active: $p->status === 'active',
+                    viewRoute: route('company-policies.show', $p),
+                    editRoute: route('company-policies.edit', $p),
+                ))
+            );
+        }
+
+        if (plan_allows('esign') || plan_allows('documents')) {
+            $rows = $rows->merge(
+                CompanyDocument::withCount([
+                    'acknowledgments',
+                    'acknowledgments as done_count',
+                ])->get()->map(fn ($d) => $this->row(
+                    model: $d,
+                    kind: 'Document',
+                    holds: 'Uploaded file',
+                    active: (bool) $d->is_active,
+                    // A company document has no "show" page; its acknowledgement
+                    // list is the nearest equivalent to a policy's view.
+                    viewRoute: route('company-documents.acknowledgments', $d),
+                    editRoute: route('company-documents.edit', $d),
+                ))
+            );
+        }
+
+        if ($search !== '') {
+            $rows = $rows->filter(fn ($r) => str_contains(mb_strtolower($r['title'] . ' ' . $r['description']), mb_strtolower($search)));
+        }
+
+        if ($needs !== 'all') {
+            $rows = $rows->filter(fn ($r) => $r['needs_key'] === $needs);
+        }
+
+        $rows = $rows->sortByDesc('created_at')->values();
+
+        return view('documents-admin.all', compact('rows', 'search', 'needs'));
+    }
+
+    /** One shape both kinds of record map into. */
+    private function row($model, string $kind, string $holds, bool $active, string $viewRoute, string $editRoute): array
+    {
+        $needsAck = (bool) $model->requires_acknowledgment;
+        $needsSig = (bool) $model->requires_signature;
+
+        $total = (int) ($model->acknowledgments_count ?? 0);
+        $done = (int) ($model->done_count ?? 0);
+
+        return [
+            'id'          => $model->id,
+            'kind'        => $kind,
+            'title'       => (string) $model->title,
+            'description' => (string) ($model->description ?? ''),
+            'holds'       => $holds,
+            'active'      => $active,
+            'version'     => $model->version,
+            'created_at'  => $model->created_at,
+            'needs_key'   => $needsSig ? 'signature' : ($needsAck ? 'acknowledgement' : 'read'),
+            'needs'       => $needsSig ? 'Signature' : ($needsAck ? 'Acknowledgement' : 'Read only'),
+            'total'       => $total,
+            'done'        => $done,
+            'percent'     => $total > 0 ? (int) round($done / $total * 100) : null,
+            'view'        => $viewRoute,
+            'edit'        => $editRoute,
+        ];
     }
 
     /**
