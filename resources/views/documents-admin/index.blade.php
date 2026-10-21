@@ -6,12 +6,16 @@
 @section('content')
 <div class="space-y-6">
 
-    <div>
-        <h1 class="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">Documents</h1>
-        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Everything you send to people and get back — signed, acknowledged or answered.
-            Grouped by what you start with, because that is what decides which one you want.
-        </p>
+    <div class="flex flex-wrap items-start justify-between gap-3">
+        <div>
+            <h1 class="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">Documents</h1>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                Everything you send to people and get back — signed, acknowledged or answered.
+            </p>
+        </div>
+        <a href="{{ route('documents-admin.create') }}" class="btn-brand">
+            <i data-lucide="plus" class="h-4 w-4"></i> Create a document
+        </a>
     </div>
 
     @foreach($groups as $group)

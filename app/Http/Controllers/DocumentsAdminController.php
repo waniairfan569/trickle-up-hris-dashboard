@@ -145,4 +145,77 @@ class DocumentsAdminController extends Controller
 
         return view('documents-admin.index', compact('groups'));
     }
+
+    /**
+     * One "Create" screen for everything in this hub. Asks what you are making,
+     * then hands over to the builder for that kind.
+     *
+     * Admins used to have to know in advance whether the thing in their head was
+     * a policy, a form, an uploaded file or a generated document, and go to a
+     * different page for each. The names meant nothing until you knew the
+     * system; this asks in terms of what you want to happen.
+     */
+    public function create()
+    {
+        $choices = [];
+
+        if (plan_allows('hr_documents')) {
+            $choices[] = [
+                'route' => 'hr-documents.templates.create',
+                'icon'  => 'file-signature',
+                'tone'  => 'brand',
+                'title' => 'A document that writes itself',
+                'text'  => 'Build it once with your own wording, mark which boxes come from employee data, and it fills in for each person. Signed in the app.',
+                'eg'    => 'Offer letter · Lateness review · Salary change letter · Return to work',
+            ];
+            // hr-documents.create needs a template id, so this goes to the page
+            // where you pick one and generate from it.
+            $choices[] = [
+                'route' => 'hr-documents.index',
+                'icon'  => 'file-plus',
+                'tone'  => 'brand',
+                'title' => 'One of those, for one person',
+                'text'  => 'Pick a template you already built and generate it for a particular employee now.',
+                'eg'    => 'A contract for the person who starts on Monday',
+            ];
+        }
+
+        if (plan_allows('esign') || plan_allows('documents')) {
+            $choices[] = [
+                'route' => 'company-documents.create',
+                'icon'  => 'upload',
+                'tone'  => 'indigo',
+                'title' => 'A file you already have',
+                'text'  => plan_allows('esign')
+                    ? 'Upload a Word or PDF file. Share it with staff, or place signature boxes on it and send it to be signed.'
+                    : 'Upload a Word or PDF file and share it with staff, filed by category.',
+                'eg'    => 'Employee handbook · A contract drafted by your lawyer',
+            ];
+        }
+
+        if (plan_allows('policies')) {
+            $choices[] = [
+                'route' => 'company-policies.create',
+                'icon'  => 'scroll-text',
+                'tone'  => 'amber',
+                'title' => 'Something people must read and agree to',
+                'text'  => 'Write the text here. Assign it to people and track who has acknowledged it.',
+                'eg'    => 'Sickness policy · Code of conduct · Expenses rules',
+            ];
+        }
+
+        if (plan_allows('forms')) {
+            $choices[] = [
+                'route' => 'company-forms.index',
+                'params' => ['new' => 1],
+                'icon'  => 'clipboard-list',
+                'tone'  => 'emerald',
+                'title' => 'Questions you want answered',
+                'text'  => 'Ask staff something and collect their replies, with reviewers and export.',
+                'eg'    => 'Exit interview · Equipment request · Wellbeing check-in',
+            ];
+        }
+
+        return view('documents-admin.create', compact('choices'));
+    }
 }

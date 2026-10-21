@@ -9,7 +9,7 @@
 
 @section('content')
 <style>[x-cloak]{display:none!important}</style>
-<div class="max-w-5xl mx-auto space-y-6" x-data="{ tab: 'all', createOpen: false }">
+<div class="max-w-5xl mx-auto space-y-6" x-data="{ tab: 'all', createOpen: {{ request()->boolean('new') ? 'true' : 'false' }} }">
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
             <h1 class="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">Company Forms</h1>
