@@ -30,11 +30,21 @@
         <div class="rounded-xl bg-emerald-50 p-4 border border-emerald-200 text-sm text-emerald-700 dark:bg-emerald-500/10 dark:border-emerald-500/20 flex items-center gap-2">
             <i data-lucide="check-circle-2" class="h-4 w-4"></i> You signed this on {{ $signer->signed_at->format('d M Y, H:i') }}.
         </div>
+    @elseif(!empty($waitingOn))
+        {{-- This document signs in order and someone is ahead of them. Say so
+             rather than showing a button that would be refused. --}}
+        <div class="rounded-xl bg-amber-50 p-4 border border-amber-200 text-sm text-amber-800 dark:bg-amber-500/10 dark:border-amber-500/20 flex items-start gap-2">
+            <i data-lucide="hourglass" class="h-4 w-4 mt-0.5 shrink-0"></i>
+            <span>
+                <b>Waiting on {{ optional($waitingOn->user)->full_name ?? 'someone else' }}.</b>
+                This document is signed in order — you'll be asked once they have signed.
+            </span>
+        </div>
     @endif
 
     @include('hr-documents._readonly', ['document' => $document, 'data' => $data])
 
-    @unless($alreadySigned)
+    @unless($alreadySigned || !empty($waitingOn))
         @php
             // Questions the document asks but nobody has answered. The employee
             // is the one being asked, so let them answer here rather than

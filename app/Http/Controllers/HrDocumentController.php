@@ -360,6 +360,12 @@ class HrDocumentController extends Controller
         // known when the draft is built, so stamp it now if it is still blank.
         $this->stampMeetingDate($document);
 
+        // Where each person sits in the signing order: the earliest position
+        // among the fields they sign. Zero throughout means no order, which is
+        // how every template behaves until somebody sets one.
+        $orderOf = fn ($fields) => (int) collect($fields)->map(fn ($f) => (int) ($f['sign_order'] ?? 0))
+            ->filter()->min();
+
         // Rebuild the signer set (supports re-sending).
         $document->signers()->delete();
         $sentTo = [];
@@ -383,6 +389,7 @@ class HrDocumentController extends Controller
                 'user_id'   => $request->user()->id,
                 'role'      => 'manager',
                 'field_ids' => $mgrFields->pluck('id')->all(),
+                'sign_order' => $orderOf($mgrFields),
                 'signed_at' => now(),
                 'signed_ip' => $request->ip(),
             ]);
@@ -390,13 +397,13 @@ class HrDocumentController extends Controller
         }
 
         if ($employee && $empFields->isNotEmpty()) {
-            $document->signers()->create(['user_id' => $employee->id, 'role' => 'employee', 'field_ids' => $empFields->pluck('id')->all()]);
+            $document->signers()->create(['user_id' => $employee->id, 'role' => 'employee', 'field_ids' => $empFields->pluck('id')->all(), 'sign_order' => $orderOf($empFields)]);
             $employee->notify(new \App\Notifications\HrDocumentSignatureRequested($document));
             $sentTo[] = $employee->full_name;
         }
 
         if ($manager) {
-            $document->signers()->create(['user_id' => $manager->id, 'role' => 'manager', 'field_ids' => $mgrFields->pluck('id')->all()]);
+            $document->signers()->create(['user_id' => $manager->id, 'role' => 'manager', 'field_ids' => $mgrFields->pluck('id')->all(), 'sign_order' => $orderOf($mgrFields)]);
             $manager->notify(new \App\Notifications\HrDocumentSignatureRequested($document));
             $sentTo[] = $manager->full_name;
         }
@@ -591,6 +598,10 @@ class HrDocumentController extends Controller
                     // named "Line Supervisor" or "Director" routes correctly —
                     // it used to be guessed from the label.
                     $clean['signer_role'] = ($field['signer_role'] ?? '') === 'manager' ? 'manager' : 'employee';
+                    // Where this slot sits in the signing order. 0 means no
+                    // order — anyone may sign whenever, which is how it behaved
+                    // before an order could be set.
+                    $clean['sign_order'] = max(0, min(9, (int) ($field['sign_order'] ?? 0)));
                 }
                 if (! empty($field['prefill'])) {
                     $clean['prefill'] = (string) $field['prefill'];

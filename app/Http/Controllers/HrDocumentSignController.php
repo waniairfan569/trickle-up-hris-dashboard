@@ -77,7 +77,11 @@ class HrDocumentSignController extends Controller
 
         $document->load('employee');
 
-        return view('hr-documents.sign', compact('document', 'signer'));
+        // Whoever the document is waiting on before this person's turn, so the
+        // page can say so instead of offering a button that would be refused.
+        $waitingOn = $signer->signed_at ? null : $signer->blockedBy();
+
+        return view('hr-documents.sign', compact('document', 'signer', 'waitingOn'));
     }
 
     /** Record the current user's signature(s). */
@@ -86,6 +90,14 @@ class HrDocumentSignController extends Controller
         $signer = $document->signers()
             ->where('user_id', auth()->id())->whereNull('signed_at')->first();
         abort_unless($signer, 403);
+
+        // Documents with a signing order go round in turn. Checked here as well
+        // as hidden in the view, because the form can be posted directly.
+        if ($waitingOn = $signer->blockedBy()) {
+            $who = optional($waitingOn->user)->full_name ?? 'someone else';
+
+            return back()->with('error', "This document goes to {$who} first. You'll be asked to sign once they have.");
+        }
 
         $sigs = json_decode((string) $request->input('signatures'), true);
         $sigs = is_array($sigs) ? $sigs : [];

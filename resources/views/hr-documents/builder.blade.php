@@ -30,6 +30,7 @@
                 // saved before the setting existed opens showing what it does today.
                 'signer_role' => $f['signer_role']
                     ?? (\Illuminate\Support\Str::contains(\Illuminate\Support\Str::lower($f['label'] ?? ''), 'manager') ? 'manager' : 'employee'),
+                'sign_order'  => (int) ($f['sign_order'] ?? 0),
             ])->all(),
         ])->all(),
     ];
@@ -150,6 +151,18 @@
                                             <p class="mt-1 text-[11px] text-slate-400">
                                                 Call the field whatever your company calls it. This decides who is actually asked to sign.
                                             </p>
+                                            <label class="block text-[10px] font-bold uppercase tracking-wide text-slate-400 mt-3 mb-1">Signing order</label>
+                                            <select x-model.number="field.sign_order" class="{{ $inp }}">
+                                                <option value="0">Any time — no order</option>
+                                                <option value="1">1st to sign</option>
+                                                <option value="2">2nd</option>
+                                                <option value="3">3rd</option>
+                                                <option value="4">4th</option>
+                                            </select>
+                                            <p class="mt-1 text-[11px] text-slate-400">
+                                                Leave every slot on "any time" and signing works as it always has. Give them positions and each
+                                                person is only asked once the one before has signed.
+                                            </p>
                                         </div>
                                     </template>
                                     <template x-if="field.type === 'note'">
@@ -241,7 +254,7 @@
 
             addSection() { this.sections.push({ title: 'New section', fields: [] }); },
             removeSection(i) { this.sections.splice(i, 1); },
-            addField(si) { this.sections[si].fields.push({ id: '', label: '', type: 'text', width: 'full', optionsText: '', columnsText: '', text: '', prefill: '', placeholder: '', signer_role: 'employee' }); },
+            addField(si) { this.sections[si].fields.push({ id: '', label: '', type: 'text', width: 'full', optionsText: '', columnsText: '', text: '', prefill: '', placeholder: '', signer_role: 'employee', sign_order: 0 }); },
             removeField(si, fi) { this.sections[si].fields.splice(fi, 1); },
 
             buildSchema() {
@@ -252,7 +265,7 @@
                         if (['checkbox', 'radio', 'select'].includes(f.type)) o.options = (f.optionsText || '').split('\n').map(x => x.trim()).filter(Boolean);
                         if (f.type === 'table') o.columns = (f.columnsText || '').split(',').map(x => x.trim()).filter(Boolean);
                         if (f.type === 'note') o.text = f.text || '';
-                        if (f.type === 'signature') o.signer_role = f.signer_role || 'employee';
+                        if (f.type === 'signature') { o.signer_role = f.signer_role || 'employee'; o.sign_order = Number(f.sign_order) || 0; }
                         if (f.prefill) o.prefill = f.prefill;
                         if (f.placeholder) o.placeholder = f.placeholder;
                         return o;
