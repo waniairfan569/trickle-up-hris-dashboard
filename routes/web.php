@@ -674,6 +674,10 @@ Route::middleware(['auth', 'verified', 'force.password.change'])->group(function
         // Templates hub — single landing page for Profile + Signature templates (replaces the sidebar dropdown).
         Route::get('templates', [\App\Http\Controllers\TemplatesController::class, 'index'])->name('templates.index');
 
+        // Documents hub — one home for everything sent to people, replacing the
+        // split across the Company, Templates and Time & Attendance hubs.
+        Route::get('documents-admin', [\App\Http\Controllers\DocumentsAdminController::class, 'index'])->name('documents-admin.index');
+
         // Reusable saved signatures (email signatures) — stamped onto documents.
         Route::get('signature-templates', [\App\Http\Controllers\SignatureTemplateController::class, 'index'])->name('signature-templates.index');
         Route::post('signature-templates', [\App\Http\Controllers\SignatureTemplateController::class, 'store'])->name('signature-templates.store');

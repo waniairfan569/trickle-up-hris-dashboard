@@ -274,7 +274,20 @@
         <span class="flex-1">Company</span>
     </a>
 
-    {{-- Templates — single link to the hub page; Profile + Signature templates live there as tiles --}}
+    {{-- Documents — one home for everything sent to people. These pages used to
+         sit across the Company, Templates and Time & Attendance hubs. --}}
+    @php
+        $docsAdminOpen = collect(['documents-admin', 'hr-documents', 'company-documents', 'company-policies', 'company-forms', 'document-library', 'document-categories', 'letterheads', 'signature-templates'])
+            ->contains(fn ($r) => Str::startsWith($routeName, $r))
+            && ! in_array($routeName, ['hr-documents.to-sign', 'hr-documents.sign', 'hr-documents.sign.store', 'hr-documents.my-pdf'], true);
+    @endphp
+    <a href="{{ route('documents-admin.index') }}"
+       class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ $docsAdminOpen ? 'text-brand-400 bg-slate-800' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
+        <i data-lucide="files" class="h-5 w-5 shrink-0 transition {{ $docsAdminOpen ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>
+        <span class="flex-1">Documents</span>
+    </a>
+
+    {{-- Templates — single link to the hub page; Profile templates live there as tiles --}}
     <a href="{{ route('templates.index') }}"
        class="flex items-center gap-x-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition duration-150 group {{ $templatesOpen ? 'text-brand-400 bg-slate-800' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
         <i data-lucide="layout-template" class="h-5 w-5 shrink-0 transition {{ $templatesOpen ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>

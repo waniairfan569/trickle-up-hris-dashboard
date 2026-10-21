@@ -39,13 +39,9 @@ class TimeAttendanceController extends Controller
             ],
         ];
 
-        if (plan_allows('hr_documents')) {
-            $sections[] = [
-                'title' => 'Documents',
-                'text' => 'Lateness reviews, return-to-work letters and other HR paperwork.',
-                'tiles' => $this->documentTiles(),
-            ];
-        }
+        // HR documents moved to the Documents hub. It was never a time-and-
+        // attendance feature — it only landed here because lateness reviews
+        // were its first use.
 
         return view('time-attendance.index', compact('sections'));
     }
@@ -184,21 +180,4 @@ class TimeAttendanceController extends Controller
         return $tiles;
     }
 
-    private function documentTiles(): array
-    {
-        $awaiting = HrDocumentSigner::whereNull('signed_at')
-            ->whereHas('document', fn ($q) => $q->where('status', 'sent'))
-            ->count();
-
-        return [[
-            'route' => 'hr-documents.index',
-            'icon' => 'file-signature',
-            'tone' => 'rose',
-            'title' => 'Documents',
-            'text' => 'Generate HR documents from templates and send them for signature.',
-            'stat' => HrDocument::where('status', 'sent')->count(),
-            'stat_label' => 'out for signature',
-            'meta' => $awaiting . ' signatures pending',
-        ]];
-    }
 }

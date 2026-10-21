@@ -41,48 +41,8 @@ class CompanyController extends Controller
             ],
         ];
 
-        if (plan_allows('forms')) {
-            // Same "awaiting" definition as the Form Responses inbox.
-            $awaiting = FormSubmission::where('status', 'submitted')
-                ->where(fn ($w) => $w->whereNull('review_status')->orWhere('review_status', 'pending'))
-                ->count();
-
-            $tiles[] = [
-                'route' => 'company-forms.index',
-                'icon' => 'clipboard-list',
-                'tone' => 'sky',
-                'title' => 'Company Forms',
-                'text' => 'Build forms, assign them to people, and review responses in the inbox.',
-                'stat' => CompanyForm::active()->count(),
-                'stat_label' => 'active forms',
-                'meta' => $awaiting . ' awaiting review',
-                'badge' => $awaiting,
-            ];
-        }
-
-        if (plan_allows('esign')) {
-            $tiles[] = [
-                'route' => 'company-documents.admin',
-                'icon' => 'file-text',
-                'tone' => 'violet',
-                'title' => 'Company Documents',
-                'text' => 'Shared files, categories and e-signature templates.',
-                'stat' => CompanyDocument::count(),
-                'stat_label' => 'documents',
-                'meta' => null,
-            ];
-        }
-
-        $tiles[] = [
-            'route' => 'company-policies.index',
-            'icon' => 'book-text',
-            'tone' => 'emerald',
-            'title' => 'Company Policies',
-            'text' => 'Publish policies and track who has acknowledged them.',
-            'stat' => CompanyPolicy::active()->count(),
-            'stat_label' => 'active policies',
-            'meta' => CompanyPolicy::active()->requiresAcknowledgment()->count() . ' need sign-off',
-        ];
+        // Forms, e-signature documents and policies moved to the Documents
+        // hub — the single home for anything sent to people.
 
         $tenant = $this->resolveTenant($tenants);
         $plan = $tenant?->planModel();

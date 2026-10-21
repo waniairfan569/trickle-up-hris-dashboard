@@ -26,26 +26,8 @@ class TemplatesController extends Controller
                 'stat_label' => 'active templates',
                 'meta' => ProfileTemplate::whereHas('employees')->count() . ' in use',
             ],
-            [
-                'route' => 'signature-templates.index',
-                'icon' => 'signature',
-                'tone' => 'violet',
-                'title' => 'Signature Templates',
-                'text' => 'Saved signatures to stamp onto letters and HR documents.',
-                'stat' => SignatureTemplate::count(),
-                'stat_label' => 'signatures',
-                'meta' => null,
-            ],
-            [
-                'route' => 'letterheads.index',
-                'icon' => 'file-signature',
-                'tone' => 'amber',
-                'title' => 'Letterheads',
-                'text' => 'Branded header & footer applied to HR documents (offer letters, contracts, …).',
-                'stat' => LetterheadTemplate::count(),
-                'stat_label' => 'letterheads',
-                'meta' => optional(LetterheadTemplate::default())->name ? 'Default: ' . LetterheadTemplate::default()->name : null,
-            ],
+            // Signature blocks and letterheads moved to the Documents hub,
+            // with the documents they are applied to.
         ];
 
         return view('templates.index', compact('tiles'));
