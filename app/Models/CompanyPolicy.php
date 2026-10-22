@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\NeedsAcknowledgement;
 use App\Tenancy\BelongsToTenant;
 
 use Illuminate\Database\Eloquent\Builder;
@@ -14,6 +15,7 @@ class CompanyPolicy extends Model
 {
     use BelongsToTenant;
     use HasFactory, SoftDeletes;
+    use NeedsAcknowledgement;
 
     protected $table = 'company_policies';
 
@@ -49,14 +51,15 @@ class CompanyPolicy extends Model
     public function scopeActive(Builder $q): Builder { return $q->where('status', 'active'); }
     public function scopeRequiresAcknowledgment(Builder $q): Builder { return $q->where('requires_acknowledgment', true); }
 
+    /**
+     * Kept for the views that read $policy->acknowledgment_rate. The working
+     * out lives in NeedsAcknowledgement, shared with company documents, so it
+     * is written once — this only preserves the old "0 when nobody has been
+     * asked" answer where that accessor expects an int.
+     */
     public function getAcknowledgmentRateAttribute(): int
     {
-        $total = $this->acknowledgments()->count();
-        if ($total === 0) {
-            return 0;
-        }
-
-        return (int) round($this->acknowledgments()->where('status', 'acknowledged')->count() / $total * 100);
+        return $this->acknowledgementRate() ?? 0;
     }
 
     public function getDocumentSizeLabelAttribute(): string
@@ -79,10 +82,8 @@ class CompanyPolicy extends Model
         ][$this->category] ?? ucfirst((string) $this->category);
     }
 
-    public function isAcknowledgedBy(User $user): bool
-    {
-        return $this->acknowledgments()->where('user_id', $user->id)->where('status', 'acknowledged')->exists();
-    }
+    // isAcknowledgedBy() comes from NeedsAcknowledgement, shared with company
+    // documents. Viewing is this side's own idea — a document has no such step.
 
     public function hasViewedBy(User $user): bool
     {

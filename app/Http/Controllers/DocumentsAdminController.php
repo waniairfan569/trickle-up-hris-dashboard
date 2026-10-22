@@ -165,10 +165,7 @@ class DocumentsAdminController extends Controller
 
         if (plan_allows('policies')) {
             $rows = $rows->merge(
-                CompanyPolicy::withCount([
-                    'acknowledgments',
-                    'acknowledgments as done_count' => fn ($q) => $q->where('status', 'acknowledged'),
-                ])->get()->map(fn ($p) => $this->row(
+                CompanyPolicy::get()->map(fn ($p) => $this->row(
                     model: $p,
                     kind: 'Policy',
                     holds: trim((string) $p->content) !== '' ? 'Written here' : 'Uploaded file',
@@ -181,10 +178,7 @@ class DocumentsAdminController extends Controller
 
         if (plan_allows('esign') || plan_allows('documents')) {
             $rows = $rows->merge(
-                CompanyDocument::withCount([
-                    'acknowledgments',
-                    'acknowledgments as done_count',
-                ])->get()->map(fn ($d) => $this->row(
+                CompanyDocument::get()->map(fn ($d) => $this->row(
                     model: $d,
                     kind: 'Document',
                     holds: 'Uploaded file',
@@ -237,8 +231,11 @@ class DocumentsAdminController extends Controller
         $needsAck = (bool) $model->requires_acknowledgment;
         $needsSig = (bool) $model->requires_signature;
 
-        $total = (int) ($model->acknowledgments_count ?? 0);
-        $done = (int) ($model->done_count ?? 0);
+        // Both kinds answer these the same way now. A policy counts the rows it
+        // created per assignee; a document counts its audience, because its rows
+        // only appear once someone has actually acknowledged.
+        $total = $model->acknowledgementExpected();
+        $done = $model->acknowledgedCount();
 
         return [
             'id'          => $model->id,

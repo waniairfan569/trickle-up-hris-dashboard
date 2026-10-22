@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\NeedsAcknowledgement;
 use App\Tenancy\BelongsToTenant;
 
 use Illuminate\Database\Eloquent\Builder;
@@ -14,6 +15,7 @@ class CompanyDocument extends Model
 {
     use BelongsToTenant;
     use HasFactory, SoftDeletes;
+    use NeedsAcknowledgement;
 
     protected $fillable = [
         'company_entity_id', 'category_id', 'title', 'description', 'file_path', 'file_name',
@@ -138,10 +140,7 @@ class CompanyDocument extends Model
         return $this->acknowledgments()->where('user_id', $user->id)->first();
     }
 
-    public function isAcknowledgedBy(?User $user): bool
-    {
-        return $user && $this->acknowledgments()->where('user_id', $user->id)->exists();
-    }
+    // isAcknowledgedBy() comes from NeedsAcknowledgement, shared with policies.
 
     /** Non-deactivated users who can access this document (its acknowledgment audience). */
     public function eligibleUsers()
