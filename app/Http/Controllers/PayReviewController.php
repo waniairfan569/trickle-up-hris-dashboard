@@ -21,6 +21,10 @@ class PayReviewController extends Controller
             'pay_type' => ['required', Rule::in(['salary', 'hourly', 'contract'])],
             'pay_schedule' => ['required', Rule::in(['monthly', 'weekly', 'biweekly', 'annual', 'hourly'])],
             'review_type' => ['required', Rule::in(['annual', 'mid_year', 'promotion', 'correction', 'market_adjustment', 'joining'])],
+            // A promotion is usually a new title as well as new money. Recording
+            // both here keeps it one action, and lets the letter print the title
+            // the person is moving to rather than the one they are leaving.
+            'job_title' => 'nullable|string|max:255',
             'reason' => 'required|string|max:255',
             'approved_by' => 'nullable|integer|exists:users,id',
             'note' => 'nullable|string|max:1000',
@@ -43,6 +47,12 @@ class PayReviewController extends Controller
         $percent = ($previousSalary && $previousSalary > 0) ? round(($increment / $previousSalary) * 100, 2) : null;
         $monthsSince = $prior ? $prior->effective_date->diffInMonths($effective) : null;
 
+        // The title move, if one came with this review. Blank, or the same title
+        // they already hold, counts as no move at all.
+        $previousTitle = (string) ($employee->job_title ?? '');
+        $newTitle = trim((string) ($validated['job_title'] ?? ''));
+        $titleChanged = $newTitle !== '' && $newTitle !== $previousTitle;
+
         $review = $employee->payReviews()->create([
             'effective_date' => $effective->toDateString(),
             'previous_salary' => $previousSalary,
@@ -54,6 +64,8 @@ class PayReviewController extends Controller
             'pay_type' => $validated['pay_type'],
             'pay_schedule' => $validated['pay_schedule'],
             'review_type' => $validated['review_type'],
+            'previous_job_title' => $titleChanged ? $previousTitle : null,
+            'new_job_title' => $titleChanged ? $newTitle : null,
             'reason' => $validated['reason'],
             'approved_by' => $validated['approved_by'] ?? null,
             'note' => $validated['note'] ?? null,
@@ -81,10 +93,18 @@ class PayReviewController extends Controller
             report($e);
         }
 
+        $what = $titleChanged ? 'Pay review and job title recorded' : 'Pay review recorded';
+
+        // Say when the title has not taken effect yet, so nobody reads the old
+        // one on the profile as the change having failed.
+        $pending = $titleChanged && $effective->gt(now()->startOfDay())
+            ? " The new title applies from {$effective->format('j M Y')}."
+            : '';
+
         return redirect()->route('employees.profile', $employee->id)
             ->with('success', $drafted
-                ? 'Pay review recorded and the employee notified. A letter has been drafted for you to review and send.'
-                : 'Pay review recorded. The employee has been notified.');
+                ? "{$what} and the employee notified.{$pending} A letter has been drafted for you to review and send."
+                : "{$what}. The employee has been notified.{$pending}");
     }
 
     /** Delete a review — only future-dated (Upcoming) records may be removed. */
@@ -103,7 +123,15 @@ class PayReviewController extends Controller
         return back()->with('success', 'Upcoming pay review removed.');
     }
 
-    /** Set the employee's salary column to the currently-active review's amount. */
+    /**
+     * Set the employee's salary — and job title, where the review carried one —
+     * from whichever review is in force today.
+     *
+     * The title follows the same rule as the money on purpose: a promotion
+     * dated next month should not retitle somebody this afternoon. Until that
+     * date arrives the new title lives on the review, which is where the letter
+     * reads it from.
+     */
     private function syncCurrentSalary(User $employee): void
     {
         $active = $employee->payReviews()
@@ -111,12 +139,20 @@ class PayReviewController extends Controller
             ->orderByDesc('effective_date')->orderByDesc('id')
             ->first();
 
-        if ($active) {
-            $employee->forceFill([
-                'salary' => $active->new_salary,
-                'salary_currency' => $active->currency,
-            ])->save();
+        if (! $active) {
+            return;
         }
+
+        $changes = [
+            'salary' => $active->new_salary,
+            'salary_currency' => $active->currency,
+        ];
+
+        if (trim((string) $active->new_job_title) !== '') {
+            $changes['job_title'] = $active->new_job_title;
+        }
+
+        $employee->forceFill($changes)->save();
     }
 
     private function authorizeManage(): void

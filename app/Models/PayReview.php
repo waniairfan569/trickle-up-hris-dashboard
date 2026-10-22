@@ -24,6 +24,8 @@ class PayReview extends Model
         'pay_type',
         'pay_schedule',
         'review_type',
+        'previous_job_title',
+        'new_job_title',
         'reason',
         'approved_by',
         'note',

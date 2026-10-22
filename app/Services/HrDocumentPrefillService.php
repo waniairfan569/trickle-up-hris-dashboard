@@ -255,6 +255,20 @@ class HrDocumentPrefillService
                     'salary_increase_percent' => $this->payField($employee, $start, $end, 'increment_percent'),
                     'pay_change_date'   => $this->payField($employee, $start, $end, 'effective_date'),
                     'pay_change_reason' => $this->payField($employee, $start, $end, 'reason'),
+
+                    // The title move, read from the review rather than from the
+                    // employee. A promotion dated next month has not changed
+                    // their title yet, but the letter announcing it must still
+                    // name the title they are moving to.
+                    //
+                    // "New" falls back to the title they already hold, so a
+                    // letter can use this field throughout: on a plain pay rise
+                    // it prints their current title instead of a blank.
+                    // "Previous" stays empty when nothing moved, which is what
+                    // a sentence like "from X to Y" needs to know.
+                    'previous_job_title' => $this->payField($employee, $start, $end, 'previous_job_title'),
+                    'new_job_title'      => $this->payField($employee, $start, $end, 'new_job_title')
+                        ?: (string) ($employee->job_title ?? ''),
                     'probation_start'   => $this->probationField($employee, $start, $end, 'start_date'),
                     'probation_end'     => $this->probationField($employee, $start, $end, 'end_date'),
                     default => null,

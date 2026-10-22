@@ -1581,6 +1581,20 @@
                                         </select>
                                     </div>
                                 </div>
+                                {{-- A promotion is usually a new title as well as new money.
+                                     Recording both here keeps it one action, and the letter
+                                     then names the title they are moving to. --}}
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">New job title <span class="text-slate-400 normal-case font-medium">(optional)</span></label>
+                                    <input type="text" name="job_title" maxlength="255"
+                                           placeholder="{{ $employee->job_title ?: 'Leave blank if the title is not changing' }}"
+                                           class="w-full rounded-xl border-slate-300 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                                    <p class="text-[11px] text-slate-400 mt-1">
+                                        Leave blank unless this is a promotion or a change of role.
+                                        @if($employee->job_title) Currently <span class="font-semibold">{{ $employee->job_title }}</span>. @endif
+                                        The title applies from the effective date, alongside the pay.
+                                    </p>
+                                </div>
                                 <div>
                                     <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Reason <span class="text-rose-500">*</span></label>
                                     <input type="text" name="reason" required maxlength="255" placeholder="e.g. Annual appraisal" class="w-full rounded-xl border-slate-300 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">

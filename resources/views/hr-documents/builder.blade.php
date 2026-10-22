@@ -204,6 +204,8 @@
                                                     <option value="salary_increase_percent">Pay — increase %</option>
                                                     <option value="pay_change_date">Pay — effective date</option>
                                                     <option value="pay_change_reason">Pay — reason given</option>
+                                                    <option value="previous_job_title">Pay — job title before the change</option>
+                                                    <option value="new_job_title">Pay — job title after the change</option>
                                                     <option value="probation_start">Probation — start date</option>
                                                     <option value="probation_end">Probation — end date</option>
                                                 </optgroup>
