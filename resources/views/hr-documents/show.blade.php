@@ -43,7 +43,19 @@
             <a href="{{ route('hr-documents.pdf', [$document, 'preview' => 1]) }}" target="_blank" class="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700"><i data-lucide="eye" class="h-4 w-4"></i> Preview</a>
             <a href="{{ route('hr-documents.docx', $document) }}" class="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700"><i data-lucide="file-text" class="h-4 w-4"></i> Word</a>
             <a href="{{ route('hr-documents.pdf', $document) }}" class="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700"><i data-lucide="download" class="h-4 w-4"></i> PDF</a>
-            <button type="button" @click="sendOpen = true" class="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-600 transition"><i data-lucide="send" class="h-4 w-4"></i> {{ $document->signers->isNotEmpty() ? 'Resend' : 'Send for signature' }}</button>
+            {{-- Nothing to sign: there is no manager section to ask about, so the
+                 dialog has nothing to offer. Post it straight away instead. --}}
+            @if($sigFields->isEmpty())
+                <form method="POST" action="{{ route('hr-documents.send', $document) }}">
+                    @csrf
+                    <button class="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-600 transition">
+                        <i data-lucide="file-check" class="h-4 w-4"></i>
+                        {{ $document->status === 'completed' ? 'Send again' : 'Add to record' }}
+                    </button>
+                </form>
+            @else
+                <button type="button" @click="sendOpen = true" class="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-600 transition"><i data-lucide="send" class="h-4 w-4"></i> {{ $document->signers->isNotEmpty() ? 'Resend' : 'Send for signature' }}</button>
+            @endif
             <form method="POST" action="{{ route('hr-documents.destroy', $document) }}" onsubmit="return confirm('Delete this document permanently?')">
                 @csrf @method('DELETE')
                 <button class="inline-flex items-center rounded-xl border border-slate-200 p-2.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition dark:border-slate-600 dark:hover:bg-rose-500/10"><i data-lucide="trash-2" class="h-4 w-4"></i></button>

@@ -29,14 +29,17 @@ class HrDocumentDispatcher
      *   signed_by     the User that signature belongs to
      *   ip            where it was signed from, where that is known
      *
-     * @return array{ok: bool, error: ?string, sent_to: array<string>, signed_now: bool}
+     * @return array{ok: bool, error: ?string, sent_to: array<string>, signed_now: bool, issued: bool}
      */
     public function send(HrDocument $document, array $options = []): array
     {
         $fields = collect($document->signatureFields());
 
+        // Nothing to sign is not a failure. A return-to-work record or a
+        // confirmation note is meant to be read, not signed, and used to be
+        // stuck as a draft until an admin marked it complete by hand.
         if ($fields->isEmpty()) {
-            return $this->fail('This document has no signature fields, so there is nothing to sign.');
+            return $this->issue($document);
         }
 
         [$mgrFields, $empFields] = $this->split($fields);
@@ -125,7 +128,42 @@ class HrDocumentDispatcher
 
         $document->update(['status' => 'sent', 'sent_at' => now()]);
 
-        return ['ok' => true, 'error' => null, 'sent_to' => $sentTo, 'signed_now' => $signedNow];
+        return ['ok' => true, 'error' => null, 'sent_to' => $sentTo, 'signed_now' => $signedNow, 'issued' => false];
+    }
+
+    /**
+     * Put a document that asks for no signature onto the employee's record and
+     * tell them it is there.
+     *
+     * It is finished the moment it goes out, because nothing is outstanding:
+     * no signers, so nothing to chase and nothing to wait for.
+     */
+    private function issue(HrDocument $document): array
+    {
+        $employee = $document->employee;
+
+        if (! $employee) {
+            return $this->fail('Could not issue: this document is not about anybody.');
+        }
+
+        $this->stampMeetingDate($document);
+
+        $document->signers()->delete();
+        $document->update(['status' => 'completed', 'sent_at' => now()]);
+
+        try {
+            $employee->notify(new \App\Notifications\HrDocumentIssued($document));
+        } catch (\Throwable $e) {
+            // The document is on their record either way; a mail problem is not
+            // a reason to pretend it was not issued.
+            report($e);
+        }
+
+        return [
+            'ok' => true, 'error' => null,
+            'sent_to' => [$employee->full_name],
+            'signed_now' => false, 'issued' => true,
+        ];
     }
 
     /**
@@ -224,6 +262,6 @@ class HrDocumentDispatcher
 
     private function fail(string $message): array
     {
-        return ['ok' => false, 'error' => $message, 'sent_to' => [], 'signed_now' => false];
+        return ['ok' => false, 'error' => $message, 'sent_to' => [], 'signed_now' => false, 'issued' => false];
     }
 }

@@ -131,7 +131,17 @@
                     </label>
                 </div>
 
-                <template x-if="meta.auto_send">
+                {{-- With nothing to sign there is no manager section to decide
+                     about: the document goes onto the employee's record and
+                     they are told it is there. --}}
+                <template x-if="meta.auto_send && !sections.some(s => s.fields.some(f => f.type === 'signature'))">
+                    <div class="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-700/30 dark:text-slate-300">
+                        This document asks for no signature, so there is nothing to route. It will be added to the
+                        employee's record and they will be told it is there.
+                    </div>
+                </template>
+
+                <template x-if="meta.auto_send && sections.some(s => s.fields.some(f => f.type === 'signature'))">
                     <div class="mt-4 rounded-xl border border-amber-200 bg-amber-50/60 p-4 dark:border-amber-500/30 dark:bg-amber-500/10">
                         <p class="text-xs text-amber-900 dark:text-amber-200">
                             <strong>Think about what this document says.</strong> A return-to-work form sending itself is

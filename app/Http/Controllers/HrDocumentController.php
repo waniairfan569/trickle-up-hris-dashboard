@@ -340,9 +340,11 @@ class HrDocumentController extends Controller
             return back()->withInput()->with('error', $result['error']);
         }
 
-        return back()->with('success',
-            ($result['signed_now'] ? 'Signed and sent' : 'Sent')
-            . ' for signature to ' . collect($result['sent_to'])->join(' and ') . '.');
+        $who = collect($result['sent_to'])->join(' and ');
+
+        return back()->with('success', $result['issued']
+            ? "Added to {$who}'s record. There was nothing to sign, so it is filed and they have been told."
+            : ($result['signed_now'] ? 'Signed and sent' : 'Sent') . " for signature to {$who}.");
     }
 
 
