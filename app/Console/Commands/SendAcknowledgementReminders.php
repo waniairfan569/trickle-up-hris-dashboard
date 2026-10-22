@@ -60,8 +60,9 @@ class SendAcknowledgementReminders extends Command
         $sent = 0;
         $skipped = 0;
         $muted = 0;
+        $warned = false;
 
-        $run = function () use ($publishedAfter, $staleBy, $quietSince, $dry, $limit, &$sent, &$skipped, &$muted) {
+        $run = function () use ($publishedAfter, $staleBy, $quietSince, $dry, $limit, &$sent, &$skipped, &$muted, &$warned) {
             foreach ($this->subjects() as $subject) {
                 $published = $subject->acknowledgementPublishedAt();
 
@@ -72,8 +73,13 @@ class SendAcknowledgementReminders extends Command
                 }
 
                 foreach ($subject->acknowledgementChaseList($quietSince) as $user) {
+                    // The cap is for the whole run, not per workspace, so say so
+                    // once rather than again for every tenant left to visit.
                     if ($sent >= $limit) {
-                        $this->warn("Reached the limit of {$limit} reminder(s); the rest wait for the next run.");
+                        if (! $warned) {
+                            $this->warn("Reached the limit of {$limit} reminder(s); the rest wait for the next run.");
+                            $warned = true;
+                        }
 
                         return;
                     }
