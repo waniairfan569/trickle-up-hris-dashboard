@@ -36,7 +36,7 @@ class HelpCenter
                 1. **Invite your team** — add employees so they can sign in and clock in.
                 2. **Create departments** — group people into teams.
                 3. **Add an office location** — used for attendance and reporting.
-                4. **Publish company policies** — share handbooks for staff to acknowledge.
+                4. **Publish policies** — share handbooks for staff to acknowledge.
                 5. **Brand your workspace** — add your logo and colour.
 
                 ## Inviting people
@@ -85,9 +85,11 @@ class HelpCenter
                 'body' => <<<MD
                 Trickle Hub has three document areas:
 
-                - **Document Library** — share files with staff and require acknowledgement.
-                - **Company Documents** — HR documents you send for **e-signature**: place signature fields, send, and track who has signed.
+                - **Policies** — policy text you write for staff to read and acknowledge, assigned to everyone or to particular departments.
+                - **Document Library** — files you upload and share with staff. They can require an acknowledgement, or carry signature fields and be sent for **e-signature**, with the status of every recipient tracked.
                 - **HR Documents** — templated documents (offers, contracts) generated per employee, with signing.
+
+                Policies and the library are both published to staff and are listed together under **Documents → Everything published**.
 
                 ## Signing
                 When something needs your signature it appears under **To Sign** with a badge. Open it, review, and sign in the browser. Admins see the signing status of every recipient.

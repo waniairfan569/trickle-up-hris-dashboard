@@ -1,7 +1,7 @@
 @extends('layouts.hr-app')
 
 @section('title', 'Acknowledgments · ' . $document->title)
-@section('breadcrumb', 'Company Documents')
+@section('breadcrumb', 'Document Library')
 
 @section('content')
 <div class="max-w-4xl mx-auto space-y-6">

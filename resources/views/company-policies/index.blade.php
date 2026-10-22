@@ -1,7 +1,7 @@
 @extends('layouts.hr-app')
 
-@section('title', 'Company Policies')
-@section('breadcrumb', 'Company Policies')
+@section('title', 'Policies')
+@section('breadcrumb', 'Policies')
 
 @php
     $statusBadge = ['draft' => 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300', 'active' => 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400', 'archived' => 'bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400'];
@@ -12,7 +12,7 @@
 <div class="max-w-5xl mx-auto space-y-6" x-data="{ tab: 'all' }">
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-            <h1 class="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">Company Policies</h1>
+            <h1 class="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">Policies</h1>
             <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Publish policies, assign to employees, and track acknowledgments.</p>
         </div>
         <a href="{{ route('company-policies.create') }}" class="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-bold text-slate-900 shadow-md shadow-brand-500/20 hover:bg-brand-700"><i data-lucide="plus" class="h-4 w-4"></i> New policy</a>

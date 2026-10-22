@@ -1,7 +1,7 @@
 @extends('layouts.hr-app')
 
 @section('title', 'Signing status · ' . $document->title)
-@section('breadcrumb', 'Company Documents')
+@section('breadcrumb', 'Document Library')
 
 @section('content')
 @php

@@ -1,7 +1,7 @@
 @extends('layouts.hr-app')
 
 @section('title', $policy->title)
-@section('breadcrumb', 'Company Policies')
+@section('breadcrumb', 'Policies')
 
 @php
     $statusBadge = ['draft' => 'bg-slate-100 text-slate-600', 'active' => 'bg-emerald-50 text-emerald-700', 'archived' => 'bg-rose-50 text-rose-700'];

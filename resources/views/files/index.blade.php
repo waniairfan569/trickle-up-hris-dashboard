@@ -88,7 +88,7 @@
             <div class="flex flex-col items-center justify-center py-16 text-center">
                 <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-50 text-slate-400 dark:bg-slate-700 mb-3"><i data-lucide="folder-open" class="h-7 w-7"></i></div>
                 <p class="text-sm font-bold text-slate-600 dark:text-slate-300">No files yet</p>
-                <p class="text-xs text-slate-400 mt-1">{{ $isAdmin ? 'Upload a file to get started.' : 'Company documents will appear here.' }}</p>
+                <p class="text-xs text-slate-400 mt-1">{{ $isAdmin ? 'Upload a file to get started.' : 'Company files will appear here.' }}</p>
             </div>
         @endforelse
     </div>

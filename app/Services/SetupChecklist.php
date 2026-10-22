@@ -55,7 +55,7 @@ class SetupChecklist
             ],
             [
                 'key' => 'policies',
-                'title' => 'Publish company policies',
+                'title' => 'Publish policies',
                 'description' => 'Share handbooks and policies for staff to acknowledge.',
                 'icon' => 'book-text',
                 'route' => 'company-policies.index',

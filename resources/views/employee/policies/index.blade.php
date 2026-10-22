@@ -21,7 +21,7 @@
 <div class="space-y-6" x-data="{ tab: 'all' }">
     <div>
         <h1 class="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">My Policies</h1>
-        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Review and acknowledge company policies assigned to you.</p>
+        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Review and acknowledge policies assigned to you.</p>
     </div>
 
     @if(session('success'))<div class="rounded-xl bg-emerald-50 p-4 border border-emerald-200 text-sm text-emerald-800 dark:bg-emerald-500/10 dark:border-emerald-500/20 dark:text-emerald-400 flex items-center gap-2"><i data-lucide="check-circle" class="h-5 w-5"></i>{{ session('success') }}</div>@endif

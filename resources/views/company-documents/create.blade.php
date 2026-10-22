@@ -1,7 +1,7 @@
 @extends('layouts.hr-app')
 
 @section('title', ($document->exists ? 'Edit' : 'Add') . ' Document')
-@section('breadcrumb', 'Company Documents')
+@section('breadcrumb', 'Document Library')
 
 @php
     $editing = $document->exists;

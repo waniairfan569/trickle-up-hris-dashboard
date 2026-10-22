@@ -1,7 +1,7 @@
 @extends('layouts.hr-app')
 
 @section('title', 'Tracking — ' . $policy->title)
-@section('breadcrumb', 'Company Policies')
+@section('breadcrumb', 'Policies')
 
 @php
     $ackBadge = ['pending' => 'bg-amber-50 text-amber-700', 'viewed' => 'bg-sky-50 text-sky-700', 'acknowledged' => 'bg-emerald-50 text-emerald-700'];

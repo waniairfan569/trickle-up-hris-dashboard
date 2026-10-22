@@ -29,7 +29,7 @@ class ModuleCatalog
         'announcements' => ['Post announcements', 'Dashboard + email delivery', 'Unread tracking'],
         'feedback' => ['Submit feedback/suggestions', 'Admin triage & respond', 'Status tracking'],
         'forms' => ['Custom form builder', 'Assign forms to people', 'Reviewers & submissions', 'Responses & export'],
-        'policies' => ['Publish company policies', 'Require acknowledgement', 'Assignment & tracking'],
+        'policies' => ['Publish policies', 'Require acknowledgement', 'Assignment & tracking'],
         'documents' => ['Document library', 'Share with staff', 'Acknowledgement + views'],
         'esign' => ['Send documents for e-signature', 'Place signature fields', 'Track signer status', 'Signed-file storage'],
         'hr_documents' => ['Templated HR documents (offers, contracts)', 'Generate per employee', 'Sign + store', 'To-sign queue'],

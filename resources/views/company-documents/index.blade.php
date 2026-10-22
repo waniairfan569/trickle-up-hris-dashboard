@@ -1,7 +1,7 @@
 @extends('layouts.hr-app')
 
-@section('title', 'Company Documents')
-@section('breadcrumb', 'Company Documents')
+@section('title', 'Document Library')
+@section('breadcrumb', 'Document Library')
 
 @php
     $accessBadge = [
@@ -20,7 +20,7 @@
      @open-version.window="openVersion($event.detail.id, $event.detail.title)">
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-            <h1 class="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">Company Documents</h1>
+            <h1 class="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">Document Library</h1>
             <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Upload, organize and control access to company files.</p>
         </div>
         <a href="{{ route('company-documents.create') }}" class="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-bold text-slate-900 shadow-md shadow-brand-500/20 hover:bg-brand-700"><i data-lucide="upload" class="h-4 w-4"></i> Add document</a>

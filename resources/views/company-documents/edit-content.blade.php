@@ -1,7 +1,7 @@
 @extends('layouts.hr-app')
 
 @section('title', 'Edit Document Text')
-@section('breadcrumb', 'Company Documents')
+@section('breadcrumb', 'Document Library')
 
 @section('content')
 <div class="max-w-5xl mx-auto space-y-4">

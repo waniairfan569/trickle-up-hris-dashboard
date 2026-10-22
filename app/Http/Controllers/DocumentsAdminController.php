@@ -73,7 +73,7 @@ class DocumentsAdminController extends Controller
             // "documents" — so ask for exactly that, or a documents-only plan
             // would be shown links that answer 402.
             if (plan_allows('esign')) {
-                $links[] = ['route' => 'company-documents.admin', 'label' => 'Uploaded files'];
+                $links[] = ['route' => 'company-documents.admin', 'label' => 'Document library'];
                 $links[] = ['route' => 'company-documents.archived', 'label' => 'Archived'];
             }
 

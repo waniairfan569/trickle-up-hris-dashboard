@@ -1,7 +1,7 @@
 @extends('layouts.hr-app')
 
 @section('title', 'Document Categories')
-@section('breadcrumb', 'Company Documents · Categories')
+@section('breadcrumb', 'Document Library · Categories')
 
 @section('content')
 <style>[x-cloak]{display:none!important}</style>

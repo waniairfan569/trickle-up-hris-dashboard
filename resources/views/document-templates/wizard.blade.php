@@ -1,7 +1,7 @@
 @extends('layouts.hr-app')
 
 @section('title', $template ? 'Edit document template' : 'Create document template')
-@section('breadcrumb', 'Company Documents')
+@section('breadcrumb', 'Document Library')
 
 @section('content')
 <style>[x-cloak]{display:none!important}</style>

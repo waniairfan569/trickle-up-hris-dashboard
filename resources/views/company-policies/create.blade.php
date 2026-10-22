@@ -1,7 +1,7 @@
 @extends('layouts.hr-app')
 
 @section('title', ($policy->exists ? 'Edit' : 'New') . ' Policy')
-@section('breadcrumb', 'Company Policies')
+@section('breadcrumb', 'Policies')
 
 @php $editing = $policy->exists; @endphp
 

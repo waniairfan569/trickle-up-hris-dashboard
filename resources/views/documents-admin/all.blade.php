@@ -13,7 +13,7 @@
             </a>
             <h1 class="mt-2 text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">Everything published to staff</h1>
             <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                Policies and company documents in one place, whichever they are.
+                Policies and the document library in one place, whichever they are.
             </p>
         </div>
         <a href="{{ route('documents-admin.create') }}" class="btn-brand">
