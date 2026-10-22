@@ -142,6 +142,24 @@ class CompanyDocument extends Model
 
     // isAcknowledgedBy() comes from NeedsAcknowledgement, shared with policies.
 
+    /**
+     * A company document has no page of its own on the employee side — it is
+     * read and acknowledged from the library tab of their Documents page, so
+     * that is where a reminder sends them.
+     */
+    public function acknowledgementUrl(): string
+    {
+        return route('documents-hub.index', ['tab' => 'all']);
+    }
+
+    /** Expiry is the nearest thing a document has to an acknowledgement date. */
+    public function acknowledgementDueAt(): ?\Illuminate\Support\Carbon
+    {
+        return $this->expires_at
+            ? \Illuminate\Support\Carbon::parse($this->expires_at)
+            : null;
+    }
+
     /** Non-deactivated users who can access this document (its acknowledgment audience). */
     public function eligibleUsers()
     {

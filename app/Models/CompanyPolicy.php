@@ -85,6 +85,29 @@ class CompanyPolicy extends Model
     // isAcknowledgedBy() comes from NeedsAcknowledgement, shared with company
     // documents. Viewing is this side's own idea — a document has no such step.
 
+    /** A policy has its own page to read and acknowledge on. */
+    public function acknowledgementUrl(): string
+    {
+        return route('policies.view', $this->id);
+    }
+
+    /**
+     * A policy is in front of people from its effective date — before that it
+     * may be assigned but not yet in force, so chasing would be premature.
+     */
+    public function acknowledgementPublishedAt(): ?\Illuminate\Support\Carbon
+    {
+        return $this->effective_date ?? $this->created_at;
+    }
+
+    /** When acknowledgement was due, where one was set. */
+    public function acknowledgementDueAt(): ?\Illuminate\Support\Carbon
+    {
+        return $this->acknowledgment_deadline
+            ? \Illuminate\Support\Carbon::parse($this->acknowledgment_deadline)
+            : null;
+    }
+
     public function hasViewedBy(User $user): bool
     {
         return $this->acknowledgments()->where('user_id', $user->id)->whereIn('status', ['viewed', 'acknowledged'])->exists();

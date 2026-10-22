@@ -2,7 +2,10 @@
 
 namespace App\Models\Concerns;
 
+use App\Models\AcknowledgementReminder;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Support\Carbon;
 
 /**
  * One vocabulary for "who has confirmed they read this".
@@ -21,6 +24,9 @@ use App\Models\User;
  */
 trait NeedsAcknowledgement
 {
+    /** Where to send somebody who still has to acknowledge this. */
+    abstract public function acknowledgementUrl(): string;
+
     /** Everyone expected to acknowledge this. */
     public function acknowledgementAudience()
     {
@@ -110,6 +116,75 @@ trait NeedsAcknowledgement
         return $this->acknowledgementAudience()
             ->reject(fn ($u) => in_array($u->id, $done))
             ->values();
+    }
+
+    /** Times we have chased somebody about this one. */
+    public function acknowledgementReminders(): MorphMany
+    {
+        return $this->morphMany(AcknowledgementReminder::class, 'acknowledgeable');
+    }
+
+    /**
+     * Who should be chased about this now: everyone still outstanding, minus
+     * anybody already chased since $quietSince.
+     *
+     * The caller decides what counts as too recent to chase again, and whether
+     * this thing is old enough to chase at all — this only answers who.
+     */
+    public function acknowledgementChaseList(?Carbon $quietSince = null)
+    {
+        $outstanding = $this->awaitingAcknowledgement();
+
+        if ($outstanding->isEmpty() || ! $quietSince) {
+            return $outstanding;
+        }
+
+        $chased = $this->acknowledgementReminders()
+            ->where('sent_at', '>=', $quietSince)
+            ->pluck('user_id')
+            ->all();
+
+        return $outstanding->reject(fn ($u) => in_array($u->id, $chased))->values();
+    }
+
+    /** Note that we have just chased this person, keeping a count of attempts. */
+    public function recordAcknowledgementReminder(User $user): void
+    {
+        $reminder = $this->acknowledgementReminders()
+            ->where('user_id', $user->id)
+            ->first();
+
+        if ($reminder) {
+            $reminder->update([
+                'sent_at' => now(),
+                'times_sent' => $reminder->times_sent + 1,
+            ]);
+
+            return;
+        }
+
+        $this->acknowledgementReminders()->create([
+            'tenant_id' => $this->tenant_id,
+            'user_id' => $user->id,
+            'sent_at' => now(),
+            'times_sent' => 1,
+        ]);
+    }
+
+    /**
+     * When this was put in front of people — what "it has sat unacknowledged
+     * for N days" is measured from. Each side can override; the fallback is
+     * when the record was created.
+     */
+    public function acknowledgementPublishedAt(): ?Carbon
+    {
+        return $this->created_at;
+    }
+
+    /** A date by which it should have been acknowledged, where one is set. */
+    public function acknowledgementDueAt(): ?Carbon
+    {
+        return null;
     }
 
     /**

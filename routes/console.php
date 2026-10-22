@@ -26,6 +26,13 @@ Schedule::command('events:send-reminders')->dailyAt('18:00');
 // Remind the current signer when an assigned document has gone unsigned for 24+ hours.
 Schedule::command('documents:send-signature-reminders')->hourly()->withoutOverlapping();
 
+// Chase people about policies and documents they have not acknowledged. Daily,
+// not hourly — this is paperwork, not a blocked signature. The default 30-day
+// window means switching it on chases current items only, never the backlog;
+// run it by hand with --after to go further back on purpose.
+Schedule::command('documents:send-acknowledgement-reminders')
+    ->dailyAt('09:30')->withoutOverlapping();
+
 // Daily nudge to HR/admins about probation reviews that are overdue (period
 // ended, not yet confirmed/failed). Completion notices fire on confirmation.
 Schedule::command('probation:review-reminders')->dailyAt('07:00')->withoutOverlapping();

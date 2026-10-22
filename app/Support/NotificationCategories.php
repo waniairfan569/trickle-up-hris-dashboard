@@ -41,7 +41,7 @@ class NotificationCategories
     public const CATEGORIES = [
         'time_off'        => ['Time off & leave', 'Approvals, rejections, renewals and balance changes.', 'palmtree'],
         'documents'       => ['Documents to sign', 'Documents sent to you and signing reminders.', 'file-signature'],
-        'policies'        => ['Policies', 'New company policies assigned for you to acknowledge.', 'book-text'],
+        'policies'        => ['Policies', 'Policies assigned for you to acknowledge, and reminders about ones you have not.', 'book-text'],
         'forms'           => ['Forms', 'Forms assigned to you and review outcomes.', 'clipboard-list'],
         'equipment'       => ['Equipment', 'Decisions on your take-equipment-home requests.', 'package'],
         'code_requests'   => ['Login-code requests', 'When a login code you asked for is shared or declined.', 'key-round'],
@@ -58,6 +58,13 @@ class NotificationCategories
     /** Resolve the category for a notification instance (or null if not gated). */
     public static function for(object $notification): ?string
     {
+        // One notification can cover two kinds of thing — an acknowledgement
+        // nudge is about a policy or a document — so let it say which toggle
+        // governs it rather than forcing both into one category by class name.
+        if (method_exists($notification, 'notificationCategory')) {
+            return $notification->notificationCategory();
+        }
+
         $base = class_basename($notification);
 
         return self::MAP[$base] ?? null;
