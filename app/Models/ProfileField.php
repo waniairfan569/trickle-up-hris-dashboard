@@ -24,8 +24,23 @@ class ProfileField extends Model
         'is_encrypted',
         'visibility',
         'employee_can_edit',
+        'change_action',
         'sort_order',
     ];
+
+    /** What happens when the employee themselves changes this field. */
+    public const CHANGE_ACTIONS = [
+        'none'   => 'Save it straight away',
+        'notify' => 'Save it, and tell HR it changed',
+        'review' => 'Hold it until HR approves',
+    ];
+
+    public function changeAction(): string
+    {
+        return array_key_exists((string) $this->change_action, self::CHANGE_ACTIONS)
+            ? $this->change_action
+            : 'none';
+    }
 
     protected $casts = [
         'options' => 'array',
@@ -68,19 +83,29 @@ class ProfileField extends Model
             return true;
         }
 
-        // On their OWN profile an employee may edit their own details — including
-        // full name, work email and personal email — except org/HR-controlled
-        // fields which only super admin / HR admin can change.
+        // On their OWN profile an employee may edit their own details, except
+        // the ones HR keeps control of.
         if ($editor->id === $employee->id) {
-            $adminOnly = [
+            // What the workspace actually set on the field, in the template
+            // builder, under "Employee Can Edit". This used to be ignored in
+            // favour of the hard-coded list below, so a field an admin had
+            // locked was still editable by the person it was about — including
+            // their own end date, notice period and probation dates.
+            if ($this->employee_can_edit === false) {
+                return false;
+            }
+
+            // Kept as a floor beneath that switch: these are org and employment
+            // facts, and no setting should make them self-editable.
+            $neverSelfEditable = [
                 'department_id', 'manager_id', 'employee_id',
-                // Employment & compensation — HR-controlled, not self-editable.
                 'contract_type', 'employment_type', 'job_title',
                 'employee_status', 'employment_status',
                 'hire_date', 'start_date',
                 'pay_frequency', 'currency',
             ];
-            return !in_array($this->key, $adminOnly, true);
+
+            return ! in_array($this->key, $neverSelfEditable, true);
         }
 
         return false;

@@ -424,6 +424,13 @@ Route::middleware(['auth', 'verified', 'force.password.change'])->group(function
     Route::delete('profile-fields/{field}', [ProfileTemplateController::class, 'destroyField'])->name('profile-fields.destroy')->middleware('role:super_admin,hr_admin');
     Route::resource('profile-templates', ProfileTemplateController::class)->middleware('role:super_admin,hr_admin');
 
+    // Record changes an employee has asked for, where the field is set to be
+    // approved rather than saved straight away.
+    Route::get('profile-changes', [\App\Http\Controllers\ProfileChangeRequestController::class, 'index'])
+        ->name('profile-changes.index')->middleware('role:super_admin,hr_admin');
+    Route::post('profile-changes/{profileChange}', [\App\Http\Controllers\ProfileChangeRequestController::class, 'decide'])
+        ->name('profile-changes.decide')->middleware('role:super_admin,hr_admin');
+
     // Per-employee document uploads (Files → Uploads tab) — self or admin (enforced in controller)
     Route::post('employees/{employee}/documents', [\App\Http\Controllers\EmployeeDocumentController::class, 'store'])->name('employees.documents.store');
     Route::get('employees/{employee}/documents/{document}/download', [\App\Http\Controllers\EmployeeDocumentController::class, 'download'])->name('employees.documents.download');

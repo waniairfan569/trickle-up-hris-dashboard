@@ -390,6 +390,8 @@ class EmployeeProfileController extends Controller
 
         $emailConflict = null;
         $notCleared = [];
+        $awaitingReview = [];
+        $savedAny = false;
 
         foreach ($fields as $key => $value) {
             $field = ProfileField::where('key', $key)->first();
@@ -446,6 +448,22 @@ class EmployeeProfileController extends Controller
                 $value = json_encode($value);
             }
 
+            // Some fields are not the employee's to change on their own say-so:
+            // the workspace can ask to be told, or to approve first. Only their
+            // own edits pass through this — an admin editing somebody's record
+            // is already the check.
+            $held = app(\App\Services\ProfileChangeGuard::class)->intercept(
+                $employee, $auth, $field, $value,
+                $employee->isFillable($key) || array_key_exists($key, $employee->getAttributes())
+                    ? $employee->{$key}
+                    : EmployeeFieldValue::where('user_id', $employee->id)->where('field_id', $field->id)->value('value')
+            );
+
+            if ($held) {
+                $awaitingReview[] = $field->name ?: $key;
+                continue;
+            }
+
             // Save native user model attributes, or dynamic EmployeeFieldValue
             if ($employee->isFillable($key) || array_key_exists($key, $employee->getAttributes())) {
                 $employee->update([$key => $value]);
@@ -455,6 +473,8 @@ class EmployeeProfileController extends Controller
                     ['value' => $value, 'updated_by' => $auth->id]
                 );
             }
+
+            $savedAny = true;
 
             // "Full name" isn't a native column — keep first/last name in sync when it's edited.
             if ($key === 'full_name' && is_string($value) && trim($value) !== '') {
@@ -534,6 +554,21 @@ class EmployeeProfileController extends Controller
                 : ($titleMoved
                     ? "Profile updated. Job title changed from “{$titleBefore}” to “{$titleAfter}”."
                     : 'Profile updated successfully.'));
+
+        // Anything the workspace holds for approval has not been written, and
+        // saying "updated" about it would be a lie.
+        if ($awaitingReview) {
+            $held = count($awaitingReview) === 1
+                ? "“{$awaitingReview[0]}” has been sent to HR to approve. It will change once they do."
+                : collect($awaitingReview)->map(fn ($f) => "“{$f}”")->join(', ', ' and ')
+                    . ' have been sent to HR to approve. They will change once HR does.';
+
+            // When everything they touched is being held, nothing was updated
+            // at all, so that is the whole message rather than a footnote.
+            $savedAny
+                ? $redirect->with('warning', $held)
+                : $redirect->with('success', $held);
+        }
 
         if ($emailConflict) {
             $redirect->with('warning', "The work email was saved, but the sign-in address and header couldn't be changed to \"{$emailConflict}\" because another account already uses it.");

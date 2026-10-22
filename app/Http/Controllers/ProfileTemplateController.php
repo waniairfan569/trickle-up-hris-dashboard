@@ -209,6 +209,7 @@ class ProfileTemplateController extends Controller
             'is_required' => 'boolean',
             'is_encrypted' => 'boolean',
             'employee_can_edit' => 'boolean',
+            'change_action' => 'nullable|in:none,notify,review',
             'visibility' => 'required|string|in:public,internal,private,manager',
         ]);
 
@@ -231,6 +232,7 @@ class ProfileTemplateController extends Controller
             'is_encrypted' => $isEncrypted,
             'visibility' => $request->visibility,
             'employee_can_edit' => $request->boolean('employee_can_edit'),
+            'change_action' => $request->input('change_action') ?: 'none',
             'sort_order' => $maxSort + 1,
         ]);
 
@@ -245,6 +247,7 @@ class ProfileTemplateController extends Controller
             'placeholder' => 'nullable|string|max:255',
             'is_required' => 'boolean',
             'employee_can_edit' => 'boolean',
+            'change_action' => 'nullable|in:none,notify,review',
             'visibility' => 'required|string|in:public,internal,private,manager',
         ]);
 
@@ -254,6 +257,7 @@ class ProfileTemplateController extends Controller
             'placeholder' => $request->placeholder,
             'is_required' => $request->boolean('is_required'),
             'employee_can_edit' => $request->boolean('employee_can_edit'),
+            'change_action' => $request->input('change_action') ?: 'none',
             'visibility' => $request->visibility,
         ]);
 

@@ -122,6 +122,21 @@
                     <p class="text-[10px] text-slate-400 dark:text-slate-500">Allow standard employees to edit this field from their own portal.</p>
                 </div>
             </div>
+
+            {{-- Only meaningful where they can edit it at all. --}}
+            <div>
+                <label class="block text-xs font-bold text-slate-700 dark:text-slate-350 mb-1.5">When an employee changes this</label>
+                <select name="change_action" class="w-full rounded-lg border-slate-300 text-sm dark:bg-slate-850 dark:border-slate-700 dark:text-white">
+                    @foreach(\App\Models\ProfileField::CHANGE_ACTIONS as $value => $label)
+                        <option value="{{ $value }}" @selected(old('change_action', $field?->change_action ?? 'none') === $value)>{{ $label }}</option>
+                    @endforeach
+                </select>
+                <p class="mt-1 text-[10px] text-slate-400 dark:text-slate-500">
+                    Use “tell HR” for things like medical details or an emergency contact, and “approve first”
+                    for anything you would want checked before it becomes the record. Only applies when the
+                    employee edits their own profile — an admin editing it is already the check.
+                </p>
+            </div>
         </div>
 
         <!-- Visibility Radio Cards -->
