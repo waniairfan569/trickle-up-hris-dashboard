@@ -13,6 +13,9 @@
             'icon'        => $template->icon ?? 'file-text',
             'prefill'     => $template->prefill ?? '',
             'is_active'   => (bool) ($template->is_active ?? true),
+            'auto_send'   => (bool) ($template->auto_send ?? false),
+            'auto_send_manager_mode' => $template->auto_send_manager_mode ?? 'none',
+            'auto_send_signature_id' => (string) ($template->auto_send_signature_id ?? ''),
         ],
         'sections' => collect($template->schema ?: [[ 'title' => 'Section 1 — Details', 'fields' => [] ]])->map(fn ($s) => [
             'title'  => $s['title'] ?? 'Section',
@@ -59,6 +62,13 @@
         <input type="hidden" name="icon" :value="meta.icon">
         <input type="hidden" name="prefill" :value="meta.prefill">
         <input type="hidden" name="is_active" :value="meta.is_active ? 1 : 0">
+        <input type="hidden" name="auto_send" :value="meta.auto_send ? 1 : 0">
+        <input type="hidden" name="auto_send_manager_mode" :value="meta.auto_send_manager_mode">
+        {{-- Only submitted when a signature is actually being stamped: x-show
+             merely hides, and a hidden input still posts its value. --}}
+        <input type="hidden" name="auto_send_signature_id"
+               :value="meta.auto_send_signature_id"
+               :disabled="!(meta.auto_send && meta.auto_send_manager_mode === 'self')">
 
         {{-- Template meta --}}
         <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-5 space-y-4 dark:bg-slate-800 dark:border-slate-700">
@@ -91,6 +101,81 @@
                 </div>
             </div>
         </div>
+
+        {{-- What happens once this document has drafted itself. Only worth
+             asking about for a template something actually triggers. --}}
+        <template x-if="meta.prefill">
+            <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-5 mt-5 dark:bg-slate-800 dark:border-slate-700">
+                <h3 class="text-sm font-extrabold text-slate-800 dark:text-white">When this drafts itself</h3>
+                <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                    By default it waits as a draft for somebody to read and send. You can let it go out on its own instead.
+                </p>
+
+                <div class="mt-4 space-y-2">
+                    <label class="flex items-start gap-3 rounded-xl border p-3 cursor-pointer"
+                           :class="!meta.auto_send ? 'border-brand-400 bg-brand-50/60 dark:bg-brand-500/10' : 'border-slate-200 dark:border-slate-700'">
+                        <input type="radio" :checked="!meta.auto_send" @change="meta.auto_send = false" class="mt-0.5 text-brand-600">
+                        <span>
+                            <span class="block text-sm font-bold text-slate-800 dark:text-white">Wait for me</span>
+                            <span class="block text-xs text-slate-500 dark:text-slate-400">It appears as a draft. Nothing reaches the employee until somebody opens it and sends it.</span>
+                        </span>
+                    </label>
+
+                    <label class="flex items-start gap-3 rounded-xl border p-3 cursor-pointer"
+                           :class="meta.auto_send ? 'border-amber-400 bg-amber-50/60 dark:bg-amber-500/10' : 'border-slate-200 dark:border-slate-700'">
+                        <input type="radio" :checked="meta.auto_send" @change="meta.auto_send = true" class="mt-0.5 text-amber-600">
+                        <span>
+                            <span class="block text-sm font-bold text-slate-800 dark:text-white">Send it on its own</span>
+                            <span class="block text-xs text-slate-500 dark:text-slate-400">It goes straight to the employee to sign, with nobody reading it first.</span>
+                        </span>
+                    </label>
+                </div>
+
+                <template x-if="meta.auto_send">
+                    <div class="mt-4 rounded-xl border border-amber-200 bg-amber-50/60 p-4 dark:border-amber-500/30 dark:bg-amber-500/10">
+                        <p class="text-xs text-amber-900 dark:text-amber-200">
+                            <strong>Think about what this document says.</strong> A return-to-work form sending itself is
+                            convenient. A lateness warning or a probation outcome sending itself, with nobody having read it,
+                            is how a letter reaches the wrong person.
+                        </p>
+
+                        <div class="mt-4">
+                            <label class="block text-xs font-bold uppercase tracking-wide text-slate-500 mb-1.5">The manager's signature box</label>
+                            <select x-model="meta.auto_send_manager_mode" class="{{ $inp }}">
+                                <option value="none">Leave it blank</option>
+                                <option value="manager">Ask the employee's line manager to sign</option>
+                                <option value="self">Stamp a saved signature on it</option>
+                            </select>
+                            <p class="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+                                Nobody is at a screen to answer this when the document is built, so it is answered here instead.
+                            </p>
+                        </div>
+
+                        <template x-if="meta.auto_send_manager_mode === 'self'">
+                            <div class="mt-3">
+                                <label class="block text-xs font-bold uppercase tracking-wide text-slate-500 mb-1.5">Which saved signature</label>
+                                <select x-model="meta.auto_send_signature_id" class="{{ $inp }}">
+                                    <option value="">— pick one —</option>
+                                    @foreach(($signatures ?? []) as $sig)
+                                        <option value="{{ $sig->id }}">{{ $sig->name }}</option>
+                                    @endforeach
+                                </select>
+                                @if(($signatures ?? collect())->isEmpty())
+                                    <p class="mt-1 text-[11px] text-rose-600 dark:text-rose-400">
+                                        You have no saved signatures yet. Add one under Documents → Signature blocks,
+                                        or the manager's box will be left blank.
+                                    </p>
+                                @else
+                                    <p class="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+                                        Stamped before the document goes out, so the employee receives it already countersigned.
+                                    </p>
+                                @endif
+                            </div>
+                        </template>
+                    </div>
+                </template>
+            </div>
+        </template>
 
         {{-- Sections --}}
         <div class="space-y-5 mt-5">

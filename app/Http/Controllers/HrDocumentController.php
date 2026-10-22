@@ -77,6 +77,7 @@ class HrDocumentController extends Controller
             'template' => new HrDocumentTemplate(['schema' => []]),
             'types'    => self::TYPES,
             'profileTokens' => \App\Services\HrDocumentPrefillService::profileTokens(),
+            'signatures' => \App\Models\SignatureTemplate::orderBy('name')->get(['id', 'name']),
         ]);
     }
 
@@ -86,6 +87,7 @@ class HrDocumentController extends Controller
             'template' => $template,
             'types'    => self::TYPES,
             'profileTokens' => \App\Services\HrDocumentPrefillService::profileTokens(),
+            'signatures' => \App\Models\SignatureTemplate::orderBy('name')->get(['id', 'name']),
         ]);
     }
 
@@ -317,132 +319,32 @@ class HrDocumentController extends Controller
     /** Send a document to its employee (and optionally a manager) to sign in-app. */
     public function send(Request $request, HrDocument $document)
     {
-        $sigFields = collect($document->signatureFields());
-        if ($sigFields->isEmpty()) {
-            return back()->with('error', 'This document has no signature fields, so there is nothing to sign.');
-        }
-
-        $employee = $document->employee;
-
-        // Who signs which section is set on the field itself. Older templates and
-        // documents issued before that setting existed fall back to the rule that
-        // used to decide it — looking for "manager" in the label — so nothing
-        // already in flight changes behaviour.
-        $isMgr = fn ($f) => isset($f['signer_role'])
-            ? $f['signer_role'] === 'manager'
-            : Str::contains(Str::lower($f['label'] ?? ''), 'manager');
-
-        $mgrFields = $sigFields->filter($isMgr);
-        $empFields = $sigFields->reject($isMgr);
-
-        // What happens to the manager section: the sender signs it now before it
-        // goes out, the line manager is asked to sign it, or it stays blank.
         $validated = $request->validate([
             'manager_mode'     => 'nullable|in:self,manager,none',
             'manager_id'       => 'nullable|exists:users,id',
             'admin_signature'  => 'nullable|string',
         ]);
-        $mode = $mgrFields->isEmpty() ? 'none' : ($validated['manager_mode'] ?? ($request->boolean('include_manager') ? 'manager' : 'none'));
 
-        $signature = trim((string) ($validated['admin_signature'] ?? ''));
-        if ($mode === 'self' && ! Str::startsWith($signature, 'data:image/')) {
-            return back()->withInput()->with('error', 'Add your signature before sending, or choose another option for the manager section.');
+        // The work itself lives in HrDocumentDispatcher, so a document that
+        // sends itself at one in the morning travels the same road as this one.
+        $result = app(\App\Services\HrDocumentDispatcher::class)->send($document, [
+            'manager_mode' => $validated['manager_mode']
+                ?? ($request->boolean('include_manager') ? 'manager' : 'none'),
+            'manager_id'   => $validated['manager_id'] ?? null,
+            'signature'    => $validated['admin_signature'] ?? null,
+            'signed_by'    => $request->user(),
+            'ip'           => $request->ip(),
+        ]);
+
+        if (! $result['ok']) {
+            return back()->withInput()->with('error', $result['error']);
         }
-
-        $managerId = $validated['manager_id'] ?? optional($employee)->manager_id;
-        $manager   = $mode === 'manager' && $managerId ? User::find($managerId) : null;
-
-        if ($mode === 'manager' && ! $manager) {
-            return back()->withInput()->with('error', 'Pick the line manager who should sign, or sign the manager section yourself.');
-        }
-
-        // "Date of meeting" is the day the document goes out — it cannot be
-        // known when the draft is built, so stamp it now if it is still blank.
-        $this->stampMeetingDate($document);
-
-        // Where each person sits in the signing order: the earliest position
-        // among the fields they sign. Zero throughout means no order, which is
-        // how every template behaves until somebody sets one.
-        $orderOf = fn ($fields) => (int) collect($fields)->map(fn ($f) => (int) ($f['sign_order'] ?? 0))
-            ->filter()->min();
-
-        // Rebuild the signer set (supports re-sending).
-        $document->signers()->delete();
-        $sentTo = [];
-        $signedNow = false;
-
-        // The sender signs the manager section first, so the document reaches
-        // the employee already countersigned.
-        if ($mode === 'self') {
-            $data = $document->data ?? [];
-            foreach ($mgrFields->pluck('id') as $fieldId) {
-                $data[$fieldId] = [
-                    'image' => $signature,
-                    'name'  => $request->user()->full_name,
-                    'date'  => now()->toDateString(),
-                ];
-            }
-            $document->data = $data;
-            $document->save();
-
-            $document->signers()->create([
-                'user_id'   => $request->user()->id,
-                'role'      => 'manager',
-                'field_ids' => $mgrFields->pluck('id')->all(),
-                'sign_order' => $orderOf($mgrFields),
-                'signed_at' => now(),
-                'signed_ip' => $request->ip(),
-            ]);
-            $signedNow = true;
-        }
-
-        if ($employee && $empFields->isNotEmpty()) {
-            $document->signers()->create(['user_id' => $employee->id, 'role' => 'employee', 'field_ids' => $empFields->pluck('id')->all(), 'sign_order' => $orderOf($empFields)]);
-            $employee->notify(new \App\Notifications\HrDocumentSignatureRequested($document));
-            $sentTo[] = $employee->full_name;
-        }
-
-        if ($manager) {
-            $document->signers()->create(['user_id' => $manager->id, 'role' => 'manager', 'field_ids' => $mgrFields->pluck('id')->all(), 'sign_order' => $orderOf($mgrFields)]);
-            $manager->notify(new \App\Notifications\HrDocumentSignatureRequested($document));
-            $sentTo[] = $manager->full_name;
-        }
-
-        if (empty($sentTo)) {
-            return back()->with('error', 'Could not send: no one was left to sign it.');
-        }
-
-        $document->update(['status' => 'sent', 'sent_at' => now()]);
 
         return back()->with('success',
-            ($signedNow ? 'Signed and sent' : 'Sent') . ' for signature to ' . collect($sentTo)->join(' and ') . '.');
+            ($result['signed_now'] ? 'Signed and sent' : 'Sent')
+            . ' for signature to ' . collect($result['sent_to'])->join(' and ') . '.');
     }
 
-    /** Fill an empty "date of meeting" field with today, on the way out. */
-    private function stampMeetingDate(HrDocument $document): void
-    {
-        $data = $document->data ?? [];
-        $touched = false;
-
-        foreach (collect($document->schema)->flatMap(fn ($s) => $s['fields'] ?? []) as $field) {
-            if (! is_array($field) || empty($field['id'])) {
-                continue;
-            }
-            $label = strtolower((string) ($field['label'] ?? ''));
-            $isMeeting = $field['id'] === 'date_of_meeting'
-                || (str_contains($label, 'date') && str_contains($label, 'meeting'));
-
-            if ($isMeeting && trim((string) ($data[$field['id']] ?? '')) === '') {
-                $data[$field['id']] = now()->toDateString();
-                $touched = true;
-            }
-        }
-
-        if ($touched) {
-            $document->data = $data;
-            $document->save();
-        }
-    }
 
     /** Editable Word (.docx) export of a filled document. */
     public function docx(HrDocument $document, \App\Services\HrDocumentWordService $word)
@@ -546,7 +448,20 @@ class HrDocumentController extends Controller
             'description' => 'nullable|string|max:500',
             'icon'        => 'nullable|string|max:50',
             'schema'      => 'required|string',
+            'auto_send_manager_mode' => 'nullable|in:self,manager,none',
+            'auto_send_signature_id' => 'nullable|exists:signature_templates,id',
         ]);
+
+        $autoSend = $request->boolean('auto_send');
+        $mode = $request->input('auto_send_manager_mode') ?: 'none';
+        $signatureId = $request->integer('auto_send_signature_id') ?: null;
+
+        // Stamping a signature means having one to stamp. Rather than save a
+        // setting that quietly never fires, fall back to leaving the manager
+        // section blank — which does send, and is visibly not signed.
+        if ($mode === 'self' && ! $signatureId) {
+            $mode = 'none';
+        }
 
         return [
             'name'        => $request->input('name'),
@@ -556,6 +471,9 @@ class HrDocumentController extends Controller
             'prefill'     => $request->input('prefill') ?: null,
             'schema'      => $this->normalizeSchema($this->decodeData($request->input('schema'))),
             'is_active'   => (bool) $request->boolean('is_active', true),
+            'auto_send'   => $autoSend,
+            'auto_send_manager_mode' => $mode,
+            'auto_send_signature_id' => $mode === 'self' ? $signatureId : null,
         ];
     }
 

@@ -24,7 +24,14 @@ class HrDocumentTemplate extends Model
     protected $fillable = [
         'name', 'subtitle', 'description', 'icon', 'prefill', 'rollup', 'letterhead_id',
         'schema', 'is_active', 'is_system', 'sort_order', 'created_by',
+        'auto_send', 'auto_send_manager_mode', 'auto_send_signature_id',
     ];
+
+    /** The saved signature stamped on the manager section when it sends itself. */
+    public function autoSendSignature()
+    {
+        return $this->belongsTo(SignatureTemplate::class, 'auto_send_signature_id');
+    }
 
     /** One document a month listing every event, rather than one per event. */
     public function isMonthly(): bool
@@ -35,6 +42,7 @@ class HrDocumentTemplate extends Model
     protected $casts = [
         'schema'    => 'array',
         'is_active' => 'boolean',
+        'auto_send' => 'boolean',
         'is_system' => 'boolean',
     ];
 

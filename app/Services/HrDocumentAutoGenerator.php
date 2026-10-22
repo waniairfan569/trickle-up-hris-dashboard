@@ -433,9 +433,15 @@ class HrDocumentAutoGenerator
         );
     }
 
+    /**
+     * Build the document. It stays a draft for somebody to read and send,
+     * unless the template has been told to send it on its own — which is a
+     * decision each workspace makes per template, and which is off until they
+     * make it.
+     */
     private function createDraft(HrDocumentTemplate $template, User $employee, Carbon $start, Carbon $end, string $title, ?int $by = null): HrDocument
     {
-        return HrDocument::create([
+        $document = HrDocument::create([
             'hr_document_template_id' => $template->id,
             'user_id'       => $employee->id,
             'template_name' => $template->name,
@@ -447,5 +453,15 @@ class HrDocumentAutoGenerator
             'status'        => 'draft',
             'created_by'    => $by,
         ]);
+
+        // Never let sending fail the generation: the document exists either
+        // way, and a draft is what would have happened regardless.
+        try {
+            app(\App\Services\HrDocumentDispatcher::class)->autoSend($document);
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
+        return $document->refresh();
     }
 }
