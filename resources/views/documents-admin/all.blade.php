@@ -94,8 +94,17 @@
                             </td>
                             <td class="px-5 py-3 whitespace-nowrap text-xs text-slate-500 dark:text-slate-400">{{ $r['holds'] }}</td>
                             <td class="px-5 py-3 whitespace-nowrap text-right">
-                                <a href="{{ $r['view'] }}" class="text-xs font-semibold text-brand-600 hover:underline dark:text-brand-400">View</a>
-                                <a href="{{ $r['edit'] }}" class="ml-2.5 text-xs font-semibold text-slate-500 hover:text-brand-600 dark:text-slate-400">Edit</a>
+                                {{-- A plan may be able to see something listed here without
+                                     being able to open the page that manages it. --}}
+                                @if($r['view'])
+                                    <a href="{{ $r['view'] }}" class="text-xs font-semibold text-brand-600 hover:underline dark:text-brand-400">View</a>
+                                @endif
+                                @if($r['edit'])
+                                    <a href="{{ $r['edit'] }}" class="ml-2.5 text-xs font-semibold text-slate-500 hover:text-brand-600 dark:text-slate-400">Edit</a>
+                                @endif
+                                @unless($r['view'] || $r['edit'])
+                                    <span class="text-xs text-slate-400">—</span>
+                                @endunless
                             </td>
                         </tr>
                     @empty

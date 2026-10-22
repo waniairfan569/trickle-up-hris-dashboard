@@ -32,11 +32,9 @@ class DocumentsAdminController extends Controller
     {
         $groups = [];
 
-        // --- Documents that go out for signature ---
-        $signing = [];
-
+        // --- Built per employee from a template ---
         if (plan_allows('hr_documents')) {
-            $signing[] = [
+            $groups[] = ['label' => 'Generated per employee', 'tiles' => [[
                 'route' => 'hr-documents.index',
                 'icon'  => 'file-signature',
                 'tone'  => 'brand',
@@ -45,49 +43,54 @@ class DocumentsAdminController extends Controller
                 'stat'  => HrDocumentTemplate::where('is_active', true)->count(),
                 'stat_label' => 'templates',
                 'meta'  => HrDocument::count() . ' generated',
-            ];
+            ]]];
         }
 
-        // One page, two jobs: the same uploaded files are both the staff library
-        // and what gets sent for signature. The module catalogue splits them in
-        // two ("documents" and "esign") but there is only one screen behind both.
-        if (plan_allows('esign') || plan_allows('documents')) {
-            $signing[] = [
-                'route' => 'company-documents.admin',
-                'icon'  => 'pen-tool',
-                'tone'  => 'indigo',
-                'title' => 'Company documents',
-                'text'  => plan_allows('esign')
-                    ? 'Files you upload — share them with staff, or place signature boxes on one and send it to be signed.'
-                    : 'Files you upload and share with staff, organised by category, with views recorded.',
-                'stat'  => CompanyDocument::count(),
-                'stat_label' => 'documents',
-                'meta'  => plan_allows('esign') ? 'share or sign' : 'share and track',
-            ];
-        }
+        // --- Published to staff ---
+        //
+        // Policies and company documents used to sit in different groups here,
+        // one under "sent for signature" and the other under "published to
+        // staff", as though they were different kinds of thing. They are not: a
+        // policy can require a signature too, and an uploaded document is just
+        // as published as a policy is. The only real difference is whether you
+        // typed the words or uploaded a file, which is a detail of making one,
+        // not a reason to split the hub.
+        //
+        // So one tile, opening the list that already shows both. The specialist
+        // pages stay — they hold archiving, categories, signature placement and
+        // restore — and hang off this tile as secondary links.
+        $canWrite = plan_allows('policies');
+        $canUpload = plan_allows('esign') || plan_allows('documents');
 
-        if ($signing) {
-            $groups[] = ['label' => 'Sent for signature', 'tiles' => $signing];
-        }
+        if ($canWrite || $canUpload) {
+            $links = [];
 
-        // --- Published for people to read or acknowledge ---
-        $published = [];
+            if ($canWrite) {
+                $links[] = ['route' => 'company-policies.index', 'label' => 'Policies'];
+            }
 
-        if (plan_allows('policies')) {
-            $published[] = [
-                'route' => 'company-policies.index',
-                'icon'  => 'scroll-text',
+            // These two are gated on "esign" by EnforcePlanFeatures, not on
+            // "documents" — so ask for exactly that, or a documents-only plan
+            // would be shown links that answer 402.
+            if (plan_allows('esign')) {
+                $links[] = ['route' => 'company-documents.admin', 'label' => 'Uploaded files'];
+                $links[] = ['route' => 'company-documents.archived', 'label' => 'Archived'];
+            }
+
+            // Categories is not listed here — it is a building block, and has
+            // its own tile further down with the letterheads and signatures.
+
+            $groups[] = ['label' => 'Published to staff', 'tiles' => [[
+                'route' => 'documents-admin.all',
+                'icon'  => 'megaphone',
                 'tone'  => 'amber',
-                'title' => 'Company policies',
-                'text'  => 'Policy text staff must read and acknowledge, with assignment and tracking.',
-                'stat'  => CompanyPolicy::count(),
-                'stat_label' => 'policies',
-                'meta'  => 'read and acknowledge',
-            ];
-        }
-
-        if ($published) {
-            $groups[] = ['label' => 'Published to staff', 'tiles' => $published];
+                'title' => 'Everything published',
+                'text'  => $this->publishedBlurb($canWrite, $canUpload),
+                'stat'  => ($canWrite ? CompanyPolicy::count() : 0) + ($canUpload ? CompanyDocument::count() : 0),
+                'stat_label' => 'items',
+                'meta'  => 'read, acknowledge or sign',
+                'links' => $links,
+            ]]];
         }
 
         // --- Questions you ask people ---
@@ -147,6 +150,16 @@ class DocumentsAdminController extends Controller
         return view('documents-admin.index', compact('groups'));
     }
 
+    /** What the published tile says, given what this plan can actually do. */
+    private function publishedBlurb(bool $canWrite, bool $canUpload): string
+    {
+        return match (true) {
+            $canWrite && $canUpload => 'Policies you write and files you upload, together — who it went to, what it needs back, and how many have done it.',
+            $canWrite => 'Policy text staff must read and acknowledge, with assignment and tracking.',
+            default => 'Files you upload and share with staff, with views and acknowledgements recorded.',
+        };
+    }
+
     /**
      * One list of everything published to staff, whatever table it lives in.
      *
@@ -177,6 +190,12 @@ class DocumentsAdminController extends Controller
         }
 
         if (plan_allows('esign') || plan_allows('documents')) {
+            // The pages that manage an uploaded file are gated on "esign", while
+            // the file itself belongs to "documents" — so a plan can have these
+            // published and still not be allowed to open them. List them either
+            // way; offer the links only where they would not answer 402.
+            $canManage = plan_allows('esign');
+
             $rows = $rows->merge(
                 CompanyDocument::get()->map(fn ($d) => $this->row(
                     model: $d,
@@ -185,8 +204,8 @@ class DocumentsAdminController extends Controller
                     active: (bool) $d->is_active,
                     // A company document has no "show" page; its acknowledgement
                     // list is the nearest equivalent to a policy's view.
-                    viewRoute: route('company-documents.acknowledgments', $d),
-                    editRoute: route('company-documents.edit', $d),
+                    viewRoute: $canManage ? route('company-documents.acknowledgments', $d) : null,
+                    editRoute: $canManage ? route('company-documents.edit', $d) : null,
                 ))
             );
         }
@@ -226,7 +245,7 @@ class DocumentsAdminController extends Controller
     }
 
     /** One shape both kinds of record map into. */
-    private function row($model, string $kind, string $holds, bool $active, string $viewRoute, string $editRoute): array
+    private function row($model, string $kind, string $holds, bool $active, ?string $viewRoute, ?string $editRoute): array
     {
         $needsAck = (bool) $model->requires_acknowledgment;
         $needsSig = (bool) $model->requires_signature;
