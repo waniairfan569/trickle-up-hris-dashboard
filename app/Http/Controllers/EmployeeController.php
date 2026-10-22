@@ -511,6 +511,10 @@ class EmployeeController extends Controller
                 continue;
             }
             $hasFile = $request->hasFile("fields.{$key}");
+            if (is_array($value)) {
+                // Drop the multi-select's blank "nothing ticked" sentinel.
+                $value = array_values(array_filter($value, fn ($v) => $v !== null && $v !== ''));
+            }
             if (!$hasFile && (is_null($value) || $value === '' || (is_array($value) && count($value) === 0))) {
                 continue;
             }

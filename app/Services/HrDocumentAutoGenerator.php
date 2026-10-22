@@ -47,13 +47,14 @@ class HrDocumentAutoGenerator
         'wfh'      => 'Work-from-home returns',
 
         // Employment events — raised the moment the change is recorded.
-        'pay_change'          => 'Pay or job title changes',
+        'pay_change'          => 'Pay changes (with or without a new title)',
+        'title_change'        => 'Job title changes on their own',
         'probation_passed'    => 'Probation passed',
         'probation_extended'  => 'Probation extended',
     ];
 
     /** Triggers that fire on a single event rather than gathering a period. */
-    public const EVENT_TRIGGERS = ['pay_change', 'probation_passed', 'probation_extended'];
+    public const EVENT_TRIGGERS = ['pay_change', 'title_change', 'probation_passed', 'probation_extended'];
 
     public function __construct(private HrDocumentPrefillService $prefiller) {}
 
@@ -399,11 +400,15 @@ class HrDocumentAutoGenerator
      * promotion, a probation decision. Returns null when the workspace has not
      * assigned a template to that event, which is the normal case until they do.
      *
-     * The draft is never sent. It appears alongside the others for someone to
-     * read, correct and release, because a letter about somebody's contract is
-     * not something to post automatically.
+     * It waits as a draft for someone to read, correct and release, unless the
+     * template has been told to send itself — a decision each workspace makes
+     * per template, and which is off until they make it.
+     *
+     * $overrides lets the caller hand over facts the document cannot look up
+     * afterwards. A job title change is the case in point: once it is applied,
+     * the title the person held before is no longer anywhere to be read.
      */
-    public function generateForEvent(string $trigger, User $employee, \Carbon\CarbonInterface|string $on, ?int $by = null): ?HrDocument
+    public function generateForEvent(string $trigger, User $employee, \Carbon\CarbonInterface|string $on, ?int $by = null, array $overrides = []): ?HrDocument
     {
         if (! in_array($trigger, self::EVENT_TRIGGERS, true)) {
             return null;
@@ -429,7 +434,7 @@ class HrDocumentAutoGenerator
         return $this->createDraft(
             $template, $employee, $day, $day,
             $template->name . ' — ' . $day->format('d M Y'),
-            $by
+            $by, $overrides
         );
     }
 
@@ -439,7 +444,7 @@ class HrDocumentAutoGenerator
      * decision each workspace makes per template, and which is off until they
      * make it.
      */
-    private function createDraft(HrDocumentTemplate $template, User $employee, Carbon $start, Carbon $end, string $title, ?int $by = null): HrDocument
+    private function createDraft(HrDocumentTemplate $template, User $employee, Carbon $start, Carbon $end, string $title, ?int $by = null, array $overrides = []): HrDocument
     {
         $document = HrDocument::create([
             'hr_document_template_id' => $template->id,
@@ -447,7 +452,7 @@ class HrDocumentAutoGenerator
             'template_name' => $template->name,
             'title'         => $title,
             'schema'        => $template->schema,
-            'data'          => $this->prefiller->prefill($template, $employee, $start, $end),
+            'data'          => $this->prefiller->prefill($template, $employee, $start, $end, $overrides),
             'period_start'  => $start->toDateString(),
             'period_end'    => $end->toDateString(),
             'status'        => 'draft',

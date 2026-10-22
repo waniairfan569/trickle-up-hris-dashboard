@@ -8,10 +8,13 @@ use App\Models\ProfileField;
 use App\Models\EmployeeFieldValue;
 use App\Models\ProfileTemplate;
 use App\Services\HRPermissionService;
+use App\Traits\LogsActivity;
 use Illuminate\Support\Facades\Storage;
 
 class EmployeeProfileController extends Controller
 {
+    use LogsActivity;
+
     protected $hrPermissionService;
 
     public function __construct(HRPermissionService $hrPermissionService)
@@ -314,6 +317,40 @@ class EmployeeProfileController extends Controller
         return redirect()->route('employees.profile', ['employee' => $employee->id, 'edit' => 1]);
     }
 
+    /**
+     * Write the title move to the audit log, and draft the letter it calls for.
+     *
+     * The log entry happens whether or not a template is assigned, because the
+     * move itself is worth a record: once applied, the employee's own row only
+     * knows where they ended up. The letter is handed both titles directly —
+     * nothing can look up the old one afterwards.
+     *
+     * Neither half may break saving a profile.
+     */
+    private function recordTitleChange(User $employee, string $from, string $to, ?User $by): ?\App\Models\HrDocument
+    {
+        try {
+            $this->logActivity(
+                'updated', 'User', $employee->id,
+                "{$employee->full_name}'s job title changed from “{$from}” to “{$to}”",
+                ['previous_job_title' => $from, 'new_job_title' => $to]
+            );
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
+        try {
+            return app(\App\Services\HrDocumentAutoGenerator::class)->generateForEvent(
+                'title_change', $employee, now(), $by?->id,
+                ['previous_job_title' => $from, 'new_job_title' => $to]
+            );
+        } catch (\Throwable $e) {
+            report($e);
+
+            return null;
+        }
+    }
+
     public function update(Request $request, User $employee)
     {
         $auth = auth()->user();
@@ -341,24 +378,62 @@ class EmployeeProfileController extends Controller
             }
         }
 
+        // Held before the fields are written, because the save overwrites it and
+        // the title somebody moved FROM is then nowhere to be read.
+        $titleBefore = (string) ($employee->job_title ?? '');
+
         $fields = $request->input('fields', []);
-        
+
         if ($request->hasFile('fields')) {
             $fields = array_merge($fields, $request->file('fields'));
         }
 
         $emailConflict = null;
+        $notCleared = [];
 
         foreach ($fields as $key => $value) {
             $field = ProfileField::where('key', $key)->first();
-            
+
             if (!$field || !$field->isEditableTo($auth, $employee)) {
                 continue;
             }
 
-            // Partial save: skip empty, non-file values so a blank field neither
-            // blocks the save nor overwrites data the employee already entered.
-            if (!$request->hasFile("fields.{$key}") && (is_null($value) || $value === '' || (is_array($value) && count($value) === 0))) {
+            // Multi-selects post a blank sentinel so "none ticked" still arrives — drop it.
+            if (is_array($value)) {
+                $value = array_values(array_filter($value, fn ($v) => $v !== null && $v !== ''));
+            }
+
+            // A field that was sent empty means the user cleared it, so write null
+            // (or drop the dynamic value) instead of silently keeping the old one.
+            if (!$request->hasFile("fields.{$key}") && (is_null($value) || $value === '' || $value === [])) {
+                // An empty file input means "keep the current file", not "remove it".
+                if ($field->type === 'file') {
+                    continue;
+                }
+
+                $isNative = $employee->isFillable($key) || array_key_exists($key, $employee->getAttributes());
+                $current = $isNative
+                    ? $employee->getAttribute($key)
+                    : EmployeeFieldValue::where('user_id', $employee->id)->where('field_id', $field->id)->value('value');
+
+                // Required fields can't be blanked (several are NOT NULL columns,
+                // e.g. employee_status) — keep the value and say so.
+                if ($field->is_required) {
+                    if (filled($current)) {
+                        $notCleared[] = $field->name;
+                    }
+                    continue;
+                }
+
+                if ($isNative) {
+                    try {
+                        $employee->update([$key => null]);
+                    } catch (\Illuminate\Database\QueryException $e) {
+                        $notCleared[] = $field->name;
+                    }
+                } else {
+                    EmployeeFieldValue::where('user_id', $employee->id)->where('field_id', $field->id)->delete();
+                }
                 continue;
             }
 
@@ -438,12 +513,32 @@ class EmployeeProfileController extends Controller
                 'job_title'     => (string) $employee->job_title,
             ]);
 
+        // A job title changed here and nowhere else — a re-grade or a sideways
+        // move, with no money attached. A promotion that comes with pay belongs
+        // on a pay review, which raises its own letter; this covers the rest,
+        // which until now changed the record and told nobody.
+        $titleAfter = (string) ($employee->fresh()->job_title ?? '');
+        $titleMoved = $titleBefore !== '' && $titleAfter !== '' && $titleBefore !== $titleAfter;
+        $titleLetter = null;
+
+        if ($titleMoved) {
+            $titleLetter = $this->recordTitleChange($employee, $titleBefore, $titleAfter, $auth);
+        }
+
         // Bug #3 Fix: Redirect to view mode after save (not back to ?edit=1)
-        $redirect = redirect()->route('employees.profile', $employee->id)
-            ->with('success', 'Profile updated successfully.');
+        // Return to the sub-tab being edited; the view validates it against what the viewer may see.
+        $tab = preg_match('/^[a-z]+$/', (string) $request->input('tab')) ? $request->input('tab') : null;
+        $redirect = redirect()->route('employees.profile', array_filter(['employee' => $employee->id, 'tab' => $tab]))
+            ->with('success', $titleLetter
+                ? "Profile updated. Job title changed from “{$titleBefore}” to “{$titleAfter}”, and a letter has been drafted for you to review and send."
+                : ($titleMoved
+                    ? "Profile updated. Job title changed from “{$titleBefore}” to “{$titleAfter}”."
+                    : 'Profile updated successfully.'));
 
         if ($emailConflict) {
             $redirect->with('warning', "The work email was saved, but the sign-in address and header couldn't be changed to \"{$emailConflict}\" because another account already uses it.");
+        } elseif ($notCleared) {
+            $redirect->with('warning', 'These fields are required and kept their value: ' . implode(', ', array_unique($notCleared)) . '.');
         }
 
         return $redirect;

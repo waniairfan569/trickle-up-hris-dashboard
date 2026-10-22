@@ -143,7 +143,15 @@ class HrDocumentPrefillService
     /**
      * @return array<string, mixed> field-id => value
      */
-    public function prefill(HrDocumentTemplate $template, User $employee, Carbon $start, Carbon $end): array
+    /**
+     * Fill a template's fields for this employee and period.
+     *
+     * $overrides are token => value, handed over by whoever raised the
+     * document, and they win. They exist for facts that cannot be looked up
+     * after the event: a job title change, once applied, leaves no record of
+     * the title the person held before it.
+     */
+    public function prefill(HrDocumentTemplate $template, User $employee, Carbon $start, Carbon $end, array $overrides = []): array
     {
         // Attendance facts for the window (computed once, reused across fields).
         $late = AttendanceRecord::where('user_id', $employee->id)
@@ -169,6 +177,12 @@ class HrDocumentPrefillService
             foreach ($section['fields'] ?? [] as $field) {
                 $token = $field['prefill'] ?? null;
                 if (! $token) {
+                    continue;
+                }
+
+                // What the caller handed over beats anything worked out here.
+                if (array_key_exists($token, $overrides)) {
+                    $data[$field['id']] = $overrides[$token];
                     continue;
                 }
 

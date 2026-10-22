@@ -32,8 +32,14 @@
     // Records viewers get Information (Personal + Job only) + Time off + Time tracking, but not Files.
     $allowedSections = $recordsViewer ? ['information', 'timeoff', 'timetracking'] : ['information', 'files', 'timeoff', 'timetracking'];
     $initialSection = in_array(request('section'), $allowedSections, true) ? request('section') : 'information';
+    // Reopen the sub-tab you were on (Edit / Save / Cancel carry ?tab=). HR-only
+    // tabs fall back to Personal for viewers who can't see them.
+    $allowedTabs = ($auth->isAdmin() || $isSelf)
+        ? ['personal', 'job', 'compensation', 'legal', 'experience', 'emergency']
+        : ['personal', 'job'];
+    $initialTab = in_array(request('tab'), $allowedTabs, true) ? request('tab') : 'personal';
 @endphp
-<div class="space-y-8" id="profile-page-root" x-data="{ tab: 'personal', section: '{{ $initialSection }}', showSensitive: false, fileTab: 'upload', uploadOpen: false, fileSearch: '', payReviewOpen: false }">
+<div class="space-y-8" id="profile-page-root" x-data="{ tab: '{{ $initialTab }}', section: '{{ $initialSection }}', showSensitive: false, fileTab: 'upload', uploadOpen: false, fileSearch: '', payReviewOpen: false }">
     <!-- Back Button -->
     <div>
         {{-- Go back to wherever the user came from; fall back to the directory on a direct load. --}}
@@ -158,7 +164,8 @@
                         </form>
                     @endif
                     @endif
-                    <a href="{{ route('employees.profile', ['employee' => $employee->id, 'edit' => 1]) }}" class="btn-brand btn-sm">
+                    <a href="{{ route('employees.profile', ['employee' => $employee->id, 'edit' => 1]) }}"
+                       :href="'{{ route('employees.profile', ['employee' => $employee->id, 'edit' => 1]) }}&tab=' + tab" class="btn-brand btn-sm">
                         <i data-lucide="edit-3" class="h-4 w-4"></i>
                         <span>Edit Profile</span>
                     </a>
@@ -1377,6 +1384,7 @@
     @if($editing)
     <form id="profile-edit-form" action="{{ route('employees.profile.update', $employee->id) }}" method="POST" enctype="multipart/form-data" class="space-y-6" novalidate>
         @csrf @method('PUT')
+        <input type="hidden" name="tab" :value="tab">{{-- so Save returns to this tab --}}
         <div x-show="section === 'information'" x-cloak class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm dark:bg-slate-800 dark:border-slate-700">
             <div class="flex items-center gap-4">
                 <div class="relative flex-shrink-0">
@@ -1412,7 +1420,7 @@
                         <div class="flex items-center justify-between mb-5">
                             <h3 class="text-base font-bold text-slate-800 dark:text-white">{{ $section->name }}</h3>
                             @if($canEdit && !$editing)
-                                <a href="{{ route('employees.profile', ['employee'=>$employee->id,'edit'=>1]) }}#section-{{ $section->id }}"
+                                <a href="{{ route('employees.profile', ['employee'=>$employee->id,'edit'=>1,'tab'=>$secTab]) }}#section-{{ $section->id }}"
                                    class="inline-flex items-center gap-1.5 text-xs font-bold text-brand-600 hover:text-brand-700 transition">
                                     <i data-lucide="pencil" class="h-3.5 w-3.5"></i><span>Edit</span>
                                 </a>
@@ -1760,6 +1768,7 @@
     @if($editing)
         <div class="flex items-center justify-end gap-3 border-t border-slate-200 pt-6 dark:border-slate-800">
             <a href="{{ route('employees.profile',$employee->id) }}" id="cancel-edit-btn"
+               :href="'{{ route('employees.profile',$employee->id) }}?tab=' + tab"
                class="btn-outline btn-sm">Cancel</a>
             <button type="submit" form="profile-edit-form"
                     class="btn-brand btn-sm">

@@ -38,14 +38,25 @@
             @break
 
         @case('dropdown')
-            <select name="fields[{{ $field->key }}]" 
+            @php
+                // Match case-insensitively: enum columns store lowercase (employee_status
+                // saves "Active" as "active"), so a strict match would show "Select...".
+                $current = old('fields.'.$field->key, $value);
+                $opts = is_array($field->options) ? $field->options : [];
+                $matched = is_scalar($current) && $current !== ''
+                    ? collect($opts)->first(fn ($o) => strcasecmp((string) $o, (string) $current) === 0)
+                    : null;
+            @endphp
+            <select name="fields[{{ $field->key }}]"
                     class="{{ $inputClasses }}">
                 <option value="">Select...</option>
-                @if(is_array($field->options))
-                    @foreach($field->options as $opt)
-                        <option value="{{ $opt }}" {{ old('fields.'.$field->key, $value) === $opt ? 'selected' : '' }}>{{ $opt }}</option>
-                    @endforeach
+                {{-- Keep a stored value that isn't in the options, so saving doesn't blank it. --}}
+                @if(is_scalar($current) && $current !== '' && $matched === null)
+                    <option value="{{ $current }}" selected>{{ $current }}</option>
                 @endif
+                @foreach($opts as $opt)
+                    <option value="{{ $opt }}" {{ $matched === $opt ? 'selected' : '' }}>{{ $opt }}</option>
+                @endforeach
             </select>
             @break
 
@@ -53,6 +64,8 @@
             @php
                 $sel = (array)(is_string($value) ? json_decode($value, true) : $value);
             @endphp
+            {{-- Sentinel so "nothing ticked" is still sent and can clear the field. --}}
+            <input type="hidden" name="fields[{{ $field->key }}][]" value="">
             <div class="grid grid-cols-2 gap-2 p-3 bg-slate-50 rounded-lg dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
                 @if(is_array($field->options))
                     @foreach($field->options as $opt)
@@ -72,8 +85,10 @@
         @case('checkbox')
             <div class="flex items-center h-full pt-1">
                 <label class="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-350 cursor-pointer">
-                    <input type="checkbox" 
-                           name="fields[{{ $field->key }}]" 
+                    {{-- Unticked boxes aren't posted; this blank lets unticking clear it. --}}
+                    <input type="hidden" name="fields[{{ $field->key }}]" value="">
+                    <input type="checkbox"
+                           name="fields[{{ $field->key }}]"
                            value="1" 
                            class="{{ $checkboxClasses }}"
                            {{ old('fields.'.$field->key, $value) ? 'checked' : '' }}>
