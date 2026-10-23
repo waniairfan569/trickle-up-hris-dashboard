@@ -46,6 +46,14 @@ class ZktecoStatus extends Command
                 . '  ·  ' . strtoupper($d->connection_mode ?? 'pull')
                 . ($d->is_active ? '' : '  ·  INACTIVE'));
 
+            // The address it last reached us from. Worth having in front of you
+            // when a device has gone quiet: it is what a firewall or fail2ban
+            // would have banned, and a ban is invisible from a browser test
+            // made on somebody else's connection.
+            $this->line('     last seen from: ' . ($d->ip_address && $d->ip_address !== '0.0.0.0'
+                ? $d->ip_address
+                : 'unknown'));
+
             // Talking to us at all?
             if (! $d->last_contact_at) {
                 $this->line('     talking to us : <fg=red>never</>  (nothing has reached /iclock with this serial)');
