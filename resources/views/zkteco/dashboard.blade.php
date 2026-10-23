@@ -68,6 +68,9 @@
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Device Name</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Sync</th>
+                    {{-- "Last sync" only moves when punches arrive. This says whether the
+                         device is talking to us at all, which is a different question. --}}
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Seen</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Synced</th>
                     <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
@@ -90,6 +93,19 @@
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {{ $device->last_synced_at ? $device->last_synced_at->format('M d, Y H:i:s') : 'Never' }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm">
+                        @if(! $device->last_contact_at)
+                            <span class="text-gray-400">Never</span>
+                        @else
+                            @php $quiet = $device->last_contact_at->lt(now()->subMinutes(15)); @endphp
+                            <span class="{{ $quiet ? 'text-rose-600 font-semibold' : 'text-emerald-600 font-semibold' }}">
+                                {{ $device->last_contact_at->diffForHumans() }}
+                            </span>
+                            <div class="text-[11px] text-gray-400">
+                                {{ $quiet ? 'not reaching the server' : 'online, reporting in' }}
+                            </div>
+                        @endif
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {{ $device->total_records_synced }}

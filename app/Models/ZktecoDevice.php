@@ -21,6 +21,7 @@ class ZktecoDevice extends Model
         'timezone',
         'is_active',
         'last_synced_at',
+        'last_contact_at',
         'last_sync_status',
         'last_sync_message',
         'total_records_synced',
@@ -29,6 +30,7 @@ class ZktecoDevice extends Model
     protected $casts = [
         'is_active' => 'boolean',
         'last_synced_at' => 'datetime',
+        'last_contact_at' => 'datetime',
     ];
 
     public function rawPunches()

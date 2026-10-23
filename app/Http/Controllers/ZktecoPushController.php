@@ -130,21 +130,42 @@ class ZktecoPushController extends Controller
     /** Command result callback — acknowledge. */
     public function devicecmd(Request $request)
     {
+        $this->noteContact($request);
+
         return $this->text('OK');
     }
 
     /** Some firmwares probe /iclock/ping first. */
     public function ping(Request $request)
     {
+        $this->noteContact($request);
+
         return $this->text('OK');
+    }
+
+    /** Record that a device reached us, whatever it came to say. */
+    private function noteContact(Request $request): void
+    {
+        $sn = (string) $request->query('SN', $request->query('sn', ''));
+
+        if ($sn !== '') {
+            $this->resolveDevice($sn, $request->ip());
+        }
     }
 
     // ------------------------------------------------------------------
 
-    /** Find the device by serial number, auto-registering on first contact. */
+    /**
+     * Find the device by serial number, auto-registering on first contact.
+     *
+     * Every call here means the device is awake and talking to us, whether or
+     * not it had anything to say. That is recorded separately from the last
+     * time punches arrived: a device polling every ten seconds with nothing to
+     * send used to be indistinguishable from one that had been unplugged.
+     */
     private function resolveDevice(string $sn, ?string $ip): ZktecoDevice
     {
-        return ZktecoDevice::firstOrCreate(
+        $device = ZktecoDevice::firstOrCreate(
             ['serial_number' => $sn],
             [
                 'name' => 'ZKTeco ' . $sn,
@@ -155,6 +176,12 @@ class ZktecoPushController extends Controller
                 'last_sync_status' => 'never',
             ]
         );
+
+        // Cheap enough to write on every poll, and it is the one fact that
+        // separates "online but sending nothing" from "gone".
+        $device->forceFill(['last_contact_at' => now()])->saveQuietly();
+
+        return $device;
     }
 
     private function text(string $body)
