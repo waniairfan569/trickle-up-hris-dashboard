@@ -31,6 +31,13 @@ Route::match(['get', 'post'], '/iclock/getrequest', [\App\Http\Controllers\Zktec
 Route::match(['get', 'post'], '/iclock/devicecmd', [\App\Http\Controllers\ZktecoPushController::class, 'devicecmd']);
 Route::match(['get', 'post'], '/iclock/ping', [\App\Http\Controllers\ZktecoPushController::class, 'ping']);
 
+// Anything else a device sends to /iclock. Different firmwares use different
+// paths, and a 404 leaves no trace — so a device that is reaching the server
+// but asking for something we do not serve looks exactly like one that never
+// called at all. This records it and answers OK so the device keeps trying.
+Route::any('/iclock/{any?}', [\App\Http\Controllers\ZktecoPushController::class, 'unknown'])
+    ->where('any', '.*');
+
 // Stripe webhooks — server-to-server, unauthenticated + CSRF-exempt. Verified
 // by signature inside the controller. Source of truth for subscription state.
 Route::post('/stripe/webhook', [\App\Http\Controllers\StripeWebhookController::class, 'handle'])->name('stripe.webhook');

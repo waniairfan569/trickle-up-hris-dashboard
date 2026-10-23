@@ -30,6 +30,12 @@ class ZktecoPushController extends Controller
     public function cdata(Request $request)
     {
         $sn = (string) $request->query('SN', $request->query('sn', ''));
+
+        // Recorded before anything can turn it away, so a request we cannot
+        // place still leaves a trace. Without this, a device posting with no
+        // serial looks identical to a device that never called.
+        $this->logContact($request, $sn, $sn !== '');
+
         if ($sn === '') {
             return $this->text('OK');
         }
@@ -119,10 +125,7 @@ class ZktecoPushController extends Controller
     /** The device polls for commands; we have none, so acknowledge. */
     public function getrequest(Request $request)
     {
-        $sn = (string) $request->query('SN', $request->query('sn', ''));
-        if ($sn !== '') {
-            $this->resolveDevice($sn, $request->ip());
-        }
+        $this->noteContact($request);
 
         return $this->text('OK');
     }
@@ -148,8 +151,55 @@ class ZktecoPushController extends Controller
     {
         $sn = (string) $request->query('SN', $request->query('sn', ''));
 
+        $this->logContact($request, $sn, $sn !== '');
+
         if ($sn !== '') {
             $this->resolveDevice($sn, $request->ip());
+        }
+    }
+
+    /**
+     * Anything at all that a device sent to /iclock but we do not handle — a
+     * path from a firmware we have not seen, a misspelling, a probe.
+     *
+     * Answered with OK because a device that gets an error may stop trying,
+     * and the point here is to find out what it is asking for.
+     */
+    public function unknown(Request $request)
+    {
+        $this->logContact($request, (string) $request->query('SN', $request->query('sn', '')), false);
+
+        return $this->text('OK');
+    }
+
+    /**
+     * Keep a line for every request that arrives, recognised or not.
+     *
+     * Never allowed to break a device's push: if this cannot be written, the
+     * punch still matters more than the record of it.
+     */
+    private function logContact(Request $request, string $serial, bool $handled): void
+    {
+        try {
+            \App\Models\ZktecoContactLog::create([
+                'method' => $request->method(),
+                'path' => '/' . ltrim($request->path(), '/'),
+                'query' => mb_substr((string) $request->getQueryString(), 0, 500),
+                'serial' => $serial !== '' ? mb_substr($serial, 0, 100) : null,
+                'ip' => $request->ip(),
+                'user_agent' => mb_substr((string) $request->userAgent(), 0, 255),
+                'body_bytes' => strlen((string) $request->getContent()),
+                'handled' => $handled,
+                'created_at' => now(),
+            ]);
+
+            // A device polls every ten seconds, so this would grow without
+            // end. Trimmed occasionally rather than on every request.
+            if (random_int(1, 200) === 1) {
+                \App\Models\ZktecoContactLog::where('created_at', '<', now()->subDays(7))->delete();
+            }
+        } catch (\Throwable $e) {
+            report($e);
         }
     }
 

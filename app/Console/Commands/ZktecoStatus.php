@@ -87,6 +87,38 @@ class ZktecoStatus extends Command
             }
         }
 
+        // ---- anything at all reaching /iclock ----
+        $this->line('');
+        $this->line('  REQUESTS REACHING /iclock  (last 10)');
+
+        $hits = \App\Models\ZktecoContactLog::orderByDesc('id')->limit(10)->get();
+
+        if ($hits->isEmpty()) {
+            $this->line('   <fg=red>nothing at all</> — no device is reaching this server,');
+            $this->line('   whatever shape the request is in. The problem is between the');
+            $this->line('   device and here: its network, or what it has been told to call.');
+        } else {
+            foreach ($hits as $h) {
+                $this->line(sprintf('   %s  %-4s %-22s %-16s %s%s',
+                    $h->created_at?->format('d M H:i:s'),
+                    $h->method,
+                    mb_substr($h->path, 0, 22),
+                    $h->ip,
+                    $h->serial ? "SN={$h->serial}" : '<fg=yellow>no serial</>',
+                    $h->handled ? '' : '  <fg=yellow>(not handled)</>'
+                ));
+            }
+
+            $unhandled = \App\Models\ZktecoContactLog::where('handled', false)
+                ->where('created_at', '>=', now()->subDay())->count();
+
+            if ($unhandled > 0) {
+                $this->line('');
+                $this->line("   <fg=yellow>{$unhandled} request(s) in the last day arrived but could not be placed</>");
+                $this->line('   <fg=yellow>— usually a missing serial number, or a path this server does not serve.</>');
+            }
+        }
+
         // ---- punches arriving ----
         $this->line('');
         $this->line('  PUNCHES ARRIVING  (last ' . $days . ' days)');
