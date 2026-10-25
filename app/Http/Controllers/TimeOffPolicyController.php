@@ -134,9 +134,17 @@ class TimeOffPolicyController extends Controller
             'user_ids' => 'required|array',
             'user_ids.*' => 'exists:users,id',
             'custom_days_per_year' => 'nullable|numeric|min:0',
+            // A change agreed last month should be recorded as having started
+            // then, not today — otherwise the months before it are counted at
+            // the new rate. Never the future: a year cannot be split at a date
+            // that has not happened.
+            'allowance_effective_from' => 'nullable|date|before_or_equal:today',
         ]);
 
         $year = Carbon::now()->year;
+        $effectiveFrom = $request->filled('allowance_effective_from')
+            ? Carbon::parse($request->input('allowance_effective_from'))->startOfDay()
+            : today();
 
         foreach ($request->user_ids as $userId) {
             // What they were on before, so a year served at two rates can be
@@ -152,7 +160,7 @@ class TimeOffPolicyController extends Controller
                     'policy_id' => $policy->id,
                     'previous_days' => (float) ($previous ?? $policy->days_per_year),
                     'new_days' => (float) ($new ?? $policy->days_per_year),
-                    'effective_from' => today(),
+                    'effective_from' => $effectiveFrom,
                     'changed_by' => auth()->id(),
                 ]);
             }

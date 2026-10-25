@@ -22,6 +22,10 @@ class TimeOffBalance extends Model
         'pending',
         'carried_over',
         'adjusted',
+        'settled_to',
+        'settled_delta',
+        'settled_at',
+        'settled_by',
     ];
 
     protected $casts = [
@@ -32,6 +36,9 @@ class TimeOffBalance extends Model
         'pending' => 'decimal:2',
         'carried_over' => 'decimal:2',
         'adjusted' => 'decimal:2',
+        'settled_to' => 'date',
+        'settled_delta' => 'decimal:2',
+        'settled_at' => 'datetime',
     ];
 
     public function user()

@@ -103,6 +103,14 @@
                         <label class="block text-xs font-bold text-slate-700 uppercase mb-2 dark:text-slate-300">Custom Days (Optional)</label>
                         <input type="number" step="0.5" name="custom_days_per_year" placeholder="Default: {{ $timeOffPolicy->days_per_year }}" class="w-full rounded-xl border-slate-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm dark:bg-slate-800 dark:border-slate-600 dark:text-white">
                     </div>
+                    {{-- Only matters when this changes what somebody already had: the
+                         year is then split at this date rather than all at the new rate. --}}
+                    <div class="w-full md:w-44">
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-2 dark:text-slate-300">Applies From</label>
+                        <input type="date" name="allowance_effective_from" max="{{ now()->toDateString() }}"
+                               class="w-full rounded-xl border-slate-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm dark:bg-slate-800 dark:border-slate-600 dark:text-white">
+                        <p class="mt-1 text-[10px] text-slate-400">Leave blank for today</p>
+                    </div>
                     <div>
                         <button type="submit" class="h-10 rounded-xl bg-brand-600 px-4 text-sm font-bold text-slate-900 shadow-sm hover:bg-brand-700 mb-1">Assign & Create Balances</button>
                     </div>

@@ -23,7 +23,10 @@ class LeaveSettlement extends Command
 {
     protected $signature = 'leave:settlement
                             {employee : Email, employee id, or user id}
-                            {--date= : Last working day (default: their recorded termination date)}';
+                            {--date= : Last working day (default: their recorded termination date)}
+                            {--apply : Write it to their balances, instead of only reporting}
+                            {--again : Settle again, even if it has been settled before}
+                            {--force : Skip the confirmation}';
 
     protected $description = 'Work out what a leaver is owed, or has taken in advance.';
 
@@ -78,7 +81,50 @@ class LeaveSettlement extends Command
         $this->line('');
         $this->line('  "Earned" is their allowance pro-rated to the months they served, plus');
         $this->line('  anything carried over or adjusted by hand — those were already earned.');
-        $this->line('  Nothing here has been changed. Settle it on their record if you agree.');
+
+        if (! $this->option('apply')) {
+            $this->line('  Nothing has been changed. Add --apply to write it to their balances.');
+            $this->line('');
+
+            return self::SUCCESS;
+        }
+
+        // ---- writing it ----
+        $settled = collect($rows)->filter(fn ($r) => $r['balance']->settled_at)->count();
+
+        $this->line('');
+        $this->warn('  This adjusts their balances so each year grants what they actually earned.');
+        $this->line('  Leave already taken is untouched; nothing is deleted.');
+
+        if ($settled > 0 && ! $this->option('again')) {
+            $this->line("  {$settled} of these were settled before and will be left alone (--again to redo).");
+        }
+
+        if (! $this->option('force') && ! $this->confirm('  Write it?', false)) {
+            $this->line('  Nothing was changed.');
+            $this->line('');
+
+            return self::SUCCESS;
+        }
+
+        $applied = $service->applySettlement($employee, $leaving, auth()->user(), (bool) $this->option('again'));
+
+        $this->line('');
+        foreach ($applied as $row) {
+            if (isset($row['skipped'])) {
+                $this->line(sprintf('   %-26s  left alone — %s', mb_substr($row['policy'], 0, 26), $row['skipped']));
+                continue;
+            }
+
+            $this->line(sprintf('   %-26s  adjusted by %s   remaining now %s',
+                mb_substr($row['policy'], 0, 26),
+                $row['delta'] > 0 ? '+' . $row['delta'] : $row['delta'],
+                round($row['balance']->fresh()->remaining, 2)
+            ));
+        }
+
+        $this->line('');
+        $this->info('  Written. Their remaining balance is now what they are owed.');
         $this->line('');
 
         return self::SUCCESS;

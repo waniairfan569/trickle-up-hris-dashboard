@@ -483,26 +483,90 @@ class LeaveRenewalService
             }
 
             $full = (float) $policy->getAllowanceForUser($employee);
-            $earned = $setting->pro_rata_enabled
+            $prorated = $setting->pro_rata_enabled
                 ? $this->calculateProRataForLeaver($full, $leavingDate, $setting)
                 : $full;
 
             // Carried-over and hand-adjusted days were earned too; they are not
             // part of this year's accrual and should not be pro-rated away.
-            $earned += (float) $balance->carried_over + (float) $balance->adjusted;
+            //
+            // A settlement already written sits inside "adjusted", so it is
+            // taken back out here — otherwise the correction would be read as
+            // days the person had earned, and settling would make the figures
+            // drift further every time anybody looked at them.
+            $handAdjusted = (float) $balance->adjusted - (float) ($balance->settled_delta ?? 0);
+            $earned = $prorated + (float) $balance->carried_over + $handAdjusted;
             $taken = (float) $balance->used;
 
             $rows[] = [
                 'policy' => $policy->name,
                 'full_year' => $full,
                 'months_served' => $this->countServedMonths($leavingDate, $setting),
+                // The year's share on its own, which is the part a settlement
+                // rewrites; "earned" adds what was carried in or adjusted.
+                'prorated' => round($prorated, 2),
                 'earned' => round($earned, 2),
                 'taken' => $taken,
                 'difference' => round($earned - $taken, 2),
+                'balance' => $balance,
             ];
         }
 
         return $rows;
+    }
+
+    /**
+     * Write a leaver's settlement onto their balances.
+     *
+     * Reporting the figure was the safe half; this is the half that changes
+     * something. It brings the year's entitlement down (or up) to what they
+     * actually earned by their last day, by adjusting — the same lever HR
+     * already uses by hand — so the remaining balance becomes the number they
+     * are owed rather than a full year they never served.
+     *
+     * Recorded on the balance, because doing it twice would take the same days
+     * off somebody twice and nothing in the numbers alone would show it.
+     *
+     * @return array<int, array<string, mixed>> what was written, per policy
+     */
+    public function applySettlement(User $employee, Carbon $leavingDate, ?User $by = null, bool $force = false): array
+    {
+        $applied = [];
+
+        foreach ($this->settlementFor($employee, $leavingDate) as $row) {
+            $balance = $row['balance'];
+
+            if ($balance->settled_at && ! $force) {
+                $applied[] = $row + ['skipped' => 'already settled on ' . $balance->settled_at->format('j M Y')];
+                continue;
+            }
+
+            // What the year currently grants, before anything carried over or
+            // was adjusted — that part was earned elsewhere and stays.
+            $granted = (float) $balance->opening_balance + (float) $balance->accrued;
+            $delta = round($row['prorated'] - $granted, 2);
+
+            // Settling again means replacing the last correction, not stacking
+            // another on top of it.
+            $previous = (float) ($balance->settled_delta ?? 0);
+
+            if ($delta == 0.0 && $previous == 0.0) {
+                $applied[] = $row + ['skipped' => 'already matches what they earned'];
+                continue;
+            }
+
+            $balance->forceFill([
+                'adjusted' => round((float) $balance->adjusted - $previous + $delta, 2),
+                'settled_to' => $leavingDate->toDateString(),
+                'settled_delta' => $delta,
+                'settled_at' => now(),
+                'settled_by' => $by?->id,
+            ])->save();
+
+            $applied[] = $row + ['delta' => $delta];
+        }
+
+        return $applied;
     }
 
     /** Pro-rata (or full) opening balance for a brand-new joiner. */
