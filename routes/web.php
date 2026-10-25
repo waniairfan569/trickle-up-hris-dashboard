@@ -431,6 +431,19 @@ Route::middleware(['auth', 'verified', 'force.password.change'])->group(function
     Route::delete('profile-fields/{field}', [ProfileTemplateController::class, 'destroyField'])->name('profile-fields.destroy')->middleware('role:super_admin,hr_admin');
     Route::resource('profile-templates', ProfileTemplateController::class)->middleware('role:super_admin,hr_admin');
 
+    // Right-to-work, DBS and the rest. No provider is connected; these record
+    // what a person checked, with the evidence and the day it stops counting.
+    Route::get('employee-checks', [\App\Http\Controllers\EmployeeCheckController::class, 'index'])
+        ->name('employee-checks.index')->middleware('role:super_admin,hr_admin');
+    Route::get('employees/{employee}/checks', [\App\Http\Controllers\EmployeeCheckController::class, 'forEmployee'])
+        ->name('employee-checks.employee')->middleware('role:super_admin,hr_admin');
+    Route::post('employees/{employee}/checks', [\App\Http\Controllers\EmployeeCheckController::class, 'store'])
+        ->name('employee-checks.store')->middleware('role:super_admin,hr_admin');
+    Route::put('employee-checks/{check}', [\App\Http\Controllers\EmployeeCheckController::class, 'update'])
+        ->name('employee-checks.update')->middleware('role:super_admin,hr_admin');
+    Route::delete('employee-checks/{check}', [\App\Http\Controllers\EmployeeCheckController::class, 'destroy'])
+        ->name('employee-checks.destroy')->middleware('role:super_admin,hr_admin');
+
     // What a leaver has earned by their last day, and writing it to their
     // balances. Spans every policy they hold, so it hangs off the employee.
     Route::get('employees/{employee}/leave-settlement', [\App\Http\Controllers\LeaveSettlementController::class, 'show'])

@@ -136,6 +136,23 @@ class TeamManagementController extends Controller
             ];
         }
 
+        // Right-to-work and the rest. The badge is the point: a lapsed check
+        // means somebody may be working without one, and nobody goes looking
+        // for that on a page they have no reason to open.
+        $checksNeeding = \App\Models\EmployeeCheck::needsAttention()->count();
+
+        $tiles[] = [
+            'route' => 'employee-checks.index',
+            'icon'  => 'shield-check',
+            'tone'  => 'indigo',
+            'title' => 'Checks',
+            'text'  => 'Right to work, DBS and the rest — recorded, with the day each stops counting.',
+            'stat'  => $checksNeeding,
+            'stat_label' => 'need attention',
+            'meta'  => $checksNeeding > 0 ? 'lapsed or lapsing' : 'all in order',
+            'badge' => $checksNeeding > 0 ? $checksNeeding : null,
+        ];
+
         $tiles[] = [
             'route' => 'attendance.corrections',
             'icon' => 'file-check-2',

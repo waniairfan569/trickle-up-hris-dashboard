@@ -33,6 +33,11 @@ Schedule::command('documents:send-signature-reminders')->hourly()->withoutOverla
 Schedule::command('documents:send-acknowledgement-reminders')
     ->dailyAt('09:30')->withoutOverlapping();
 
+// Right-to-work and DBS checks that have lapsed or are about to. Weekly, not
+// daily: these move on the scale of visa dates, and a daily mail about the
+// same expiry for a month is a mail nobody reads by the second week.
+Schedule::command('checks:send-expiry-reminders')->weeklyOn(1, '08:00')->withoutOverlapping();
+
 // Daily nudge to HR/admins about probation reviews that are overdue (period
 // ended, not yet confirmed/failed). Completion notices fire on confirmation.
 Schedule::command('probation:review-reminders')->dailyAt('07:00')->withoutOverlapping();
