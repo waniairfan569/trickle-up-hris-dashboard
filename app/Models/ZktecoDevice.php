@@ -15,6 +15,11 @@ class ZktecoDevice extends Model
     protected $fillable = [
         'name',
         'serial_number',
+        'model',
+        'firmware',
+        'platform',
+        'capabilities',
+        'described_at',
         'connection_mode',
         'ip_address',
         'port',
@@ -35,6 +40,8 @@ class ZktecoDevice extends Model
         'last_contact_at' => 'datetime',
         'silent_since' => 'datetime',
         'silence_notified_at' => 'datetime',
+        'described_at' => 'datetime',
+        'capabilities' => 'array',
     ];
 
     public function rawPunches()

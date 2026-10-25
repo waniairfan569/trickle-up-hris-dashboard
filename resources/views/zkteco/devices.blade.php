@@ -86,6 +86,44 @@
                             <input type="number" name="port" value="{{ $device->port }}" required class="mt-1 block w-full border-gray-300 rounded-md text-sm">
                         </div>
                     </div>
+                    {{-- What the device has told us about itself. Read-only: these
+                         are its words, not ours, and typing over them would be
+                         inventing an answer to the question they exist to settle. --}}
+                    <div class="md:col-span-6 rounded-lg bg-gray-50 px-3 py-2.5">
+                        @if($device->described_at)
+                            @php $cards = \App\Services\ZktecoDeviceDescription::readsCards($device); @endphp
+                            <div class="flex flex-wrap items-center gap-x-5 gap-y-1 text-[11px] text-gray-600">
+                                <span><span class="text-gray-400">Model</span> <b class="text-gray-800">{{ $device->model ?: '—' }}</b></span>
+                                <span><span class="text-gray-400">Firmware</span> <b class="text-gray-800">{{ $device->firmware ?: '—' }}</b></span>
+                                @if($device->platform)
+                                    <span><span class="text-gray-400">Platform</span> <b class="text-gray-800">{{ $device->platform }}</b></span>
+                                @endif
+                                <span>
+                                    <span class="text-gray-400">Reads cards</span>
+                                    <b class="{{ $cards === true ? 'text-emerald-700' : ($cards === false ? 'text-gray-500' : 'text-amber-700') }}">
+                                        {{ $cards === true ? 'yes' : ($cards === false ? 'no' : 'not said') }}
+                                    </b>
+                                </span>
+                                <span class="text-gray-400">heard {{ $device->described_at->diffForHumans() }}</span>
+                                @if(!empty($device->capabilities))
+                                    <button type="button" onclick="this.nextElementSibling.classList.toggle('hidden')" class="text-indigo-600 hover:text-indigo-900 font-medium">everything it said</button>
+                                    <div class="hidden w-full pt-2">
+                                        <div class="max-h-44 overflow-y-auto rounded border border-gray-200 bg-white p-2 font-mono text-[10px] leading-relaxed text-gray-700">
+                                            @foreach($device->capabilities as $key => $value)
+                                                <div><span class="text-gray-400">{{ $key }}</span> = {{ $value }}</div>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                @endif
+                            </div>
+                        @else
+                            <p class="text-[11px] text-gray-500">
+                                This device has not described itself yet. Most only do so when they restart or re-register,
+                                so the details fill in on their own — there is nothing to press.
+                            </p>
+                        @endif
+                    </div>
+
                     <div class="md:col-span-6 flex items-center justify-end gap-3 pt-1">
                         <button type="button" onclick="testConnection({{ $device->id }})" class="text-indigo-600 hover:text-indigo-900 text-sm font-medium">Test Connection</button>
                         <button type="submit" class="px-3 py-1.5 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700">Save</button>

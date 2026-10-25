@@ -42,6 +42,10 @@ class ZktecoPushController extends Controller
 
         $device = $this->resolveDevice($sn, $request->ip());
 
+        // Whatever it chose to say about itself, before we decide what the
+        // request was for. Never allowed to affect the answer it gets.
+        $this->describe($request, $device);
+
         // GET = handshake: tell the device how/what to push.
         if ($request->isMethod('get')) {
             return $this->text(implode("\n", [
@@ -154,7 +158,7 @@ class ZktecoPushController extends Controller
         $this->logContact($request, $sn, $sn !== '');
 
         if ($sn !== '') {
-            $this->resolveDevice($sn, $request->ip());
+            $this->describe($request, $this->resolveDevice($sn, $request->ip()));
         }
     }
 
@@ -178,6 +182,22 @@ class ZktecoPushController extends Controller
      * Never allowed to break a device's push: if this cannot be written, the
      * punch still matters more than the record of it.
      */
+    /**
+     * Keep what the device said about itself.
+     *
+     * Attendance rows carry no "=" so they are ignored by the parser, and a
+     * failure here must never cost a punch — the same rule the contact log
+     * follows, for the same reason.
+     */
+    private function describe(Request $request, ZktecoDevice $device): void
+    {
+        try {
+            app(\App\Services\ZktecoDeviceDescription::class)->absorb($request, $device);
+        } catch (\Throwable $e) {
+            report($e);
+        }
+    }
+
     private function logContact(Request $request, string $serial, bool $handled): void
     {
         try {
