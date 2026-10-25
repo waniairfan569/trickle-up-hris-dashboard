@@ -177,6 +177,11 @@
                                 <div class="flex items-center justify-end gap-3">
                                     @if($balance)
                                         <button @click="adjustModalOpen = true; currentUserId = {{ $user->id }}; currentUserName = '{{ addslashes($user->first_name . ' ' . $user->last_name) }}'" class="text-brand-600 hover:text-brand-800 text-sm font-bold transition">Adjust</button>
+                                        {{-- Settlement covers every policy they hold, so it opens
+                                             on the employee rather than on this one. --}}
+                                        <a href="{{ route('leave-settlement.show', $user->id) }}"
+                                           class="text-slate-500 hover:text-brand-700 text-sm font-bold transition dark:text-slate-400"
+                                           title="What they have earned by their last day, across every policy">Settle</a>
                                     @endif
                                     <form action="{{ route('time-off-policies.unassign', $timeOffPolicy) }}" method="POST" class="inline">
                                         @csrf

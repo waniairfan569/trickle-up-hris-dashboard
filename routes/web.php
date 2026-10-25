@@ -431,6 +431,13 @@ Route::middleware(['auth', 'verified', 'force.password.change'])->group(function
     Route::delete('profile-fields/{field}', [ProfileTemplateController::class, 'destroyField'])->name('profile-fields.destroy')->middleware('role:super_admin,hr_admin');
     Route::resource('profile-templates', ProfileTemplateController::class)->middleware('role:super_admin,hr_admin');
 
+    // What a leaver has earned by their last day, and writing it to their
+    // balances. Spans every policy they hold, so it hangs off the employee.
+    Route::get('employees/{employee}/leave-settlement', [\App\Http\Controllers\LeaveSettlementController::class, 'show'])
+        ->name('leave-settlement.show')->middleware('role:super_admin,hr_admin');
+    Route::post('employees/{employee}/leave-settlement', [\App\Http\Controllers\LeaveSettlementController::class, 'apply'])
+        ->name('leave-settlement.apply')->middleware('role:super_admin,hr_admin');
+
     // Record changes an employee has asked for, where the field is set to be
     // approved rather than saved straight away.
     Route::get('profile-changes', [\App\Http\Controllers\ProfileChangeRequestController::class, 'index'])
