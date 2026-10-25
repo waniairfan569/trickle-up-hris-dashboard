@@ -82,7 +82,13 @@ class AttendanceService
             $record->clock_in_ip = $options['ip'] ?? null;
             $record->clock_in_lat = $lat !== 0.0 ? $lat : null;
             $record->clock_in_lng = $lng !== 0.0 ? $lng : null;
-            
+
+            // How they clocked in, where the caller says. Left alone otherwise,
+            // so every existing caller keeps the column's default.
+            if (! empty($options['source'])) {
+                $record->source = $options['source'];
+            }
+
             $record->status = 'present';
         }
 

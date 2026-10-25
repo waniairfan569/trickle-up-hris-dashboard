@@ -431,6 +431,23 @@ Route::middleware(['auth', 'verified', 'force.password.change'])->group(function
     Route::delete('profile-fields/{field}', [ProfileTemplateController::class, 'destroyField'])->name('profile-fields.destroy')->middleware('role:super_admin,hr_admin');
     Route::resource('profile-templates', ProfileTemplateController::class)->middleware('role:super_admin,hr_admin');
 
+    // Clocking in by scanning a screen. The scan and punch are open to any
+    // signed-in employee — standing in front of the screen is the point of it,
+    // whatever attendance mode they are on. Managing the points is admin only.
+    Route::get('qr-clock', [\App\Http\Controllers\QrClockController::class, 'index'])
+        ->name('qr-clock.index')->middleware('role:super_admin,hr_admin');
+    Route::post('qr-clock', [\App\Http\Controllers\QrClockController::class, 'store'])
+        ->name('qr-clock.store')->middleware('role:super_admin,hr_admin');
+    Route::delete('qr-clock/{point}', [\App\Http\Controllers\QrClockController::class, 'destroy'])
+        ->name('qr-clock.destroy')->middleware('role:super_admin,hr_admin');
+    Route::get('qr-clock/{point}/display', [\App\Http\Controllers\QrClockController::class, 'display'])
+        ->name('qr-clock.display')->middleware('role:super_admin,hr_admin');
+    Route::get('qr-clock/{point}/token', [\App\Http\Controllers\QrClockController::class, 'token'])
+        ->name('qr-clock.token')->middleware('role:super_admin,hr_admin');
+
+    Route::get('clock/{point}', [\App\Http\Controllers\QrClockController::class, 'scan'])->name('qr-clock.scan');
+    Route::post('clock/{point}', [\App\Http\Controllers\QrClockController::class, 'punch'])->name('qr-clock.punch');
+
     // Right-to-work, DBS and the rest. No provider is connected; these record
     // what a person checked, with the evidence and the day it stops counting.
     Route::get('employee-checks', [\App\Http\Controllers\EmployeeCheckController::class, 'index'])
