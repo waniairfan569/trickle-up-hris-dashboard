@@ -33,6 +33,11 @@ Schedule::command('documents:send-signature-reminders')->hourly()->withoutOverla
 Schedule::command('documents:send-acknowledgement-reminders')
     ->dailyAt('09:30')->withoutOverlapping();
 
+// Notice a biometric device that has stopped reporting. Hourly, because a day
+// of silence is a day of attendance nobody recorded — and the device itself
+// gives no sign, since it keeps thanking people for fingerprints either way.
+Schedule::command('zkteco:watch-devices')->hourly()->withoutOverlapping();
+
 // Right-to-work and DBS checks that have lapsed or are about to. Weekly, not
 // daily: these move on the scale of visa dates, and a daily mail about the
 // same expiry for a month is a mail nobody reads by the second week.

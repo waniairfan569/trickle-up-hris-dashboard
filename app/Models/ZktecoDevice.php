@@ -22,6 +22,8 @@ class ZktecoDevice extends Model
         'is_active',
         'last_synced_at',
         'last_contact_at',
+        'silent_since',
+        'silence_notified_at',
         'last_sync_status',
         'last_sync_message',
         'total_records_synced',
@@ -31,6 +33,8 @@ class ZktecoDevice extends Model
         'is_active' => 'boolean',
         'last_synced_at' => 'datetime',
         'last_contact_at' => 'datetime',
+        'silent_since' => 'datetime',
+        'silence_notified_at' => 'datetime',
     ];
 
     public function rawPunches()
