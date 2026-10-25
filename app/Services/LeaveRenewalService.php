@@ -333,6 +333,114 @@ class LeaveRenewalService
         return max(0, min(12, $months));
     }
 
+    /**
+     * What somebody has actually earned by the day they leave.
+     *
+     * Pro-rata has only ever been worked out for joiners, so a leaver kept the
+     * whole year's allowance however early they went, and what they were owed
+     * — or had taken in advance — was worked out by hand afterwards.
+     *
+     * The same cutoff day and the same rounding rule apply, so a joiner and a
+     * leaver are measured by the same yardstick: a month counts if they were
+     * there past the cutoff.
+     */
+    public function calculateProRataForLeaver(float $annualDays, Carbon $leavingDate, LeaveYearSetting $setting): float
+    {
+        $yearStart = $setting->currentYearStart();
+        $yearEnd = $yearStart->copy()->addYear()->subDay();
+
+        if ($leavingDate->gte($yearEnd)) {
+            return $annualDays;                    // saw the year out
+        }
+        if ($leavingDate->lt($yearStart)) {
+            return 0.0;                            // left before this year began
+        }
+
+        $months = $this->countServedMonths($leavingDate, $setting);
+        $proRata = ($annualDays / 12) * $months;
+
+        return match ($setting->pro_rata_round_to) {
+            'half' => round($proRata * 2) / 2,
+            'full' => (float) ceil($proRata),
+            default => round($proRata, 1),
+        };
+    }
+
+    /**
+     * Months served from the year start to the leaving month.
+     *
+     * The mirror of countRemainingMonths: there, a joiner arriving after the
+     * cutoff does not get their arrival month; here, a leaver going before the
+     * cutoff does not get their leaving month.
+     */
+    public function countServedMonths(Carbon $leavingDate, LeaveYearSetting $setting): int
+    {
+        $yearStart = $setting->currentYearStart();
+
+        $countTo = $leavingDate->day > $setting->pro_rata_cutoff_day
+            ? $leavingDate->copy()->addMonthNoOverflow()->startOfMonth()
+            : $leavingDate->copy()->startOfMonth();
+
+        $months = (int) round($yearStart->diffInMonths($countTo));
+
+        return max(0, min(12, $months));
+    }
+
+    /**
+     * What a leaver is owed, or has taken in advance, per policy.
+     *
+     * Returns one row per policy the employee holds a balance in: what they
+     * earned up to their last day, what they took, and the difference — which
+     * is the figure somebody would otherwise work out in a spreadsheet.
+     *
+     * Reads only. Settling it is a decision with money attached, so it is not
+     * made here.
+     */
+    public function settlementFor(User $employee, Carbon $leavingDate): array
+    {
+        $rows = [];
+
+        $balances = TimeOffBalance::where('user_id', $employee->id)
+            ->with('policy')->get();
+
+        foreach ($balances as $balance) {
+            $policy = $balance->policy;
+            if (! $policy) {
+                continue;
+            }
+
+            // Each policy has its own leave year where one is configured; any
+            // active setting otherwise, since policy_id is never null here.
+            $setting = LeaveYearSetting::where('policy_id', $policy->id)->where('is_active', true)->first()
+                ?: LeaveYearSetting::where('is_active', true)->first();
+
+            if (! $setting) {
+                continue;
+            }
+
+            $full = (float) $policy->getAllowanceForUser($employee);
+            $earned = $setting->pro_rata_enabled
+                ? $this->calculateProRataForLeaver($full, $leavingDate, $setting)
+                : $full;
+
+            // Carried-over and hand-adjusted days were earned too; they are not
+            // part of this year's accrual and should not be pro-rated away.
+            $earned += (float) $balance->carried_over + (float) $balance->adjusted;
+            $taken = (float) $balance->used;
+
+            $rows[] = [
+                'policy' => $policy->name,
+                'full_year' => $full,
+                'months_served' => $this->countServedMonths($leavingDate, $setting),
+                'earned' => round($earned, 2),
+                'taken' => $taken,
+                'difference' => round($earned - $taken, 2),
+            ];
+        }
+
+        return $rows;
+    }
+
     /** Pro-rata (or full) opening balance for a brand-new joiner. */
     public function assignLeaveOnJoining(User $employee, LeaveYearSetting $setting, TimeOffPolicy $policy): TimeOffBalance
     {
