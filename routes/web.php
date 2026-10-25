@@ -936,6 +936,13 @@ Route::middleware(['auth', 'verified', 'force.password.change'])->group(function
         
         Route::post('employees/{employee}/shifts/assign-single', [ShiftAssignmentController::class, 'assignSingle'])->name('employees.shifts.assign.single');
         Route::post('employees/{employee}/shifts/assign-recurring', [ShiftAssignmentController::class, 'assignRecurring'])->name('employees.shifts.assign.recurring');
+
+        // Rota holes left by approved leave, and filling them. Covering writes
+        // an ordinary single-day assignment, so nothing new reads the rota.
+        Route::get('shifts-coverage', [\App\Http\Controllers\ShiftCoverageController::class, 'index'])->name('shifts.coverage');
+        Route::get('shifts-coverage/candidates', [\App\Http\Controllers\ShiftCoverageController::class, 'candidates'])->name('shifts.coverage.candidates');
+        Route::post('shifts-coverage/cover', [\App\Http\Controllers\ShiftCoverageController::class, 'cover'])->name('shifts.coverage.cover');
+        Route::delete('shifts-coverage/{assignment}', [\App\Http\Controllers\ShiftCoverageController::class, 'uncover'])->name('shifts.coverage.uncover');
         
         Route::resource('office-locations', OfficeLocationController::class);
         Route::get('office-locations-assign', [OfficeLocationController::class, 'assignView'])->name('office-locations.assignView');

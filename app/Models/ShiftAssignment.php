@@ -13,6 +13,7 @@ class ShiftAssignment extends Model
         'user_id',
         'shift_id',
         'assigned_by',
+        'covers_user_id',
         'assignment_type',
         'date',
         'recurring_start_date',
@@ -41,5 +42,20 @@ class ShiftAssignment extends Model
     public function assigner()
     {
         return $this->belongsTo(User::class, 'assigned_by');
+    }
+
+    /**
+     * Who this assignment stands in for, when it was made to fill a hole left
+     * by somebody's leave. Null on every ordinary assignment, which is all of
+     * the ones that existed before cover was recordable.
+     */
+    public function coveringFor()
+    {
+        return $this->belongsTo(User::class, 'covers_user_id');
+    }
+
+    public function scopeCover($query)
+    {
+        return $query->whereNotNull('covers_user_id');
     }
 }

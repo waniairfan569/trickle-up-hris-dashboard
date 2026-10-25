@@ -111,6 +111,23 @@ class TimeAttendanceController extends Controller
             ];
         }
 
+            // Holes the rota has because somebody is on approved leave. Sits
+            // with shifts because it is the same rota, read the other way round.
+            $horizon = today()->copy()->addDays(\App\Services\ShiftCoverageService::DEFAULT_HORIZON);
+            $uncovered = app(\App\Services\ShiftCoverageService::class)->openGaps(today(), $horizon)->count();
+
+            $tiles[] = [
+                'route' => 'shifts.coverage',
+                'icon' => 'user-round-x',
+                'tone' => 'rose',
+                'title' => 'Shift coverage',
+                'text' => 'Shifts with nobody on them because the person is on leave — and who is free to cover.',
+                'stat' => $uncovered,
+                'stat_label' => 'need cover',
+                'meta' => 'next ' . \App\Services\ShiftCoverageService::DEFAULT_HORIZON . ' days',
+                'badge' => $uncovered,
+            ];
+
         // Clocking in by scanning a screen. Lives beside shifts because it is
         // another way the same attendance gets recorded, not a thing of its own.
         $points = \App\Models\QrClockPoint::where('is_active', true)->count();
