@@ -111,6 +111,21 @@ class TimeAttendanceController extends Controller
             ];
         }
 
+        // Clocking in by scanning a screen. Lives beside shifts because it is
+        // another way the same attendance gets recorded, not a thing of its own.
+        $points = \App\Models\QrClockPoint::where('is_active', true)->count();
+
+        $tiles[] = [
+            'route' => 'qr-clock.index',
+            'icon'  => 'qr-code',
+            'tone'  => 'sky',
+            'title' => 'QR clock-in',
+            'text'  => 'A screen people scan to clock in, showing a code that changes every few seconds.',
+            'stat'  => $points,
+            'stat_label' => $points === 1 ? 'point' : 'points',
+            'meta'  => $points > 0 ? 'open a screen' : 'none set up',
+        ];
+
         return $tiles;
     }
 
