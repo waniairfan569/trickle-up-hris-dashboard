@@ -80,6 +80,14 @@
                                 </span>
                             </td>
                             <td class="px-6 py-3.5 whitespace-nowrap text-right">
+                                {{-- The review is a conversation before it is a
+                                     decision. This carries the employee and the
+                                     probation across, so the booking form opens
+                                     already knowing what it is for. --}}
+                                <a href="{{ route('one-to-ones.index', ['with' => $emp->id, 'subject' => 'Probation review', 'about_key' => 'probation', 'about_id' => $p->id]) }}"
+                                   class="mr-3 inline-flex items-center gap-1 text-xs font-bold text-slate-500 hover:text-brand-600 dark:text-slate-400">
+                                    <i data-lucide="calendar-plus" class="h-3.5 w-3.5"></i> Book the review
+                                </a>
                                 <a href="{{ route('employees.profile', $emp->id) }}" class="inline-flex items-center gap-1 text-xs font-bold text-brand-600 hover:text-brand-700">Review <i data-lucide="arrow-right" class="h-3.5 w-3.5"></i></a>
                             </td>
                         </tr>

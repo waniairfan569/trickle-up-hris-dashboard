@@ -937,6 +937,26 @@ Route::middleware(['auth', 'verified', 'force.password.change'])->group(function
     Route::post('open-shifts/claim', [\App\Http\Controllers\ShiftCoverageController::class, 'claim'])->name('shifts.claim');
     Route::delete('open-shifts/{assignment}', [\App\Http\Controllers\ShiftCoverageController::class, 'release'])->name('shifts.release');
 
+    // One-to-ones. Open to every signed-in employee, because the reporting
+    // line decides who may book whom and the controller reads it: a manager
+    // books with their own people, an employee asks their own manager, and HR
+    // may arrange either. Role middleware here would shut employees out of
+    // asking, which is half the point of being able to book.
+    Route::prefix('one-to-ones')->name('one-to-ones.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\OneToOneController::class, 'index'])->name('index');
+        Route::post('/', [\App\Http\Controllers\OneToOneController::class, 'store'])->name('store');
+        Route::get('check', [\App\Http\Controllers\OneToOneController::class, 'check'])->name('check');
+        Route::get('calendar-data', [\App\Http\Controllers\OneToOneController::class, 'calendarData'])->name('calendar-data');
+        Route::get('{oneToOne}', [\App\Http\Controllers\OneToOneController::class, 'show'])->name('show');
+        Route::post('{oneToOne}/confirm', [\App\Http\Controllers\OneToOneController::class, 'confirm'])->name('confirm');
+        Route::post('{oneToOne}/decline', [\App\Http\Controllers\OneToOneController::class, 'decline'])->name('decline');
+        Route::post('{oneToOne}/reschedule', [\App\Http\Controllers\OneToOneController::class, 'reschedule'])->name('reschedule');
+        Route::post('{oneToOne}/hold', [\App\Http\Controllers\OneToOneController::class, 'hold'])->name('hold');
+        Route::post('{oneToOne}/missed', [\App\Http\Controllers\OneToOneController::class, 'missed'])->name('missed');
+        Route::post('{oneToOne}/cancel', [\App\Http\Controllers\OneToOneController::class, 'cancel'])->name('cancel');
+        Route::post('{oneToOne}/note', [\App\Http\Controllers\OneToOneController::class, 'note'])->name('note');
+    });
+
     // Office Locations & Shifts (Admin Only)
     Route::middleware(['role:hr_admin,super_admin'])->group(function () {
         Route::resource('shifts', ShiftController::class)->except(['create', 'edit', 'show']);

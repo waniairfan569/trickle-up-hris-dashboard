@@ -20,7 +20,7 @@
         <h1 class="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
             <i data-lucide="calendar-days" class="h-6 w-6 text-brand-500"></i> Company Calendar
         </h1>
-        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Upcoming company events shared with you.</p>
+        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Company events shared with you, and your own one-to-ones — green once agreed, amber while waiting on an answer.</p>
     </div>
 
     {{-- Pinned / upcoming highlights --}}
@@ -114,7 +114,10 @@
                 if (!el || this.calendar || typeof FullCalendar === 'undefined') return;
                 this.calendar = new FullCalendar.Calendar(el, {
                     initialView: 'dayGridMonth', height: 'auto', firstDay: 1,
-                    events: '{{ route('events.employee-calendar-data') }}',
+                    eventSources: [
+                        '{{ route('events.employee-calendar-data') }}',
+                        '{{ route('one-to-ones.calendar-data') }}',
+                    ],
                     headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,dayGridWeek,listMonth' },
                     eventClick: (info) => { info.jsEvent.preventDefault(); this.openEvent(info.event); },
                     dateClick: (info) => { this.openDay(info.dateStr); },
@@ -122,6 +125,11 @@
                 this.calendar.render();
             },
             openEvent(ev) {
+                // A one-to-one carries a url because there is something to do
+                // with it — agree it, move it, write it up. The read-only modal
+                // below would be a dead end.
+                if (ev.url) { window.location = ev.url; return; }
+
                 const p = ev.extendedProps;
                 const fmt = d => new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
                 let dates = ev.start ? fmt(ev.start) : '';

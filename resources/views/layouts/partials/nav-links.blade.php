@@ -2,7 +2,7 @@
     $routeName = request()->route()?->getName() ?? '';
 
     // Sidebar red badges — items needing attention on each tab.
-    $nav = ['invites' => 0, 'timeoff' => 0, 'forms' => 0, 'corrections' => 0, 'sign' => 0, 'hr_to_sign' => 0, 'overtime' => 0, 'wfh' => 0, 'policies' => 0];
+    $nav = ['invites' => 0, 'timeoff' => 0, 'forms' => 0, 'corrections' => 0, 'sign' => 0, 'hr_to_sign' => 0, 'overtime' => 0, 'wfh' => 0, 'policies' => 0, 'one_to_ones' => 0];
     $navWfhPolicyId = null;
     if ($navUser = auth()->user()) {
         // Documents awaiting THIS user's signature (shown on Document Library).
@@ -15,6 +15,14 @@
 
         // HR documents (lateness review, return to work, …) sent to me to sign.
         $nav['hr_to_sign'] = \App\Models\HrDocumentSigner::where('user_id', $navUser->id)->whereNull('signed_at')->count();
+
+        // One-to-ones where somebody else proposed a time and this person has
+        // not answered. Deliberately not "all upcoming": a badge should count
+        // what the viewer can act on, and an agreed meeting needs nothing.
+        $nav['one_to_ones'] = \App\Models\OneToOne::where('status', 'proposed')
+            ->where(fn ($q) => $q->where('user_id', $navUser->id)->orWhere('manager_id', $navUser->id))
+            ->where('proposed_by', '!=', $navUser->id)
+            ->count();
 
         // Company policies assigned to me still awaiting acknowledgment.
         $nav['policies'] = $navUser->policyAcknowledgments()
@@ -143,6 +151,11 @@
         <a href="{{ route('events.employee-calendar') }}"
            class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ request()->routeIs('events.employee-calendar') ? 'text-brand-400 bg-slate-800' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
             <i data-lucide="calendar-days" class="h-5 w-5 shrink-0"></i><span class="flex-1">Calendar</span>
+        </a>
+        <a href="{{ route('one-to-ones.index') }}"
+           class="flex items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-semibold transition {{ Str::startsWith($routeName, 'one-to-ones.') ? 'text-brand-400 bg-slate-800' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
+            <i data-lucide="users-round" class="h-5 w-5 shrink-0"></i><span class="flex-1">One-to-ones</span>
+            {!! $navBadge($nav['one_to_ones']) !!}
         </a>
         @unless(auth()->user()->isAdmin())
         <a href="{{ route('announcements.all') }}"
