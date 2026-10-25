@@ -334,6 +334,70 @@ class LeaveRenewalService
     }
 
     /**
+     * A year's entitlement when the allowance did not stay the same all year.
+     *
+     * Someone who drops to three days a week in July has earned a full-time
+     * share for the months before and a part-time share for the months after.
+     * Treating the year as though it had always been the latest rate is wrong
+     * in both directions — it under-pays somebody who went up, and over-pays
+     * somebody who went down.
+     *
+     * Returns exactly what getAllowanceForUser would, unless a change was
+     * recorded inside this leave year. No change recorded, nothing differs —
+     * which is every employee until an allowance is actually changed.
+     */
+    public function annualEntitlementFor(User $employee, TimeOffPolicy $policy, LeaveYearSetting $setting): float
+    {
+        $current = (float) $policy->getAllowanceForUser($employee);
+
+        $yearStart = $setting->currentYearStart();
+        $yearEnd = $yearStart->copy()->addYear()->subDay();
+
+        $changes = \App\Models\LeaveAllowanceChange::where('user_id', $employee->id)
+            ->where('policy_id', $policy->id)
+            ->whereBetween('effective_from', [$yearStart->toDateString(), $yearEnd->toDateString()])
+            ->orderBy('effective_from')
+            ->get();
+
+        if ($changes->isEmpty()) {
+            return $current;
+        }
+
+        // Walk the year in stretches, each at the rate in force for it. The
+        // first stretch runs at whatever they were on when the year began,
+        // which is the rate the earliest change moved away from.
+        $rate = (float) $changes->first()->previous_days;
+        $cursor = $yearStart->copy();
+        $total = 0.0;
+
+        foreach ($changes as $change) {
+            $until = $change->effective_from->copy()->startOfDay();
+
+            if ($until->gt($cursor)) {
+                $total += $rate * ($cursor->diffInDays($until) / $this->daysInYear($yearStart));
+            }
+
+            $rate = (float) $change->new_days;
+            $cursor = $until->gt($cursor) ? $until : $cursor;
+        }
+
+        // And the rest of the year at whatever they ended on.
+        $total += $rate * ($cursor->diffInDays($yearEnd->copy()->addDay()) / $this->daysInYear($yearStart));
+
+        return match ($setting->pro_rata_round_to) {
+            'half' => round($total * 2) / 2,
+            'full' => (float) ceil($total),
+            default => round($total, 1),
+        };
+    }
+
+    /** Length of this leave year in days, so leap years do not drift. */
+    private function daysInYear(Carbon $yearStart): int
+    {
+        return (int) $yearStart->diffInDays($yearStart->copy()->addYear());
+    }
+
+    /**
      * What somebody has actually earned by the day they leave.
      *
      * Pro-rata has only ever been worked out for joiners, so a leaver kept the
@@ -518,7 +582,10 @@ class LeaveRenewalService
             ];
         }
 
-        return [(float) $policy->getAllowanceForUser($employee), false, null];
+        // Not a joiner — but their allowance may still have changed part-way
+        // through the year. This is the same number as before for anyone whose
+        // did not.
+        return [$this->annualEntitlementFor($employee, $policy, $setting), false, null];
     }
 
     private function startDateOf(User $user): ?Carbon

@@ -139,6 +139,24 @@ class TimeOffPolicyController extends Controller
         $year = Carbon::now()->year;
 
         foreach ($request->user_ids as $userId) {
+            // What they were on before, so a year served at two rates can be
+            // worked out later. Only a real change is recorded — reassigning
+            // somebody at the same allowance is not a change.
+            $existing = $policy->employees()->where('users.id', $userId)->first();
+            $previous = $existing?->pivot->custom_days_per_year;
+            $new = $request->custom_days_per_year;
+
+            if ($existing && (float) ($previous ?? $policy->days_per_year) !== (float) ($new ?? $policy->days_per_year)) {
+                \App\Models\LeaveAllowanceChange::create([
+                    'user_id' => $userId,
+                    'policy_id' => $policy->id,
+                    'previous_days' => (float) ($previous ?? $policy->days_per_year),
+                    'new_days' => (float) ($new ?? $policy->days_per_year),
+                    'effective_from' => today(),
+                    'changed_by' => auth()->id(),
+                ]);
+            }
+
             $policy->employees()->syncWithoutDetaching([
                 $userId => [
                     'assigned_by' => auth()->id() ?? 1,
