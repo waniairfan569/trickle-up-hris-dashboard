@@ -25,6 +25,7 @@ class ProfileField extends Model
         'visibility',
         'employee_can_edit',
         'change_action',
+        'notify_line_manager',
         'sort_order',
     ];
 
@@ -48,6 +49,7 @@ class ProfileField extends Model
         'is_system' => 'boolean',
         'is_encrypted' => 'boolean',
         'employee_can_edit' => 'boolean',
+        'notify_line_manager' => 'boolean',
     ];
 
     public function section()

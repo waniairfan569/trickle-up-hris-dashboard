@@ -63,7 +63,7 @@ class ProfileChangeGuard
             ]
         );
 
-        $this->tell(fn ($admin) => $admin->notify(new ProfileChangeRequested($request)));
+        $this->tell(fn ($person) => $person->notify(new ProfileChangeRequested($request)), $employee, $field);
 
         return $request;
     }
@@ -71,9 +71,9 @@ class ProfileChangeGuard
     /** Let the change through, but say that it happened. */
     private function note(User $employee, ProfileField $field, $newValue, $oldValue): ?ProfileChangeRequest
     {
-        $this->tell(fn ($admin) => $admin->notify(
+        $this->tell(fn ($person) => $person->notify(
             new ProfileChangeNoted($employee, $field, $this->flatten($oldValue), $this->flatten($newValue))
-        ));
+        ), $employee, $field);
 
         return null;
     }
@@ -127,15 +127,48 @@ class ProfileChangeGuard
     }
 
     /** Whoever looks after employee records in this workspace. */
-    private function tell(callable $send): void
+    /**
+     * Whoever looks after employee records — and the employee's line manager
+     * too, where the field says so.
+     *
+     * The manager is not told by default. A manager who does not know somebody
+     * has a new condition cannot act on it, which is the argument for; medical
+     * details reaching a line manager automatically is exactly what some
+     * clients are required not to do, which is the argument against. So the
+     * field decides, and nobody is told anything extra until it is set.
+     *
+     * The employee themselves is never on this list: they made the change.
+     */
+    private function tell(callable $send, ?User $employee = null, ?ProfileField $field = null): void
     {
-        $admins = User::whereHas('roles', fn ($q) => $q->whereIn('slug', ['super_admin', 'hr_admin']))
+        $recipients = User::whereHas('roles', fn ($q) => $q->whereIn('slug', ['super_admin', 'hr_admin']))
             ->where('account_status', '!=', 'deactivated')
             ->get();
 
-        foreach ($admins as $admin) {
+        if ($employee && $field?->notify_line_manager) {
+            $manager = $employee->manager_id
+                ? User::where('id', $employee->manager_id)
+                    ->where('account_status', '!=', 'deactivated')->first()
+                : null;
+
+            if ($manager) {
+                $recipients->push($manager);
+            }
+        }
+
+        $seen = [];
+
+        foreach ($recipients as $person) {
+            if ($employee && $person->id === $employee->id) {
+                continue;
+            }
+            if (in_array($person->id, $seen, true)) {
+                continue;   // a manager who is also an admin hears once
+            }
+            $seen[] = $person->id;
+
             try {
-                $send($admin);
+                $send($person);
             } catch (\Throwable $e) {
                 report($e);
             }

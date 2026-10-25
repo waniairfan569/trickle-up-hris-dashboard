@@ -136,6 +136,21 @@
                     for anything you would want checked before it becomes the record. Only applies when the
                     employee edits their own profile — an admin editing it is already the check.
                 </p>
+
+                {{-- Only does anything where something is told at all. --}}
+                <label class="mt-3 flex items-start gap-x-3">
+                    <input type="checkbox" name="notify_line_manager" value="1"
+                        {{ old('notify_line_manager', $field?->notify_line_manager ?? false) ? 'checked' : '' }}
+                        class="mt-0.5 h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-850">
+                    <span class="text-xs">
+                        <span class="font-bold text-slate-700 dark:text-slate-350">Tell their line manager too</span>
+                        <span class="block text-[10px] text-slate-400 dark:text-slate-500">
+                            A manager who does not know a condition has changed cannot act on it — but medical
+                            details reaching a line manager automatically is something some clients must not do.
+                            Off unless you turn it on. Private fields are still only reported as changed, never quoted.
+                        </span>
+                    </span>
+                </label>
             </div>
         </div>
 
