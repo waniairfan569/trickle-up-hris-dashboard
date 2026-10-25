@@ -153,6 +153,20 @@
                         <input type="checkbox" name="allow_half_days" value="1" checked class="rounded border-slate-300 text-brand-600 shadow-sm focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-900">
                         <span class="ml-2 text-sm font-bold text-slate-700 dark:text-slate-300">Allow Half-Day Requests</span>
                     </label>
+
+                    {{-- Only means anything where leave can be taken by the hour. --}}
+                    <div class="pt-1">
+                        <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5">Leave taken by the hour is charged</label>
+                        <select name="hourly_charge_mode" class="w-full rounded-xl border-slate-300 text-sm dark:bg-slate-900 dark:border-slate-600 dark:text-white">
+                            @foreach(\App\Models\TimeOffPolicy::HOURLY_CHARGE_MODES as $value => $label)
+                                <option value="{{ $value }}" @selected(old('hourly_charge_mode', 'band') === $value)>{{ $label }}</option>
+                            @endforeach
+                        </select>
+                        <p class="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+                            In bands, two hours and four hours both cost half a day, while one hour fifty-nine costs
+                            about a quarter — so a minute can more than double the charge. By the hour removes that.
+                        </p>
+                    </div>
                     <label class="flex items-center">
                         <input type="checkbox" name="allow_negative_balance" value="1" class="rounded border-slate-300 text-brand-600 shadow-sm focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-900">
                         <span class="ml-2 text-sm font-bold text-slate-700 dark:text-slate-300">Allow Negative Balances</span>

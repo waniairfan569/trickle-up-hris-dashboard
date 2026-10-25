@@ -27,6 +27,7 @@ class TimeOffPolicy extends Model
         'approval_type',
         'min_notice_days',
         'allow_half_days',
+        'hourly_charge_mode',
         'allow_negative_balance',
         'is_paid',
         'is_active',
@@ -110,6 +111,19 @@ class TimeOffPolicy extends Model
     /**
      * Methods
      */
+    /** How this policy charges leave taken by the hour. */
+    public const HOURLY_CHARGE_MODES = [
+        'band'  => 'In bands — two hours up to half a day costs half a day',
+        'exact' => 'By the hour — charged for the time actually taken',
+    ];
+
+    public function hourlyChargeMode(): string
+    {
+        return array_key_exists((string) $this->hourly_charge_mode, self::HOURLY_CHARGE_MODES)
+            ? $this->hourly_charge_mode
+            : 'band';
+    }
+
     public function getAllowanceForUser(User $user)
     {
         // Try to find the pivot

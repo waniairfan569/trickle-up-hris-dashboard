@@ -218,7 +218,7 @@ class TimeOffController extends Controller
             if ($hours <= 0) {
                 return back()->withErrors(['End time must be after start time.'])->withInput();
             }
-            $days = TimeOffRequest::daysForHours($hours, $employee->id);
+            $days = TimeOffRequest::daysForHours($hours, $employee->id, $policy);
         } elseif ($durationType === 'half_day') {
             $days = 0.5;
         } else {
@@ -520,7 +520,7 @@ class TimeOffController extends Controller
             if ($hours <= 0) {
                 return back()->withErrors(['End time must be after start time.'])->withInput();
             }
-            $days = TimeOffRequest::daysForHours($hours, $user->id);
+            $days = TimeOffRequest::daysForHours($hours, $user->id, $policy);
         } elseif ($durationType === 'half_day') {
             $days = 0.5;
         } else {

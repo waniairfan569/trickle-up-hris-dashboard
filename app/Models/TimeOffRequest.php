@@ -73,7 +73,7 @@ class TimeOffRequest extends Model
                     $hours = $request->hours_requested
                         ?: self::hoursBetween($request->start_time, $request->end_time);
                     $request->hours_requested = $hours;
-                    $request->days_requested = self::daysForHours($hours, $request->user_id);
+                    $request->days_requested = self::daysForHours($hours, $request->user_id, $request->policy_id);
                 } elseif ($request->is_half_day || $request->duration_type === 'half_day') {
                     $request->days_requested = 0.5;
                 } else {
@@ -99,24 +99,39 @@ class TimeOffRequest extends Model
     }
 
     /**
-     * Day-equivalent for an hourly leave.
-     * Company rule (workday = 8.5h, so half a day = 4.25h):
-     *   - 2 hours up to half a day (4.25h) -> counts as a half day (0.5).
-     *   - above half a day -> deduct the actual time taken (pro-rata, capped at
-     *     one full day), NOT rounded up to a full day.
-     *   - below 2 hours -> pro-rated against the working day.
+     * Day-equivalent for an hourly leave, as this policy charges it.
+     *
+     * "band" is the rule this started with, written around one company's
+     * 8.5-hour day: two hours up to half a day costs half a day, and anything
+     * longer is charged for the time taken, capped at one day. It has a cliff
+     * at two hours — one hour fifty-nine costs 0.23 of a day and two hours
+     * costs 0.5 — which is why a policy can now choose not to have it.
+     *
+     * "exact" charges the time actually taken, against the length of that
+     * employee's working day, with no bands and no cliff.
+     *
+     * The policy is optional so older callers keep working; without one, the
+     * band applies, which is what every policy did before this was a choice.
      */
-    public static function daysForHours(float $hours, $userId): float
+    public static function daysForHours(float $hours, $userId, $policy = null): float
     {
         if ($hours <= 0) {
             return 0.0;
         }
 
         $hpd = self::hoursPerDayFor($userId);   // e.g. 8.5
-        $half = $hpd / 2;                        // e.g. 4.25
 
-        if ($hours >= 2 && $hours <= $half) {
-            return 0.5;
+        if (! $policy instanceof TimeOffPolicy) {
+            $policy = $policy ? TimeOffPolicy::find($policy) : null;
+        }
+
+        $exact = $policy && $policy->hourlyChargeMode() === 'exact';
+
+        if (! $exact) {
+            $half = $hpd / 2;                    // e.g. 4.25
+            if ($hours >= 2 && $hours <= $half) {
+                return 0.5;
+            }
         }
 
         return min(1.0, round($hours / $hpd, 2));

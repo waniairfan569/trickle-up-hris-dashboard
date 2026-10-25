@@ -46,6 +46,7 @@ class TimeOffPolicyController extends Controller
             'approval_type' => 'required|in:manager,hr_admin,super_admin,both,manager_super',
             'min_notice_days' => 'required|integer|min:0',
             'allow_half_days' => 'boolean',
+            'hourly_charge_mode' => 'nullable|in:band,exact',
             'allow_negative_balance' => 'boolean',
             'is_paid' => 'boolean',
             'is_active' => 'boolean',
@@ -56,6 +57,7 @@ class TimeOffPolicyController extends Controller
         $validated['carry_over'] = $request->has('carry_over');
         $validated['requires_approval'] = $request->has('requires_approval');
         $validated['allow_half_days'] = $request->has('allow_half_days');
+        $validated['hourly_charge_mode'] = $request->input('hourly_charge_mode') ?: 'band';
         $validated['allow_negative_balance'] = $request->has('allow_negative_balance');
         $validated['is_paid'] = $request->has('is_paid');
         $validated['is_active'] = $request->has('is_active');
@@ -91,6 +93,7 @@ class TimeOffPolicyController extends Controller
             'approval_type' => 'required|in:manager,hr_admin,super_admin,both,manager_super',
             'min_notice_days' => 'required|integer|min:0',
             'allow_half_days' => 'boolean',
+            'hourly_charge_mode' => 'nullable|in:band,exact',
             'allow_negative_balance' => 'boolean',
             'is_paid' => 'boolean',
             'is_active' => 'boolean',
@@ -100,6 +103,7 @@ class TimeOffPolicyController extends Controller
         $validated['carry_over'] = $request->has('carry_over');
         $validated['requires_approval'] = $request->has('requires_approval');
         $validated['allow_half_days'] = $request->has('allow_half_days');
+        $validated['hourly_charge_mode'] = $request->input('hourly_charge_mode') ?: 'band';
         $validated['allow_negative_balance'] = $request->has('allow_negative_balance');
         $validated['is_paid'] = $request->has('is_paid');
         $validated['is_active'] = $request->has('is_active');
