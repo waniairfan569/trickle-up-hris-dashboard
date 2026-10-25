@@ -120,6 +120,11 @@ class QrClockController extends Controller
             'code' => $code,
             'record' => $today,
             'action' => ($today && $today->clock_in && ! $today->clock_out) ? 'out' : 'in',
+            // Offered beside the button, not inside it. Clocking in and taking
+            // a shift are two decisions, and somebody in a hurry should be able
+            // to make the first without being asked the second.
+            'openToday' => app(\App\Services\ShiftCoverageService::class)
+                ->openShiftsFor($employee, today(), today()),
         ]);
     }
 

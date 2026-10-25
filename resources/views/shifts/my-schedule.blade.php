@@ -68,5 +68,96 @@
         <p class="text-sm mt-1">Your manager will assign a work schedule soon.</p>
     </div>
     @endif
+
+    @if(session('success'))
+        <div class="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800 max-w-xl dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-400">
+            <i data-lucide="check-circle" class="h-5 w-5 shrink-0"></i> {{ session('success') }}
+        </div>
+    @endif
+
+    @if(session('error'))
+        <div class="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700 max-w-xl dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-400">
+            <i data-lucide="alert-triangle" class="h-5 w-5 shrink-0"></i> {{ session('error') }}
+        </div>
+    @endif
+
+    {{-- Shifts this person has said they will cover. Shown before the open
+         ones, because what you have agreed to matters more than what is going. --}}
+    @if(!empty($covering) && $covering->isNotEmpty())
+    <div class="max-w-xl">
+        <h2 class="mb-2 text-sm font-extrabold uppercase tracking-wide text-slate-500 dark:text-slate-400">You are covering</h2>
+        <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
+            @foreach($covering as $shiftCover)
+                <div class="flex items-center justify-between gap-3 border-b border-slate-100 p-4 last:border-b-0 dark:border-slate-700/60">
+                    <div class="flex items-start gap-3">
+                        <span class="mt-0.5 inline-block h-9 w-1.5 shrink-0 rounded-full" style="background-color: {{ $shiftCover->shift->color ?? '#3B82F6' }}"></span>
+                        <div>
+                            <p class="font-bold text-slate-900 dark:text-white">
+                                {{ $shiftCover->date->format('D j M') }} · {{ $shiftCover->shift->name }}
+                            </p>
+                            <p class="text-sm text-slate-500 dark:text-slate-400">
+                                {{ substr($shiftCover->shift->start_time, 0, 5) }}–{{ substr($shiftCover->shift->end_time, 0, 5) }}
+                                @if($shiftCover->coveringFor)
+                                    · for {{ $shiftCover->coveringFor->first_name }}
+                                @endif
+                            </p>
+                        </div>
+                    </div>
+
+                    @if($shiftCover->date->gt(today()))
+                        <form method="POST" action="{{ route('shifts.release', $shiftCover) }}"
+                              onsubmit="return confirm('Give this shift back? It goes back to having nobody on it.')">
+                            @csrf @method('DELETE')
+                            <button type="submit" class="rounded-lg px-3 py-1.5 text-xs font-bold text-slate-500 transition hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-500/10">
+                                Give back
+                            </button>
+                        </form>
+                    @else
+                        <span class="text-xs font-bold uppercase tracking-wide text-slate-400">Today</span>
+                    @endif
+                </div>
+            @endforeach
+        </div>
+    </div>
+    @endif
+
+    {{-- Holes anybody could fill. Offered here as well as at the clock-in screen,
+         because somebody who clocks in on the device is never asked anything. --}}
+    @if(!empty($openShifts) && $openShifts->isNotEmpty())
+    <div class="max-w-xl">
+        <h2 class="mb-2 text-sm font-extrabold uppercase tracking-wide text-slate-500 dark:text-slate-400">Shifts going spare</h2>
+        <p class="mb-3 text-sm text-slate-500 dark:text-slate-400">
+            Days you have nothing on, where somebody else is away. Taking one changes that day only.
+        </p>
+        <div class="overflow-hidden rounded-2xl border border-amber-200 bg-white dark:border-amber-500/20 dark:bg-slate-800">
+            @foreach($openShifts as $spare)
+                <div class="flex items-center justify-between gap-3 border-b border-slate-100 p-4 last:border-b-0 dark:border-slate-700/60">
+                    <div class="flex items-start gap-3">
+                        <span class="mt-0.5 inline-block h-9 w-1.5 shrink-0 rounded-full" style="background-color: {{ $spare->shift->color ?? '#3B82F6' }}"></span>
+                        <div>
+                            <p class="font-bold text-slate-900 dark:text-white">
+                                {{ $spare->date->format('D j M') }} · {{ $spare->shift->name }}
+                            </p>
+                            <p class="text-sm text-slate-500 dark:text-slate-400">
+                                {{ substr($spare->shift->start_time, 0, 5) }}–{{ substr($spare->shift->end_time, 0, 5) }}
+                                · {{ $spare->user->first_name }} is away
+                            </p>
+                        </div>
+                    </div>
+
+                    <form method="POST" action="{{ route('shifts.claim') }}">
+                        @csrf
+                        <input type="hidden" name="date" value="{{ $spare->date->toDateString() }}">
+                        <input type="hidden" name="shift_id" value="{{ $spare->shift->id }}">
+                        <input type="hidden" name="covers_user_id" value="{{ $spare->user->id }}">
+                        <button type="submit" class="shrink-0 rounded-xl bg-brand-600 px-4 py-2 text-sm font-bold text-slate-900 shadow-sm transition hover:bg-brand-700">
+                            I'll take it
+                        </button>
+                    </form>
+                </div>
+            @endforeach
+        </div>
+    </div>
+    @endif
 </div>
 @endsection

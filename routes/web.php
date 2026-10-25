@@ -924,6 +924,12 @@ Route::middleware(['auth', 'verified', 'force.password.change'])->group(function
     // Employee personal routes
     Route::get('my-schedule', [\App\Http\Controllers\PageController::class, 'mySchedule'])->name('shifts.my-schedule');
 
+    // Taking an open shift, and giving it back. Any signed-in employee: the
+    // people who know they are free are the people who are free. Writes a rota
+    // row only — nothing here touches attendance or the biometric path.
+    Route::post('open-shifts/claim', [\App\Http\Controllers\ShiftCoverageController::class, 'claim'])->name('shifts.claim');
+    Route::delete('open-shifts/{assignment}', [\App\Http\Controllers\ShiftCoverageController::class, 'release'])->name('shifts.release');
+
     // Office Locations & Shifts (Admin Only)
     Route::middleware(['role:hr_admin,super_admin'])->group(function () {
         Route::resource('shifts', ShiftController::class)->except(['create', 'edit', 'show']);

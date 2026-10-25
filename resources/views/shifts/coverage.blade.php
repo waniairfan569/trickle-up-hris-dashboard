@@ -96,9 +96,18 @@
 
                                 @if($gap->cover)
                                     <div class="flex items-center gap-2">
+                                        @php
+                                            // Somebody who put themselves on it set both fields to
+                                            // their own id. Worth showing: cover that was volunteered
+                                            // for and cover that was handed out are different news.
+                                            $volunteered = $gap->cover->assigned_by === $gap->cover->user_id;
+                                        @endphp
                                         <span class="inline-flex items-center gap-1.5 rounded-xl bg-emerald-50 px-3 py-1.5 text-sm font-bold text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400">
                                             <i data-lucide="user-round-check" class="h-4 w-4"></i>
                                             {{ trim(($gap->cover->user->first_name ?? '') . ' ' . ($gap->cover->user->last_name ?? '')) }}
+                                            @if($volunteered)
+                                                <span class="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300">took it</span>
+                                            @endif
                                         </span>
                                         <form method="POST" action="{{ route('shifts.coverage.uncover', $gap->cover) }}"
                                               onsubmit="return confirm('Remove this cover? The shift goes back to having nobody on it.')">

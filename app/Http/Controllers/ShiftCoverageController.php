@@ -113,6 +113,80 @@ class ShiftCoverageController extends Controller
             . ' is covering ' . Carbon::parse($date)->format('D j M') . '. Their usual shifts are unchanged.');
     }
 
+    /**
+     * Somebody taking an open shift themselves, rather than being put on it.
+     *
+     * Open to any signed-in employee, which is the point: the people who know
+     * they are free are the people who are free, and HR arranging every hole
+     * by hand is how holes stay open.
+     *
+     * Nothing about attendance changes. This writes the same single-day rota
+     * row an admin would write, and whatever the person does at the device,
+     * the screen or the dashboard afterwards is untouched by it.
+     */
+    public function claim(Request $request)
+    {
+        $validated = $request->validate([
+            'date' => 'required|date',
+            'shift_id' => 'required|exists:shifts,id',
+            'covers_user_id' => 'required|exists:users,id',
+        ]);
+
+        $user = $request->user();
+        $date = Carbon::parse($validated['date'])->startOfDay();
+
+        // Re-asked rather than trusted. Everything that makes a shift takeable
+        // — still open, not their own, they are free, the day has not gone —
+        // lives in one method, so a stale page or a hand-made POST meets the
+        // same rules the page was drawn from.
+        $gap = $this->coverage->openShiftsFor($user, $date, $date)
+            ->first(fn ($g) => $g->shift->id === (int) $validated['shift_id']
+                && $g->user->id === (int) $validated['covers_user_id']);
+
+        if (! $gap) {
+            return back()->with('error', 'That shift is not open to you any more — somebody may have taken it.');
+        }
+
+        ShiftAssignment::create([
+            'user_id' => $user->id,
+            'shift_id' => $gap->shift->id,
+            // Themselves, which is how a shift somebody volunteered for is
+            // told apart later from one HR handed them. No column needed.
+            'assigned_by' => $user->id,
+            'covers_user_id' => $gap->user->id,
+            'assignment_type' => 'single',
+            'date' => $date->toDateString(),
+        ]);
+
+        ShiftCoverageAlert::where('user_id', $gap->user->id)
+            ->where('shift_id', $gap->shift->id)
+            ->whereDate('date', $date->toDateString())
+            ->delete();
+
+        return back()->with('success', 'You are on ' . $gap->shift->name . ' on '
+            . $date->format('D j M') . '. Your usual shifts are unchanged.');
+    }
+
+    /** Giving back a shift they took. Only ever their own, and only ahead of time. */
+    public function release(ShiftAssignment $assignment)
+    {
+        abort_unless($assignment->covers_user_id
+            && $assignment->assignment_type === 'single'
+            && $assignment->user_id === auth()->id(), 404);
+
+        // Once the day is here, dropping it is a conversation, not a button.
+        if ($assignment->date->lt(today())) {
+            return back()->with('error', 'That day has passed.');
+        }
+
+        if ($assignment->date->isToday()) {
+            return back()->with('error', 'Today cannot be dropped here — speak to HR.');
+        }
+
+        $assignment->delete();
+
+        return back()->with('success', 'Given back. The shift is open again.');
+    }
     public function uncover(ShiftAssignment $assignment)
     {
         abort_unless($assignment->covers_user_id && $assignment->assignment_type === 'single', 404);

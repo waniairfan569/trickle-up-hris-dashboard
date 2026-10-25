@@ -112,6 +112,22 @@ class PageController extends Controller
             ->whereNull('recurring_end_date')
             ->first();
 
-        return view('shifts.my-schedule', compact('activeAssignment'));
+        // Shifts going begging, and ones this person has already said they
+        // would take. Offered here rather than only at a clock-in screen so
+        // that somebody who clocks in on the biometric device — which cannot
+        // ask them anything — can still volunteer for one.
+        $horizon = today()->copy()->addDays(\App\Services\ShiftCoverageService::DEFAULT_HORIZON);
+
+        $openShifts = app(\App\Services\ShiftCoverageService::class)
+            ->openShiftsFor($user, today(), $horizon);
+
+        $covering = \App\Models\ShiftAssignment::with(['shift', 'coveringFor'])
+            ->where('user_id', $user->id)
+            ->whereNotNull('covers_user_id')
+            ->whereDate('date', '>=', today()->toDateString())
+            ->orderBy('date')
+            ->get();
+
+        return view('shifts.my-schedule', compact('activeAssignment', 'openShifts', 'covering'));
     }
 }

@@ -103,6 +103,80 @@ class ShiftCoverageService
     }
 
     /**
+     * Open shifts one particular person could take, looked at from their side.
+     *
+     * The mirror of candidates(): that asks "who can fill this hole", this asks
+     * "which holes can this person fill". Both have to agree, so this is the
+     * only place the rules live — the claim route re-derives from it rather
+     * than trusting what a page posted, because a page can be stale and a
+     * request can be hand-made.
+     *
+     * Nothing here touches attendance. Taking a shift writes a rota row; the
+     * clock-in that follows is the same clock-in it would always have been,
+     * by whatever means the person uses.
+     */
+    public function openShiftsFor(User $user, Carbon $from, Carbon $to): Collection
+    {
+        // A shift that has already been worked cannot be volunteered for.
+        $from = $from->lt(today()) ? today() : $from->copy();
+
+        if ($from->gt($to)) {
+            return collect();
+        }
+
+        $gaps = $this->gaps($from, $to)
+            ->filter(fn ($g) => ! $g->cover && $g->user->id !== $user->id);
+
+        if ($gaps->isEmpty()) {
+            return collect();
+        }
+
+        $busy = $this->busyDates($user, $from, $to);
+
+        $away = ($this->leaveIn([$user->id], $from, $to)->get($user->id) ?? collect());
+
+        return $gaps->reject(function ($g) use ($busy, $away) {
+            $key = $g->date->toDateString();
+
+            // Already working that day. A second shift is not cover, it is a
+            // clash, and the rota would then have to choose between the two.
+            if (in_array($key, $busy, true)) {
+                return true;
+            }
+
+            return (bool) $away->first(fn ($r) => $key >= $r->start_date->toDateString()
+                && $key <= $r->end_date->toDateString());
+        })->values();
+    }
+
+    /**
+     * Dates this person is already on something — their own pattern, a one-off,
+     * or cover they have already taken. Cover counts, which is why this cannot
+     * just reuse assignmentsIn.
+     */
+    private function busyDates(User $user, Carbon $from, Carbon $to): array
+    {
+        $ordinary = $this->assignmentsIn([$user->id], $from, $to)->get($user->id) ?? collect();
+
+        $dates = [];
+
+        for ($date = $from->copy(); $date->lte($to); $date->addDay()) {
+            if ($this->shiftOn($ordinary, $date)) {
+                $dates[] = $date->toDateString();
+            }
+        }
+
+        $covering = ShiftAssignment::where('user_id', $user->id)
+            ->whereNotNull('covers_user_id')
+            ->whereBetween('date', [$from->toDateString(), $to->toDateString()])
+            ->pluck('date')
+            ->map(fn ($d) => Carbon::parse($d)->toDateString())
+            ->all();
+
+        return array_values(array_unique(array_merge($dates, $covering)));
+    }
+
+    /**
      * Who could take this shift on this date.
      *
      * Anybody not themselves away. Somebody with no shift that day is listed
