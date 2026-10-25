@@ -21,6 +21,7 @@
                     <th class="px-5 py-3">Point</th>
                     <th class="px-5 py-3">Office</th>
                     <th class="px-5 py-3">Code changes</th>
+                    <th class="px-5 py-3">Tap a tag</th>
                     <th class="px-5 py-3">Last used</th>
                     <th class="px-5 py-3 text-right">Actions</th>
                 </tr>
@@ -33,12 +34,43 @@
                             {{ $point->officeLocation->name ?? 'Not tied to an office' }}
                         </td>
                         <td class="px-5 py-3 text-sm text-slate-500 dark:text-slate-400">every {{ $point->window() }}s</td>
+                        <td class="px-5 py-3 text-sm">
+                            @if($point->accepts_tap)
+                                <div x-data="{ shown: false }">
+                                    <button type="button" @click="shown = !shown"
+                                            class="text-xs font-bold text-emerald-700 hover:underline dark:text-emerald-400">
+                                        On · show the link
+                                    </button>
+                                    <div x-show="shown" x-cloak class="mt-2 max-w-xs" style="display:none">
+                                        {{-- Selected on click, because this gets copied into an NFC
+                                             writer app and a mistyped URL is a tag that looks fine
+                                             and never works. --}}
+                                        <input type="text" readonly value="{{ $point->tapUrl() }}"
+                                               onclick="this.select()"
+                                               class="w-full rounded-lg border-slate-200 bg-slate-50 px-2 py-1 font-mono text-[10px] text-slate-600 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-300">
+                                        <p class="mt-1 text-[10px] text-slate-400">Write this to an NFC tag</p>
+                                    </div>
+                                </div>
+                            @elseif($point->canAcceptTap())
+                                <span class="text-xs text-slate-400">Off</span>
+                            @else
+                                <span class="text-xs text-amber-600 dark:text-amber-400" title="A tap is only trusted because of where the phone is">Needs an office first</span>
+                            @endif
+                        </td>
                         <td class="px-5 py-3 text-sm text-slate-500 dark:text-slate-400">
                             {{ $point->last_used_at?->diffForHumans() ?? 'never' }}
                         </td>
                         <td class="px-5 py-3 text-right">
                             <a href="{{ route('qr-clock.display', $point) }}" target="_blank"
                                class="text-xs font-bold text-brand-600 hover:underline dark:text-brand-400">Open the screen</a>
+                            @if($point->accepts_tap || $point->canAcceptTap())
+                                <form method="POST" action="{{ route('nfc-clock.toggle', $point) }}" class="inline">
+                                    @csrf
+                                    <button class="ml-3 text-xs font-bold text-slate-500 hover:text-brand-600 dark:text-slate-400">
+                                        {{ $point->accepts_tap ? 'Turn tap off' : 'Turn tap on' }}
+                                    </button>
+                                </form>
+                            @endif
                             <form method="POST" action="{{ route('qr-clock.destroy', $point) }}" class="inline"
                                   onsubmit="return confirm('Remove this point? Nobody will be able to clock in here.')">
                                 @csrf @method('DELETE')
@@ -48,7 +80,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="5" class="px-5 py-10 text-center text-sm text-slate-400">
+                        <td colspan="6" class="px-5 py-10 text-center text-sm text-slate-400">
                             No points yet. Add one below, then open its screen on a tablet where people arrive.
                         </td>
                     </tr>
@@ -92,6 +124,12 @@
     </form>
 
     <div class="rounded-2xl border border-slate-200/80 bg-slate-50 p-5 text-xs text-slate-500 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-400">
+        <p><strong class="text-slate-700 dark:text-slate-300">Or a sticker instead of a screen.</strong> Turn tap on for a
+        point and write its link to an NFC tag — a sticker costs pennies and needs no power, no network and no screen.
+        Phones read it without an app. Because a tag cannot change what it holds, a tap is trusted on where the phone is
+        rather than on a code: it only works inside the office's radius, and a point with no office set cannot have tap
+        turned on at all.</p>
+
         <p><strong class="text-slate-700 dark:text-slate-300">How it works.</strong> Open a point's screen on a tablet
         or monitor where people arrive and leave it there. Somebody points their phone camera at it, signs in if they
         are not already, and confirms. The clock-in is recorded exactly as a manual one is — same geofence, same late

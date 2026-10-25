@@ -440,6 +440,8 @@ Route::middleware(['auth', 'verified', 'force.password.change'])->group(function
         ->name('qr-clock.store')->middleware('role:super_admin,hr_admin');
     Route::delete('qr-clock/{point}', [\App\Http\Controllers\QrClockController::class, 'destroy'])
         ->name('qr-clock.destroy')->middleware('role:super_admin,hr_admin');
+    Route::post('qr-clock/{point}/tap', [\App\Http\Controllers\NfcClockController::class, 'toggle'])
+        ->name('nfc-clock.toggle')->middleware('role:super_admin,hr_admin');
     Route::get('qr-clock/{point}/display', [\App\Http\Controllers\QrClockController::class, 'display'])
         ->name('qr-clock.display')->middleware('role:super_admin,hr_admin');
     Route::get('qr-clock/{point}/token', [\App\Http\Controllers\QrClockController::class, 'token'])
@@ -447,6 +449,11 @@ Route::middleware(['auth', 'verified', 'force.password.change'])->group(function
 
     Route::get('clock/{point}', [\App\Http\Controllers\QrClockController::class, 'scan'])->name('qr-clock.scan');
     Route::post('clock/{point}', [\App\Http\Controllers\QrClockController::class, 'punch'])->name('qr-clock.punch');
+
+    // Tapping a sticker. The token is fixed because it is glued to a wall;
+    // being inside the geofence is what is actually trusted here.
+    Route::get('tap/{point}/{token}', [\App\Http\Controllers\NfcClockController::class, 'tap'])->name('nfc-clock.tap');
+    Route::post('tap/{point}/{token}', [\App\Http\Controllers\NfcClockController::class, 'punch'])->name('nfc-clock.punch');
 
     // Right-to-work, DBS and the rest. No provider is connected; these record
     // what a person checked, with the evidence and the day it stops counting.

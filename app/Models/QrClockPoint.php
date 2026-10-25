@@ -19,11 +19,12 @@ class QrClockPoint extends Model
 
     protected $fillable = [
         'tenant_id', 'name', 'office_location_id', 'secret',
-        'rotate_seconds', 'is_active', 'last_used_at', 'created_by',
+        'rotate_seconds', 'accepts_tap', 'is_active', 'last_used_at', 'created_by',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
+        'accepts_tap' => 'boolean',
         'rotate_seconds' => 'integer',
         'last_used_at' => 'datetime',
     ];
@@ -75,6 +76,51 @@ class QrClockPoint extends Model
         }
 
         return false;
+    }
+
+    // ---- the sticker ----
+
+    /**
+     * The token in the sticker's URL.
+     *
+     * Fixed, unlike the scanned code, because it is written into a tag once
+     * and glued to a wall — a URL that changed would stop working the moment
+     * it was stuck down. It is derived from the secret rather than being the
+     * row id, so the set of live points cannot be walked by counting.
+     *
+     * It is not the proof of anything. Anybody standing at the sticker can
+     * read it, and that is fine: being at the sticker is what the geofence
+     * check is for.
+     */
+    public function tapToken(): string
+    {
+        return substr(hash_hmac('sha256', $this->id . '|tap', (string) $this->secret), 0, 20);
+    }
+
+    public function acceptsTapToken(string $token): bool
+    {
+        return $this->accepts_tap && hash_equals($this->tapToken(), $token);
+    }
+
+    /** What goes into the tag. Never changes for the life of the point. */
+    public function tapUrl(): string
+    {
+        return route('nfc-clock.tap', [$this, $this->tapToken()]);
+    }
+
+    /**
+     * Whether this point could accept taps at all.
+     *
+     * A tap is only ever trusted because of where the phone is, so a point
+     * with no place to measure against has nothing to trust. Switching tap on
+     * without an office location would create a clock-in anybody could use
+     * from anywhere, which is worse than having no tap at all.
+     */
+    public function canAcceptTap(): bool
+    {
+        $office = $this->officeLocation;
+
+        return $office && $office->latitude !== null && $office->longitude !== null;
     }
 
     private function slotFor(int $timestamp): int
