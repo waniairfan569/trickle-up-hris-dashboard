@@ -21,6 +21,16 @@ class AttendanceController extends Controller
 
     public function clockIn(Request $request)
     {
+        // A company or owner login is not a person who turns up, so it has no
+        // attendance to record. Checked on the employment record, never on the
+        // role: a real employee who is also an admin still clocks in.
+        if ($request->user()->isSystemAccount()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This is a company account rather than an employee record, so it does not clock in.',
+            ], 403);
+        }
+
         // Biometric-mode users must punch on the ZKTeco device — the dashboard
         // clock-in is hidden for them, so block the endpoint server-side too.
         if (!$request->user()->usesDashboardClockIn()) {
@@ -61,6 +71,13 @@ class AttendanceController extends Controller
 
     public function clockOut(Request $request)
     {
+        if ($request->user()->isSystemAccount()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This is a company account rather than an employee record, so it does not clock in.',
+            ], 403);
+        }
+
         if (!$request->user()->usesDashboardClockIn()) {
             return response()->json([
                 'success' => false,

@@ -373,6 +373,39 @@ class User extends Authenticatable implements MustVerifyEmail
         $this->featureKeyCache = null;
     }
 
+    /** The employment record behind this login, if there is one. */
+    public function employeeRecord()
+    {
+        return $this->hasOne(\App\Models\Employee::class, 'user_id');
+    }
+
+    /**
+     * An account that exists to run the system rather than to work in it — the
+     * company or owner login a client is set up with.
+     *
+     * Employment and access are separate things, and this is the employment
+     * one: it is read from the Employee record, never from the role. A real
+     * employee promoted to super_admin still turns up and still clocks in, and
+     * in a small agency the owner may be both.
+     *
+     * No employment record at all reads as a person, not as a system account.
+     * People are often given a login before their employee record is written,
+     * and taking silence for "not a person" would quietly remove their
+     * clock-in.
+     */
+    public function isSystemAccount(): bool
+    {
+        if (! array_key_exists('isSystemAccount', $this->systemAccountCache)) {
+            $this->systemAccountCache['isSystemAccount'] =
+                (bool) $this->employeeRecord()->value('is_system');
+        }
+
+        return $this->systemAccountCache['isSystemAccount'];
+    }
+
+    /** Asked on every page render, so the answer is kept for the request. */
+    protected array $systemAccountCache = [];
+
     /**
      * Whether this user clocks in/out from the dashboard (remote) rather than
      * only on the biometric device. Defaults to biometric when unset.

@@ -6,7 +6,12 @@
     use App\Services\ShiftService;
 
     $tsUser = auth()->user();
-    $tsStatus = $tsUser ? app(AttendanceService::class)->getTodayStatus($tsUser) : null;
+    // A company or owner login has no working day to show. Read from the
+    // employment record, not the role — an admin who is also a real employee
+    // keeps their timesheet.
+    $tsStatus = ($tsUser && ! $tsUser->isSystemAccount())
+        ? app(AttendanceService::class)->getTodayStatus($tsUser)
+        : null;
     // Biometric-only users punch on the ZKTeco device — the web clock button is
     // disabled for them (server also blocks the endpoint) so it's clear, not an error.
     $tsCanClock = $tsUser ? $tsUser->usesDashboardClockIn() : false;

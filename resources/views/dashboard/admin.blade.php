@@ -182,9 +182,6 @@
     @include('partials.lateness-prompt')
     @include('partials.return-prompt')
 
-    @unless(auth()->user()->hasRole('super_admin'))
-    @endunless
-
     <!-- Employees waiting for a login code -->
     @include('partials.code-request-hr-banner')
 
