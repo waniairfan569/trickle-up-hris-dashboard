@@ -62,6 +62,17 @@ class SendCheckExpiryReminders extends Command
             }
 
             if ($dry) {
+                // The recipients are resolved on a dry run too, so the summary
+                // line reports what would actually happen rather than zero.
+                $recipients = $this->recipients();
+
+                if ($recipients->isEmpty()) {
+                    $this->warn('  No admin to tell — this would reach nobody.');
+                } else {
+                    $this->line('  recipients: ' . $recipients->pluck('email')->implode(', '));
+                    $sent += $recipients->count();
+                }
+
                 return;
             }
 

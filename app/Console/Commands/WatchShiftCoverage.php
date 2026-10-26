@@ -83,16 +83,27 @@ class WatchShiftCoverage extends Command
                 return;
             }
 
+            $recipients = $this->recipients();
+
             if ($dry) {
                 foreach ($fresh as $gap) {
                     $this->line('   would report: ' . $gap->date->format('D j M') . ' · '
                         . $gap->shift->name . ' · ' . ($gap->user->first_name ?? '') . ' (' . $gap->reason . ')');
                 }
 
+                // Counted here too, and the recipients looked up for real. An
+                // earlier version returned before either, so a dry run that had
+                // just listed forty holes signed off with "would send 0" — the
+                // one number somebody reads before letting the job loose.
+                if ($recipients->isEmpty()) {
+                    $this->warn('  No admin to tell — this would reach nobody.');
+                } else {
+                    $this->line('   recipients: ' . $recipients->pluck('email')->implode(', '));
+                    $sent += $recipients->count();
+                }
+
                 return;
             }
-
-            $recipients = $this->recipients();
 
             if ($recipients->isEmpty()) {
                 $this->warn('  No admin to tell.');
